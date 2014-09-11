@@ -17,12 +17,12 @@ dictionary <- read.csv('mini dictionary.csv', header = TRUE)
 # Reshape survey A into a four column database - ID, Variable, Response, Survey
 survey.A.melt <- melt(survey.A, id = 'ID')
 survey.A.melt <- select(survey.A.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.A.melt <- transform(survey.A.melt, Survey = 'A')
+survey.A.melt <- mutate(survey.A.melt, Survey = 'A')
 
 # Reshape survey B into a four column database - ID, Variable, Response, Survey
 survey.B.melt <- melt(survey.B, id = 'ID')
 survey.B.melt <- select(survey.B.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.B.melt <- transform(survey.B.melt, Survey = 'B')
+survey.B.melt <- mutate(survey.B.melt, Survey = 'B')
 
 # Bind survey data A and B, then join with dictionary (removing variables with no dictionary map)
 survey.combine <- rbind(survey.A.melt, survey.B.melt)
