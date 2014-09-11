@@ -4,9 +4,6 @@
 # with common variables and common responses.  The following mini-example is my first step.
 
 
-# TODO: move to small, real example
-# TODO: add excess variables to mini ex and handle appropriately
-
 # Overhead
 library(reshape2)
 suppressMessages(library(dplyr))
@@ -27,9 +24,10 @@ survey.B.melt <- melt(survey.B, id = 'ID')
 survey.B.melt <- select(survey.B.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.B.melt <- transform(survey.B.melt, Survey = 'B')
 
-# Bind survey data A and B, then join with dictionary
+# Bind survey data A and B, then join with dictionary (removing variables with no dictionary map)
 survey.combine <- rbind(survey.A.melt, survey.B.melt)
 survey.general <- left_join(x = survey.combine, y = dictionary, by = c("Survey", "Survey_Variable", "Survey_Response"))
+survey.general <- filter(survey.general, !is.na(Generic_Variable))
 
 # Prepare and flatten the joined file
 survey.prep <- survey.general %.%
