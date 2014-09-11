@@ -1,33 +1,43 @@
-# TODO: move to github
-# TODO: clean up, comment
-# TODO: work through survey B example
-# TODO: move to real example
+# Mini Example.R
+#
+# The broad goal is to develop a procedure to translate any number of on-board survey data sets into a single dataset
+# with common variables and common responses.  The following mini-example is my first step.
+
+
+# TODO: move to small, real example
 # TODO: add excess variables to mini ex and handle appropriately
 
-
+# Overhead
 library(reshape2)
-library(dplyr)
+suppressMessages(library(dplyr))
+library(stringr)
 
-# work through mini example
+# Data reads -- two survey data sets and one dictionary file
 survey.A <- read.csv('mini data A.csv', header = TRUE)
 survey.B <- read.csv('mini data B.csv', header= TRUE)
 dictionary <- read.csv('mini dictionary.csv', header = TRUE)
 
-# generalize survey A
+# Reshape survey A into a four column database - ID, Variable, Response, Survey
 survey.A.melt <- melt(survey.A, id = 'ID')
-names(survey.A.melt)[names(survey.A.melt) == 'variable'] <- 'Survey_Variable'
-names(survey.A.melt)[names(survey.A.melt) == 'value'] <- 'Survey_Response'
+survey.A.melt <- select(survey.A.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.A.melt <- transform(survey.A.melt, Survey = 'A')
 
-survey.A.join <- merge(x = survey.A.melt, y = dictionary, 
-                       by = c("Survey", "Survey_Variable", "Survey_Response"), 
-                       all.x = TRUE)
+# Reshape survey B into a four column database - ID, Variable, Response, Survey
+survey.B.melt <- melt(survey.B, id = 'ID')
+survey.B.melt <- select(survey.B.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.B.melt <- transform(survey.B.melt, Survey = 'B')
 
-# select columns of interest and reshape
-survey.A.clean <- survey.A.join[,c('ID', 'Generic_Variable', 'Generic_Response')]
+# Bind survey data A and B, then join with dictionary
+survey.combine <- rbind(survey.A.melt, survey.B.melt)
+survey.general <- left_join(x = survey.combine, y = dictionary, by = c("Survey", "Survey_Variable", "Survey_Response"))
 
-# build a flat file 
-survey.A.flat <- dcast(survey.A.clean, ID ~ Generic_Variable, value.var = 'Generic_Response')
+# Prepare and flatten the joined file
+survey.prep <- survey.general %.%
+  mutate(Unique_ID = paste(ID, Survey, sep = "-")) %.%
+  select(-Survey_Variable, -Survey_Response, -ID, -Survey)
 
+survey.flat <- dcast(survey.prep, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
+
+survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "-", c("ID", "Survey")))
 
 
