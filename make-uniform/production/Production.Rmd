@@ -13,12 +13,8 @@ runtime: shiny
 #### Purpose
 Procedure to translate any number of on-board survey data sets into a single dataset with common variables and common responses.  This is a work-in-progress production version of the procedures.  See ``../mini-example`` and ``../small-example`` for working proto-types.
 
-#### _LIMITATIONS_
-1.  Does not handle non-integer categories (need it do so?)
-
-
-START WITH ABOVE ISSUE AND FIX
-
+#### _ISSUES_
+1.  Check a few freqs comparing the input data and the derived flat file  
 
 #### _TODO_
 1.  Get all the data read in and overhead established
@@ -28,6 +24,7 @@ START WITH ABOVE ISSUE AND FIX
 5.  Interim solution -- build generic, process generic, add generic to SAS workflow
 6.  Add Tableau extracts
 7.  Operator-by-operator, re-factor SAS workflow
+8.  Add data types before exporting to RData
 
 
 ## Overhead
@@ -138,7 +135,6 @@ survey.to_flat <- survey.to_flat %.%
 survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
 
 survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "Operator")))
-
 
 ```
 
