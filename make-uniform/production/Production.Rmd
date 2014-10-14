@@ -8,7 +8,144 @@ output:
 runtime: shiny
 ---
 
-# START HERE WITH
+## Administration
+
+#### Purpose
+Procedure to translate any number of on-board survey data sets into a single dataset with common variables and common responses.  This is a work-in-progress production version of the procedures.  See ``../mini-example`` and ``../small-example`` for working proto-types.
+
+#### _LIMITATIONS_
+1.  Does not handle non-integer categories (need it do so?)
+
+
+START WITH ABOVE ISSUE AND FIX
+
+
+#### _TODO_
+1.  Get all the data read in and overhead established
+2.  Extract Sriram's variables for all of the datasets
+3.  Then go to the latest Redhill and latest ETC -- build full generalization
+4.  Add standard processing steps once data is in place
+5.  Interim solution -- build generic, process generic, add generic to SAS workflow
+6.  Add Tableau extracts
+7.  Operator-by-operator, re-factor SAS workflow
+
+
+## Overhead
+
+#### Libraries
+```{r overhead}
+library(knitr)
+library(reshape2)
+suppressMessages(library(dplyr))
+library(stringr)
+```
+
+#### Knitr config
+```{r config, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+## Operator specifics
+
+## Prepare Dictionary
+```{r prepare-dictionary}
+dictionary.all <- read.csv('Dictionary.csv', header = TRUE)
+
+# Prepare seperate dictionaries for categorical and non-categorical variables
+dictionary.non <- dictionary.all %.%
+  filter(Generic_Response == 'NONCATEGORICAL') %.%
+  select(Operator, Survey_Variable, Generic_Variable)
+
+dictionary.cat <- dictionary.all %.%
+  filter(Generic_Response != 'NONCATEGORICAL') %.%
+  mutate(Survey_Response = as.character(Survey_Response))
+
+```
+
+### Altamont Commuter Express
+```{r operator-ace}
+survey.ACE.key <- 'ACE'
+
+# Prepare ACE-specific dictionary
+dictionary.ACE <- dictionary.all %.%
+  filter(Operator == survey.ACE.key)
+
+variables.ACE <- as.character(factor(unique(unlist(dictionary.ACE$Survey_Variable, use.names = TRUE))))
+
+# Read ACE data and select variables of interest
+survey.ACE <- read.csv('M:/Data/OnBoard/Data and Reports/ACE/Redhill Data as CSV/ACE_2014 Final DataSet NO SINGLE QUOTE OR POUND.csv', header = TRUE)
+survey.ACE.select <- survey.ACE[ ,variables.ACE]
+
+# Reshape the data
+survey.ACE.melt <- melt(survey.ACE.select, id = 'Survey_ID')
+survey.ACE.melt <- select(survey.ACE.melt, ID = Survey_ID, Survey_Variable = variable, Survey_Response = value)
+survey.ACE.melt <- mutate(survey.ACE.melt, Operator = survey.ACE.key)
+
+```
+
+### Tri-Delta
+```{r operator-tridelta}
+survey.TRI.key <- 'Tri-Delta'
+
+# Prepare ACE-specific dictionary
+dictionary.TRI <- dictionary.all %.%
+  filter(Operator == survey.TRI.key)
+
+variables.TRI <- as.character(factor(unique(unlist(dictionary.TRI$Survey_Variable, use.names = TRUE))))
+
+# Read ACE data and select variables of interest
+survey.TRI <- read.csv('M:/Data/OnBoard/Data and Reports/Tri Delta/As CSV/Tri Delta_OnBoard_InterceptSurvey_Aug 24_Submitted_20140826 NO SINGLE QUOTE OR POUND.csv', header = TRUE)
+survey.TRI.select <- survey.TRI[ ,variables.TRI]
+
+# Reshape the data
+survey.TRI.melt <- melt(survey.TRI.select, id = 'ID')
+survey.TRI.melt <- select(survey.TRI.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.TRI.melt <- mutate(survey.TRI.melt, Operator = survey.TRI.key)
+
+```
+
+## Combine across operators and flatten
+```{r combine}
+survey.combine <- rbind(survey.ACE.melt, survey.TRI.melt)
+
+# Join the dictionary and prepare the categorical variables
+survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
+survey.cat <- left_join(survey.cat, dictionary.cat, by = c("Operator", "Survey_Variable", "Survey_Response"))
+survey.cat <- filter(survey.cat, !is.na(Generic_Variable))
+
+# Join the dictionary and prepare the non-categorical variables
+survey.non <- left_join(survey.combine, dictionary.non, by = c("Operator", "Survey_Variable"))
+survey.non <- survey.non %.%
+  filter(!is.na(Generic_Variable)) %.%
+  mutate(Generic_Response = Survey_Response)
+
+# Combine the categorical and non-categorical survey data and prepare to flatten
+survey.cat.to_flat <- survey.cat %.%
+  select(-Survey_Variable, -Survey_Response) %.%
+  mutate(Generic_Response = as.factor(Generic_Response))
+
+survey.non.to_flat <- survey.non %.%
+  select(-Survey_Variable, -Survey_Response) %.%
+  mutate(Generic_Response = as.factor(Generic_Response))
+
+survey.to_flat <- rbind(survey.cat.to_flat, survey.non.to_flat)
+
+# Put together and then take apart a unique ID when flattening
+survey.to_flat <- survey.to_flat %.%
+  mutate(Unique_ID = paste(ID, Operator, sep = "---")) %.%
+  select(-ID, -Operator)
+
+survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
+
+survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "Operator")))
+
+
+```
+
+
+## Extract Tableau summaries
+
+
 
 
 
