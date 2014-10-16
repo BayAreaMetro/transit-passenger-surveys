@@ -18,7 +18,7 @@ Procedure to translate any number of on-board survey data sets into a single dat
 
 #### _TODO_
 1.  Get all the data read in and overhead established
-2.  Extract Sriram's variables for all of the datasets
+2.  Extract Sriram's variables (workers, variables, hh size) for all of the datasets
 3.  Then go to the latest Redhill and latest ETC -- build full generalization
 4.  Add standard processing steps once data is in place
 5.  Interim solution -- build generic, process generic, add generic to SAS workflow
@@ -42,9 +42,7 @@ library(stringr)
 knitr::opts_chunk$set(cache=TRUE)
 ```
 
-## Operator specifics
-
-## Prepare Dictionary
+## Prepare Dictionaries
 ```{r prepare-dictionary}
 dictionary.all <- read.csv('Dictionary.csv', header = TRUE)
 
@@ -56,6 +54,36 @@ dictionary.non <- dictionary.all %.%
 dictionary.cat <- dictionary.all %.%
   filter(Generic_Response != 'NONCATEGORICAL') %.%
   mutate(Survey_Response = as.character(Survey_Response))
+
+```
+
+## Operator specifics
+
+### AC Transit
+```{r operator-actransit}
+survey.ACT.key <- 'AC Transit'
+
+# Prepare AC Transit-specific dictionary
+dictionary.ACT <- dictionary.all %.%
+  filter(Operator == survey.ACT.key)
+
+variables.ACT <- as.character(factor(unique(unlist(dictionary.ACT$Survey_Variable, use.names = TRUE))))
+
+# Read ACT data (weekday or weekend) and select variables of interest
+survey.ACT.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/AC Transit/Redhill Data as CSV/AC TRANSIT WEEKDAY CATI DATA NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.ACT.weekday.select <- survey.ACT.weekday[ ,variables.ACT]
+
+survey.ACT.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/AC Transit/Redhill Data as CSV/AC TRANSIT WEEKEND CATI DATA NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.ACT.weekend.select <- survey.ACT.weekend[ ,variables.ACT]
+
+survey.ACT.select <- rbind(survey.ACT.weekday.select, survey.ACT.weekend.select)
+
+# Reshape the data
+survey.ACT.melt <- melt(survey.ACT.select, id = 'ID')
+survey.ACT.melt <- select(survey.ACT.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.ACT.melt <- mutate(survey.ACT.melt, Operator = survey.ACT.key)
 
 ```
 
@@ -77,6 +105,31 @@ survey.ACE.select <- survey.ACE[ ,variables.ACE]
 survey.ACE.melt <- melt(survey.ACE.select, id = 'Survey_ID')
 survey.ACE.melt <- select(survey.ACE.melt, ID = Survey_ID, Survey_Variable = variable, Survey_Response = value)
 survey.ACE.melt <- mutate(survey.ACE.melt, Operator = survey.ACE.key)
+
+```
+
+### County Connection
+
+# START HERE: UPDATE DICTIONARY FOR CCCTA
+
+```{r operator-cccta}
+
+survey.CCC.key <- 'County Connection'
+
+# Prepare ACE-specific dictionary
+dictionary.CCC <- dictionary.all %.%
+  filter(Operator == survey.CCC.key)
+
+variables.CCC <- as.character(factor(unique(unlist(dictionary.CCC$Survey_Variable, use.names = TRUE))))
+
+# Read ACE data and select variables of interest
+survey.CCC <- read.csv('M:/Data/OnBoard/Data and Reports/County Connection/Redhill Data as CSV/County Connection CATI DATA Weekday-Weekend (With MTC Dayparts) NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+survey.CCC.select <- survey.CCC[ ,variables.CCC]
+
+# Reshape the data
+survey.CCC.melt <- melt(survey.CCC.select, id = 'ID')
+survey.CCC.melt <- select(survey.CCC.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.CCC.melt <- mutate(survey.CCC.melt, Operator = survey.CCC.key)
 
 ```
 
@@ -103,7 +156,7 @@ survey.TRI.melt <- mutate(survey.TRI.melt, Operator = survey.TRI.key)
 
 ## Combine across operators and flatten
 ```{r combine}
-survey.combine <- rbind(survey.ACE.melt, survey.TRI.melt)
+survey.combine <- rbind(survey.ACE.melt, survey.ACT.melt, survey.CCC.melt, survey.TRI.melt)
 
 # Join the dictionary and prepare the categorical variables
 survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
