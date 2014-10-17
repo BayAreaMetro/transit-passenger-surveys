@@ -14,7 +14,9 @@ runtime: shiny
 Procedure to translate any number of on-board survey data sets into a single dataset with common variables and common responses.  This is a work-in-progress production version of the procedures.  See ``../mini-example`` and ``../small-example`` for working proto-types.
 
 #### _ISSUES_
-1.  Check a few freqs comparing the input data and the derived flat file  
+1.  Check a few freqs comparing the input data and the derived flat file
+2.  Handle Redhill follow up an trip purpose
+3.  ACE dest_purp gets lost somewhere
 
 #### _TODO_
 1.  Get all the data read in and overhead established
@@ -109,9 +111,6 @@ survey.ACE.melt <- mutate(survey.ACE.melt, Operator = survey.ACE.key)
 ```
 
 ### County Connection
-
-# START HERE: UPDATE DICTIONARY FOR CCCTA
-
 ```{r operator-cccta}
 
 survey.CCC.key <- 'County Connection'
@@ -132,6 +131,36 @@ survey.CCC.melt <- select(survey.CCC.melt, ID, Survey_Variable = variable, Surve
 survey.CCC.melt <- mutate(survey.CCC.melt, Operator = survey.CCC.key)
 
 ```
+
+
+### Golden Gate Transit (bus)
+```{r operator-goldengate}
+survey.GGT.key <- 'Golden Gate Transit'
+
+# Prepare Golden Gate-specific dictionary
+dictionary.GGT <- dictionary.all %.%
+  filter(Operator == survey.GGT.key)
+
+variables.GGT <- as.character(factor(unique(unlist(dictionary.GGT$Survey_Variable, use.names = TRUE))))
+
+# Read GGT data (weekday or weekend) and select variables of interest
+survey.GGT.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Transit Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.GGT.weekday.select <- survey.GGT.weekday[ ,variables.GGT]
+
+survey.GGT.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Transit Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.GGT.weekend.select <- survey.GGT.weekend[ ,variables.GGT]
+
+survey.GGT.select <- rbind(survey.GGT.weekday.select, survey.GGT.weekend.select)
+
+# Reshape the data
+survey.GGT.melt <- melt(survey.GGT.select, id = 'ID')
+survey.GGT.melt <- select(survey.GGT.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.GGT.melt <- mutate(survey.GGT.melt, Operator = survey.GGT.key)
+
+```
+
 
 ### Tri-Delta
 ```{r operator-tridelta}
@@ -156,7 +185,7 @@ survey.TRI.melt <- mutate(survey.TRI.melt, Operator = survey.TRI.key)
 
 ## Combine across operators and flatten
 ```{r combine}
-survey.combine <- rbind(survey.ACE.melt, survey.ACT.melt, survey.CCC.melt, survey.TRI.melt)
+survey.combine <- rbind(survey.ACE.melt, survey.ACT.melt, survey.CCC.melt, survey.GGT.melt, survey.TRI.melt)
 
 # Join the dictionary and prepare the categorical variables
 survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
@@ -189,6 +218,15 @@ survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = '
 
 survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "Operator")))
 
+```
+
+## Quality checks
+```{r qaqc}
+survey.flat.ACE <- survey.flat %.%
+  filter(Operator == 'ACE')
+
+temp <- survey.cat %.%
+  filter(Survey_Variable == 'Destination_Type')
 ```
 
 
