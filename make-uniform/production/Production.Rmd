@@ -16,7 +16,6 @@ Procedure to translate any number of on-board survey data sets into a single dat
 #### _ISSUES_
 1.  Check a few freqs comparing the input data and the derived flat file
 2.  Handle Redhill follow up an trip purpose
-3.  ACE dest_purp gets lost somewhere
 
 #### _TODO_
 1.  Get all the data read in and overhead established
@@ -161,6 +160,9 @@ survey.GGT.melt <- mutate(survey.GGT.melt, Operator = survey.GGT.key)
 
 ```
 
+# START HERE ON GG FERRY
+
+
 
 ### Tri-Delta
 ```{r operator-tridelta}
@@ -222,11 +224,15 @@ survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID",
 
 ## Quality checks
 ```{r qaqc}
-survey.flat.ACE <- survey.flat %.%
-  filter(Operator == 'ACE')
+
+table(survey.cat$Survey_Variable)
+
 
 temp <- survey.cat %.%
   filter(Survey_Variable == 'Destination_Type')
+
+donkey <- left_join(temp, dictionary.cat, by = c("Operator", "Survey_Variable", "Survey_Response"))
+
 ```
 
 
