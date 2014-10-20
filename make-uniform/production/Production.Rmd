@@ -22,7 +22,7 @@ Procedure to translate any number of on-board survey data sets into a single dat
 2.  Extract Sriram's variables (workers, variables, hh size) for all of the datasets
 3.  Then go to the latest Redhill and latest ETC -- build full generalization
 4.  Add standard processing steps once data is in place
-5.  Interim solution -- build generic, process generic, add generic to SAS workflow
+5.  Interim solution -- build generic, process generic, add generic to SAS files (via CSV and R), extract any new variables from generic
 6.  Add Tableau extracts
 7.  Operator-by-operator, re-factor SAS workflow
 8.  Add data types before exporting to RData
@@ -133,7 +133,7 @@ survey.CCC.melt <- mutate(survey.CCC.melt, Operator = survey.CCC.key)
 
 
 ### Golden Gate Transit (bus)
-```{r operator-goldengate}
+```{r operator-goldengatebus}
 survey.GGT.key <- 'Golden Gate Transit'
 
 # Prepare Golden Gate-specific dictionary
@@ -160,7 +160,36 @@ survey.GGT.melt <- mutate(survey.GGT.melt, Operator = survey.GGT.key)
 
 ```
 
-# START HERE ON GG FERRY
+# START HERE ON GG FERRY (edit input CATI files, start on data dictionary)
+
+### Golden Gate Transit (ferry)
+```{r operator-goldengateferry}
+survey.GGF.key <- 'Golden Gate Ferry'
+
+# Prepare Golden Gate-specific dictionary
+dictionary.GGF <- dictionary.all %.%
+  filter(Operator == survey.GGF.key)
+
+variables.GGF <- as.character(factor(unique(unlist(dictionary.GGF$Survey_Variable, use.names = TRUE))))
+
+# Read GGF data (weekday or weekend) and select variables of interest
+survey.GGF.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Ferry Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.GGF.weekday.select <- survey.GGF.weekday[ ,variables.GGF]
+
+survey.GGF.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Ferry Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.GGF.weekend.select <- survey.GGF.weekend[ ,variables.GGF]
+
+survey.GGF.select <- rbind(survey.GGF.weekday.select, survey.GGF.weekend.select)
+
+# Reshape the data
+survey.GGF.melt <- melt(survey.GGF.select, id = 'ID')
+survey.GGF.melt <- select(survey.GGF.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.GGF.melt <- mutate(survey.GGF.melt, Operator = survey.GGF.key)
+
+```
+
 
 
 
