@@ -88,6 +88,7 @@ survey.ACT.melt <- mutate(survey.ACT.melt, Operator = survey.ACT.key)
 
 ```
 
+
 ### Altamont Commuter Express
 ```{r operator-ace}
 survey.ACE.key <- 'ACE'
@@ -108,6 +109,7 @@ survey.ACE.melt <- select(survey.ACE.melt, ID = Survey_ID, Survey_Variable = var
 survey.ACE.melt <- mutate(survey.ACE.melt, Operator = survey.ACE.key)
 
 ```
+
 
 ### County Connection
 ```{r operator-cccta}
@@ -160,7 +162,6 @@ survey.GGT.melt <- mutate(survey.GGT.melt, Operator = survey.GGT.key)
 
 ```
 
-# START HERE ON GG FERRY (edit input CATI files, start on data dictionary)
 
 ### Golden Gate Transit (ferry)
 ```{r operator-goldengateferry}
@@ -191,6 +192,33 @@ survey.GGF.melt <- mutate(survey.GGF.melt, Operator = survey.GGF.key)
 ```
 
 
+### Livermore Amador Valley Transit (LAVTA or WHEELS)
+```{r operator-lavta}
+survey.LAV.key <- 'LAVTA'
+
+# Prepare LAVTA-specific dictionary
+dictionary.LAV <- dictionary.all %.%
+  filter(Operator == survey.LAV.key)
+
+variables.LAV <- as.character(factor(unique(unlist(dictionary.LAV$Survey_Variable, use.names = TRUE))))
+
+# Read LAV data (weekday or weekend) and select variables of interest
+survey.LAV.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/LAVTA/Redhill Data as CSV/LAVTA Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.LAV.weekday.select <- survey.LAV.weekday[ ,variables.LAV]
+
+survey.LAV.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/LAVTA/Redhill Data as CSV/LAVTA Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.LAV.weekend.select <- survey.LAV.weekend[ ,variables.LAV]
+
+survey.LAV.select <- rbind(survey.LAV.weekday.select, survey.LAV.weekend.select)
+
+# Reshape the data
+survey.LAV.melt <- melt(survey.LAV.select, id = 'ID')
+survey.LAV.melt <- select(survey.LAV.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.LAV.melt <- mutate(survey.LAV.melt, Operator = survey.LAV.key)
+
+```
 
 
 ### Tri-Delta
@@ -216,7 +244,7 @@ survey.TRI.melt <- mutate(survey.TRI.melt, Operator = survey.TRI.key)
 
 ## Combine across operators and flatten
 ```{r combine}
-survey.combine <- rbind(survey.ACE.melt, survey.ACT.melt, survey.CCC.melt, survey.GGT.melt, survey.TRI.melt)
+survey.combine <- rbind(survey.ACE.melt, survey.ACT.melt, survey.CCC.melt, survey.GGT.melt, survey.GGF.melt, survey.LAV.melt, survey.TRI.melt)
 
 # Join the dictionary and prepare the categorical variables
 survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
@@ -254,18 +282,19 @@ survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID",
 ## Quality checks
 ```{r qaqc}
 
-table(survey.cat$Survey_Variable)
-
-
-temp <- survey.cat %.%
-  filter(Survey_Variable == 'Destination_Type')
-
-donkey <- left_join(temp, dictionary.cat, by = c("Operator", "Survey_Variable", "Survey_Response"))
+# working space
 
 ```
 
+## Build Standard Data set variables
+
+## Bring in Legacy SAS Data set
 
 ## Extract Tableau summaries
+
+## Write working set to RData
+
+## Prepare and Write public data set to CSV
 
 
 
