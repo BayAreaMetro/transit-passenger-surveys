@@ -17,7 +17,6 @@ Procedure to translate any number of on-board survey data sets into a single dat
 1.  Check a few freqs comparing the input data and the derived flat file
 
 #### _TODO_
-2.  Extract Sriram's variables (hh size remains) for all of the datasets
 3.  Then go to the latest Redhill (maybe) and latest ETC (certainly) -- build full generalization
 4.  Add standard processing steps once data is in place
 5.  Working solution -- build generic, process generic, bring in legacy SAS data (via CSV and R), extract any new variables from generic
@@ -457,6 +456,9 @@ survey.to_flat <- survey.to_flat %.%
 survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
 
 survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "Operator")))
+
+# Write temporary version to disk
+write.csv(survey.flat, "D:/files/My Box Files/Travel Model Two Development/Demand/Regional On-board Survey Processing/_WORKING/Additional Variables/Workers Vehicles and Persons.csv", row.names = FALSE, quote = T)
 
 ```
 
