@@ -17,7 +17,7 @@ Procedure to translate any number of on-board survey data sets into a single dat
 1.  Check a few freqs comparing the input data and the derived flat file
 
 #### _TODO_
-3.  Then go to the latest Redhill (maybe) and latest ETC (certainly) -- build full generalization
+3.  Build full generalization with latest ETC 
 4.  Add standard processing steps once data is in place
 5.  Working solution -- build generic, process generic, bring in legacy SAS data (via CSV and R), extract any new variables from generic
 6.  Add Tableau extracts
@@ -502,15 +502,12 @@ survey.to_flat <- rbind(survey.cat.to_flat, survey.non.to_flat)
 
 # Put together and then take apart a unique ID when flattening
 survey.to_flat <- survey.to_flat %>%
-  mutate(Unique_ID = paste(ID, Operator, sep = "---")) %>%
-  select(-ID, -Operator)
+  mutate(Unique_ID = paste(ID, Operator, survey_year, sep = "---")) %>%
+  select(-ID, -Operator, -survey_year)
 
 survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
 
-survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "Operator")))
-
-# Write temporary version to disk
-write.csv(survey.flat, "D:/files/My Box Files/Travel Model Two Development/Demand/Regional On-board Survey Processing/_WORKING/Additional Variables/Workers Vehicles and Persons.csv", row.names = FALSE, quote = T)
+survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "Operator", "survey_year")))
 
 ```
 
@@ -518,8 +515,13 @@ write.csv(survey.flat, "D:/files/My Box Files/Travel Model Two Development/Deman
 ```{r qaqc}
 
 table(survey.flat$Operator)
+table(survey.flat$orig_purp)
 temp <- survey.flat %>%
   filter(Operator == 'Napa Vine')
+
+temp <- survey.flat %>%
+  group_by(Operator, orig_purp) %>%
+  summarise(Count = n())
 
 ```
 
@@ -528,33 +530,55 @@ temp <- survey.flat %>%
 
 # Standardize year born
 survey.standard <- survey.flat %>%
-  mutate(year_born_four_digit = ifelse(is.na(year_born_two_digit), as.numeric(year_born_four_digit), as.numeric(year_born_two_digit) + 1900)) %>%
-  select(-year_born_two_digit)
+  mutate(year_born = ifelse(is.na(year_born_two_digit), as.numeric(year_born_four_digit), as.numeric(year_born_two_digit) + 1900)) %>%
+  select(-year_born_two_digit, -year_born_four_digit)
 
-table(survey.standard$year_born_four_digit)
+# Manual fixes to year born
+survey.standard <- survey.standard %>%
+  mutate(year_born = ifelse(year_born == 1900, 2000, year_born)) %>%
+  mutate(year_born = ifelse(year_born == 1901, 2001, year_born)) %>%
+  mutate(year_born = ifelse(year_born == 3884, 1984, year_born))
 
-# START HERE: COMPUTE AGE WITH YEAR BORN AND SURVEY YEAR
+table(survey.standard$year_born)
 
+# Compute approximate respondent age 
+survey.standard <- survey.standard %>%
+  mutate(approximate_age = survey_year - year_born)
 
-
-
-
-
+table(survey.standard$approximate_age)
 
 # Refine school purpose
+survey.standard <- survey.standard %>%
+  mutate(orig_purp = ifelse(orig_purp == "school", "high school", orig_purp)) %>%
+  mutate(orig_purp = ifelse(orig_purp == "school" & year_born < 14, "grade_school", orig_purp))
+
+table(survey.standard$orig_purp)
+table(survey.standard$dest_purp)
 
 # Tour purpose
-survey.standard <- survey.flat %>%
+survey.standard <- survey.standard %>%
   mutate(tour_purp = 'missing') %>%
+  # workers -- simple
   mutate(tour_purp = ifelse(tour_purp == 'missing' & orig_purp == 'home' & dest_purp == 'work', 'work', tour_purp)) %>%
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & orig_purp == 'home' & dest_purp == 'work', 'work', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & orig_purp == 'work' & dest_purp == 'home', 'work', tour_purp)) %>%
+  # students -- simple
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & (orig_purp == 'grade school' | dest_purp == 'grade school'), 'grade school', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & (orig_purp == 'high school'  | dest_purp == 'high school'),  'high  school', tour_purp)) %>%
+  # non-working university students
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & worker_status == 'non-worker' & (orig_purp == 'college'  | dest_purp == 'college'),  'university', tour_purp)) %>%
+  # non-workers, non-students, home-based travel
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & worker_status == 'non-worker' & student_status == 'non-student' & orig_purp == 'home', dest_purp, tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & worker_status == 'non-worker' & student_status == 'non-student' & dest_purp == 'home', orig_purp, tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & worker_status == 'non-worker' & student_status == 'non-student' & orig_purp == dest_purp, orig_purp, tour_purp))
+           
+  
 
 table(survey.standard$tour_purp)
 
 ```
 
 
-### Add Data types (?)
+### Add Data types
 
 ## Bring in Legacy SAS Data set
 
