@@ -17,13 +17,12 @@ Procedure to translate any number of on-board survey data sets into a single dat
 1.  Check a few freqs comparing the input data and the derived flat file
 
 #### _TODO_
-3.  Build full generalization with latest ETC 
+3.  Build full generalization with latest ETC -- how to handle geo-coding?  (write XY to disk for geo-coding and then re-join?)
 4.  Add standard processing steps once data is in place
 5.  Working solution -- build generic, process generic, bring in legacy SAS data (via CSV and R), extract any new variables from generic
 6.  Add Tableau extracts
 7.  Use generic for new operators
 8.  Add data types before exporting to RData
-
 
 ## Overhead
 
@@ -85,6 +84,8 @@ survey.ACT.melt <- select(survey.ACT.melt, ID, Survey_Variable = variable, Surve
 survey.ACT.melt <- mutate(survey.ACT.melt, Operator = survey.ACT.key)
 survey.ACT.melt <- mutate(survey.ACT.melt, survey_year = survey.ACT.year)
 
+# Clean up
+remove(survey.ACT.key, survey.ACT.year, dictionary.ACT, variables.ACT, survey.ACT.weekday, survey.ACT.weekend, survey.ACT.weekday.select, survey.ACT.weekend.select, survey.ACT.select)
 ```
 
 
@@ -109,6 +110,8 @@ survey.ACE.melt <- select(survey.ACE.melt, ID = Survey_ID, Survey_Variable = var
 survey.ACE.melt <- mutate(survey.ACE.melt, Operator = survey.ACE.key)
 survey.ACE.melt <- mutate(survey.ACE.melt, survey_year = survey.ACE.year)
 
+# Clean up
+remove(survey.ACE.key, survey.ACE.year, dictionary.ACE, variables.ACE, survey.ACE, survey.ACE.select)
 ```
 
 ### Caltrain Pilot
@@ -132,6 +135,8 @@ survey.CAL.melt <- select(survey.CAL.melt, ID, Survey_Variable = variable, Surve
 survey.CAL.melt <- mutate(survey.CAL.melt, Operator = survey.CAL.key)
 survey.CAL.melt <- mutate(survey.CAL.melt, survey_year = survey.CAL.year)
 
+# Clean up
+remove(survey.CAL.key, survey.CAL.year, dictionary.CAL, variables.CAL, survey.CAL, survey.CAL.select)
 ```
 
 
@@ -157,6 +162,8 @@ survey.CCC.melt <- select(survey.CCC.melt, ID, Survey_Variable = variable, Surve
 survey.CCC.melt <- mutate(survey.CCC.melt, Operator = survey.CCC.key)
 survey.CCC.melt <- mutate(survey.CCC.melt, survey_year = survey.CCC.year)
 
+# Clean up
+remove(survey.CCC.key, survey.CCC.year, dictionary.CCC, variables.CCC, survey.CCC, survey.CCC.select)
 ```
 
 
@@ -188,6 +195,8 @@ survey.GGT.melt <- select(survey.GGT.melt, ID, Survey_Variable = variable, Surve
 survey.GGT.melt <- mutate(survey.GGT.melt, Operator = survey.GGT.key)
 survey.GGT.melt <- mutate(survey.GGT.melt, survey_year = survey.GGT.year)
 
+# Clean up
+remove(survey.GGT.key, survey.GGT.year, dictionary.GGT, variables.GGT, survey.GGT.weekday, survey.GGT.weekend, survey.GGT.weekday.select, survey.GGT.weekend.select, survey.GGT.select)
 ```
 
 
@@ -219,6 +228,8 @@ survey.GGF.melt <- select(survey.GGF.melt, ID, Survey_Variable = variable, Surve
 survey.GGF.melt <- mutate(survey.GGF.melt, Operator = survey.GGF.key)
 survey.GGF.melt <- mutate(survey.GGF.melt, survey_year = survey.GGF.year)
 
+# Clean up
+remove(survey.GGF.key, survey.GGF.year, dictionary.GGF, variables.GGF, survey.GGF.weekday, survey.GGF.weekend, survey.GGF.weekday.select, survey.GGF.weekend.select, survey.GGF.select)
 ```
 
 
@@ -250,6 +261,8 @@ survey.LAV.melt <- select(survey.LAV.melt, ID, Survey_Variable = variable, Surve
 survey.LAV.melt <- mutate(survey.LAV.melt, Operator = survey.LAV.key)
 survey.LAV.melt <- mutate(survey.LAV.melt, survey_year = survey.LAV.year)
 
+# Clean up
+remove(survey.LAV.key, survey.LAV.year, dictionary.LAV, variables.LAV, survey.LAV.weekday, survey.LAV.weekend, survey.LAV.weekday.select, survey.LAV.weekend.select, survey.LAV.select)
 ```
 
 
@@ -274,6 +287,8 @@ survey.NAP.melt <- select(survey.NAP.melt, ID, Survey_Variable = variable, Surve
 survey.NAP.melt <- mutate(survey.NAP.melt, Operator = survey.NAP.key)
 survey.NAP.melt <- mutate(survey.NAP.melt, survey_year = survey.NAP.year)
 
+# Clean up
+remove(survey.NAP.key, survey.NAP.year, dictionary.NAP, variables.NAP, survey.NAP, survey.NAP.select)
 ```
 
 
@@ -298,6 +313,8 @@ survey.PET.melt <- select(survey.PET.melt, ID, Survey_Variable = variable, Surve
 survey.PET.melt <- mutate(survey.PET.melt, Operator = survey.PET.key)
 survey.PET.melt <- mutate(survey.PET.melt, survey_year = survey.PET.year)
 
+# Clean up
+remove(survey.PET.key, survey.PET.year, dictionary.PET, variables.PET, survey.PET, survey.PET.select)
 ```
 
 
@@ -329,6 +346,8 @@ survey.SAM.melt <- select(survey.SAM.melt, ID, Survey_Variable = variable, Surve
 survey.SAM.melt <- mutate(survey.SAM.melt, Operator = survey.SAM.key)
 survey.SAM.melt <- mutate(survey.SAM.melt, survey_year = survey.SAM.year)
 
+# Clean up
+remove(survey.SAM.key, survey.SAM.year, dictionary.SAM, variables.SAM, survey.SAM.weekday, survey.SAM.weekend, survey.SAM.weekday.select, survey.SAM.weekend.select, survey.SAM.select)
 ```
 
 
@@ -353,6 +372,8 @@ survey.SRC.melt <- select(survey.SRC.melt, ID, Survey_Variable = variable, Surve
 survey.SRC.melt <- mutate(survey.SRC.melt, Operator = survey.SRC.key)
 survey.SRC.melt <- mutate(survey.SRC.melt, survey_year = survey.SRC.year)
 
+# Clean up
+remove(survey.SRC.key, survey.SRC.year, dictionary.SRC, variables.SRC, survey.SRC, survey.SRC.select)
 ```
 
 
@@ -377,6 +398,8 @@ survey.SON.melt <- select(survey.SON.melt, ID, Survey_Variable = variable, Surve
 survey.SON.melt <- mutate(survey.SON.melt, Operator = survey.SON.key)
 survey.SON.melt <- mutate(survey.SON.melt, survey_year = survey.SON.year)
 
+# Clean up
+remove(survey.SON.key, survey.SON.year, dictionary.SON, variables.SON, survey.SON, survey.SON.select)
 ```
 
 
@@ -401,6 +424,8 @@ survey.TRI.melt <- select(survey.TRI.melt, ID, Survey_Variable = variable, Surve
 survey.TRI.melt <- mutate(survey.TRI.melt, Operator = survey.TRI.key)
 survey.TRI.melt <- mutate(survey.TRI.melt, survey_year = survey.TRI.year)
 
+# Clean up
+remove(survey.TRI.key, survey.TRI.year, dictionary.TRI, variables.TRI, survey.TRI, survey.TRI.select)
 ```
 
 
@@ -425,6 +450,8 @@ survey.UCT.melt <- select(survey.UCT.melt, ID, Survey_Variable = variable, Surve
 survey.UCT.melt <- mutate(survey.UCT.melt, Operator = survey.UCT.key)
 survey.UCT.melt <- mutate(survey.UCT.melt, survey_year = survey.UCT.year)
 
+# Clean up
+remove(survey.UCT.key, survey.UCT.year, dictionary.UCT, variables.UCT, survey.UCT, survey.UCT.select)
 ```
 
 
@@ -450,13 +477,14 @@ survey.WET.weekend.select <- survey.WET.weekend[ ,variables.WET]
 
 survey.WET.select <- rbind(survey.WET.weekday.select, survey.WET.weekend.select)
 
-
 # Reshape the data
 survey.WET.melt <- melt(survey.WET.select, id = 'ID')
 survey.WET.melt <- select(survey.WET.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.WET.melt <- mutate(survey.WET.melt, Operator = survey.WET.key)
 survey.WET.melt <- mutate(survey.WET.melt, survey_year = survey.WET.year)
 
+# Clean up
+remove(survey.WET.key, survey.WET.year, dictionary.WET, variables.WET, survey.WET.weekday, survey.WET.weekend, survey.WET.weekday.select, survey.WET.weekend.select, survey.WET.select)
 ```
 
 
@@ -509,24 +537,43 @@ survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = '
 
 survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "Operator", "survey_year")))
 
+remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat)
+remove(survey.ACE.melt, 
+       survey.ACT.melt,
+       survey.CAL.melt,
+       survey.CCC.melt, 
+       survey.GGT.melt, 
+       survey.GGF.melt, 
+       survey.LAV.melt, 
+       survey.NAP.melt, 
+       survey.PET.melt, 
+       survey.SAM.melt, 
+       survey.SRC.melt, 
+       survey.SON.melt,
+       survey.TRI.melt,
+       survey.UCT.melt,
+       survey.WET.melt)
+
 ```
 
 ## Quality checks
 ```{r qaqc}
 
-table(survey.flat$Operator)
-table(survey.flat$orig_purp)
-temp <- survey.flat %>%
-  filter(Operator == 'Napa Vine')
-
-temp <- survey.flat %>%
-  group_by(Operator, orig_purp) %>%
-  summarise(Count = n())
+# table(survey.flat$Operator)
+# table(survey.flat$orig_purp)
+# temp <- survey.flat %>%
+#   filter(Operator == 'Napa Vine')
+# 
+# temp <- survey.flat %>%
+#   group_by(Operator, orig_purp) %>%
+#   summarise(Count = n())
 
 ```
 
-## Build Standard Data set variables
+## Build Standard variables
 ```{r standard-variables}
+# Step 1:  Age-related transformations
+# -------------------------------------------------------------------------------------
 
 # Standardize year born
 survey.standard <- survey.flat %>%
@@ -547,13 +594,13 @@ survey.standard <- survey.standard %>%
 
 table(survey.standard$approximate_age)
 
+# Step 2:  Trip- and tour-purpose-related transformations
+# -------------------------------------------------------------------------------------
+
 # Refine school purpose
 survey.standard <- survey.standard %>%
   mutate(orig_purp = ifelse(orig_purp == "school", "high school", orig_purp)) %>%
   mutate(orig_purp = ifelse(orig_purp == "school" & approximate_age < 14, "grade_school", orig_purp))
-
-table(survey.standard$orig_purp)
-table(survey.standard$dest_purp)
 
 # (Approximate) Tour purpose
 survey.standard <- survey.standard %>%
@@ -604,17 +651,77 @@ survey.standard <- survey.standard %>%
   
   # at work tours
   mutate(tour_purp = ifelse(tour_purp == 'missing' & at_work_prior_to_orig_purp == 'at work before surveyed trip' & dest_purp == 'work', 'at work', tour_purp)) %>%
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & at_work_after_dest_purp == 'at work after surveyed trip' & orig_purp == 'work', 'at work', tour_purp))
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & at_work_after_dest_purp == 'at work after surveyed trip' & orig_purp == 'work', 'at work', tour_purp)) %>%
+  
+  # if still left and work before or after the trip, assume work tour
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & at_work_after_dest_purp == 'at work after surveyed trip' & at_work_prior_to_orig_purp == 'at work before surveyed trip', 'work', tour_purp)) %>%
+  
+  # if still left and home is one end, chose the other as the purpose
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & orig_purp == 'home', dest_purp, tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & dest_purp == 'home', orig_purp, tour_purp)) %>%
+  
+  # if still left, pick the orig_purp
+  mutate(tour_purp = ifelse(tour_purp == 'missing', orig_purp, tour_purp))
            
-      
-
 table(survey.standard$tour_purp)
 
+
+# Step 3:  Update Key locations
+# -------------------------------------------------------------------------------------
+
+# Home
+survey.standard <- survey.standard %>%
+  mutate(home_lat = ifelse(orig_purp == 'home' & is.na(home_lat), orig_lat, home_lat)) %>%
+  mutate(home_lon = ifelse(orig_purp == 'home' & is.na(home_lon), orig_lon, home_lon)) %>%
+  mutate(home_lat = ifelse(dest_purp == 'home' & is.na(home_lat), dest_lat, home_lat)) %>%
+  mutate(home_lon = ifelse(dest_purp == 'home' & is.na(home_lon), dest_lon, home_lon)) %>%
+  
+# Work
+  mutate(workplace_lat = ifelse(orig_purp == 'work' & is.na(workplace_lat), orig_lat, workplace_lat)) %>%
+  mutate(workplace_lon = ifelse(orig_purp == 'work' & is.na(workplace_lon), orig_lon, workplace_lon)) %>%
+  mutate(workplace_lat = ifelse(dest_purp == 'work' & is.na(workplace_lat), dest_lat, workplace_lat)) %>%
+  mutate(workplace_lon = ifelse(dest_purp == 'work' & is.na(workplace_lon), dest_lon, workplace_lon)) %>%
+  
+# School
+  mutate(school_lat = ifelse((orig_purp == 'grade school' | orig_purp == 'high school' | orig_purp == 'college') & is.na(school_lat), orig_lat, school_lat)) %>%
+  mutate(school_lon = ifelse((orig_purp == 'grade school' | orig_purp == 'high school' | orig_purp == 'college') & is.na(school_lon), orig_lon, school_lon)) %>%
+  mutate(school_lat = ifelse((dest_purp == 'grade school' | dest_purp == 'high school' | dest_purp == 'college') & is.na(school_lat), dest_lat, school_lat)) %>%
+  mutate(school_lon = ifelse((dest_purp == 'grade school' | dest_purp == 'high school' | dest_purp == 'college') & is.na(school_lon), dest_lon, school_lon)) 
+  
+
+# Step 4:  Automobile Sufficiency
+# -------------------------------------------------------------------------------------
+
+# Transform vehicles and workers to standard scale
+survey.standard <- survey.standard %>%
+  mutate(vehicles = ifelse(vehicles == 'other', vehicles_additional_info, vehicles)) %>%
+  mutate(workers  = ifelse(workers  == 'other', workers_additional_info,  workers ))
+
+table(survey.standard$vehicles)
+table(survey.standard$workers)
+
+vehicles.dictionary <- data.frame(vehicles = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more'), vehicle_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
+
+workers.dictionary <- data.frame(workers = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'six or more'), worker_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
+
+survey.standard <- left_join(survey.standard, vehicles.dictionary, by = c("vehicles"))
+survey.standard <- left_join(survey.standard, workers.dictionary, by = c("workers"))
+
+survey.standard <- survey.standard %>%
+  mutate(auto_suff = ifelse(vehicle_numeric_cat == 0, 'zero autos', 'missing')) %>%
+  mutate(auto_suff = ifelse(vehicle_numeric_cat > 0 & worker_numeric_cat > 0  & worker_numeric_cat >  vehicle_numeric_cat, 'auto negotiating', auto_suff)) %>%
+  mutate(auto_suff = ifelse(vehicle_numeric_cat > 0 & worker_numeric_cat >= 0 & worker_numeric_cat <= vehicle_numeric_cat, 'auto sufficient', auto_suff))
+
+table(survey.standard$auto_suff)
+
+# START HERE ON TECHNOLOGY + OPERATOR SEQUENCE
+
 temp <- survey.standard %>%
-  filter(tour_purp == 'missing')
+   filter(Operator == 'Caltrain Pilot')
 
 ```
 
+### Geocode XY to Travel Model Geographies
 
 ### Add Data types
 
