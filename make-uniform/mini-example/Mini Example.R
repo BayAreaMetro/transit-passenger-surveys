@@ -27,12 +27,12 @@ survey.B.melt <- mutate(survey.B.melt, Survey = 'B')
 survey.combine <- rbind(survey.A.melt, survey.B.melt)
 
 # Prepare seperate dictionaries for categorical and non-categorical variables
-dictionary.non <- dictionary.all %.%
-  filter(Generic_Response == 'NONCATEGORICAL') %.%
+dictionary.non <- dictionary.all %>%
+  filter(Generic_Response == 'NONCATEGORICAL') %>%
   select(Survey, Survey_Variable, Generic_Variable)
 
-dictionary.cat <- dictionary.all %.%
-  filter(Generic_Response != 'NONCATEGORICAL') %.%
+dictionary.cat <- dictionary.all %>%
+  filter(Generic_Response != 'NONCATEGORICAL') %>%
   mutate(Survey_Response = as.character(Survey_Response))
   
 # Join the dictionary and prepare the categorical variables
@@ -42,27 +42,28 @@ survey.cat <- filter(survey.cat, !is.na(Generic_Variable))
 
 # Join the dictionary and prepare the non-categorical variables
 survey.non <- left_join(survey.combine, dictionary.non, by = c("Survey", "Survey_Variable"))
-survey.non <- survey.non %.%
-  filter(!is.na(Generic_Variable)) %.%
+survey.non <- survey.non %>%
+  filter(!is.na(Generic_Variable)) %>%
   mutate(Generic_Response = Survey_Response)
 
 # Combine the categorical and non-categorical survey data and prepare to flatten
-survey.cat.to_flat <- survey.cat %.%
-  select(-Survey_Variable, -Survey_Response) %.%
+survey.cat.to_flat <- survey.cat %>%
+  select(-Survey_Variable, -Survey_Response) %>%
   mutate(Generic_Response = as.factor(Generic_Response))
 
-survey.non.to_flat <- survey.non %.%
-  select(-Survey_Variable, -Survey_Response) %.%
+survey.non.to_flat <- survey.non %>%
+  select(-Survey_Variable, -Survey_Response) %>%
   mutate(Generic_Response = as.factor(Generic_Response))
 
 survey.to_flat <- rbind(survey.cat.to_flat, survey.non.to_flat)
 
 # Put together and then take apart a unique ID when flattening
-survey.to_flat <- survey.to_flat %.%
-  mutate(Unique_ID = paste(ID, Survey, sep = "-")) %.%
+survey.to_flat <- survey.to_flat %>%
+  mutate(Unique_ID = paste(ID, Survey, sep = "-")) %>%
   select(-ID, -Survey)
   
 survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
 
 survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "-", c("ID", "Survey")))
   
+
