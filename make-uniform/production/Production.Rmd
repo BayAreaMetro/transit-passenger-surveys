@@ -571,6 +571,39 @@ remove(survey.ACE.melt,
 
 ```
 
+## Method Library for Standardization
+```{r methods}
+# Set Operator Name
+Set_Operator_Name <- function(input_df){
+  
+  output_df <- input_df %>%
+    mutate(output_field = ifelse(!is.na(input_field), "None", input_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("AC Transit")) > 0L, "AC TRANSIT", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Amtrak")) > 0L, "AMTRAK", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("BART")) > 0L, "BART", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("AirBART")) > 0L, "MUNI", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Capitol Corridor")) > 0L, "AMTRAK", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("County Connection")) > 0L,"COUNTY CONNECTION", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Fairfield and")) > 0L,"FAIRFIELD-SUISUN",output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Golden Gate Tran")) > 0L, "GOLDEN GATE TRANSIT", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Muni")) > 0L, "MUNI", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("SamTrans")) > 0L, "SAMTRANS",  output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("SF Bay Ferry")) > 0L, "SF BAY FERRY", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Soltrans")) > 0L, "SOLTRANS", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Tri Delta")) > 0L, "TRI-DELTA",  output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("WestCAT")) > 0L, "WESTCAT",  output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("VINE")) > 0L, "NAPA VINE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("VTA")) > 0L, "VTA", output_field)) %>% 
+    
+    # OTHER
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Stanford")) > 0L,  "PRIVATE SHUTTLE", output_field))
+  
+  return(output_df)
+}
+
+```
+
+
 ## Build Standard variables
 ```{r standard-variables}
 # Step 1:  Age-related transformations
@@ -715,10 +748,20 @@ survey.standard <- survey.standard %>%
 
 table(survey.standard$auto_suff)
 
-# START HERE ON TECHNOLOGY + OPERATOR SEQUENCE
 
-temp <- survey.standard %>%
-   filter(Operator == 'Caltrain Pilot')
+# Step 5:  Operator and Technology sequence
+# -------------------------------------------------------------------------------------
+
+# START HERE ON TECHNOLOGY + OPERATOR SEQUENCE
+table(survey.standard$first_route_before_survey_board)
+
+input_df <- survey.standard %>%
+  select(Unique_ID, input_field = first_route_before_survey_board)
+
+first_route_before <- Set_Operator_Name(input_df)
+
+table(first_route_before$output_field)
+
 
 ```
 
