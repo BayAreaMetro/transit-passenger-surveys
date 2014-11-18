@@ -24,6 +24,7 @@ Procedure to translate any number of on-board survey data sets into a single dat
 6.  Add Tableau extracts
 7.  Use generic for new operators
 8.  Add data types before exporting to RData
+9.  How to handle operators with mixed modes
 
 ## Overhead
 
@@ -61,6 +62,7 @@ dictionary.cat <- dictionary.all %>%
 ```{r operator-actransit}
 survey.ACT.key  <- 'AC Transit'
 survey.ACT.year <- 2012
+survey.ACT.tech <- 'local bus'
 
 # Prepare operator-specific-specific dictionary
 dictionary.ACT <- dictionary.all %>%
@@ -84,9 +86,10 @@ survey.ACT.melt <- melt(survey.ACT.select, id = 'ID')
 survey.ACT.melt <- select(survey.ACT.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.ACT.melt <- mutate(survey.ACT.melt, Operator = survey.ACT.key)
 survey.ACT.melt <- mutate(survey.ACT.melt, survey_year = survey.ACT.year)
+survey.ACT.melt <- mutate(survey.ACT.melt, survey_tech = survey.ACT.tech)
 
 # Clean up
-remove(survey.ACT.key, survey.ACT.year, dictionary.ACT, variables.ACT, survey.ACT.weekday, survey.ACT.weekend, survey.ACT.weekday.select, survey.ACT.weekend.select, survey.ACT.select)
+remove(survey.ACT.key, survey.ACT.year, survey.ACT.tech, dictionary.ACT, variables.ACT, survey.ACT.weekday, survey.ACT.weekend, survey.ACT.weekday.select, survey.ACT.weekend.select, survey.ACT.select)
 ```
 
 
@@ -94,6 +97,7 @@ remove(survey.ACT.key, survey.ACT.year, dictionary.ACT, variables.ACT, survey.AC
 ```{r operator-ace}
 survey.ACE.key  <- 'ACE'
 survey.ACE.year <- 2014
+survey.ACE.tech <- 'commuter rail'
 
 # Prepare operator-specific dictionary
 dictionary.ACE <- dictionary.all %>%
@@ -110,15 +114,17 @@ survey.ACE.melt <- melt(survey.ACE.select, id = 'Survey_ID')
 survey.ACE.melt <- select(survey.ACE.melt, ID = Survey_ID, Survey_Variable = variable, Survey_Response = value)
 survey.ACE.melt <- mutate(survey.ACE.melt, Operator = survey.ACE.key)
 survey.ACE.melt <- mutate(survey.ACE.melt, survey_year = survey.ACE.year)
+survey.ACE.melt <- mutate(survey.ACE.melt, survey_tech = survey.ACE.tech)
 
 # Clean up
-remove(survey.ACE.key, survey.ACE.year, dictionary.ACE, variables.ACE, survey.ACE, survey.ACE.select)
+remove(survey.ACE.key, survey.ACE.year, survey.ACE.tech, dictionary.ACE, variables.ACE, survey.ACE, survey.ACE.select)
 ```
 
 ### Caltrain Pilot
 ```{r operator-caltrain}
 survey.CAL.key  <- 'Caltrain Pilot'
 survey.CAL.year <- 2014
+survey.CAL.tech <- 'commuter rail'
 
 # Prepare operator-specific dictionary
 dictionary.CAL <- dictionary.all %>%
@@ -135,9 +141,10 @@ survey.CAL.melt <- melt(survey.CAL.select, id = 'ID')
 survey.CAL.melt <- select(survey.CAL.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.CAL.melt <- mutate(survey.CAL.melt, Operator = survey.CAL.key)
 survey.CAL.melt <- mutate(survey.CAL.melt, survey_year = survey.CAL.year)
+survey.CAL.melt <- mutate(survey.CAL.melt, survey_tech = survey.CAL.tech)
 
 # Clean up
-remove(survey.CAL.key, survey.CAL.year, dictionary.CAL, variables.CAL, survey.CAL, survey.CAL.select)
+remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, dictionary.CAL, variables.CAL, survey.CAL, survey.CAL.select)
 ```
 
 
@@ -146,6 +153,7 @@ remove(survey.CAL.key, survey.CAL.year, dictionary.CAL, variables.CAL, survey.CA
 ```{r operator-cccta}
 survey.CCC.key  <- 'County Connection'
 survey.CCC.year <- 2012
+survey.CCC.tech <- 'local bus'
 
 # Prepare operator-specific dictionary
 dictionary.CCC <- dictionary.all %>%
@@ -162,9 +170,10 @@ survey.CCC.melt <- melt(survey.CCC.select, id = 'ID')
 survey.CCC.melt <- select(survey.CCC.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.CCC.melt <- mutate(survey.CCC.melt, Operator = survey.CCC.key)
 survey.CCC.melt <- mutate(survey.CCC.melt, survey_year = survey.CCC.year)
+survey.CCC.melt <- mutate(survey.CCC.melt, survey_tech = survey.CCC.tech)
 
 # Clean up
-remove(survey.CCC.key, survey.CCC.year, dictionary.CCC, variables.CCC, survey.CCC, survey.CCC.select)
+remove(survey.CCC.key, survey.CCC.year, survey.CCC.tech, dictionary.CCC, variables.CCC, survey.CCC, survey.CCC.select)
 ```
 
 
@@ -172,6 +181,7 @@ remove(survey.CCC.key, survey.CCC.year, dictionary.CCC, variables.CCC, survey.CC
 ```{r operator-goldengatebus}
 survey.GGT.key  <- 'Golden Gate Transit'
 survey.GGT.year <- 2013
+survey.GGT.tech <- 'express bus'
 
 # Prepare operator-specific dictionary
 dictionary.GGT <- dictionary.all %>%
@@ -195,9 +205,10 @@ survey.GGT.melt <- melt(survey.GGT.select, id = 'ID')
 survey.GGT.melt <- select(survey.GGT.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.GGT.melt <- mutate(survey.GGT.melt, Operator = survey.GGT.key)
 survey.GGT.melt <- mutate(survey.GGT.melt, survey_year = survey.GGT.year)
+survey.GGT.melt <- mutate(survey.GGT.melt, survey_tech = survey.GGT.tech)
 
 # Clean up
-remove(survey.GGT.key, survey.GGT.year, dictionary.GGT, variables.GGT, survey.GGT.weekday, survey.GGT.weekend, survey.GGT.weekday.select, survey.GGT.weekend.select, survey.GGT.select)
+remove(survey.GGT.key, survey.GGT.year, survey.GGT.tech, dictionary.GGT, variables.GGT, survey.GGT.weekday, survey.GGT.weekend, survey.GGT.weekday.select, survey.GGT.weekend.select, survey.GGT.select)
 ```
 
 
@@ -205,6 +216,7 @@ remove(survey.GGT.key, survey.GGT.year, dictionary.GGT, variables.GGT, survey.GG
 ```{r operator-goldengateferry}
 survey.GGF.key  <- 'Golden Gate Ferry'
 survey.GGF.year <- 2013
+survey.GGF.tech <- 'ferry'
 
 # Prepare operator-specific dictionary
 dictionary.GGF <- dictionary.all %>%
@@ -228,9 +240,10 @@ survey.GGF.melt <- melt(survey.GGF.select, id = 'ID')
 survey.GGF.melt <- select(survey.GGF.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.GGF.melt <- mutate(survey.GGF.melt, Operator = survey.GGF.key)
 survey.GGF.melt <- mutate(survey.GGF.melt, survey_year = survey.GGF.year)
+survey.GGF.melt <- mutate(survey.GGF.melt, survey_tech = survey.GGF.tech)
 
 # Clean up
-remove(survey.GGF.key, survey.GGF.year, dictionary.GGF, variables.GGF, survey.GGF.weekday, survey.GGF.weekend, survey.GGF.weekday.select, survey.GGF.weekend.select, survey.GGF.select)
+remove(survey.GGF.key, survey.GGF.year, survey.GGF.tech, dictionary.GGF, variables.GGF, survey.GGF.weekday, survey.GGF.weekend, survey.GGF.weekday.select, survey.GGF.weekend.select, survey.GGF.select)
 ```
 
 
@@ -238,6 +251,7 @@ remove(survey.GGF.key, survey.GGF.year, dictionary.GGF, variables.GGF, survey.GG
 ```{r operator-lavta}
 survey.LAV.key  <- 'LAVTA'
 survey.LAV.year <- 2013
+survey.LAV.tech <- 'local bus'
 
 # Prepare operator-specific dictionary
 dictionary.LAV <- dictionary.all %>%
@@ -261,9 +275,10 @@ survey.LAV.melt <- melt(survey.LAV.select, id = 'ID')
 survey.LAV.melt <- select(survey.LAV.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.LAV.melt <- mutate(survey.LAV.melt, Operator = survey.LAV.key)
 survey.LAV.melt <- mutate(survey.LAV.melt, survey_year = survey.LAV.year)
+survey.LAV.melt <- mutate(survey.LAV.melt, survey_tech = survey.LAV.tech)
 
 # Clean up
-remove(survey.LAV.key, survey.LAV.year, dictionary.LAV, variables.LAV, survey.LAV.weekday, survey.LAV.weekend, survey.LAV.weekday.select, survey.LAV.weekend.select, survey.LAV.select)
+remove(survey.LAV.key, survey.LAV.year, survey.LAV.tech, dictionary.LAV, variables.LAV, survey.LAV.weekday, survey.LAV.weekend, survey.LAV.weekday.select, survey.LAV.weekend.select, survey.LAV.select)
 ```
 
 
@@ -271,6 +286,7 @@ remove(survey.LAV.key, survey.LAV.year, dictionary.LAV, variables.LAV, survey.LA
 ```{r operator-napa}
 survey.NAP.key  <- 'Napa Vine'
 survey.NAP.year <- 2014
+survey.NAP.tech <- 'local bus'
 
 # Prepare operator-specific dictionary
 dictionary.NAP <- dictionary.all %>%
@@ -287,9 +303,10 @@ survey.NAP.melt <- melt(survey.NAP.select, id = 'ID')
 survey.NAP.melt <- select(survey.NAP.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.NAP.melt <- mutate(survey.NAP.melt, Operator = survey.NAP.key)
 survey.NAP.melt <- mutate(survey.NAP.melt, survey_year = survey.NAP.year)
+survey.NAP.melt <- mutate(survey.NAP.melt, survey_tech = survey.NAP.tech)
 
 # Clean up
-remove(survey.NAP.key, survey.NAP.year, dictionary.NAP, variables.NAP, survey.NAP, survey.NAP.select)
+remove(survey.NAP.key, survey.NAP.year, survey.NAP.tech, dictionary.NAP, variables.NAP, survey.NAP, survey.NAP.select)
 ```
 
 
@@ -297,6 +314,7 @@ remove(survey.NAP.key, survey.NAP.year, dictionary.NAP, variables.NAP, survey.NA
 ```{r operator-petaluma}
 survey.PET.key  <- 'Petaluma'
 survey.PET.year <- 2012
+survey.PET.tech <- 'local bus'
 
 # Prepare operator-specific dictionary
 dictionary.PET <- dictionary.all %>%
@@ -313,9 +331,10 @@ survey.PET.melt <- melt(survey.PET.select, id = 'ID')
 survey.PET.melt <- select(survey.PET.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.PET.melt <- mutate(survey.PET.melt, Operator = survey.PET.key)
 survey.PET.melt <- mutate(survey.PET.melt, survey_year = survey.PET.year)
+survey.PET.melt <- mutate(survey.PET.melt, survey_tech = survey.PET.tech)
 
 # Clean up
-remove(survey.PET.key, survey.PET.year, dictionary.PET, variables.PET, survey.PET, survey.PET.select)
+remove(survey.PET.key, survey.PET.year, survey.PET.tech, dictionary.PET, variables.PET, survey.PET, survey.PET.select)
 ```
 
 
@@ -323,6 +342,7 @@ remove(survey.PET.key, survey.PET.year, dictionary.PET, variables.PET, survey.PE
 ```{r operator-samtrans}
 survey.SAM.key  <- 'SamTrans'
 survey.SAM.year <- 2013
+survey.SAM.tech <- 'local bus'
 
 # Prepare operator-specific dictionary
 dictionary.SAM <- dictionary.all %>%
@@ -346,9 +366,10 @@ survey.SAM.melt <- melt(survey.SAM.select, id = 'ID')
 survey.SAM.melt <- select(survey.SAM.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.SAM.melt <- mutate(survey.SAM.melt, Operator = survey.SAM.key)
 survey.SAM.melt <- mutate(survey.SAM.melt, survey_year = survey.SAM.year)
+survey.SAM.melt <- mutate(survey.SAM.melt, survey_tech = survey.SAM.tech)
 
 # Clean up
-remove(survey.SAM.key, survey.SAM.year, dictionary.SAM, variables.SAM, survey.SAM.weekday, survey.SAM.weekend, survey.SAM.weekday.select, survey.SAM.weekend.select, survey.SAM.select)
+remove(survey.SAM.key, survey.SAM.year, survey.SAM.tech, dictionary.SAM, variables.SAM, survey.SAM.weekday, survey.SAM.weekend, survey.SAM.weekday.select, survey.SAM.weekend.select, survey.SAM.select)
 ```
 
 
@@ -356,6 +377,7 @@ remove(survey.SAM.key, survey.SAM.year, dictionary.SAM, variables.SAM, survey.SA
 ```{r operator-santarosa}
 survey.SRC.key  <- 'Santa Rosa CityBus'
 survey.SRC.year <- 2012
+survey.SRC.tech <- 'local bus'
 
 # Prepare operator-specific dictionary
 dictionary.SRC <- dictionary.all %>%
@@ -372,9 +394,10 @@ survey.SRC.melt <- melt(survey.SRC.select, id = 'ID')
 survey.SRC.melt <- select(survey.SRC.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.SRC.melt <- mutate(survey.SRC.melt, Operator = survey.SRC.key)
 survey.SRC.melt <- mutate(survey.SRC.melt, survey_year = survey.SRC.year)
+survey.SRC.melt <- mutate(survey.SRC.melt, survey_tech = survey.SRC.tech)
 
 # Clean up
-remove(survey.SRC.key, survey.SRC.year, dictionary.SRC, variables.SRC, survey.SRC, survey.SRC.select)
+remove(survey.SRC.key, survey.SRC.year, survey.SRC.tech, dictionary.SRC, variables.SRC, survey.SRC, survey.SRC.select)
 ```
 
 
@@ -382,6 +405,7 @@ remove(survey.SRC.key, survey.SRC.year, dictionary.SRC, variables.SRC, survey.SR
 ```{r operator-sonoma}
 survey.SON.key  <- 'Sonoma County'
 survey.SON.year <- 2012
+survey.SON.tech <- 'local bus'
 
 # Prepare operator-specific dictionary
 dictionary.SON <- dictionary.all %>%
@@ -398,9 +422,10 @@ survey.SON.melt <- melt(survey.SON.select, id = 'ID')
 survey.SON.melt <- select(survey.SON.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.SON.melt <- mutate(survey.SON.melt, Operator = survey.SON.key)
 survey.SON.melt <- mutate(survey.SON.melt, survey_year = survey.SON.year)
+survey.SON.melt <- mutate(survey.SON.melt, survey_tech = survey.SON.tech)
 
 # Clean up
-remove(survey.SON.key, survey.SON.year, dictionary.SON, variables.SON, survey.SON, survey.SON.select)
+remove(survey.SON.key, survey.SON.year, survey.SON.tech, dictionary.SON, variables.SON, survey.SON, survey.SON.select)
 ```
 
 
@@ -408,6 +433,7 @@ remove(survey.SON.key, survey.SON.year, dictionary.SON, variables.SON, survey.SO
 ```{r operator-tridelta}
 survey.TRI.key  <- 'Tri-Delta'
 survey.TRI.year <- 2014
+survey.TRI.tech <- 'local bus'
 
 # Prepare dictionary
 dictionary.TRI <- dictionary.all %>%
@@ -424,9 +450,10 @@ survey.TRI.melt <- melt(survey.TRI.select, id = 'ID')
 survey.TRI.melt <- select(survey.TRI.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.TRI.melt <- mutate(survey.TRI.melt, Operator = survey.TRI.key)
 survey.TRI.melt <- mutate(survey.TRI.melt, survey_year = survey.TRI.year)
+survey.TRI.melt <- mutate(survey.TRI.melt, survey_tech = survey.TRI.tech)
 
 # Clean up
-remove(survey.TRI.key, survey.TRI.year, dictionary.TRI, variables.TRI, survey.TRI, survey.TRI.select)
+remove(survey.TRI.key, survey.TRI.year, survey.TRI.tech, dictionary.TRI, variables.TRI, survey.TRI, survey.TRI.select)
 ```
 
 
@@ -434,6 +461,7 @@ remove(survey.TRI.key, survey.TRI.year, dictionary.TRI, variables.TRI, survey.TR
 ```{r operator-union}
 survey.UCT.key  <- 'Union City'
 survey.UCT.year <- 2013
+survey.UCT.tech <- 'local bus'
 
 # Prepare operator-specific dictionary
 dictionary.UCT <- dictionary.all %>%
@@ -450,9 +478,10 @@ survey.UCT.melt <- melt(survey.UCT.select, id = 'ID')
 survey.UCT.melt <- select(survey.UCT.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.UCT.melt <- mutate(survey.UCT.melt, Operator = survey.UCT.key)
 survey.UCT.melt <- mutate(survey.UCT.melt, survey_year = survey.UCT.year)
+survey.UCT.melt <- mutate(survey.UCT.melt, survey_tech = survey.UCT.tech)
 
 # Clean up
-remove(survey.UCT.key, survey.UCT.year, dictionary.UCT, variables.UCT, survey.UCT, survey.UCT.select)
+remove(survey.UCT.key, survey.UCT.year, survey.UCT.tech, dictionary.UCT, variables.UCT, survey.UCT, survey.UCT.select)
 ```
 
 
@@ -460,6 +489,7 @@ remove(survey.UCT.key, survey.UCT.year, dictionary.UCT, variables.UCT, survey.UC
 ```{r operator-ferry}
 survey.WET.key  <- 'SF Bay Ferry'
 survey.WET.year <- 2013
+survey.WET.tech <- 'ferry'
 
 # Prepare operator-specific dictionary
 dictionary.WET <- dictionary.all %>%
@@ -483,9 +513,10 @@ survey.WET.melt <- melt(survey.WET.select, id = 'ID')
 survey.WET.melt <- select(survey.WET.melt, ID, Survey_Variable = variable, Survey_Response = value)
 survey.WET.melt <- mutate(survey.WET.melt, Operator = survey.WET.key)
 survey.WET.melt <- mutate(survey.WET.melt, survey_year = survey.WET.year)
+survey.WET.melt <- mutate(survey.WET.melt, survey_tech = survey.WET.tech)
 
 # Clean up
-remove(survey.WET.key, survey.WET.year, dictionary.WET, variables.WET, survey.WET.weekday, survey.WET.weekend, survey.WET.weekday.select, survey.WET.weekend.select, survey.WET.select)
+remove(survey.WET.key, survey.WET.year, survey.WET.tech, dictionary.WET, variables.WET, survey.WET.weekday, survey.WET.weekend, survey.WET.weekday.select, survey.WET.weekend.select, survey.WET.select)
 ```
 
 
@@ -538,7 +569,13 @@ survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = '
 
 survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "Operator", "survey_year")))
 
-remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat)
+# Add in survey technology
+survey.tech <- survey.combine %>%
+  select(ID, Operator, survey_year, survey_tech)
+
+survey.flat <- left_join(survey.flat, survey.tech, by = c("ID", "Operator", "survey_year"))
+
+remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat, survey.tech)
 remove(survey.ACE.melt, 
        survey.ACT.melt,
        survey.CAL.melt,
@@ -574,18 +611,27 @@ remove(survey.ACE.melt,
 ## Method Library for Standardization
 ```{r methods}
 # Set Operator Name
-Set_Operator_Name <- function(input_df){
+Set_Operator_Name <- function(input_vector){
+  
+  input_df <- as.data.frame(input_vector)
+  colnames(input_df) <- c("input_field")
   
   output_df <- input_df %>%
     mutate(output_field = ifelse(!is.na(input_field), "None", input_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("AC Transit")) > 0L, "AC TRANSIT", output_field)) %>%
+    
+    # BART, AMTRAK, and Caltrain may be named in route names, so do first, then overwrite
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Amtrak")) > 0L, "AMTRAK", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("BART")) > 0L, "BART", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Caltrain")) > 0L, "CALTRAIN", output_field)) %>%
+    
+    # Transit Agencies
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("AC Transit")) > 0L, "AC TRANSIT", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("AirBART")) > 0L, "MUNI", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Capitol Corridor")) > 0L, "AMTRAK", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("County Connection")) > 0L,"COUNTY CONNECTION", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Fairfield and")) > 0L,"FAIRFIELD-SUISUN",output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Golden Gate Tran")) > 0L, "GOLDEN GATE TRANSIT", output_field)) %>%
+     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Golden Gate Ferry")) > 0L, "GOLDEN GATE FERRY", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Muni")) > 0L, "MUNI", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("SamTrans")) > 0L, "SAMTRANS",  output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("SF Bay Ferry")) > 0L, "SF BAY FERRY", output_field)) %>%
@@ -596,9 +642,57 @@ Set_Operator_Name <- function(input_df){
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("VTA")) > 0L, "VTA", output_field)) %>% 
     
     # OTHER
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Stanford")) > 0L,  "PRIVATE SHUTTLE", output_field))
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Stanford")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Commuter shuttle")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Corinthian lines shuttle")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Caltrain- Shuttles Genentech")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Kaiser shuttle")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("San Jose airport shuttle")) > 0L,  "PRIVATE SHUTTLE", output_field))
   
-  return(output_df)
+  return(output_df$output_field)
+}
+
+# Set Technology
+Set_Base_Technology <- function(input_vector){
+  
+  operator = c("AC TRANSIT",        "AIR BART",         "AMTRAK",              "BART",              "CALTRAIN",
+               "COUNTY CONNECTION", "FAIRFIELD-SUISUN", "GOLDEN GATE TRANSIT", "GOLDEN GATE FERRY", "MUNI", 
+               "NAPA VINE",         "SAMTRANS",         "SF BAY FERRY",        "SOLTRANS",          "TRI-DELTA", 
+               "WESTCAT",           "VTA",              "OTHER",               "PRIVATE SHUTTLE")
+  
+  technology = c("local bus", "local bus", "commuter rail", "heavy rail", "commuter rail",
+                 "local bus", "local bus", "express bus",   "ferry",      "local bus", 
+                 "local bus", "local bus", "ferry",         "local bus",  "local bus",
+                 "local bus", "local bus", "local bus",     "local bus")
+  
+  tech_df <- data.frame(operator, technology)
+  
+  
+  input_df <- as.data.frame(input_vector)
+  colnames(input_df) <- c("operator")
+  input_df <- mutate(input_df, operator = as.character(operator))
+  
+  output_df <- left_join(input_df, tech_df, by = c("operator"))
+  
+  return(output_df$technology)
+}
+
+# Update Technology
+Update_Technology <- function(input_vector){
+  
+  input_df <- as.data.frame(input_vector)
+  colnames(input_df) <- c("input_field")
+  
+  output_df <- input_df %>%
+    mutate(output_field = ifelse(!is.na(input_field), "No Update", input_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & 
+                                   str_count(input_field, ignore.case("Muni")) > 0L &
+                                   str_count(input_field, ignore.case("Light Rail")) > 0L, "light rail", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & 
+                                   str_count(input_field, ignore.case("VTA")) > 0L &
+                                   str_count(input_field, ignore.case("Light Rail")) > 0L, "light rail", output_field))
+  
+  return(output_df$output_field)
 }
 
 ```
@@ -752,17 +846,115 @@ table(survey.standard$auto_suff)
 # Step 5:  Operator and Technology sequence
 # -------------------------------------------------------------------------------------
 
-# START HERE ON TECHNOLOGY + OPERATOR SEQUENCE
-table(survey.standard$first_route_before_survey_board)
+# Set operator for each of six legs (three before, three after)
+first_before <- as.data.frame(Set_Operator_Name(survey.standard$first_route_before_survey_board))
+colnames(first_before) <- c("first_before_operator")
 
-input_df <- survey.standard %>%
-  select(Unique_ID, input_field = first_route_before_survey_board)
+second_before <- as.data.frame(Set_Operator_Name(survey.standard$second_route_before_survey_board))
+colnames(second_before) <- c("second_before_operator")
 
-first_route_before <- Set_Operator_Name(input_df)
+third_before <- as.data.frame(Set_Operator_Name(survey.standard$third_route_before_survey_board))
+colnames(third_before) <- c("third_before_operator")
 
-table(first_route_before$output_field)
+first_after <- as.data.frame(Set_Operator_Name(survey.standard$first_route_after_survey_alight))
+colnames(first_after) <- c("first_after_operator")
+
+second_after <- as.data.frame(Set_Operator_Name(survey.standard$second_route_after_survey_alight))
+colnames(second_after) <- c("second_after_operator")
+
+third_after <- as.data.frame(Set_Operator_Name(survey.standard$third_route_after_survey_alight))
+colnames(third_after) <- c("third_after_operator")
+
+survey.standard <- cbind(survey.standard, first_before, second_before, third_before, first_after, second_after, third_after)
+
+# Set the technology for each of the six legs
+first_before <- as.data.frame(Set_Base_Technology(survey.standard$first_before_operator))
+colnames(first_before) <- c("first_before_technology")
+
+second_before <- as.data.frame(Set_Base_Technology(survey.standard$second_before_operator))
+colnames(second_before) <- c("second_before_technology")
+
+third_before <- as.data.frame(Set_Base_Technology(survey.standard$third_before_operator))
+colnames(third_before) <- c("third_before_technology")
+
+first_after <- as.data.frame(Set_Base_Technology(survey.standard$first_after_operator))
+colnames(first_after) <- c("first_after_technology")
+
+second_after <- as.data.frame(Set_Base_Technology(survey.standard$second_after_operator))
+colnames(second_after) <- c("second_after_technology")
+
+third_after <- as.data.frame(Set_Base_Technology(survey.standard$third_after_operator))
+colnames(third_after) <- c("third_after_technology")
+
+survey.standard <- cbind(survey.standard, first_before, second_before, third_before, first_after, second_after, third_after)
+
+# Update the technology
+first_before <- as.data.frame(Update_Technology(survey.standard$first_route_before_survey_board))
+colnames(first_before) <- c("first_before_update_tech")
+
+second_before <- as.data.frame(Update_Technology(survey.standard$second_route_before_survey_board))
+colnames(second_before) <- c("second_before_update_tech")
+
+third_before <- as.data.frame(Update_Technology(survey.standard$third_route_before_survey_board))
+colnames(third_before) <- c("third_before_update_tech")
+
+first_after <- as.data.frame(Update_Technology(survey.standard$first_route_after_survey_alight))
+colnames(first_after) <- c("first_after_update_tech")
+
+second_after <- as.data.frame(Update_Technology(survey.standard$second_route_after_survey_alight))
+colnames(second_after) <- c("second_after_update_tech")
+
+third_after <- as.data.frame(Update_Technology(survey.standard$third_route_after_survey_alight))
+colnames(third_after) <- c("third_after_update_tech")
+
+survey.standard <- cbind(survey.standard, first_before, second_before, third_before, first_after, second_after, third_after)
+  
+table(survey.standard$first_before_technology)
+
+survey.standard <- survey.standard %>%
+  mutate(first_before_technology  = ifelse(first_before_update_tech  != "No Update", as.character(first_before_update_tech),  as.character(first_before_technology))) %>%
+  mutate(second_before_technology = ifelse(second_before_update_tech != "No Update", as.character(second_before_update_tech), as.character(second_before_technology))) %>%
+  mutate(third_before_technology  = ifelse(third_before_update_tech  != "No Update", as.character(third_before_update_tech),  as.character(third_before_technology))) %>%
+  mutate(first_after_technology   = ifelse(first_after_update_tech   != "No Update", as.character(first_after_update_tech),  as.character(first_after_technology))) %>%
+  mutate(second_after_technology  = ifelse(second_after_update_tech  != "No Update", as.character(second_after_update_tech),  as.character(second_after_technology))) %>%
+  mutate(third_after_technology   = ifelse(third_after_update_tech   != "No Update", as.character(third_after_update_tech),   as.character(third_after_technology)))
+
+table(survey.standard$first_before_technology)
 
 
+# Step 6:  Travel Model One path details
+# -------------------------------------------------------------------------------------
+
+# TODO: Adjust survey technology here if needed
+
+# START HERE AND GET IT WORKING
+
+
+# Transfer to and from
+survey.standard <- survey.standard %>%
+  mutate(transfer_from = as.character(first_before_operator)) %>%
+  mutate(transfer_from = ifelse(second_before_operator != 'None', as.character(second_before_operator), transfer_from)) %>%
+  mutate(transfer_from = ifelse(third_before_operator  != 'None', as.character(third_before_operator),  transfer_from)) %>%
+  mutate(transfer_to = as.character(first_after_operator))
+
+# First boarding and last alighting technology
+survey.standard <- survey.standard %>%
+  mutate(first_transit_tech = as.character(survey_tech)) %>%
+  mutate(first_transit_tech = ifelse(first_before_technology != 'None', first_before_technology, first_transit_tech)) %>%
+  mutate(last_transit_tech  = as.character(survey_tech)) %>%
+  mutate(last_transit_tech = ifelse(first_after_technology  != 'None', first_after_technology, last_transit_tech))  %>%
+  mutate(last_transit_tech = ifelse(second_after_technology != 'None', second_after_technology, last_transit_tech)) %>%
+  mutate(last_transit_tech = ifelse(third_after_technology  != 'None', third_after_technology, last_transit_tech))
+
+table(survey.standard$transfer_from)
+table(survey.standard$transfer_to)
+table(survey.standard$survey_tech)
+table(survey.standard$first_transit_tech)
+table(survey.standard$last_transit_tech)
+
+
+# Travel Model One path
+  
 ```
 
 ### Geocode XY to Travel Model Geographies
