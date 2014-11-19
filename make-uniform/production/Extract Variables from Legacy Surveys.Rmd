@@ -1,0 +1,530 @@
+---
+title: "Extract Variables from Legacy Surveys"
+author: "David Ory"
+output:
+  html_document:
+    theme: cosmo
+    toc: yes
+runtime: shiny
+---
+
+## Administration
+
+#### Purpose
+Procedure to translate any number of on-board survey data sets into a single dataset with common variables and common responses.  This is a work-in-progress production version of the procedures.  See ``../mini-example`` and ``../small-example`` for working proto-types.  In this script, we put in place procedures to extract variables from legacy surveys (i.e. those with SAS summary scripts).  See ``Build Standard Database.Rmd`` for procedures to process current surveys. 
+
+#### _ISSUES_
+1.  Check a few freqs comparing the input data and the derived flat file
+
+#### _TODO_
+3.  Write to disk
+4.  Figure out merge
+
+## Overhead
+
+#### Libraries
+```{r overhead}
+library(knitr)
+library(reshape2)
+suppressMessages(library(dplyr))
+library(stringr)
+```
+
+#### Knitr config
+```{r config, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+## Prepare Dictionaries
+```{r prepare-dictionary}
+dictionary.all <- read.csv('Dictionary for Legacy Surveys.csv', header = TRUE)
+
+# Prepare seperate dictionaries for categorical and non-categorical variables
+dictionary.non <- dictionary.all %>%
+  filter(Generic_Response == 'NONCATEGORICAL') %>%
+  select(Operator, Survey_Variable, Generic_Variable)
+
+dictionary.cat <- dictionary.all %>%
+  filter(Generic_Response != 'NONCATEGORICAL') %>%
+  mutate(Survey_Response = as.character(Survey_Response))
+
+```
+
+## Operator specifics
+
+### AC Transit
+```{r operator-actransit}
+survey.ACT.key  <- 'AC Transit'
+survey.ACT.year <- 2012
+
+# Prepare operator-specific-specific dictionary
+dictionary.ACT <- dictionary.all %>%
+  filter(Operator == survey.ACT.key)
+
+variables.ACT <- as.character(factor(unique(unlist(dictionary.ACT$Survey_Variable, use.names = TRUE))))
+
+# Read data (weekday or weekend) and select variables of interest
+survey.ACT.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/AC Transit/Redhill Data as CSV/AC TRANSIT WEEKDAY CATI DATA NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.ACT.weekday.select <- survey.ACT.weekday[ ,variables.ACT]
+
+survey.ACT.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/AC Transit/Redhill Data as CSV/AC TRANSIT WEEKEND CATI DATA NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.ACT.weekend.select <- survey.ACT.weekend[ ,variables.ACT]
+
+survey.ACT.select <- rbind(survey.ACT.weekday.select, survey.ACT.weekend.select)
+
+# Reshape the data
+survey.ACT.melt <- melt(survey.ACT.select, id = 'ID')
+survey.ACT.melt <- select(survey.ACT.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.ACT.melt <- mutate(survey.ACT.melt, Operator = survey.ACT.key)
+survey.ACT.melt <- mutate(survey.ACT.melt, survey_year = survey.ACT.year)
+
+# Clean up
+remove(survey.ACT.key, survey.ACT.year, dictionary.ACT, variables.ACT, survey.ACT.weekday, survey.ACT.weekend, survey.ACT.weekday.select, survey.ACT.weekend.select, survey.ACT.select)
+```
+
+
+### Altamont Commuter Express
+```{r operator-ace}
+survey.ACE.key  <- 'ACE'
+survey.ACE.year <- 2014
+
+# Prepare operator-specific dictionary
+dictionary.ACE <- dictionary.all %>%
+  filter(Operator == survey.ACE.key)
+
+variables.ACE <- as.character(factor(unique(unlist(dictionary.ACE$Survey_Variable, use.names = TRUE))))
+
+# Read ACE data and select variables of interest
+survey.ACE <- read.csv('M:/Data/OnBoard/Data and Reports/ACE/Redhill Data as CSV/ACE_2014 Final DataSet NO SINGLE QUOTE OR POUND.csv', header = TRUE)
+survey.ACE.select <- survey.ACE[ ,variables.ACE]
+
+# Reshape the data
+survey.ACE.melt <- melt(survey.ACE.select, id = 'Survey_ID')
+survey.ACE.melt <- select(survey.ACE.melt, ID = Survey_ID, Survey_Variable = variable, Survey_Response = value)
+survey.ACE.melt <- mutate(survey.ACE.melt, Operator = survey.ACE.key)
+survey.ACE.melt <- mutate(survey.ACE.melt, survey_year = survey.ACE.year)
+
+# Clean up
+remove(survey.ACE.key, survey.ACE.year, dictionary.ACE, variables.ACE, survey.ACE, survey.ACE.select)
+```
+
+### County Connection
+```{r operator-cccta}
+survey.CCC.key  <- 'County Connection'
+survey.CCC.year <- 2012
+
+# Prepare operator-specific dictionary
+dictionary.CCC <- dictionary.all %>%
+  filter(Operator == survey.CCC.key)
+
+variables.CCC <- as.character(factor(unique(unlist(dictionary.CCC$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.CCC <- read.csv('M:/Data/OnBoard/Data and Reports/County Connection/Redhill Data as CSV/County Connection CATI DATA Weekday-Weekend (With MTC Dayparts) NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+survey.CCC.select <- survey.CCC[ ,variables.CCC]
+
+# Reshape the data
+survey.CCC.melt <- melt(survey.CCC.select, id = 'ID')
+survey.CCC.melt <- select(survey.CCC.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.CCC.melt <- mutate(survey.CCC.melt, Operator = survey.CCC.key)
+survey.CCC.melt <- mutate(survey.CCC.melt, survey_year = survey.CCC.year)
+
+# Clean up
+remove(survey.CCC.key, survey.CCC.year, dictionary.CCC, variables.CCC, survey.CCC, survey.CCC.select)
+```
+
+
+### Golden Gate Transit (bus)
+```{r operator-goldengatebus}
+survey.GGT.key  <- 'Golden Gate Transit'
+survey.GGT.year <- 2013
+
+# Prepare operator-specific dictionary
+dictionary.GGT <- dictionary.all %>%
+  filter(Operator == survey.GGT.key)
+
+variables.GGT <- as.character(factor(unique(unlist(dictionary.GGT$Survey_Variable, use.names = TRUE))))
+
+# Read data (weekday or weekend) and select variables of interest
+survey.GGT.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Transit Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.GGT.weekday.select <- survey.GGT.weekday[ ,variables.GGT]
+
+survey.GGT.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Transit Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.GGT.weekend.select <- survey.GGT.weekend[ ,variables.GGT]
+
+survey.GGT.select <- rbind(survey.GGT.weekday.select, survey.GGT.weekend.select)
+
+# Reshape the data
+survey.GGT.melt <- melt(survey.GGT.select, id = 'ID')
+survey.GGT.melt <- select(survey.GGT.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.GGT.melt <- mutate(survey.GGT.melt, Operator = survey.GGT.key)
+survey.GGT.melt <- mutate(survey.GGT.melt, survey_year = survey.GGT.year)
+
+# Clean up
+remove(survey.GGT.key, survey.GGT.year, dictionary.GGT, variables.GGT, survey.GGT.weekday, survey.GGT.weekend, survey.GGT.weekday.select, survey.GGT.weekend.select, survey.GGT.select)
+```
+
+
+### Golden Gate Transit (ferry)
+```{r operator-goldengateferry}
+survey.GGF.key  <- 'Golden Gate Ferry'
+survey.GGF.year <- 2013
+
+# Prepare operator-specific dictionary
+dictionary.GGF <- dictionary.all %>%
+  filter(Operator == survey.GGF.key)
+
+variables.GGF <- as.character(factor(unique(unlist(dictionary.GGF$Survey_Variable, use.names = TRUE))))
+
+# Read data (weekday or weekend) and select variables of interest
+survey.GGF.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Ferry Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.GGF.weekday.select <- survey.GGF.weekday[ ,variables.GGF]
+
+survey.GGF.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Ferry Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.GGF.weekend.select <- survey.GGF.weekend[ ,variables.GGF]
+
+survey.GGF.select <- rbind(survey.GGF.weekday.select, survey.GGF.weekend.select)
+
+# Reshape the data
+survey.GGF.melt <- melt(survey.GGF.select, id = 'ID')
+survey.GGF.melt <- select(survey.GGF.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.GGF.melt <- mutate(survey.GGF.melt, Operator = survey.GGF.key)
+survey.GGF.melt <- mutate(survey.GGF.melt, survey_year = survey.GGF.year)
+# Clean up
+remove(survey.GGF.key, survey.GGF.year, dictionary.GGF, variables.GGF, survey.GGF.weekday, survey.GGF.weekend, survey.GGF.weekday.select, survey.GGF.weekend.select, survey.GGF.select)
+```
+
+
+### Livermore Amador Valley Transit (LAVTA or WHEELS)
+```{r operator-lavta}
+survey.LAV.key  <- 'LAVTA'
+survey.LAV.year <- 2013
+
+# Prepare operator-specific dictionary
+dictionary.LAV <- dictionary.all %>%
+  filter(Operator == survey.LAV.key)
+
+variables.LAV <- as.character(factor(unique(unlist(dictionary.LAV$Survey_Variable, use.names = TRUE))))
+
+# Read data (weekday or weekend) and select variables of interest
+survey.LAV.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/LAVTA/Redhill Data as CSV/LAVTA Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.LAV.weekday.select <- survey.LAV.weekday[ ,variables.LAV]
+
+survey.LAV.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/LAVTA/Redhill Data as CSV/LAVTA Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.LAV.weekend.select <- survey.LAV.weekend[ ,variables.LAV]
+
+survey.LAV.select <- rbind(survey.LAV.weekday.select, survey.LAV.weekend.select)
+
+# Reshape the data
+survey.LAV.melt <- melt(survey.LAV.select, id = 'ID')
+survey.LAV.melt <- select(survey.LAV.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.LAV.melt <- mutate(survey.LAV.melt, Operator = survey.LAV.key)
+survey.LAV.melt <- mutate(survey.LAV.melt, survey_year = survey.LAV.year)
+
+# Clean up
+remove(survey.LAV.key, survey.LAV.year, dictionary.LAV, variables.LAV, survey.LAV.weekday, survey.LAV.weekend, survey.LAV.weekday.select, survey.LAV.weekend.select, survey.LAV.select)
+```
+
+
+### Napa Vine
+```{r operator-napa}
+survey.NAP.key  <- 'Napa Vine'
+survey.NAP.year <- 2014
+
+# Prepare operator-specific dictionary
+dictionary.NAP <- dictionary.all %>%
+  filter(Operator == survey.NAP.key)
+
+variables.NAP <- as.character(factor(unique(unlist(dictionary.NAP$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.NAP <- read.csv('M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine Tranist OD Survey Data_Aug24_Submitted_20140826 NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+survey.NAP.select <- survey.NAP[ ,variables.NAP]
+
+# Reshape the data
+survey.NAP.melt <- melt(survey.NAP.select, id = 'ID')
+survey.NAP.melt <- select(survey.NAP.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.NAP.melt <- mutate(survey.NAP.melt, Operator = survey.NAP.key)
+survey.NAP.melt <- mutate(survey.NAP.melt, survey_year = survey.NAP.year)
+
+# Clean up
+remove(survey.NAP.key, survey.NAP.year, dictionary.NAP, variables.NAP, survey.NAP, survey.NAP.select)
+```
+
+
+### Petaluma
+```{r operator-petaluma}
+survey.PET.key  <- 'Petaluma'
+survey.PET.year <- 2012
+
+# Prepare operator-specific dictionary
+dictionary.PET <- dictionary.all %>%
+  filter(Operator == survey.PET.key)
+
+variables.PET <- as.character(factor(unique(unlist(dictionary.PET$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.PET <- read.csv('M:/Data/OnBoard/Data and Reports/Petaluma/Redhill Data as CSV/Petaluma 2012 CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+survey.PET.select <- survey.PET[ ,variables.PET]
+
+# Reshape the data
+survey.PET.melt <- melt(survey.PET.select, id = 'ID')
+survey.PET.melt <- select(survey.PET.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.PET.melt <- mutate(survey.PET.melt, Operator = survey.PET.key)
+survey.PET.melt <- mutate(survey.PET.melt, survey_year = survey.PET.year)
+
+# Clean up
+remove(survey.PET.key, survey.PET.year, dictionary.PET, variables.PET, survey.PET, survey.PET.select)
+```
+
+
+### SamTrans
+```{r operator-samtrans}
+survey.SAM.key  <- 'SamTrans'
+survey.SAM.year <- 2013
+
+# Prepare operator-specific dictionary
+dictionary.SAM <- dictionary.all %>%
+  filter(Operator == survey.SAM.key)
+
+variables.SAM <- as.character(factor(unique(unlist(dictionary.SAM$Survey_Variable, use.names = TRUE))))
+
+# Read data (weekday or weekend) and select variables of interest
+survey.SAM.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/SamTrans/Redhill Data as CSV/SamTrans Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.SAM.weekday.select <- survey.SAM.weekday[ ,variables.SAM]
+
+survey.SAM.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/SamTrans/Redhill Data as CSV/SamTrans Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.SAM.weekend.select <- survey.SAM.weekend[ ,variables.SAM]
+
+survey.SAM.select <- rbind(survey.SAM.weekday.select, survey.SAM.weekend.select)
+
+# Reshape the data
+survey.SAM.melt <- melt(survey.SAM.select, id = 'ID')
+survey.SAM.melt <- select(survey.SAM.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.SAM.melt <- mutate(survey.SAM.melt, Operator = survey.SAM.key)
+survey.SAM.melt <- mutate(survey.SAM.melt, survey_year = survey.SAM.year)
+
+# Clean up
+remove(survey.SAM.key, survey.SAM.year, dictionary.SAM, variables.SAM, survey.SAM.weekday, survey.SAM.weekend, survey.SAM.weekday.select, survey.SAM.weekend.select, survey.SAM.select)
+```
+
+
+### Santa Rosa CityBus
+```{r operator-santarosa}
+survey.SRC.key  <- 'Santa Rosa CityBus'
+survey.SRC.year <- 2012
+
+# Prepare operator-specific dictionary
+dictionary.SRC <- dictionary.all %>%
+  filter(Operator == survey.SRC.key)
+
+variables.SRC <- as.character(factor(unique(unlist(dictionary.SRC$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.SRC <- read.csv('M:/Data/OnBoard/Data and Reports/Santa Rosa CityBus/Redhill Data as CSV/CityBus2012 CATI Data (updated) NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+survey.SRC.select <- survey.SRC[ ,variables.SRC]
+
+# Reshape the data
+survey.SRC.melt <- melt(survey.SRC.select, id = 'ID')
+survey.SRC.melt <- select(survey.SRC.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.SRC.melt <- mutate(survey.SRC.melt, Operator = survey.SRC.key)
+survey.SRC.melt <- mutate(survey.SRC.melt, survey_year = survey.SRC.year)
+
+# Clean up
+remove(survey.SRC.key, survey.SRC.year, dictionary.SRC, variables.SRC, survey.SRC, survey.SRC.select)
+```
+
+
+### Sonoma County
+```{r operator-sonoma}
+survey.SON.key  <- 'Sonoma County'
+survey.SON.year <- 2012
+
+# Prepare operator-specific dictionary
+dictionary.SON <- dictionary.all %>%
+  filter(Operator == survey.SON.key)
+
+variables.SON <- as.character(factor(unique(unlist(dictionary.SON$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.SON <- read.csv('M:/Data/OnBoard/Data and Reports/Sonoma County/Redhill Data as CSV/Sonoma County Transit 2012 CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+survey.SON.select <- survey.SON[ ,variables.SON]
+
+# Reshape the data
+survey.SON.melt <- melt(survey.SON.select, id = 'ID')
+survey.SON.melt <- select(survey.SON.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.SON.melt <- mutate(survey.SON.melt, Operator = survey.SON.key)
+survey.SON.melt <- mutate(survey.SON.melt, survey_year = survey.SON.year)
+
+# Clean up
+remove(survey.SON.key, survey.SON.year, dictionary.SON, variables.SON, survey.SON, survey.SON.select)
+```
+
+
+### Tri-Delta
+```{r operator-tridelta}
+survey.TRI.key  <- 'Tri-Delta'
+survey.TRI.year <- 2014
+
+# Prepare dictionary
+dictionary.TRI <- dictionary.all %>%
+  filter(Operator == survey.TRI.key)
+
+variables.TRI <- as.character(factor(unique(unlist(dictionary.TRI$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.TRI <- read.csv('M:/Data/OnBoard/Data and Reports/Tri Delta/As CSV/Tri Delta_OnBoard_InterceptSurvey_Aug 24_Submitted_20140826 NO SINGLE QUOTE OR POUND.csv', header = TRUE)
+survey.TRI.select <- survey.TRI[ ,variables.TRI]
+
+# Reshape the data
+survey.TRI.melt <- melt(survey.TRI.select, id = 'ID')
+survey.TRI.melt <- select(survey.TRI.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.TRI.melt <- mutate(survey.TRI.melt, Operator = survey.TRI.key)
+survey.TRI.melt <- mutate(survey.TRI.melt, survey_year = survey.TRI.year)
+
+# Clean up
+remove(survey.TRI.key, survey.TRI.year, dictionary.TRI, variables.TRI, survey.TRI, survey.TRI.select)
+```
+
+
+### Union City
+```{r operator-union}
+survey.UCT.key  <- 'Union City'
+survey.UCT.year <- 2013
+
+# Prepare operator-specific dictionary
+dictionary.UCT <- dictionary.all %>%
+  filter(Operator == survey.UCT.key)
+
+variables.UCT <- as.character(factor(unique(unlist(dictionary.UCT$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.UCT <- read.csv('M:/Data/OnBoard/Data and Reports/Union City/Redhill Data as CSV/Union City Transit CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+survey.UCT.select <- survey.UCT[ ,variables.UCT]
+
+# Reshape the data
+survey.UCT.melt <- melt(survey.UCT.select, id = 'ID')
+survey.UCT.melt <- select(survey.UCT.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.UCT.melt <- mutate(survey.UCT.melt, Operator = survey.UCT.key)
+survey.UCT.melt <- mutate(survey.UCT.melt, survey_year = survey.UCT.year)
+
+# Clean up
+remove(survey.UCT.key, survey.UCT.year, dictionary.UCT, variables.UCT, survey.UCT, survey.UCT.select)
+```
+
+
+### Water Emergency Transit Admin (aka San Francisco Bay Ferry)
+```{r operator-ferry}
+survey.WET.key  <- 'SF Bay Ferry'
+survey.WET.year <- 2013
+
+# Prepare operator-specific dictionary
+dictionary.WET <- dictionary.all %>%
+  filter(Operator == survey.WET.key)
+
+variables.WET <- as.character(factor(unique(unlist(dictionary.WET$Survey_Variable, use.names = TRUE))))
+
+# Read data (weekday or weekend) and select variables of interest
+survey.WET.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/WETA/Redhill Data as CSV/WETA Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.WET.weekday.select <- survey.WET.weekday[ ,variables.WET]
+
+survey.WET.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/WETA/Redhill Data as CSV/WETA Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+
+survey.WET.weekend.select <- survey.WET.weekend[ ,variables.WET]
+
+survey.WET.select <- rbind(survey.WET.weekday.select, survey.WET.weekend.select)
+
+# Reshape the data
+survey.WET.melt <- melt(survey.WET.select, id = 'ID')
+survey.WET.melt <- select(survey.WET.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.WET.melt <- mutate(survey.WET.melt, Operator = survey.WET.key)
+survey.WET.melt <- mutate(survey.WET.melt, survey_year = survey.WET.year)
+
+# Clean up
+remove(survey.WET.key, survey.WET.year, dictionary.WET, variables.WET, survey.WET.weekday, survey.WET.weekend, survey.WET.weekday.select, survey.WET.weekend.select, survey.WET.select)
+```
+
+
+## Combine across operators and flatten
+```{r combine}
+survey.combine <- rbind(survey.ACE.melt, 
+                        survey.ACT.melt,
+                        survey.CCC.melt, 
+                        survey.GGT.melt, 
+                        survey.GGF.melt, 
+                        survey.LAV.melt, 
+                        survey.NAP.melt, 
+                        survey.PET.melt, 
+                        survey.SAM.melt, 
+                        survey.SRC.melt, 
+                        survey.SON.melt,
+                        survey.TRI.melt,
+                        survey.UCT.melt,
+                        survey.WET.melt)
+
+# Join the dictionary and prepare the categorical variables
+survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
+survey.cat <- left_join(survey.cat, dictionary.cat, by = c("Operator", "Survey_Variable", "Survey_Response"))
+survey.cat <- filter(survey.cat, !is.na(Generic_Variable))
+
+# Join the dictionary and prepare the non-categorical variables
+survey.non <- left_join(survey.combine, dictionary.non, by = c("Operator", "Survey_Variable"))
+survey.non <- survey.non %>%
+  filter(!is.na(Generic_Variable)) %>%
+  mutate(Generic_Response = Survey_Response)
+
+# Combine the categorical and non-categorical survey data and prepare to flatten
+survey.cat.to_flat <- survey.cat %>%
+  select(-Survey_Variable, -Survey_Response) %>%
+  mutate(Generic_Response = as.factor(Generic_Response))
+
+survey.non.to_flat <- survey.non %>%
+  select(-Survey_Variable, -Survey_Response) %>%
+  mutate(Generic_Response = as.factor(Generic_Response))
+
+survey.to_flat <- rbind(survey.cat.to_flat, survey.non.to_flat)
+
+# Put together and then take apart a unique ID when flattening
+survey.to_flat <- survey.to_flat %>%
+  mutate(Unique_ID = paste(ID, Operator, survey_year, sep = "---")) %>%
+  select(-ID, -Operator, -survey_year)
+
+survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
+
+survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "Operator", "survey_year")))
+
+remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat, survey.tech)
+remove(survey.ACE.melt, 
+       survey.ACT.melt,
+       survey.CCC.melt, 
+       survey.GGT.melt, 
+       survey.GGF.melt, 
+       survey.LAV.melt, 
+       survey.NAP.melt, 
+       survey.PET.melt, 
+       survey.SAM.melt, 
+       survey.SRC.melt, 
+       survey.SON.melt,
+       survey.TRI.melt,
+       survey.UCT.melt,
+       survey.WET.melt)
+
+```
+
+## Prepare and Write public data set to CSV
+
+
+
+
+

@@ -1,5 +1,5 @@
 ---
-title: "Production"
+title: "Build Standard Database"
 author: "David Ory"
 output:
   html_document:
@@ -11,11 +11,10 @@ runtime: shiny
 ## Administration
 
 #### Purpose
-Procedure to translate any number of on-board survey data sets into a single dataset with common variables and common responses.  This is a work-in-progress production version of the procedures.  See ``../mini-example`` and ``../small-example`` for working proto-types.
+Procedure to translate any number of on-board survey data sets into a single dataset with common variables and common responses.  This is a work-in-progress production version of the procedures.  See ``../mini-example`` and ``../small-example`` for working proto-types.  In this script, we put in place procedures to process surveys into a standard database.  See ``Extract Variables from Legacy Surveys.Rmd`` for procedures to extract variables from legacy surveys (i.e., those with SAS summary scripts). 
 
 #### _ISSUES_
 1.  Check a few freqs comparing the input data and the derived flat file
-2.  Show Shimon what's going on.
 
 #### _TODO_
 3.  Build full generalization with latest ETC -- how to handle geo-coding?  (write XY to disk for geo-coding and then re-join?)
@@ -25,6 +24,7 @@ Procedure to translate any number of on-board survey data sets into a single dat
 7.  Use generic for new operators
 8.  Add data types before exporting to RData
 9.  How to handle operators with mixed modes
+10.  One branch for new variables from old data sets and one branch for new datasets
 
 ## Overhead
 
@@ -43,7 +43,7 @@ knitr::opts_chunk$set(cache=TRUE)
 
 ## Prepare Dictionaries
 ```{r prepare-dictionary}
-dictionary.all <- read.csv('Dictionary.csv', header = TRUE)
+dictionary.all <- read.csv('Dictionary for Standard Database.csv', header = TRUE)
 
 # Prepare seperate dictionaries for categorical and non-categorical variables
 dictionary.non <- dictionary.all %>%
@@ -58,73 +58,14 @@ dictionary.cat <- dictionary.all %>%
 
 ## Operator specifics
 
-### AC Transit
-```{r operator-actransit}
-survey.ACT.key  <- 'AC Transit'
-survey.ACT.year <- 2012
-survey.ACT.tech <- 'local bus'
-
-# Prepare operator-specific-specific dictionary
-dictionary.ACT <- dictionary.all %>%
-  filter(Operator == survey.ACT.key)
-
-variables.ACT <- as.character(factor(unique(unlist(dictionary.ACT$Survey_Variable, use.names = TRUE))))
-
-# Read data (weekday or weekend) and select variables of interest
-survey.ACT.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/AC Transit/Redhill Data as CSV/AC TRANSIT WEEKDAY CATI DATA NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.ACT.weekday.select <- survey.ACT.weekday[ ,variables.ACT]
-
-survey.ACT.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/AC Transit/Redhill Data as CSV/AC TRANSIT WEEKEND CATI DATA NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.ACT.weekend.select <- survey.ACT.weekend[ ,variables.ACT]
-
-survey.ACT.select <- rbind(survey.ACT.weekday.select, survey.ACT.weekend.select)
-
-# Reshape the data
-survey.ACT.melt <- melt(survey.ACT.select, id = 'ID')
-survey.ACT.melt <- select(survey.ACT.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.ACT.melt <- mutate(survey.ACT.melt, Operator = survey.ACT.key)
-survey.ACT.melt <- mutate(survey.ACT.melt, survey_year = survey.ACT.year)
-survey.ACT.melt <- mutate(survey.ACT.melt, survey_tech = survey.ACT.tech)
-
-# Clean up
-remove(survey.ACT.key, survey.ACT.year, survey.ACT.tech, dictionary.ACT, variables.ACT, survey.ACT.weekday, survey.ACT.weekend, survey.ACT.weekday.select, survey.ACT.weekend.select, survey.ACT.select)
-```
-
-
-### Altamont Commuter Express
-```{r operator-ace}
-survey.ACE.key  <- 'ACE'
-survey.ACE.year <- 2014
-survey.ACE.tech <- 'commuter rail'
-
-# Prepare operator-specific dictionary
-dictionary.ACE <- dictionary.all %>%
-  filter(Operator == survey.ACE.key)
-
-variables.ACE <- as.character(factor(unique(unlist(dictionary.ACE$Survey_Variable, use.names = TRUE))))
-
-# Read ACE data and select variables of interest
-survey.ACE <- read.csv('M:/Data/OnBoard/Data and Reports/ACE/Redhill Data as CSV/ACE_2014 Final DataSet NO SINGLE QUOTE OR POUND.csv', header = TRUE)
-survey.ACE.select <- survey.ACE[ ,variables.ACE]
-
-# Reshape the data
-survey.ACE.melt <- melt(survey.ACE.select, id = 'Survey_ID')
-survey.ACE.melt <- select(survey.ACE.melt, ID = Survey_ID, Survey_Variable = variable, Survey_Response = value)
-survey.ACE.melt <- mutate(survey.ACE.melt, Operator = survey.ACE.key)
-survey.ACE.melt <- mutate(survey.ACE.melt, survey_year = survey.ACE.year)
-survey.ACE.melt <- mutate(survey.ACE.melt, survey_tech = survey.ACE.tech)
-
-# Clean up
-remove(survey.ACE.key, survey.ACE.year, survey.ACE.tech, dictionary.ACE, variables.ACE, survey.ACE, survey.ACE.select)
-```
-
 ### Caltrain Pilot
 ```{r operator-caltrain}
 survey.CAL.key  <- 'Caltrain Pilot'
 survey.CAL.year <- 2014
+
+# Set survey tech by route if necessary in operator chunk
 survey.CAL.tech <- 'commuter rail'
+
 
 # Prepare operator-specific dictionary
 dictionary.CAL <- dictionary.all %>%
@@ -148,395 +89,9 @@ remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, dictionary.CAL, variabl
 ```
 
 
-
-### County Connection
-```{r operator-cccta}
-survey.CCC.key  <- 'County Connection'
-survey.CCC.year <- 2012
-survey.CCC.tech <- 'local bus'
-
-# Prepare operator-specific dictionary
-dictionary.CCC <- dictionary.all %>%
-  filter(Operator == survey.CCC.key)
-
-variables.CCC <- as.character(factor(unique(unlist(dictionary.CCC$Survey_Variable, use.names = TRUE))))
-
-# Read data and select variables of interest
-survey.CCC <- read.csv('M:/Data/OnBoard/Data and Reports/County Connection/Redhill Data as CSV/County Connection CATI DATA Weekday-Weekend (With MTC Dayparts) NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-survey.CCC.select <- survey.CCC[ ,variables.CCC]
-
-# Reshape the data
-survey.CCC.melt <- melt(survey.CCC.select, id = 'ID')
-survey.CCC.melt <- select(survey.CCC.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.CCC.melt <- mutate(survey.CCC.melt, Operator = survey.CCC.key)
-survey.CCC.melt <- mutate(survey.CCC.melt, survey_year = survey.CCC.year)
-survey.CCC.melt <- mutate(survey.CCC.melt, survey_tech = survey.CCC.tech)
-
-# Clean up
-remove(survey.CCC.key, survey.CCC.year, survey.CCC.tech, dictionary.CCC, variables.CCC, survey.CCC, survey.CCC.select)
-```
-
-
-### Golden Gate Transit (bus)
-```{r operator-goldengatebus}
-survey.GGT.key  <- 'Golden Gate Transit'
-survey.GGT.year <- 2013
-survey.GGT.tech <- 'express bus'
-
-# Prepare operator-specific dictionary
-dictionary.GGT <- dictionary.all %>%
-  filter(Operator == survey.GGT.key)
-
-variables.GGT <- as.character(factor(unique(unlist(dictionary.GGT$Survey_Variable, use.names = TRUE))))
-
-# Read data (weekday or weekend) and select variables of interest
-survey.GGT.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Transit Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.GGT.weekday.select <- survey.GGT.weekday[ ,variables.GGT]
-
-survey.GGT.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Transit Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.GGT.weekend.select <- survey.GGT.weekend[ ,variables.GGT]
-
-survey.GGT.select <- rbind(survey.GGT.weekday.select, survey.GGT.weekend.select)
-
-# Reshape the data
-survey.GGT.melt <- melt(survey.GGT.select, id = 'ID')
-survey.GGT.melt <- select(survey.GGT.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.GGT.melt <- mutate(survey.GGT.melt, Operator = survey.GGT.key)
-survey.GGT.melt <- mutate(survey.GGT.melt, survey_year = survey.GGT.year)
-survey.GGT.melt <- mutate(survey.GGT.melt, survey_tech = survey.GGT.tech)
-
-# Clean up
-remove(survey.GGT.key, survey.GGT.year, survey.GGT.tech, dictionary.GGT, variables.GGT, survey.GGT.weekday, survey.GGT.weekend, survey.GGT.weekday.select, survey.GGT.weekend.select, survey.GGT.select)
-```
-
-
-### Golden Gate Transit (ferry)
-```{r operator-goldengateferry}
-survey.GGF.key  <- 'Golden Gate Ferry'
-survey.GGF.year <- 2013
-survey.GGF.tech <- 'ferry'
-
-# Prepare operator-specific dictionary
-dictionary.GGF <- dictionary.all %>%
-  filter(Operator == survey.GGF.key)
-
-variables.GGF <- as.character(factor(unique(unlist(dictionary.GGF$Survey_Variable, use.names = TRUE))))
-
-# Read data (weekday or weekend) and select variables of interest
-survey.GGF.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Ferry Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.GGF.weekday.select <- survey.GGF.weekday[ ,variables.GGF]
-
-survey.GGF.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/Golden Gate Transit/Redhill Data as CSV/Golden Gate Ferry Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.GGF.weekend.select <- survey.GGF.weekend[ ,variables.GGF]
-
-survey.GGF.select <- rbind(survey.GGF.weekday.select, survey.GGF.weekend.select)
-
-# Reshape the data
-survey.GGF.melt <- melt(survey.GGF.select, id = 'ID')
-survey.GGF.melt <- select(survey.GGF.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.GGF.melt <- mutate(survey.GGF.melt, Operator = survey.GGF.key)
-survey.GGF.melt <- mutate(survey.GGF.melt, survey_year = survey.GGF.year)
-survey.GGF.melt <- mutate(survey.GGF.melt, survey_tech = survey.GGF.tech)
-
-# Clean up
-remove(survey.GGF.key, survey.GGF.year, survey.GGF.tech, dictionary.GGF, variables.GGF, survey.GGF.weekday, survey.GGF.weekend, survey.GGF.weekday.select, survey.GGF.weekend.select, survey.GGF.select)
-```
-
-
-### Livermore Amador Valley Transit (LAVTA or WHEELS)
-```{r operator-lavta}
-survey.LAV.key  <- 'LAVTA'
-survey.LAV.year <- 2013
-survey.LAV.tech <- 'local bus'
-
-# Prepare operator-specific dictionary
-dictionary.LAV <- dictionary.all %>%
-  filter(Operator == survey.LAV.key)
-
-variables.LAV <- as.character(factor(unique(unlist(dictionary.LAV$Survey_Variable, use.names = TRUE))))
-
-# Read data (weekday or weekend) and select variables of interest
-survey.LAV.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/LAVTA/Redhill Data as CSV/LAVTA Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.LAV.weekday.select <- survey.LAV.weekday[ ,variables.LAV]
-
-survey.LAV.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/LAVTA/Redhill Data as CSV/LAVTA Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.LAV.weekend.select <- survey.LAV.weekend[ ,variables.LAV]
-
-survey.LAV.select <- rbind(survey.LAV.weekday.select, survey.LAV.weekend.select)
-
-# Reshape the data
-survey.LAV.melt <- melt(survey.LAV.select, id = 'ID')
-survey.LAV.melt <- select(survey.LAV.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.LAV.melt <- mutate(survey.LAV.melt, Operator = survey.LAV.key)
-survey.LAV.melt <- mutate(survey.LAV.melt, survey_year = survey.LAV.year)
-survey.LAV.melt <- mutate(survey.LAV.melt, survey_tech = survey.LAV.tech)
-
-# Clean up
-remove(survey.LAV.key, survey.LAV.year, survey.LAV.tech, dictionary.LAV, variables.LAV, survey.LAV.weekday, survey.LAV.weekend, survey.LAV.weekday.select, survey.LAV.weekend.select, survey.LAV.select)
-```
-
-
-### Napa Vine
-```{r operator-napa}
-survey.NAP.key  <- 'Napa Vine'
-survey.NAP.year <- 2014
-survey.NAP.tech <- 'local bus'
-
-# Prepare operator-specific dictionary
-dictionary.NAP <- dictionary.all %>%
-  filter(Operator == survey.NAP.key)
-
-variables.NAP <- as.character(factor(unique(unlist(dictionary.NAP$Survey_Variable, use.names = TRUE))))
-
-# Read data and select variables of interest
-survey.NAP <- read.csv('M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine Tranist OD Survey Data_Aug24_Submitted_20140826 NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-survey.NAP.select <- survey.NAP[ ,variables.NAP]
-
-# Reshape the data
-survey.NAP.melt <- melt(survey.NAP.select, id = 'ID')
-survey.NAP.melt <- select(survey.NAP.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.NAP.melt <- mutate(survey.NAP.melt, Operator = survey.NAP.key)
-survey.NAP.melt <- mutate(survey.NAP.melt, survey_year = survey.NAP.year)
-survey.NAP.melt <- mutate(survey.NAP.melt, survey_tech = survey.NAP.tech)
-
-# Clean up
-remove(survey.NAP.key, survey.NAP.year, survey.NAP.tech, dictionary.NAP, variables.NAP, survey.NAP, survey.NAP.select)
-```
-
-
-### Petaluma
-```{r operator-petaluma}
-survey.PET.key  <- 'Petaluma'
-survey.PET.year <- 2012
-survey.PET.tech <- 'local bus'
-
-# Prepare operator-specific dictionary
-dictionary.PET <- dictionary.all %>%
-  filter(Operator == survey.PET.key)
-
-variables.PET <- as.character(factor(unique(unlist(dictionary.PET$Survey_Variable, use.names = TRUE))))
-
-# Read data and select variables of interest
-survey.PET <- read.csv('M:/Data/OnBoard/Data and Reports/Petaluma/Redhill Data as CSV/Petaluma 2012 CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-survey.PET.select <- survey.PET[ ,variables.PET]
-
-# Reshape the data
-survey.PET.melt <- melt(survey.PET.select, id = 'ID')
-survey.PET.melt <- select(survey.PET.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.PET.melt <- mutate(survey.PET.melt, Operator = survey.PET.key)
-survey.PET.melt <- mutate(survey.PET.melt, survey_year = survey.PET.year)
-survey.PET.melt <- mutate(survey.PET.melt, survey_tech = survey.PET.tech)
-
-# Clean up
-remove(survey.PET.key, survey.PET.year, survey.PET.tech, dictionary.PET, variables.PET, survey.PET, survey.PET.select)
-```
-
-
-### SamTrans
-```{r operator-samtrans}
-survey.SAM.key  <- 'SamTrans'
-survey.SAM.year <- 2013
-survey.SAM.tech <- 'local bus'
-
-# Prepare operator-specific dictionary
-dictionary.SAM <- dictionary.all %>%
-  filter(Operator == survey.SAM.key)
-
-variables.SAM <- as.character(factor(unique(unlist(dictionary.SAM$Survey_Variable, use.names = TRUE))))
-
-# Read data (weekday or weekend) and select variables of interest
-survey.SAM.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/SamTrans/Redhill Data as CSV/SamTrans Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.SAM.weekday.select <- survey.SAM.weekday[ ,variables.SAM]
-
-survey.SAM.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/SamTrans/Redhill Data as CSV/SamTrans Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.SAM.weekend.select <- survey.SAM.weekend[ ,variables.SAM]
-
-survey.SAM.select <- rbind(survey.SAM.weekday.select, survey.SAM.weekend.select)
-
-# Reshape the data
-survey.SAM.melt <- melt(survey.SAM.select, id = 'ID')
-survey.SAM.melt <- select(survey.SAM.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.SAM.melt <- mutate(survey.SAM.melt, Operator = survey.SAM.key)
-survey.SAM.melt <- mutate(survey.SAM.melt, survey_year = survey.SAM.year)
-survey.SAM.melt <- mutate(survey.SAM.melt, survey_tech = survey.SAM.tech)
-
-# Clean up
-remove(survey.SAM.key, survey.SAM.year, survey.SAM.tech, dictionary.SAM, variables.SAM, survey.SAM.weekday, survey.SAM.weekend, survey.SAM.weekday.select, survey.SAM.weekend.select, survey.SAM.select)
-```
-
-
-### Santa Rosa CityBus
-```{r operator-santarosa}
-survey.SRC.key  <- 'Santa Rosa CityBus'
-survey.SRC.year <- 2012
-survey.SRC.tech <- 'local bus'
-
-# Prepare operator-specific dictionary
-dictionary.SRC <- dictionary.all %>%
-  filter(Operator == survey.SRC.key)
-
-variables.SRC <- as.character(factor(unique(unlist(dictionary.SRC$Survey_Variable, use.names = TRUE))))
-
-# Read data and select variables of interest
-survey.SRC <- read.csv('M:/Data/OnBoard/Data and Reports/Santa Rosa CityBus/Redhill Data as CSV/CityBus2012 CATI Data (updated) NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-survey.SRC.select <- survey.SRC[ ,variables.SRC]
-
-# Reshape the data
-survey.SRC.melt <- melt(survey.SRC.select, id = 'ID')
-survey.SRC.melt <- select(survey.SRC.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.SRC.melt <- mutate(survey.SRC.melt, Operator = survey.SRC.key)
-survey.SRC.melt <- mutate(survey.SRC.melt, survey_year = survey.SRC.year)
-survey.SRC.melt <- mutate(survey.SRC.melt, survey_tech = survey.SRC.tech)
-
-# Clean up
-remove(survey.SRC.key, survey.SRC.year, survey.SRC.tech, dictionary.SRC, variables.SRC, survey.SRC, survey.SRC.select)
-```
-
-
-### Sonoma County
-```{r operator-sonoma}
-survey.SON.key  <- 'Sonoma County'
-survey.SON.year <- 2012
-survey.SON.tech <- 'local bus'
-
-# Prepare operator-specific dictionary
-dictionary.SON <- dictionary.all %>%
-  filter(Operator == survey.SON.key)
-
-variables.SON <- as.character(factor(unique(unlist(dictionary.SON$Survey_Variable, use.names = TRUE))))
-
-# Read data and select variables of interest
-survey.SON <- read.csv('M:/Data/OnBoard/Data and Reports/Sonoma County/Redhill Data as CSV/Sonoma County Transit 2012 CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-survey.SON.select <- survey.SON[ ,variables.SON]
-
-# Reshape the data
-survey.SON.melt <- melt(survey.SON.select, id = 'ID')
-survey.SON.melt <- select(survey.SON.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.SON.melt <- mutate(survey.SON.melt, Operator = survey.SON.key)
-survey.SON.melt <- mutate(survey.SON.melt, survey_year = survey.SON.year)
-survey.SON.melt <- mutate(survey.SON.melt, survey_tech = survey.SON.tech)
-
-# Clean up
-remove(survey.SON.key, survey.SON.year, survey.SON.tech, dictionary.SON, variables.SON, survey.SON, survey.SON.select)
-```
-
-
-### Tri-Delta
-```{r operator-tridelta}
-survey.TRI.key  <- 'Tri-Delta'
-survey.TRI.year <- 2014
-survey.TRI.tech <- 'local bus'
-
-# Prepare dictionary
-dictionary.TRI <- dictionary.all %>%
-  filter(Operator == survey.TRI.key)
-
-variables.TRI <- as.character(factor(unique(unlist(dictionary.TRI$Survey_Variable, use.names = TRUE))))
-
-# Read data and select variables of interest
-survey.TRI <- read.csv('M:/Data/OnBoard/Data and Reports/Tri Delta/As CSV/Tri Delta_OnBoard_InterceptSurvey_Aug 24_Submitted_20140826 NO SINGLE QUOTE OR POUND.csv', header = TRUE)
-survey.TRI.select <- survey.TRI[ ,variables.TRI]
-
-# Reshape the data
-survey.TRI.melt <- melt(survey.TRI.select, id = 'ID')
-survey.TRI.melt <- select(survey.TRI.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.TRI.melt <- mutate(survey.TRI.melt, Operator = survey.TRI.key)
-survey.TRI.melt <- mutate(survey.TRI.melt, survey_year = survey.TRI.year)
-survey.TRI.melt <- mutate(survey.TRI.melt, survey_tech = survey.TRI.tech)
-
-# Clean up
-remove(survey.TRI.key, survey.TRI.year, survey.TRI.tech, dictionary.TRI, variables.TRI, survey.TRI, survey.TRI.select)
-```
-
-
-### Union City
-```{r operator-union}
-survey.UCT.key  <- 'Union City'
-survey.UCT.year <- 2013
-survey.UCT.tech <- 'local bus'
-
-# Prepare operator-specific dictionary
-dictionary.UCT <- dictionary.all %>%
-  filter(Operator == survey.UCT.key)
-
-variables.UCT <- as.character(factor(unique(unlist(dictionary.UCT$Survey_Variable, use.names = TRUE))))
-
-# Read data and select variables of interest
-survey.UCT <- read.csv('M:/Data/OnBoard/Data and Reports/Union City/Redhill Data as CSV/Union City Transit CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-survey.UCT.select <- survey.UCT[ ,variables.UCT]
-
-# Reshape the data
-survey.UCT.melt <- melt(survey.UCT.select, id = 'ID')
-survey.UCT.melt <- select(survey.UCT.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.UCT.melt <- mutate(survey.UCT.melt, Operator = survey.UCT.key)
-survey.UCT.melt <- mutate(survey.UCT.melt, survey_year = survey.UCT.year)
-survey.UCT.melt <- mutate(survey.UCT.melt, survey_tech = survey.UCT.tech)
-
-# Clean up
-remove(survey.UCT.key, survey.UCT.year, survey.UCT.tech, dictionary.UCT, variables.UCT, survey.UCT, survey.UCT.select)
-```
-
-
-### Water Emergency Transit Admin (aka San Francisco Bay Ferry)
-```{r operator-ferry}
-survey.WET.key  <- 'SF Bay Ferry'
-survey.WET.year <- 2013
-survey.WET.tech <- 'ferry'
-
-# Prepare operator-specific dictionary
-dictionary.WET <- dictionary.all %>%
-  filter(Operator == survey.WET.key)
-
-variables.WET <- as.character(factor(unique(unlist(dictionary.WET$Survey_Variable, use.names = TRUE))))
-
-# Read data (weekday or weekend) and select variables of interest
-survey.WET.weekday <- read.csv('M:/Data/OnBoard/Data and Reports/WETA/Redhill Data as CSV/WETA Weekday CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.WET.weekday.select <- survey.WET.weekday[ ,variables.WET]
-
-survey.WET.weekend <- read.csv('M:/Data/OnBoard/Data and Reports/WETA/Redhill Data as CSV/WETA Weekend CATI Data NO POUND OR SINGLE QUOTE.csv', header = TRUE)
-
-survey.WET.weekend.select <- survey.WET.weekend[ ,variables.WET]
-
-survey.WET.select <- rbind(survey.WET.weekday.select, survey.WET.weekend.select)
-
-# Reshape the data
-survey.WET.melt <- melt(survey.WET.select, id = 'ID')
-survey.WET.melt <- select(survey.WET.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.WET.melt <- mutate(survey.WET.melt, Operator = survey.WET.key)
-survey.WET.melt <- mutate(survey.WET.melt, survey_year = survey.WET.year)
-survey.WET.melt <- mutate(survey.WET.melt, survey_tech = survey.WET.tech)
-
-# Clean up
-remove(survey.WET.key, survey.WET.year, survey.WET.tech, dictionary.WET, variables.WET, survey.WET.weekday, survey.WET.weekend, survey.WET.weekday.select, survey.WET.weekend.select, survey.WET.select)
-```
-
-
 ## Combine across operators and flatten
 ```{r combine}
-survey.combine <- rbind(survey.ACE.melt, 
-                        survey.ACT.melt,
-                        survey.CAL.melt,
-                        survey.CCC.melt, 
-                        survey.GGT.melt, 
-                        survey.GGF.melt, 
-                        survey.LAV.melt, 
-                        survey.NAP.melt, 
-                        survey.PET.melt, 
-                        survey.SAM.melt, 
-                        survey.SRC.melt, 
-                        survey.SON.melt,
-                        survey.TRI.melt,
-                        survey.UCT.melt,
-                        survey.WET.melt)
+survey.combine <- rbind(survey.CAL.melt)
 
 # Join the dictionary and prepare the categorical variables
 survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
@@ -571,40 +126,14 @@ survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID",
 
 # Add in survey technology
 survey.tech <- survey.combine %>%
-  select(ID, Operator, survey_year, survey_tech)
+  group_by(ID, Operator, survey_year, survey_tech) %>%
+  summarise(Count = n()) %>%
+  select(-Count)
 
 survey.flat <- left_join(survey.flat, survey.tech, by = c("ID", "Operator", "survey_year"))
 
 remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat, survey.tech)
-remove(survey.ACE.melt, 
-       survey.ACT.melt,
-       survey.CAL.melt,
-       survey.CCC.melt, 
-       survey.GGT.melt, 
-       survey.GGF.melt, 
-       survey.LAV.melt, 
-       survey.NAP.melt, 
-       survey.PET.melt, 
-       survey.SAM.melt, 
-       survey.SRC.melt, 
-       survey.SON.melt,
-       survey.TRI.melt,
-       survey.UCT.melt,
-       survey.WET.melt)
-
-```
-
-## Quality checks
-```{r qaqc}
-
-# table(survey.flat$Operator)
-# table(survey.flat$orig_purp)
-# temp <- survey.flat %>%
-#   filter(Operator == 'Napa Vine')
-# 
-# temp <- survey.flat %>%
-#   group_by(Operator, orig_purp) %>%
-#   summarise(Count = n())
+remove(survey.CAL.melt)
 
 ```
 
@@ -705,8 +234,8 @@ Update_Technology <- function(input_vector){
 
 # Standardize year born
 survey.standard <- survey.flat %>%
-  mutate(year_born = ifelse(is.na(year_born_two_digit), as.numeric(year_born_four_digit), as.numeric(year_born_two_digit) + 1900)) %>%
-  select(-year_born_two_digit, -year_born_four_digit)
+  mutate(year_born = as.numeric(year_born_four_digit)) %>%
+  select(-year_born_four_digit)
 
 # Manual fixes to year born
 survey.standard <- survey.standard %>%
@@ -925,11 +454,6 @@ table(survey.standard$first_before_technology)
 # Step 6:  Travel Model One path details
 # -------------------------------------------------------------------------------------
 
-# TODO: Adjust survey technology here if needed
-
-# START HERE AND GET IT WORKING
-
-
 # Transfer to and from
 survey.standard <- survey.standard %>%
   mutate(transfer_from = as.character(first_before_operator)) %>%
@@ -940,11 +464,11 @@ survey.standard <- survey.standard %>%
 # First boarding and last alighting technology
 survey.standard <- survey.standard %>%
   mutate(first_transit_tech = as.character(survey_tech)) %>%
-  mutate(first_transit_tech = ifelse(first_before_technology != 'None', first_before_technology, first_transit_tech)) %>%
+  mutate(first_transit_tech = ifelse(!is.na(first_before_technology), first_before_technology, first_transit_tech)) %>%
   mutate(last_transit_tech  = as.character(survey_tech)) %>%
-  mutate(last_transit_tech = ifelse(first_after_technology  != 'None', first_after_technology, last_transit_tech))  %>%
-  mutate(last_transit_tech = ifelse(second_after_technology != 'None', second_after_technology, last_transit_tech)) %>%
-  mutate(last_transit_tech = ifelse(third_after_technology  != 'None', third_after_technology, last_transit_tech))
+  mutate(last_transit_tech = ifelse(!is.na(first_after_technology),  first_after_technology,  last_transit_tech)) %>%
+  mutate(last_transit_tech = ifelse(!is.na(second_after_technology), second_after_technology, last_transit_tech)) %>%
+  mutate(last_transit_tech = ifelse(!is.na(third_after_technology),  third_after_technology,  last_transit_tech))
 
 table(survey.standard$transfer_from)
 table(survey.standard$transfer_to)
@@ -952,9 +476,88 @@ table(survey.standard$survey_tech)
 table(survey.standard$first_transit_tech)
 table(survey.standard$last_transit_tech)
 
-
 # Travel Model One path
+survey.standard <- survey.standard %>%
+  # Access
+  mutate(path_access = 'X') %>%
+  mutate(path_access = ifelse(access_mode == 'walk', 'W', path_access)) %>%
+  mutate(path_access = ifelse(access_mode == 'pnr' , 'D', path_access)) %>%
+  mutate(path_access = ifelse(access_mode == 'knr' , 'D', path_access)) %>%
+  mutate(path_access = ifelse(access_mode == 'bike', 'D', path_access)) %>%
+  # Egress
+  mutate(path_egress = 'X') %>%
+  mutate(path_egress = ifelse(egress_mode == 'walk', 'W', path_egress)) %>%
+  mutate(path_egress = ifelse(egress_mode == 'pnr' , 'D', path_egress)) %>%
+  mutate(path_egress = ifelse(egress_mode == 'knr' , 'D', path_egress)) %>%
+  mutate(path_egress = ifelse(egress_mode == 'bike', 'D', path_egress)) %>%
+  # Line haul
+  mutate(path_line_haul = 'XXX') %>%
+  mutate(path_line_haul = ifelse( (first_before_technology  == 'commuter rail' | 
+                                   second_before_technology == 'commuter rail' |
+                                   third_before_technology  == 'commuter rail' |
+                                   first_after_technology   == 'commuter rail' |
+                                   second_after_technology  == 'commuter rail' |
+                                   third_after_technology   == 'commuter rail' |
+                                   survey_tech              == 'commuter rail'), 'COM', path_line_haul)) %>%
+  mutate(path_line_haul = ifelse( path_line_haul == 'XXX' &
+                                  (first_before_technology  == 'heavy rail' | 
+                                   second_before_technology == 'heavy rail' |
+                                   third_before_technology  == 'heavy rail' |
+                                   first_after_technology   == 'heavy rail' |
+                                   second_after_technology  == 'heavy rail' |
+                                   third_after_technology   == 'heavy rail' |
+                                   survey_tech              == 'heavy rail'),  'HVY', path_line_haul)) %>%
+  mutate(path_line_haul = ifelse( path_line_haul == 'XXX' &
+                                  (first_before_technology  == 'express bus' | 
+                                   second_before_technology == 'express bus' |
+                                   third_before_technology  == 'express bus' |
+                                   first_after_technology   == 'express bus' |
+                                   second_after_technology  == 'express bus' |
+                                   third_after_technology   == 'express bus' |
+                                   survey_tech              == 'express bus'), 'EXP', path_line_haul)) %>%
+  mutate(path_line_haul = ifelse( path_line_haul == 'XXX' &
+                                  (first_before_technology  == 'ferry' | 
+                                   second_before_technology == 'ferry' |
+                                   third_before_technology  == 'ferry' |
+                                   first_after_technology   == 'ferry' |
+                                   second_after_technology  == 'ferry' |
+                                   third_after_technology   == 'ferry' |
+                                   survey_tech              == 'ferry'), 'LRF', path_line_haul)) %>%
+  mutate(path_line_haul = ifelse( path_line_haul == 'XXX' &
+                                  (first_before_technology  == 'light rail' | 
+                                   second_before_technology == 'light rail' |
+                                   third_before_technology  == 'light rail' |
+                                   first_after_technology   == 'light rail' |
+                                   second_after_technology  == 'light rail' |
+                                   third_after_technology   == 'light rail' |
+                                   survey_tech              == 'light rail'),  'LRF', path_line_haul)) %>%
+  mutate(path_line_haul = ifelse( path_line_haul == 'XXX', 'LOC', path_line_haul)) %>%
+  mutate(path_label = paste(path_access, path_line_haul, path_egress, sep = "-"))
+
+table(survey.standard$path_label)
+           
+# Boardings
+survey.standard <- survey.standard %>%
+  mutate(boardings = 1L) %>%
+  mutate(boardings = ifelse(!is.na(first_before_technology),  boardings + 1, boardings)) %>%
+  mutate(boardings = ifelse(!is.na(second_before_technology), boardings + 1, boardings)) %>%
+  mutate(boardings = ifelse(!is.na(third_before_technology),  boardings + 1, boardings)) %>%
+  mutate(boardings = ifelse(!is.na(first_after_technology),   boardings + 1, boardings)) %>%
+  mutate(boardings = ifelse(!is.na(second_after_technology),  boardings + 1, boardings)) %>%
+  mutate(boardings = ifelse(!is.na(third_after_technology),   boardings + 1, boardings))
+
+table(survey.standard$boardings)
+
+survey.standard <- survey.standard %>%
+  mutate(survey_boardings = 1L + as.numeric(number_transfers_orig_board) + as.numeric(number_transfers_alight_dest))
+
+table(survey.standard$boardings, survey.standard$survey_boardings)
+
+# Step 7:  Standardize Demographics
+# -------------------------------------------------------------------------------------
   
+# START HERE
+
 ```
 
 ### Geocode XY to Travel Model Geographies
