@@ -5,7 +5,6 @@ output:
   html_document:
     theme: cosmo
     toc: yes
-runtime: shiny
 ---
 
 ## Administration
@@ -14,16 +13,12 @@ runtime: shiny
 Procedure to translate any number of on-board survey data sets into a single dataset with common variables and common responses.  This is a work-in-progress production version of the procedures.  See ``../mini-example`` and ``../small-example`` for working proto-types.  In this script, we put in place procedures to process surveys into a standard database.  See ``Extract Variables from Legacy Surveys.Rmd`` for procedures to extract variables from legacy surveys (i.e., those with SAS summary scripts). 
 
 #### _ISSUES_
-1.  Check a few freqs comparing the input data and the derived flat file
+1.  Work carefully through first few datasets, as the code is a bit coarse in places
 
 #### _TODO_
-3.  Build full generalization with latest ETC
-4.  Make geo-coding file location parameters (directory + file name) at the top
-8.  Add data types before exporting to RData
-9.  How to handle operators with mixed modes
-10.  Separate script to munge legacy with current data and write out Tableau?
-11.  One script to geo-code locations?
-12.  Standard variables to add when real data comes in: survey language, expansion weight, survey type (tablet or paper)
+1.  How to handle operators with mixed modes
+2.  Separate script to (a) read in legacy data (b) munge legacy with current data --> write out Tableau and (c) write out public data set
+3.  Standard variables to add when real data comes in: survey language, expansion weight, survey type (tablet or paper)
 
 ## Overhead
 
@@ -39,6 +34,22 @@ library(stringr)
 ```{r config, include=FALSE}
 knitr::opts_chunk$set(cache=TRUE)
 ```
+
+#### Remote file names
+```{r file-names}
+F_SPATIAL_TO_BE_GEOCODED = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/spatial_places_to_be_geocoded.csv"
+F_BOARD_TO_BE_GEOCODED   = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/boarding_places_to_be_geocoded.csv"
+F_ALIGHT_TO_BE_GEOCODED  = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/alighting_places_to_be_geocoded.csv"
+
+F_SPATIAL_GEOCODED = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/spatial_places_geocoded.csv"
+F_TRANSIT_GEOCODED = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/boarding_alighting_places_geocoded.csv"
+
+F_CALTRAIN_SURVEY = "M:/Data/OnBoard/Data and Reports/Caltrain/As CSV/Caltrain_PilotTest_MainSurvey_Database_SubmittedOct16 NO POUND OR SINGLE QUOTE.csv"
+
+F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/Standardized Data/_working/survey_standard.RData"
+
+```
+
 
 ## Prepare Dictionaries
 ```{r prepare-dictionary}
@@ -73,7 +84,7 @@ dictionary.CAL <- dictionary.all %>%
 variables.CAL <- as.character(factor(unique(unlist(dictionary.CAL$Survey_Variable, use.names = TRUE))))
 
 # Read data and select variables of interest
-survey.CAL <- read.csv('M:/Data/OnBoard/Data and Reports/Caltrain/As CSV/Caltrain_PilotTest_MainSurvey_Database_SubmittedOct16 NO POUND OR SINGLE QUOTE.csv', header = TRUE)
+survey.CAL <- read.csv(F_CALTRAIN_SURVEY, header = TRUE)
 survey.CAL.select <- survey.CAL[ ,variables.CAL]
 
 # Reshape the data
@@ -370,6 +381,8 @@ survey.standard <- survey.standard %>%
 
 table(survey.standard$auto_suff)
 
+remove(vehicles.dictionary, workers.dictionary)
+
 
 # Step 5:  Operator and Technology sequence
 # -------------------------------------------------------------------------------------
@@ -589,7 +602,7 @@ survey.standard <- survey.standard %>%
 table(survey.standard$work_status)
 table(survey.standard$student_status)
 table(survey.standard$fare_medium)
-table(survey.standard$fare_type)
+table(survey.standard$fare_category)
 table(survey.standard$hispanic)
 table(survey.standard$race)
 table(survey.standard$language_at_home)
@@ -670,28 +683,65 @@ write.alight <- survey.standard %>%
   select(Unique_ID, last_alight_lat, last_alight_lon, last_alight_tech) %>%
   filter(!is.na(last_alight_lat))
 
-write.csv(write.places, file = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/spatial_places_to_be_geocoded.csv",  row.names = FALSE, quote = F)
-write.csv(write.board,  file = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/boarding_places_to_be_geocoded.csv", row.names = FALSE, quote = F)
-write.csv(write.alight, file = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/alighting_places_to_be_geocoded.csv", row.names = FALSE, quote = F)
+write.csv(write.places, file = F_SPATIAL_TO_BE_GEOCODED,  row.names = FALSE, quote = F)
+write.csv(write.board,  file = F_BOARD_TO_BE_GEOCODED,    row.names = FALSE, quote = F)
+write.csv(write.alight, file = F_ALIGHT_TO_BE_GEOCODED,   row.names = FALSE, quote = F)
 
-remove(temp_lat, temp_lon, temp_lat.melt, temp_lon.melt)
+remove(temp_lat, temp_lon, temp_lat.melt, temp_lon.melt, write.places, write.board, write.alight)
 
 ```
 
 ```{r geocode-addit}
-# START HERE read in, cast, join
-geocoded_places <- read.csv('M:/Data/OnBoard/Data and Reports/Geocoding Engine/spatial_places_geocoded.csv', header = TRUE)
+# Bring in the geocoding results
+geocoded_spatial_places <- read.csv(F_SPATIAL_GEOCODED, header = TRUE)
+geocoded_transit_places <- read.csv(F_TRANSIT_GEOCODED, header = TRUE)
+
+geocoded_spatial_places <- select(geocoded_spatial_places, -x_coord, -y_coord)
+geo_spatial_maz <- dcast(geocoded_spatial_places, Unique_ID ~ variable, value.var = "MAZ_ORIGINAL")
+geo_spatial_maz <- geo_spatial_maz %>%
+  select(Unique_ID, dest_maz = dest, home_maz = home, orig_maz = orig, school_maz = school, workplace_maz = workplace) %>%
+  mutate(Unique_ID = as.character(Unique_ID))
+
+geo_spatial_taz <- dcast(geocoded_spatial_places, Unique_ID ~ variable, value.var = "TAZ1454")
+geo_spatial_taz <- geo_spatial_taz %>%
+  select(Unique_ID, dest_taz = dest, home_taz = home, orig_taz = orig, school_taz = school, workplace_taz = workplace) %>%
+  mutate(Unique_ID = as.character(Unique_ID))
+
+geo_transit_tap <- geocoded_transit_places %>%
+  select(Unique_ID, first_board_tap = board_tap, last_alight_tap = alight_tap) %>%
+  mutate(Unique_ID = as.character(Unique_ID))
+
+# Joins
+survey.standard <- left_join(survey.standard, geo_spatial_maz, by = c("Unique_ID"))
+survey.standard <- left_join(survey.standard, geo_spatial_taz, by = c("Unique_ID"))
+survey.standard <- left_join(survey.standard, geo_transit_tap, by = c("Unique_ID"))
+
+table(survey.standard$home_maz)
+table(survey.standard$home_taz)
+table(survey.standard$first_board_tap)
+
+remove(geocoded_spatial_places, geocoded_transit_places, geo_spatial_maz, geo_spatial_taz, geo_transit_tap)
 ```
 
-### Add Data types
+### Clean up data types
+```{r data-types}
+# Cast all factors to numeric or string
+survey.standard <- survey.standard %>%
+  mutate(first_before_operator  = as.character(first_before_operator)) %>%
+  mutate(second_before_operator = as.character(second_before_operator)) %>%
+  mutate(third_before_operator  = as.character(third_before_operator)) %>%
+  mutate(first_after_operator   = as.character(first_after_operator)) %>%
+  mutate(second_after_operator  = as.character(second_after_operator)) %>%
+  mutate(third_after_operator   = as.character(third_after_operator))
 
-## Bring in Legacy SAS Data set
+```
 
-## Extract Tableau summaries
+## Write RData to Disk
+```{r disk-write}
+save(survey.standard, file = F_OUTPUT_RDATA)
 
-## Write working set to RData
+```
 
-## Prepare and Write public data set to CSV
 
 
 

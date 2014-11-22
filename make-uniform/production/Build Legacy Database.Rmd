@@ -1,0 +1,49 @@
+---
+title: "Build Legacy Database"
+author: "David Ory"
+output:
+  html_document:
+    theme: cosmo
+    toc: yes
+---
+
+## Administration
+
+#### Purpose
+Refactoring the approach to building a standard survey database.  This script reads in data produced by the legacy SAS procedures.
+
+#### _ISSUES_
+
+#### _TODO_
+
+## Overhead
+
+#### Libraries
+```{r overhead}
+library(knitr)
+library(foreign)
+```
+
+#### Knitr config
+```{r config, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+#### Remote file names
+```{r file-names}
+SASEXE_PATH     = "C:/Program Files/SAS/SASFoundation/9.2/sas.exe"
+D_INPUT_SASDATA = "M:/Data/OnBoard/Data and Reports/SAS data"
+N_INPUT_SASDATA = "regional_ready"
+F_OUTPUT_RDATA  = "M:/Data/OnBoard/Data and Reports/Standardized Data/_working/survey_legacy.RData"
+
+```
+
+## Procedure
+```{r convert}
+# Use a library that relies on SAS (rather than CSV to and fro)
+survey.legacy <- read.ssd(D_INPUT_SASDATA, N_INPUT_SASDATA, tmpXport = D_INPUT_SASDATA, tmpProgLoc = D_INPUT_SASDATA, sascmd = SASEXE_PATH)
+save(survey.legacy, file = F_OUTPUT_RDATA)
+
+
+```
+
