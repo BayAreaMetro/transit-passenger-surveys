@@ -72,6 +72,7 @@ dictionary.cat <- dictionary.all %>%
 ```{r operator-caltrain}
 survey.CAL.key  <- 'Caltrain Pilot'
 survey.CAL.year <- 2014
+survey.CAL.type <- 'tablet_pi'
 
 # Set survey tech by route if necessary in operator chunk
 survey.CAL.tech <- 'commuter rail'
@@ -93,9 +94,10 @@ survey.CAL.melt <- select(survey.CAL.melt, ID, Survey_Variable = variable, Surve
 survey.CAL.melt <- mutate(survey.CAL.melt, Operator = survey.CAL.key)
 survey.CAL.melt <- mutate(survey.CAL.melt, survey_year = survey.CAL.year)
 survey.CAL.melt <- mutate(survey.CAL.melt, survey_tech = survey.CAL.tech)
+survey.CAL.melt <- mutate(survey.CAL.melt, survey_type = survey.CAL.type)
 
 # Clean up
-remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, dictionary.CAL, variables.CAL, survey.CAL, survey.CAL.select)
+remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, survey.CAL.type, dictionary.CAL, variables.CAL, survey.CAL, survey.CAL.select)
 ```
 
 
@@ -109,7 +111,7 @@ survey.cat <- left_join(survey.cat, dictionary.cat, by = c("Operator", "Survey_V
 survey.cat <- filter(survey.cat, !is.na(Generic_Variable))
 
 # Join the dictionary and prepare the non-categorical variables
-survey.non <- left_join(survey.combine, dictionary.non, by = c("Operator", "Survey_Variable"))
+survey.non <- left_join(survey.combine, dictionary.non, by = c("operator", "Survey_Variable"))
 survey.non <- survey.non %>%
   filter(!is.na(Generic_Variable)) %>%
   mutate(Generic_Response = Survey_Response)
@@ -127,22 +129,22 @@ survey.to_flat <- rbind(survey.cat.to_flat, survey.non.to_flat)
 
 # Put together and then take apart a unique ID when flattening
 survey.to_flat <- survey.to_flat %>%
-  mutate(Unique_ID = paste(ID, Operator, survey_year, sep = "---")) %>%
-  select(-ID, -Operator, -survey_year)
+  mutate(Unique_ID = paste(ID, operator, survey_year, sep = "---")) %>%
+  select(-ID, -operator, -survey_year)
 
 survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
 
-survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "Operator", "survey_year")))
+survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "operator", "survey_year")))
 
-# Add in survey technology
-survey.tech <- survey.combine %>%
-  group_by(ID, Operator, survey_year, survey_tech) %>%
+# Add in survey technology, type
+survey.adds <- survey.combine %>%
+  group_by(ID, operator, survey_year, survey_tech, survey_type) %>%
   summarise(Count = n()) %>%
   select(-Count)
 
-survey.flat <- left_join(survey.flat, survey.tech, by = c("ID", "Operator", "survey_year"))
+survey.flat <- left_join(survey.flat, survey.adds, by = c("ID", "operator", "survey_year"))
 
-remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat, survey.tech)
+remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat, survey.adds)
 remove(survey.CAL.melt)
 
 ```
@@ -732,13 +734,79 @@ survey.standard <- survey.standard %>%
   mutate(third_before_operator  = as.character(third_before_operator)) %>%
   mutate(first_after_operator   = as.character(first_after_operator)) %>%
   mutate(second_after_operator  = as.character(second_after_operator)) %>%
-  mutate(third_after_operator   = as.character(third_after_operator))
+  mutate(third_after_operator   = as.character(third_after_operator)) %>%
+  mutate(depart_hour            = as.numeric(depart_hour)) %>%
+  mutate(return_hour            = as.numeric(return_hour)) %>%
+  mutate(survey_board_lat       = as.numeric(survey_board_lat)) %>%
+  mutate(survey_board_lon       = as.numeric(survey_board_lon)) %>%
+  mutate(survey_alight_lat      = as.numeric(survey_alight_lat)) %>%
+  mutate(survey_alight_lon      = as.numeric(survey_alight_lon)) %>%
+  mutate(first_board_lat        = as.numeric(first_board_lat)) %>%
+  mutate(first_board_lon        = as.numeric(first_board_lon)) %>%
+  mutate(last_alight_lat        = as.numeric(last_alight_lat)) %>%
+  mutate(last_alight_lon        = as.numeric(last_alight_lon))
+
+# Drop variables we don't want to carry forward to standard dataset
+survey.standard <- survey.standard %>%
+  select(-at_school_after_dest_purp, 
+         -at_school_prior_to_orig_purp, 
+         -at_work_after_dest_purp, 
+         -at_work_prior_to_orig_purp, 
+         -date_string,
+         -date,
+         -time_start,
+         -vehicle_numeric_cat,
+         -worker_numeric_cat,
+         -year_born,
+         -number_transfers_alight_dest,
+         -number_transfers_orig_board,
+         -first_route_before_survey_board,
+         -first_route_after_survey_alight,
+         -second_route_before_survey_board,
+         -second_route_after_survey_alight,
+         -third_route_before_survey_board,
+         -third_route_after_survey_alight,
+         -first_before_operator,
+         -second_before_operator,
+         -third_before_operator,
+         -first_after_operator,
+         -second_after_operator,
+         -third_after_operator,
+         -first_before_technology,
+         -second_before_technology,
+         -third_before_technology,
+         -first_after_technology,
+         -second_after_technology,
+         -third_after_technology)
+
+# Drop lat/lon for locations
+survey.standard <- survey.standard %>%
+  select(-dest_lat,
+         -dest_lon,
+         -home_lat,
+         -home_lon,
+         -orig_lat,
+         -orig_lon,
+         -school_lat,
+         -school_lon,
+         -workplace_lat,
+         -workplace_lon)
 
 ```
 
 ## Write RData to Disk
 ```{r disk-write}
+# Add missing variables (TODO: add when real data becomes available)
+survey.standard <- survey.standard %>%
+  mutate(weight = 0.0) %>%
+  mutate(trip_weight = ifelse(boardings > 0, weight / boardings, weight)) %>%
+  mutate(interview_language = 'Missing') %>%
+  mutate(field_language = 'Missing')
+
+
 save(survey.standard, file = F_OUTPUT_RDATA)
+
+# str(survey.standard, list.len = 500)
 
 ```
 

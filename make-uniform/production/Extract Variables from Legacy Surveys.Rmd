@@ -13,13 +13,6 @@ runtime: shiny
 #### Purpose
 Procedure to translate any number of on-board survey data sets into a single dataset with common variables and common responses.  This is a work-in-progress production version of the procedures.  See ``../mini-example`` and ``../small-example`` for working proto-types.  In this script, we put in place procedures to extract variables from legacy surveys (i.e. those with SAS summary scripts).  See ``Build Standard Database.Rmd`` for procedures to process current surveys. 
 
-#### _ISSUES_
-1.  Check a few freqs comparing the input data and the derived flat file
-
-#### _TODO_
-3.  Write to disk
-4.  Figure out merge
-
 ## Overhead
 
 #### Libraries
@@ -35,6 +28,12 @@ library(stringr)
 knitr::opts_chunk$set(cache=TRUE)
 ```
 
+#### Remote file names
+```{r file-names}
+F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/Standardized Data/_working/survey_legacy_additional.RData"
+
+```
+
 ## Prepare Dictionaries
 ```{r prepare-dictionary}
 dictionary.all <- read.csv('Dictionary for Legacy Surveys.csv', header = TRUE)
@@ -42,7 +41,7 @@ dictionary.all <- read.csv('Dictionary for Legacy Surveys.csv', header = TRUE)
 # Prepare seperate dictionaries for categorical and non-categorical variables
 dictionary.non <- dictionary.all %>%
   filter(Generic_Response == 'NONCATEGORICAL') %>%
-  select(Operator, Survey_Variable, Generic_Variable)
+  select(operator, Survey_Variable, Generic_Variable)
 
 dictionary.cat <- dictionary.all %>%
   filter(Generic_Response != 'NONCATEGORICAL') %>%
@@ -50,7 +49,7 @@ dictionary.cat <- dictionary.all %>%
 
 ```
 
-## Operator specifics
+## operator specifics
 
 ### AC Transit
 ```{r operator-actransit}
@@ -59,7 +58,7 @@ survey.ACT.year <- 2012
 
 # Prepare operator-specific-specific dictionary
 dictionary.ACT <- dictionary.all %>%
-  filter(Operator == survey.ACT.key)
+  filter(operator == survey.ACT.key)
 
 variables.ACT <- as.character(factor(unique(unlist(dictionary.ACT$Survey_Variable, use.names = TRUE))))
 
@@ -77,7 +76,7 @@ survey.ACT.select <- rbind(survey.ACT.weekday.select, survey.ACT.weekend.select)
 # Reshape the data
 survey.ACT.melt <- melt(survey.ACT.select, id = 'ID')
 survey.ACT.melt <- select(survey.ACT.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.ACT.melt <- mutate(survey.ACT.melt, Operator = survey.ACT.key)
+survey.ACT.melt <- mutate(survey.ACT.melt, operator = survey.ACT.key)
 survey.ACT.melt <- mutate(survey.ACT.melt, survey_year = survey.ACT.year)
 
 # Clean up
@@ -92,7 +91,7 @@ survey.ACE.year <- 2014
 
 # Prepare operator-specific dictionary
 dictionary.ACE <- dictionary.all %>%
-  filter(Operator == survey.ACE.key)
+  filter(operator == survey.ACE.key)
 
 variables.ACE <- as.character(factor(unique(unlist(dictionary.ACE$Survey_Variable, use.names = TRUE))))
 
@@ -103,7 +102,7 @@ survey.ACE.select <- survey.ACE[ ,variables.ACE]
 # Reshape the data
 survey.ACE.melt <- melt(survey.ACE.select, id = 'Survey_ID')
 survey.ACE.melt <- select(survey.ACE.melt, ID = Survey_ID, Survey_Variable = variable, Survey_Response = value)
-survey.ACE.melt <- mutate(survey.ACE.melt, Operator = survey.ACE.key)
+survey.ACE.melt <- mutate(survey.ACE.melt, operator = survey.ACE.key)
 survey.ACE.melt <- mutate(survey.ACE.melt, survey_year = survey.ACE.year)
 
 # Clean up
@@ -117,7 +116,7 @@ survey.CCC.year <- 2012
 
 # Prepare operator-specific dictionary
 dictionary.CCC <- dictionary.all %>%
-  filter(Operator == survey.CCC.key)
+  filter(operator == survey.CCC.key)
 
 variables.CCC <- as.character(factor(unique(unlist(dictionary.CCC$Survey_Variable, use.names = TRUE))))
 
@@ -128,7 +127,7 @@ survey.CCC.select <- survey.CCC[ ,variables.CCC]
 # Reshape the data
 survey.CCC.melt <- melt(survey.CCC.select, id = 'ID')
 survey.CCC.melt <- select(survey.CCC.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.CCC.melt <- mutate(survey.CCC.melt, Operator = survey.CCC.key)
+survey.CCC.melt <- mutate(survey.CCC.melt, operator = survey.CCC.key)
 survey.CCC.melt <- mutate(survey.CCC.melt, survey_year = survey.CCC.year)
 
 # Clean up
@@ -143,7 +142,7 @@ survey.GGT.year <- 2013
 
 # Prepare operator-specific dictionary
 dictionary.GGT <- dictionary.all %>%
-  filter(Operator == survey.GGT.key)
+  filter(operator == survey.GGT.key)
 
 variables.GGT <- as.character(factor(unique(unlist(dictionary.GGT$Survey_Variable, use.names = TRUE))))
 
@@ -161,7 +160,7 @@ survey.GGT.select <- rbind(survey.GGT.weekday.select, survey.GGT.weekend.select)
 # Reshape the data
 survey.GGT.melt <- melt(survey.GGT.select, id = 'ID')
 survey.GGT.melt <- select(survey.GGT.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.GGT.melt <- mutate(survey.GGT.melt, Operator = survey.GGT.key)
+survey.GGT.melt <- mutate(survey.GGT.melt, operator = survey.GGT.key)
 survey.GGT.melt <- mutate(survey.GGT.melt, survey_year = survey.GGT.year)
 
 # Clean up
@@ -176,7 +175,7 @@ survey.GGF.year <- 2013
 
 # Prepare operator-specific dictionary
 dictionary.GGF <- dictionary.all %>%
-  filter(Operator == survey.GGF.key)
+  filter(operator == survey.GGF.key)
 
 variables.GGF <- as.character(factor(unique(unlist(dictionary.GGF$Survey_Variable, use.names = TRUE))))
 
@@ -194,7 +193,7 @@ survey.GGF.select <- rbind(survey.GGF.weekday.select, survey.GGF.weekend.select)
 # Reshape the data
 survey.GGF.melt <- melt(survey.GGF.select, id = 'ID')
 survey.GGF.melt <- select(survey.GGF.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.GGF.melt <- mutate(survey.GGF.melt, Operator = survey.GGF.key)
+survey.GGF.melt <- mutate(survey.GGF.melt, operator = survey.GGF.key)
 survey.GGF.melt <- mutate(survey.GGF.melt, survey_year = survey.GGF.year)
 # Clean up
 remove(survey.GGF.key, survey.GGF.year, dictionary.GGF, variables.GGF, survey.GGF.weekday, survey.GGF.weekend, survey.GGF.weekday.select, survey.GGF.weekend.select, survey.GGF.select)
@@ -208,7 +207,7 @@ survey.LAV.year <- 2013
 
 # Prepare operator-specific dictionary
 dictionary.LAV <- dictionary.all %>%
-  filter(Operator == survey.LAV.key)
+  filter(operator == survey.LAV.key)
 
 variables.LAV <- as.character(factor(unique(unlist(dictionary.LAV$Survey_Variable, use.names = TRUE))))
 
@@ -226,7 +225,7 @@ survey.LAV.select <- rbind(survey.LAV.weekday.select, survey.LAV.weekend.select)
 # Reshape the data
 survey.LAV.melt <- melt(survey.LAV.select, id = 'ID')
 survey.LAV.melt <- select(survey.LAV.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.LAV.melt <- mutate(survey.LAV.melt, Operator = survey.LAV.key)
+survey.LAV.melt <- mutate(survey.LAV.melt, operator = survey.LAV.key)
 survey.LAV.melt <- mutate(survey.LAV.melt, survey_year = survey.LAV.year)
 
 # Clean up
@@ -241,7 +240,7 @@ survey.NAP.year <- 2014
 
 # Prepare operator-specific dictionary
 dictionary.NAP <- dictionary.all %>%
-  filter(Operator == survey.NAP.key)
+  filter(operator == survey.NAP.key)
 
 variables.NAP <- as.character(factor(unique(unlist(dictionary.NAP$Survey_Variable, use.names = TRUE))))
 
@@ -252,7 +251,7 @@ survey.NAP.select <- survey.NAP[ ,variables.NAP]
 # Reshape the data
 survey.NAP.melt <- melt(survey.NAP.select, id = 'ID')
 survey.NAP.melt <- select(survey.NAP.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.NAP.melt <- mutate(survey.NAP.melt, Operator = survey.NAP.key)
+survey.NAP.melt <- mutate(survey.NAP.melt, operator = survey.NAP.key)
 survey.NAP.melt <- mutate(survey.NAP.melt, survey_year = survey.NAP.year)
 
 # Clean up
@@ -267,7 +266,7 @@ survey.PET.year <- 2012
 
 # Prepare operator-specific dictionary
 dictionary.PET <- dictionary.all %>%
-  filter(Operator == survey.PET.key)
+  filter(operator == survey.PET.key)
 
 variables.PET <- as.character(factor(unique(unlist(dictionary.PET$Survey_Variable, use.names = TRUE))))
 
@@ -278,7 +277,7 @@ survey.PET.select <- survey.PET[ ,variables.PET]
 # Reshape the data
 survey.PET.melt <- melt(survey.PET.select, id = 'ID')
 survey.PET.melt <- select(survey.PET.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.PET.melt <- mutate(survey.PET.melt, Operator = survey.PET.key)
+survey.PET.melt <- mutate(survey.PET.melt, operator = survey.PET.key)
 survey.PET.melt <- mutate(survey.PET.melt, survey_year = survey.PET.year)
 
 # Clean up
@@ -293,7 +292,7 @@ survey.SAM.year <- 2013
 
 # Prepare operator-specific dictionary
 dictionary.SAM <- dictionary.all %>%
-  filter(Operator == survey.SAM.key)
+  filter(operator == survey.SAM.key)
 
 variables.SAM <- as.character(factor(unique(unlist(dictionary.SAM$Survey_Variable, use.names = TRUE))))
 
@@ -311,7 +310,7 @@ survey.SAM.select <- rbind(survey.SAM.weekday.select, survey.SAM.weekend.select)
 # Reshape the data
 survey.SAM.melt <- melt(survey.SAM.select, id = 'ID')
 survey.SAM.melt <- select(survey.SAM.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.SAM.melt <- mutate(survey.SAM.melt, Operator = survey.SAM.key)
+survey.SAM.melt <- mutate(survey.SAM.melt, operator = survey.SAM.key)
 survey.SAM.melt <- mutate(survey.SAM.melt, survey_year = survey.SAM.year)
 
 # Clean up
@@ -326,7 +325,7 @@ survey.SRC.year <- 2012
 
 # Prepare operator-specific dictionary
 dictionary.SRC <- dictionary.all %>%
-  filter(Operator == survey.SRC.key)
+  filter(operator == survey.SRC.key)
 
 variables.SRC <- as.character(factor(unique(unlist(dictionary.SRC$Survey_Variable, use.names = TRUE))))
 
@@ -337,7 +336,7 @@ survey.SRC.select <- survey.SRC[ ,variables.SRC]
 # Reshape the data
 survey.SRC.melt <- melt(survey.SRC.select, id = 'ID')
 survey.SRC.melt <- select(survey.SRC.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.SRC.melt <- mutate(survey.SRC.melt, Operator = survey.SRC.key)
+survey.SRC.melt <- mutate(survey.SRC.melt, operator = survey.SRC.key)
 survey.SRC.melt <- mutate(survey.SRC.melt, survey_year = survey.SRC.year)
 
 # Clean up
@@ -352,7 +351,7 @@ survey.SON.year <- 2012
 
 # Prepare operator-specific dictionary
 dictionary.SON <- dictionary.all %>%
-  filter(Operator == survey.SON.key)
+  filter(operator == survey.SON.key)
 
 variables.SON <- as.character(factor(unique(unlist(dictionary.SON$Survey_Variable, use.names = TRUE))))
 
@@ -363,7 +362,7 @@ survey.SON.select <- survey.SON[ ,variables.SON]
 # Reshape the data
 survey.SON.melt <- melt(survey.SON.select, id = 'ID')
 survey.SON.melt <- select(survey.SON.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.SON.melt <- mutate(survey.SON.melt, Operator = survey.SON.key)
+survey.SON.melt <- mutate(survey.SON.melt, operator = survey.SON.key)
 survey.SON.melt <- mutate(survey.SON.melt, survey_year = survey.SON.year)
 
 # Clean up
@@ -378,7 +377,7 @@ survey.TRI.year <- 2014
 
 # Prepare dictionary
 dictionary.TRI <- dictionary.all %>%
-  filter(Operator == survey.TRI.key)
+  filter(operator == survey.TRI.key)
 
 variables.TRI <- as.character(factor(unique(unlist(dictionary.TRI$Survey_Variable, use.names = TRUE))))
 
@@ -389,7 +388,7 @@ survey.TRI.select <- survey.TRI[ ,variables.TRI]
 # Reshape the data
 survey.TRI.melt <- melt(survey.TRI.select, id = 'ID')
 survey.TRI.melt <- select(survey.TRI.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.TRI.melt <- mutate(survey.TRI.melt, Operator = survey.TRI.key)
+survey.TRI.melt <- mutate(survey.TRI.melt, operator = survey.TRI.key)
 survey.TRI.melt <- mutate(survey.TRI.melt, survey_year = survey.TRI.year)
 
 # Clean up
@@ -404,7 +403,7 @@ survey.UCT.year <- 2013
 
 # Prepare operator-specific dictionary
 dictionary.UCT <- dictionary.all %>%
-  filter(Operator == survey.UCT.key)
+  filter(operator == survey.UCT.key)
 
 variables.UCT <- as.character(factor(unique(unlist(dictionary.UCT$Survey_Variable, use.names = TRUE))))
 
@@ -415,7 +414,7 @@ survey.UCT.select <- survey.UCT[ ,variables.UCT]
 # Reshape the data
 survey.UCT.melt <- melt(survey.UCT.select, id = 'ID')
 survey.UCT.melt <- select(survey.UCT.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.UCT.melt <- mutate(survey.UCT.melt, Operator = survey.UCT.key)
+survey.UCT.melt <- mutate(survey.UCT.melt, operator = survey.UCT.key)
 survey.UCT.melt <- mutate(survey.UCT.melt, survey_year = survey.UCT.year)
 
 # Clean up
@@ -430,7 +429,7 @@ survey.WET.year <- 2013
 
 # Prepare operator-specific dictionary
 dictionary.WET <- dictionary.all %>%
-  filter(Operator == survey.WET.key)
+  filter(operator == survey.WET.key)
 
 variables.WET <- as.character(factor(unique(unlist(dictionary.WET$Survey_Variable, use.names = TRUE))))
 
@@ -448,7 +447,7 @@ survey.WET.select <- rbind(survey.WET.weekday.select, survey.WET.weekend.select)
 # Reshape the data
 survey.WET.melt <- melt(survey.WET.select, id = 'ID')
 survey.WET.melt <- select(survey.WET.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.WET.melt <- mutate(survey.WET.melt, Operator = survey.WET.key)
+survey.WET.melt <- mutate(survey.WET.melt, operator = survey.WET.key)
 survey.WET.melt <- mutate(survey.WET.melt, survey_year = survey.WET.year)
 
 # Clean up
@@ -475,11 +474,11 @@ survey.combine <- rbind(survey.ACE.melt,
 
 # Join the dictionary and prepare the categorical variables
 survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
-survey.cat <- left_join(survey.cat, dictionary.cat, by = c("Operator", "Survey_Variable", "Survey_Response"))
+survey.cat <- left_join(survey.cat, dictionary.cat, by = c("operator", "Survey_Variable", "Survey_Response"))
 survey.cat <- filter(survey.cat, !is.na(Generic_Variable))
 
 # Join the dictionary and prepare the non-categorical variables
-survey.non <- left_join(survey.combine, dictionary.non, by = c("Operator", "Survey_Variable"))
+survey.non <- left_join(survey.combine, dictionary.non, by = c("operator", "Survey_Variable"))
 survey.non <- survey.non %>%
   filter(!is.na(Generic_Variable)) %>%
   mutate(Generic_Response = Survey_Response)
@@ -497,14 +496,14 @@ survey.to_flat <- rbind(survey.cat.to_flat, survey.non.to_flat)
 
 # Put together and then take apart a unique ID when flattening
 survey.to_flat <- survey.to_flat %>%
-  mutate(Unique_ID = paste(ID, Operator, survey_year, sep = "---")) %>%
-  select(-ID, -Operator, -survey_year)
+  mutate(Unique_ID = paste(ID, operator, survey_year, sep = "---")) %>%
+  select(-ID, -operator, -survey_year)
 
 survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
 
-survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "Operator", "survey_year")))
+survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "operator", "survey_year")))
 
-remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat, survey.tech)
+remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat)
 remove(survey.ACE.melt, 
        survey.ACT.melt,
        survey.CCC.melt, 
@@ -522,7 +521,13 @@ remove(survey.ACE.melt,
 
 ```
 
-## Prepare and Write public data set to CSV
+## Prepare and Write data
+```{r write-disk}
+
+save(survey.flat, file = F_OUTPUT_RDATA)
+
+```
+
 
 
 

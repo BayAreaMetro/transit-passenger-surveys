@@ -10,18 +10,24 @@ output:
 ## Administration
 
 #### Purpose
-Refactoring the approach to building a standard survey database.  This script reads in data produced by the legacy SAS procedures.
+Refactoring the approach to building a standard survey database.  This script reads in data produced by the legacy SAS procedures and prepares the data for merger with the active data.
 
 #### _ISSUES_
 
 #### _TODO_
+1.  Finish adding onoff for legacy surveys in Dictionary for Legacy Surveys
+2.  Join the additional variables with the legacy SAS data
+3.  Try rbind with the standard data -- if successful, move to a new script
+4.  In the new script, do the rbind and then generate the tableau outputs 
+5.  Then rebuild tableau
 
 ## Overhead
 
 #### Libraries
 ```{r overhead}
 library(knitr)
-library(foreign)
+suppressMessages(library(dplyr))
+library(stringr)
 ```
 
 #### Knitr config
@@ -31,19 +37,66 @@ knitr::opts_chunk$set(cache=TRUE)
 
 #### Remote file names
 ```{r file-names}
-SASEXE_PATH     = "C:/Program Files/SAS/SASFoundation/9.2/sas.exe"
-D_INPUT_SASDATA = "M:/Data/OnBoard/Data and Reports/SAS data"
-N_INPUT_SASDATA = "regional_ready"
+F_INPUT_CSVDATA = "M:/Data/OnBoard/Data and Reports/SAS data/regional_ready.csv"
+F_INPUT_RDATA   = "M:/Data/OnBoard/Data and Reports/Standardized Data/_working/survey_legacy_additional.RData"
+
 F_OUTPUT_RDATA  = "M:/Data/OnBoard/Data and Reports/Standardized Data/_working/survey_legacy.RData"
 
 ```
 
 ## Procedure
 ```{r convert}
-# Use a library that relies on SAS (rather than CSV to and fro)
-survey.legacy <- read.ssd(D_INPUT_SASDATA, N_INPUT_SASDATA, tmpXport = D_INPUT_SASDATA, tmpProgLoc = D_INPUT_SASDATA, sascmd = SASEXE_PATH)
-save(survey.legacy, file = F_OUTPUT_RDATA)
+# Read in the CSV data
+sasdata <- read.csv(F_INPUT_CSVDATA, header = TRUE, stringsAsFactors = FALSE)
 
+# Rename variables to be standard
+sasdata.clean <- sasdata %>%
+  rename(ID                = id,
+         auto_suff         = autoSuff, 
+         survey_tech       = survey_mode,
+         first_board_tech  = first_transit_mode,
+         last_alight_tech  = last_transit_mode,
+         approximate_age   = age,
+         survey_board_lon  = survey_boarding_x,
+         survey_board_lat  = survey_boarding_y,
+         survey_alight_lon = survey_alighting_x,                 
+         survey_alight_lat = survey_alighting_y,                 
+         first_board_lon   = first_boarding_x,                     
+         first_board_lat   = first_boarding_y,                     
+         last_alight_lon   = last_alighting_x,                     
+         last_alight_lat   = last_alighting_y,                     
+         home_taz          = homeTAZ,                                     
+         workplace_taz     = workTAZ,                                
+         school_taz        = schoolTAZ,                                 
+         orig_taz          = originTAZ,                                   
+         dest_taz          = destTAZ,                                     
+         home_maz          = homeMAZ,                                     
+         workplace_maz     = workMAZ,                                
+         school_maz        = schoolMAZ,                                 
+         orig_maz          = originMAZ,                                   
+         dest_maz          = destMAZ,                                     
+         day_of_the_week   = DAY_OF_THE_WEEK,                      
+         day_part          = daypart,                                     
+         first_board_tap   = first_boarding_tap,                   
+         last_alight_tap   = last_alighting_tap)
 
+# Remove variables we do not need
+sasdata.clean <- sasdata.clean %>%
+  select(-orig_purp_field, -dest_purp_field, -daypart_start, -daypart_end)
+  
+# Transformations
+temp <- sasdata.clean %>%
+  rename(field_start_sas = field_start, field_end_sas = field_end) %>%
+  mutate(field_start     = as.Date(str_trim(field_start_sas), format = "%m/%d/%Y")) %>%
+  mutate(field_end       = as.Date(str_trim(field_end_sas),   format = "%m/%d/%Y")) %>%
+  select(-field_start_sas, -field_end_sas) %>%
+  mutate(survey_year     = max(format(field_start, "%Y"), format(field_end, "%Y"))) %>%
+  mutate(Unique_ID       = paste(ID, operator, survey_year, sep = "---"))
+
+# Join additional variables
+
+# Work out rbind details with standard, then move to new script
+
+# Write legacy disk
 ```
 
