@@ -89,6 +89,13 @@ sasdata.clean <- sasdata.clean %>%
   mutate(survey_year     = max(format(field_start, "%Y"), format(field_end, "%Y"))) %>%
   mutate(Unique_ID       = paste(ID, operator, survey_year, sep = "---"))
 
+# Variable re-codes
+sasdata.clean <- sasdata.clean %>%
+  mutate(auto_suff = ifelse(auto_suff == 'Zero autos',       'zero autos',       auto_suff)) %>%
+  mutate(auto_suff = ifelse(auto_suff == 'Workers > autos',  'auto negotiating', auto_suff)) %>%
+  mutate(auto_suff = ifelse(auto_suff == 'Workers <= autos', 'auto sufficient',  auto_suff)) %>%
+  mutate(auto_suff = ifelse(auto_suff == '.',                'Missing',          auto_suff))
+
 # Join additional variables
 load(F_INPUT_RDATA)
 legacy.addtl <- legacy.addtl %>%

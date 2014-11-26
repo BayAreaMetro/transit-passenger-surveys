@@ -280,7 +280,7 @@ survey.standard <- survey.standard %>%
   
   # students -- simple
   mutate(tour_purp = ifelse(tour_purp == 'missing' & (orig_purp == 'grade school' | dest_purp == 'grade school'), 'grade school', tour_purp)) %>%
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & (orig_purp == 'high school'  | dest_purp == 'high school'),  'high  school', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & (orig_purp == 'high school'  | dest_purp == 'high school'),  'high school', tour_purp)) %>%
   
   # non-working university students
   mutate(tour_purp = ifelse(tour_purp == 'missing' & work_status == 'non-worker' & (orig_purp == 'college'  | dest_purp == 'college'),  'university', tour_purp)) %>%

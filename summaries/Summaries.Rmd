@@ -14,9 +14,8 @@ Combines legacy data (see `Extract Variables from Legacy Surveys` and `Build Leg
 #### _ISSUES_
 
 #### _TODO_
-1.  Clean up legacy details, as needed, in Build Legacy Database
-2.  Put Tableau on GitHub?
-3.  Write out public data set here
+1.  Churn through Tableau
+2.  Write out public data set
 
 ## Overhead
 
@@ -51,16 +50,29 @@ str(survey.standard, list.len = 500)
 str(survey.legacy, list.len = 500)
 
 data.ready <- rbind(survey.standard, survey.legacy)
+
+# Replace NA with missing
+data.ready.sum <- data.ready %>%
+  mutate(race             = ifelse(is.na(race),             'Missing', race)) %>%
+  mutate(hispanic         = ifelse(is.na(hispanic),         'Missing', hispanic)) %>%
+  mutate(household_income = ifelse(is.na(household_income), 'Missing', household_income)) %>%
+  mutate(access_mode      = ifelse(is.na(access_mode),      'Missing', access_mode)) %>%
+  mutate(egress_mode      = ifelse(is.na(egress_mode),      'Missing', egress_mode)) %>%
+  mutate(boardings        = ifelse(is.na(boardings),        'Missing', boardings)) %>%
+  mutate(depart_hour      = ifelse(is.na(depart_hour),      'Missing', depart_hour)) %>%
+  mutate(return_hour      = ifelse(is.na(return_hour),      'Missing', return_hour)) %>%
+  mutate(tour_purp        = ifelse(is.na(tour_purp),        'Missing', tour_purp)) %>%
+  mutate(auto_suff        = ifelse(is.na(auto_suff),        'Missing', auto_suff)) %>%
+  mutate(work_status      = ifelse(is.na(work_status),      'Missing', work_status)) %>%
+  mutate(student_status   = ifelse(is.na(student_status),   'Missing', student_status))
+  
 ```
 
 ## Tableau Summaries
 
 ### Race by Ethnicity by Income by Operator by Weekpart
 ```{r race-ethnicity-income}
-sum.race <- data.ready %>%
-  mutate(race = ifelse(is.na(race), 'Missing', race)) %>%
-  mutate(hispanic = ifelse(is.na(hispanic), 'Missing', hispanic)) %>%
-  mutate(household_income = ifelse(is.na(household_income), 'Missing', household_income)) %>%
+sum.race <- data.ready.sum %>%
   group_by(operator, race, hispanic, household_income, weekpart) %>%
   summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
 
@@ -69,10 +81,7 @@ write.csv(sum.race, paste(D_OUTPUT_TABLEAU, "RaceHispanicByOperator.csv", sep = 
 
 ###  Access by Egress by Transfers by Operator by Weekpart
 ```{r acess-egress-transfers}
-sum.tofro <- data.ready %>%
-  mutate(access_mode = ifelse(is.na(access_mode), 'Missing', access_mode)) %>%
-  mutate(egress_mode = ifelse(is.na(egress_mode), 'Missing', egress_mode)) %>%
-  mutate(boardings   = ifelse(is.na(boardings),   'Missing', boardings)) %>%
+sum.tofro <- data.ready.sum %>%
   group_by(operator, weekpart, access_mode, egress_mode, boardings) %>%
   summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
 
@@ -80,3 +89,22 @@ write.csv(sum.tofro, paste(D_OUTPUT_TABLEAU, "AccessEgressTransfers.csv", sep = 
 
 ```
 
+### Time Leaving Home by Time Returning Home by Tour Purpose by Operator by Weekpart
+```{r depart-arrive-purp}
+sum.time <- data.ready.sum %>%
+  group_by(operator, weekpart, depart_hour, return_hour, tour_purp) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.time, paste(D_OUTPUT_TABLEAU, "DepartReturnPurpose.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
+
+## Automobile Sufficiency by Worker Status by Student Status by Boardings by Operator by Weekpart
+```{r autosuff-status-transfers}
+sum.suff <- data.ready.sum %>%
+  group_by(operator, weekpart, auto_suff, work_status, student_status, boardings) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.suff, paste(D_OUTPUT_TABLEAU, "AutoWorkStudent.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
