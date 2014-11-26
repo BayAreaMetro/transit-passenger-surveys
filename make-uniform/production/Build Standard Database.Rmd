@@ -17,7 +17,6 @@ Procedure to translate any number of on-board survey data sets into a single dat
 
 #### _TODO_
 1.  How to handle operators with mixed modes
-2.  Separate script to (a) read in legacy data (b) munge legacy with current data --> write out Tableau and (c) write out public data set
 3.  Standard variables to add when real data comes in: survey language, expansion weight, survey type (tablet or paper)
 
 ## Overhead
@@ -37,16 +36,16 @@ knitr::opts_chunk$set(cache=TRUE)
 
 #### Remote file names
 ```{r file-names}
-F_SPATIAL_TO_BE_GEOCODED = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/spatial_places_to_be_geocoded.csv"
-F_BOARD_TO_BE_GEOCODED   = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/boarding_places_to_be_geocoded.csv"
-F_ALIGHT_TO_BE_GEOCODED  = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/alighting_places_to_be_geocoded.csv"
+F_SPATIAL_TO_BE_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/spatial_places_to_be_geocoded.csv"
+F_BOARD_TO_BE_GEOCODED   = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/boarding_places_to_be_geocoded.csv"
+F_ALIGHT_TO_BE_GEOCODED  = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/alighting_places_to_be_geocoded.csv"
 
-F_SPATIAL_GEOCODED = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/spatial_places_geocoded.csv"
-F_TRANSIT_GEOCODED = "M:/Data/OnBoard/Data and Reports/Geocoding Engine/boarding_alighting_places_geocoded.csv"
+F_SPATIAL_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/spatial_places_geocoded.csv"
+F_TRANSIT_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/boarding_alighting_places_geocoded.csv"
 
 F_CALTRAIN_SURVEY = "M:/Data/OnBoard/Data and Reports/Caltrain/As CSV/Caltrain_PilotTest_MainSurvey_Database_SubmittedOct16 NO POUND OR SINGLE QUOTE.csv"
 
-F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/Standardized Data/_working/survey_standard.RData"
+F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
 
 ```
 
@@ -58,7 +57,7 @@ dictionary.all <- read.csv('Dictionary for Standard Database.csv', header = TRUE
 # Prepare seperate dictionaries for categorical and non-categorical variables
 dictionary.non <- dictionary.all %>%
   filter(Generic_Response == 'NONCATEGORICAL') %>%
-  select(Operator, Survey_Variable, Generic_Variable)
+  select(operator, Survey_Variable, Generic_Variable)
 
 dictionary.cat <- dictionary.all %>%
   filter(Generic_Response != 'NONCATEGORICAL') %>%
@@ -80,7 +79,7 @@ survey.CAL.tech <- 'commuter rail'
 
 # Prepare operator-specific dictionary
 dictionary.CAL <- dictionary.all %>%
-  filter(Operator == survey.CAL.key)
+  filter(operator == survey.CAL.key)
 
 variables.CAL <- as.character(factor(unique(unlist(dictionary.CAL$Survey_Variable, use.names = TRUE))))
 
@@ -91,7 +90,7 @@ survey.CAL.select <- survey.CAL[ ,variables.CAL]
 # Reshape the data
 survey.CAL.melt <- melt(survey.CAL.select, id = 'ID')
 survey.CAL.melt <- select(survey.CAL.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.CAL.melt <- mutate(survey.CAL.melt, Operator = survey.CAL.key)
+survey.CAL.melt <- mutate(survey.CAL.melt, operator = survey.CAL.key)
 survey.CAL.melt <- mutate(survey.CAL.melt, survey_year = survey.CAL.year)
 survey.CAL.melt <- mutate(survey.CAL.melt, survey_tech = survey.CAL.tech)
 survey.CAL.melt <- mutate(survey.CAL.melt, survey_type = survey.CAL.type)
@@ -107,7 +106,7 @@ survey.combine <- rbind(survey.CAL.melt)
 
 # Join the dictionary and prepare the categorical variables
 survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
-survey.cat <- left_join(survey.cat, dictionary.cat, by = c("Operator", "Survey_Variable", "Survey_Response"))
+survey.cat <- left_join(survey.cat, dictionary.cat, by = c("operator", "Survey_Variable", "Survey_Response"))
 survey.cat <- filter(survey.cat, !is.na(Generic_Variable))
 
 # Join the dictionary and prepare the non-categorical variables
@@ -798,16 +797,13 @@ survey.standard <- survey.standard %>%
 ```{r disk-write}
 # Add missing variables (TODO: add when real data becomes available)
 survey.standard <- survey.standard %>%
-  mutate(weight = 0.0) %>%
+  mutate(weight = 1.0) %>%
   mutate(trip_weight = ifelse(boardings > 0, weight / boardings, weight)) %>%
   mutate(interview_language = 'Missing') %>%
   mutate(field_language = 'Missing')
 
 
 save(survey.standard, file = F_OUTPUT_RDATA)
-
-# str(survey.standard, list.len = 500)
-
 ```
 
 

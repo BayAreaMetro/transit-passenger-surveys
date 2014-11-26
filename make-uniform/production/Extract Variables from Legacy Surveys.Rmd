@@ -5,7 +5,6 @@ output:
   html_document:
     theme: cosmo
     toc: yes
-runtime: shiny
 ---
 
 ## Administration
@@ -30,7 +29,7 @@ knitr::opts_chunk$set(cache=TRUE)
 
 #### Remote file names
 ```{r file-names}
-F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/Standardized Data/_working/survey_legacy_additional.RData"
+F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy_additional.RData"
 
 ```
 
@@ -524,7 +523,8 @@ remove(survey.ACE.melt,
 ## Prepare and Write data
 ```{r write-disk}
 
-save(survey.flat, file = F_OUTPUT_RDATA)
+legacy.addtl <- survey.flat
+save(legacy.addtl, file = F_OUTPUT_RDATA)
 
 ```
 

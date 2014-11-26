@@ -1,0 +1,82 @@
+---
+title: "Summaries"
+author: "David Ory"
+output:
+  html_document:
+    theme: cosmo
+    toc: yes
+---
+## Administration
+
+#### Purpose
+Combines legacy data (see `Extract Variables from Legacy Surveys` and `Build Legacy Database`) with standard data (see `Build Standard Database`) and then extracts CSV files for use in Tableau summaries. 
+
+#### _ISSUES_
+
+#### _TODO_
+1.  Clean up legacy details, as needed, in Build Legacy Database
+2.  Put Tableau on GitHub?
+3.  Write out public data set here
+
+## Overhead
+
+#### Libraries
+```{r overhead}
+library(knitr)
+suppressMessages(library(dplyr))
+library(stringr)
+library(reshape2)
+```
+
+#### Knitr config
+```{r config, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+#### Remote file names
+```{r file-names}
+F_INPUT_LEGACY_RDATA   = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy.RData"
+F_INPUT_STANDARD_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
+
+D_OUTPUT_TABLEAU = "M:/Data/OnBoard/Data and Reports/_data Standardized/tableau/"
+
+```
+
+## Combine Legacy and Standard data
+```{r combine}
+load(F_INPUT_LEGACY_RDATA)
+load(F_INPUT_STANDARD_RDATA)
+
+str(survey.standard, list.len = 500)
+str(survey.legacy, list.len = 500)
+
+data.ready <- rbind(survey.standard, survey.legacy)
+```
+
+## Tableau Summaries
+
+### Race by Ethnicity by Income by Operator by Weekpart
+```{r race-ethnicity-income}
+sum.race <- data.ready %>%
+  mutate(race = ifelse(is.na(race), 'Missing', race)) %>%
+  mutate(hispanic = ifelse(is.na(hispanic), 'Missing', hispanic)) %>%
+  mutate(household_income = ifelse(is.na(household_income), 'Missing', household_income)) %>%
+  group_by(operator, race, hispanic, household_income, weekpart) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.race, paste(D_OUTPUT_TABLEAU, "RaceHispanicByOperator.csv", sep = ""), row.names = FALSE, quote = T)
+```
+
+###  Access by Egress by Transfers by Operator by Weekpart
+```{r acess-egress-transfers}
+sum.tofro <- data.ready %>%
+  mutate(access_mode = ifelse(is.na(access_mode), 'Missing', access_mode)) %>%
+  mutate(egress_mode = ifelse(is.na(egress_mode), 'Missing', egress_mode)) %>%
+  mutate(boardings   = ifelse(is.na(boardings),   'Missing', boardings)) %>%
+  group_by(operator, weekpart, access_mode, egress_mode, boardings) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.tofro, paste(D_OUTPUT_TABLEAU, "AccessEgressTransfers.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
+

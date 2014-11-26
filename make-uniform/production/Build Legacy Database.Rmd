@@ -15,11 +15,6 @@ Refactoring the approach to building a standard survey database.  This script re
 #### _ISSUES_
 
 #### _TODO_
-1.  Finish adding onoff for legacy surveys in Dictionary for Legacy Surveys
-2.  Join the additional variables with the legacy SAS data
-3.  Try rbind with the standard data -- if successful, move to a new script
-4.  In the new script, do the rbind and then generate the tableau outputs 
-5.  Then rebuild tableau
 
 ## Overhead
 
@@ -28,6 +23,7 @@ Refactoring the approach to building a standard survey database.  This script re
 library(knitr)
 suppressMessages(library(dplyr))
 library(stringr)
+library(reshape2)
 ```
 
 #### Knitr config
@@ -37,10 +33,10 @@ knitr::opts_chunk$set(cache=TRUE)
 
 #### Remote file names
 ```{r file-names}
-F_INPUT_CSVDATA = "M:/Data/OnBoard/Data and Reports/SAS data/regional_ready.csv"
-F_INPUT_RDATA   = "M:/Data/OnBoard/Data and Reports/Standardized Data/_working/survey_legacy_additional.RData"
+F_INPUT_CSVDATA = "M:/Data/OnBoard/Data and Reports/_data Legacy/SAS data/regional_ready.csv"
+F_INPUT_RDATA   = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy_additional.RData"
 
-F_OUTPUT_RDATA  = "M:/Data/OnBoard/Data and Reports/Standardized Data/_working/survey_legacy.RData"
+F_OUTPUT_RDATA  = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy.RData"
 
 ```
 
@@ -85,7 +81,7 @@ sasdata.clean <- sasdata.clean %>%
   select(-orig_purp_field, -dest_purp_field, -daypart_start, -daypart_end)
   
 # Transformations
-temp <- sasdata.clean %>%
+sasdata.clean <- sasdata.clean %>%
   rename(field_start_sas = field_start, field_end_sas = field_end) %>%
   mutate(field_start     = as.Date(str_trim(field_start_sas), format = "%m/%d/%Y")) %>%
   mutate(field_end       = as.Date(str_trim(field_end_sas),   format = "%m/%d/%Y")) %>%
@@ -94,9 +90,34 @@ temp <- sasdata.clean %>%
   mutate(Unique_ID       = paste(ID, operator, survey_year, sep = "---"))
 
 # Join additional variables
+load(F_INPUT_RDATA)
+legacy.addtl <- legacy.addtl %>%
+  select(-ID, -operator, -survey_year)
+survey.legacy <- left_join(sasdata.clean, legacy.addtl, by = c("Unique_ID"))
 
-# Work out rbind details with standard, then move to new script
+# Manually add entry/exit for ferries
+on_off <- survey.legacy %>%
+  filter(operator == 'Golden Gate Ferry' | operator == 'SF Bay Ferry') %>%
+  select(Unique_ID, route)
+
+on_off <- cbind(on_off, colsplit(on_off$route, "TO", c("onoff_enter_station_update", "onoff_exit_station_update")))
+on_off <- select(on_off, -route)
+
+survey.legacy <- left_join(survey.legacy, on_off, by = c("Unique_ID"))
+
+survey.legacy <- survey.legacy %>%
+  mutate(onoff_enter_station = ifelse(is.na(onoff_enter_station), str_trim(onoff_enter_station_update), onoff_enter_station)) %>%
+  mutate(onoff_exit_station  = ifelse(is.na(onoff_exit_station),  str_trim(onoff_exit_station_update),  onoff_exit_station)) %>%
+  select(-onoff_enter_station_update, -onoff_exit_station_update)
+
+table(survey.legacy$onoff_enter_station)
+table(survey.legacy$onoff_exit_station)
+
+# Clean up for merge
+survey.legacy <- survey.legacy %>%
+  select(-vehicles_additional_info, -workers_additional_info)
 
 # Write legacy disk
+save(survey.legacy, file = F_OUTPUT_RDATA)
 ```
 
