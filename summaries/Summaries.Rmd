@@ -9,14 +9,7 @@ output:
 ## Administration
 
 #### Purpose
-Combines legacy data (see `Extract Variables from Legacy Surveys` and `Build Legacy Database`) with standard data (see `Build Standard Database`) and then extracts CSV files for use in Tableau summaries. 
-
-#### _ISSUES_
-
-#### _TODO_
-1.  Churn through Tableau
-2.  Push Tableau to web
-3.  Write out public data set
+Combines legacy data (see `Extract Variables from Legacy Surveys` and `Build Legacy Database`) with standard data (see `Build Standard Database`) and then extracts `CSV` files for use in Tableau summaries.  Script also writes out combined data sets to disk as both `RData` and `CSV`.
 
 ## Overhead
 
@@ -40,8 +33,10 @@ F_INPUT_STANDARD_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/su
 
 F_INPUT_COUNTY  = "county_to_taz_reference.csv"
 
-D_OUTPUT_TABLEAU = "M:/Data/OnBoard/Data and Reports/_data Standardized/tableau/"
+F_OUTPUT_CSV   = "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey.csv"
+F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey.RData"
 
+D_OUTPUT_TABLEAU = "M:/Data/OnBoard/Data and Reports/_data Standardized/tableau/"
 ```
 
 ## Combine Legacy and Standard data
@@ -84,6 +79,15 @@ data.ready.sum <- data.ready %>%
   mutate(eng_proficient   = ifelse(is.na(eng_proficient),   'Missing', eng_proficient))
   
 ```
+
+## Data to Disk as CSV and RData
+```{r write-disk}
+write.csv(data.ready, file = F_OUTPUT_CSV, row.names = FALSE, quote = T)
+
+survey <- data.ready
+save(survey, file = F_OUTPUT_RDATA)
+```
+
 
 ## Tableau Summaries
 
@@ -166,4 +170,21 @@ write.csv(sum.date, paste(D_OUTPUT_TABLEAU, "FieldDates.csv", sep = ""), row.nam
 
 ```
 
-### START HERE with First Boarding and Last Alighting
+### First Boarding and Last Alighting
+```{r boarding-alighting}
+sum.board <- data.ready.sum %>%
+  group_by(operator, weekpart, first_board_lat, first_board_lon, last_alight_lat, last_alight_lon) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.board, paste(D_OUTPUT_TABLEAU, "BoardingAndAlighting.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
+
+### Distribution of Weights
+```{r weights}
+sum.wgt <- data.ready.sum %>%
+  select(ID, operator, weekpart, weight)
+
+write.csv(sum.wgt, paste(D_OUTPUT_TABLEAU, "DistributionOfWeights.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
