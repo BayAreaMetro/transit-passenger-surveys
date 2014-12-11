@@ -15,7 +15,8 @@ Combines legacy data (see `Extract Variables from Legacy Surveys` and `Build Leg
 
 #### _TODO_
 1.  Churn through Tableau
-2.  Write out public data set
+2.  Push Tableau to web
+3.  Write out public data set
 
 ## Overhead
 
@@ -37,6 +38,8 @@ knitr::opts_chunk$set(cache=TRUE)
 F_INPUT_LEGACY_RDATA   = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy.RData"
 F_INPUT_STANDARD_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
 
+F_INPUT_COUNTY  = "county_to_taz_reference.csv"
+
 D_OUTPUT_TABLEAU = "M:/Data/OnBoard/Data and Reports/_data Standardized/tableau/"
 
 ```
@@ -51,6 +54,16 @@ str(survey.legacy, list.len = 500)
 
 data.ready <- rbind(survey.standard, survey.legacy)
 
+# Add location counties from TAZ geo-coding
+county_ref <- read.csv(F_INPUT_COUNTY, header = TRUE, stringsAsFactors = FALSE)
+home_join <- select(county_ref, home_taz = TAZ,      home_county = COUNTY)
+work_join <- select(county_ref, workplace_taz = TAZ, workplace_county = COUNTY)
+schl_join <- select(county_ref, school_taz = TAZ,    school_county = COUNTY)
+
+data.ready <- left_join(data.ready, home_join, by = c("home_taz"))
+data.ready <- left_join(data.ready, work_join, by = c("workplace_taz"))
+data.ready <- left_join(data.ready, schl_join, by = c("school_taz"))
+
 # Replace NA with missing
 data.ready.sum <- data.ready %>%
   mutate(race             = ifelse(is.na(race),             'Missing', race)) %>%
@@ -64,7 +77,11 @@ data.ready.sum <- data.ready %>%
   mutate(tour_purp        = ifelse(is.na(tour_purp),        'Missing', tour_purp)) %>%
   mutate(auto_suff        = ifelse(is.na(auto_suff),        'Missing', auto_suff)) %>%
   mutate(work_status      = ifelse(is.na(work_status),      'Missing', work_status)) %>%
-  mutate(student_status   = ifelse(is.na(student_status),   'Missing', student_status))
+  mutate(student_status   = ifelse(is.na(student_status),   'Missing', student_status)) %>%
+  mutate(fare_medium      = ifelse(is.na(fare_medium),      'Missing', fare_medium)) %>%
+  mutate(approximate_age  = ifelse(is.na(approximate_age),  'Missing', approximate_age)) %>%
+  mutate(fare_category    = ifelse(is.na(fare_category),    'Missing', fare_category)) %>%
+  mutate(eng_proficient   = ifelse(is.na(eng_proficient),   'Missing', eng_proficient))
   
 ```
 
@@ -99,7 +116,7 @@ write.csv(sum.time, paste(D_OUTPUT_TABLEAU, "DepartReturnPurpose.csv", sep = "")
 
 ```
 
-## Automobile Sufficiency by Worker Status by Student Status by Boardings by Operator by Weekpart
+### Automobile Sufficiency by Worker Status by Student Status by Boardings/Transfers by Operator by Weekpart
 ```{r autosuff-status-transfers}
 sum.suff <- data.ready.sum %>%
   group_by(operator, weekpart, auto_suff, work_status, student_status, boardings) %>%
@@ -108,3 +125,45 @@ sum.suff <- data.ready.sum %>%
 write.csv(sum.suff, paste(D_OUTPUT_TABLEAU, "AutoWorkStudent.csv", sep = ""), row.names = FALSE, quote = T)
 
 ```
+
+### Age by Fare Media by Fare Category by Operator by Weekpart
+```{r age-media-category}
+sum.fare <- data.ready.sum %>%
+  group_by(operator, weekpart, approximate_age, fare_medium, fare_category) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.fare, paste(D_OUTPUT_TABLEAU, "AgeMediumCategory.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
+
+### Home County by Work County by School County by Work Status by Student Status by Operator by Weekpart
+```{r home-work-school}
+sum.locs <- data.ready.sum %>%
+  group_by(operator, weekpart, home_county, workplace_county, school_county, work_status, student_status) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.locs, paste(D_OUTPUT_TABLEAU, "HomeWorkSchoolCounty.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
+
+### Language at Home, Survey Language, English Proficiency by Operator and Weekpart
+```{r language}
+sum.lang <- data.ready.sum %>%
+  group_by(operator, weekpart, interview_language, language_at_home, field_language, eng_proficient) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.lang, paste(D_OUTPUT_TABLEAU, "Language.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
+
+### Field Dates and Day of Week
+```{r field-dates-day-of-week}
+sum.date <- data.ready.sum %>%
+  group_by(operator, weekpart, field_start, field_end, day_of_the_week) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.date, paste(D_OUTPUT_TABLEAU, "FieldDates.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
+
+### START HERE with First Boarding and Last Alighting
