@@ -86,7 +86,7 @@ sasdata.clean <- sasdata.clean %>%
   mutate(field_start     = as.Date(str_trim(field_start_sas), format = "%m/%d/%Y")) %>%
   mutate(field_end       = as.Date(str_trim(field_end_sas),   format = "%m/%d/%Y")) %>%
   select(-field_start_sas, -field_end_sas) %>%
-  mutate(survey_year     = max(format(field_start, "%Y"), format(field_end, "%Y"))) %>%
+  mutate(survey_year     = as.numeric(format(field_start, "%Y"))) %>%
   mutate(Unique_ID       = paste(ID, operator, survey_year, sep = "---"))
 
 # Variable re-codes
