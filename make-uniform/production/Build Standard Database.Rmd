@@ -44,9 +44,9 @@ F_SPATIAL_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/s
 F_TRANSIT_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/boarding_alighting_places_geocoded.csv"
 
 F_CALTRAIN_SURVEY = "M:/Data/OnBoard/Data and Reports/Caltrain/As CSV/Caltrain_PilotTest_MainSurvey_Database_SubmittedOct16 NO POUND OR SINGLE QUOTE.csv"
+F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK NO POUND OR SINGLE QUOTE.csv"
 
 F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
-
 ```
 
 
@@ -71,11 +71,9 @@ dictionary.cat <- dictionary.all %>%
 ```{r operator-caltrain}
 survey.CAL.key  <- 'Caltrain Pilot'
 survey.CAL.year <- 2014
-survey.CAL.type <- 'tablet_pi'
 
 # Set survey tech by route if necessary in operator chunk
 survey.CAL.tech <- 'commuter rail'
-
 
 # Prepare operator-specific dictionary
 dictionary.CAL <- dictionary.all %>%
@@ -93,16 +91,43 @@ survey.CAL.melt <- select(survey.CAL.melt, ID, Survey_Variable = variable, Surve
 survey.CAL.melt <- mutate(survey.CAL.melt, operator = survey.CAL.key)
 survey.CAL.melt <- mutate(survey.CAL.melt, survey_year = survey.CAL.year)
 survey.CAL.melt <- mutate(survey.CAL.melt, survey_tech = survey.CAL.tech)
-survey.CAL.melt <- mutate(survey.CAL.melt, survey_type = survey.CAL.type)
 
 # Clean up
-remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, survey.CAL.type, dictionary.CAL, variables.CAL, survey.CAL, survey.CAL.select)
+remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, dictionary.CAL, variables.CAL, survey.CAL, survey.CAL.select)
 ```
 
+### Napa Vine
+```{r operator-napa}
+survey.NAP.key  <- 'Napa Vine'
+survey.NAP.year <- 2014
+
+# Set survey tech by route if necessary in operator chunk
+survey.NAP.tech <- 'local bus'
+
+# Prepare operator-specific dictionary
+dictionary.NAP <- dictionary.all %>%
+  filter(operator == survey.NAP.key)
+
+variables.NAP <- as.character(factor(unique(unlist(dictionary.NAP$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.NAP <- read.csv(F_NAPA_SURVEY, header = TRUE)
+survey.NAP.select <- survey.NAP[ ,variables.NAP]
+
+# Reshape the data
+survey.NAP.melt <- melt(survey.NAP.select, id = 'ID')
+survey.NAP.melt <- select(survey.NAP.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.NAP.melt <- mutate(survey.NAP.melt, operator = survey.NAP.key)
+survey.NAP.melt <- mutate(survey.NAP.melt, survey_year = survey.NAP.year)
+survey.NAP.melt <- mutate(survey.NAP.melt, survey_tech = survey.NAP.tech)
+
+# Clean up
+remove(survey.NAP.key, survey.NAP.year, survey.NAP.tech, dictionary.NAP, variables.NAP, survey.NAP, survey.NAP.select)
+```
 
 ## Combine across operators and flatten
 ```{r combine}
-survey.combine <- rbind(survey.CAL.melt)
+survey.combine <- rbind(survey.CAL.melt, survey.NAP.melt)
 
 # Join the dictionary and prepare the categorical variables
 survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
@@ -135,16 +160,16 @@ survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = '
 
 survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "operator", "survey_year")))
 
-# Add in survey technology, type
+# Add in survey technology
 survey.adds <- survey.combine %>%
-  group_by(ID, operator, survey_year, survey_tech, survey_type) %>%
+  group_by(ID, operator, survey_year, survey_tech) %>%
   summarise(Count = n()) %>%
   select(-Count)
 
 survey.flat <- left_join(survey.flat, survey.adds, by = c("ID", "operator", "survey_year"))
 
 remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat, survey.adds)
-remove(survey.CAL.melt)
+remove(survey.CAL.melt, survey.NAP.melt)
 
 ```
 
@@ -571,8 +596,12 @@ survey.standard <- survey.standard %>%
 
 table(survey.standard$boardings, survey.standard$survey_boardings)
 
+debug.transfers <- survey.standard %>%
+  filter(!(boardings == survey_boardings))
+
 survey.standard <- survey.standard %>%
   select(-survey_boardings)
+
 
 # Step 7:  Standardize Demographics
 # -------------------------------------------------------------------------------------
