@@ -2,7 +2,7 @@
 
 <workbook source-platform='win' version='8.3' xml:base='https://public.tableausoftware.com' xmlns:user='http://www.tableausoftware.com/xml/user'>
   <!-- build 8200.14.0819.2015                                -->
-  <repository-location id='AgeMediumCategory' path='/workbooks' revision='2.2' />
+  <repository-location id='AgeMediumCategory' path='/workbooks' revision='2.4' />
   <preferences>
   </preferences>
   <datasources>
@@ -166,14 +166,16 @@
       <column caption='Estimated Boardings' datatype='real' name='[weight]' role='measure' type='quantitative'>
       </column>
       <extract count='-1' enabled='true' units='records'>
-        <connection class='dataengine' dbname='M:\Data\OnBoard\Data and Reports\_data Legacy\Data summaries\AgeMediumCategory#csv (AgeMediumCategory.csv).tde' schema='Extract' tablename='Extract' update-time='01/05/2015 07:48:09 PM'>
+        <connection class='dataengine' dbname='M:\Data\OnBoard\Data and Reports\_data Legacy\Data summaries\AgeMediumCategory#csv (AgeMediumCategory.csv).tde' schema='Extract' tablename='Extract' update-time='01/06/2015 09:39:32 PM'>
           <relation name='Extract' table='[Extract].[Extract]' type='table' />
           <calculations>
+            <calculation column='[Calculation_6780221130809601]' formula='IF (CONTAINS([fare_medium],&quot;clipper&quot;) AND CONTAINS([fare_medium],&quot;cash&quot;)) THEN &quot;Clipper (Cash)&quot;&#13;&#10;ELSEIF (CONTAINS([fare_medium],&quot;clipper&quot;) AND CONTAINS([fare_medium],&quot;pass&quot;)) THEN &quot;Clipper (Pass)&quot;&#13;&#10;ELSEIF (CONTAINS([fare_medium],&quot;clipper&quot;) AND CONTAINS([fare_medium],&quot;monthly&quot;)) THEN &quot;Clipper (Pass)&quot;&#13;&#10;ELSEIF (CONTAINS([fare_medium],&quot;clipper&quot;) AND CONTAINS([fare_medium],&quot;transfer&quot;)) THEN &quot;Clipper (Trnsfr)&quot;&#13;&#10;ELSEIF CONTAINS([fare_medium],&quot;Clipper&quot;) THEN &quot;Clipper (Cash)&quot;&#13;&#10;ELSEIF CONTAINS([fare_medium],&quot;cash&quot;) THEN &quot;Cash&quot;&#13;&#10;ELSEIF CONTAINS([fare_medium],&quot;pass&quot;) THEN &quot;Pass&quot;&#13;&#10;ELSEIF CONTAINS([fare_medium],&quot;ticket&quot;) THEN &quot;Ticket or Token&quot;&#13;&#10;ELSEIF CONTAINS([fare_medium],&quot;Ticket or Token&quot;) THEN &quot;Ticket or Token&quot;&#13;&#10;ELSEIF CONTAINS([fare_medium],&quot;token&quot;) THEN &quot;Ticket or Token&quot;&#13;&#10;ELSEIF CONTAINS([fare_medium],&quot;do not know&quot;) THEN &quot;Missing \ Unsure&quot;&#13;&#10;ELSEIF CONTAINS([fare_medium],&quot;Missing&quot;) THEN &quot;Missing \ Unsure&quot;&#13;&#10;ELSE &quot;Other&quot;&#13;&#10;&#13;&#10;END' />
             <calculation column='[Calculation_6910224103336532]' formula='if INT([approximate_age]) &lt; 0 then &apos;Missing&apos;&#13;&#10;elseif (INT([approximate_age]) &gt; 0 and INT([approximate_age]) &lt; 16) then &apos;Younger than 16&apos;&#13;&#10;elseif (INT([approximate_age]) &gt;= 16 and INT([approximate_age]) &lt; 23) then &apos;16 to 22&apos;&#13;&#10;elseif (INT([approximate_age]) &gt;= 23 and INT([approximate_age]) &lt; 30) then &apos;23 to 29&apos;&#13;&#10;elseif (INT([approximate_age]) &gt;= 30 and INT([approximate_age]) &lt; 40) then &apos;30 to 39&apos;&#13;&#10;elseif (INT([approximate_age]) &gt;= 40 and INT([approximate_age]) &lt; 50) then &apos;40 to 49&apos;&#13;&#10;elseif (INT([approximate_age]) &gt;= 50 and INT([approximate_age]) &lt; 60) then &apos;50 to 59&apos;&#13;&#10;elseif (INT([approximate_age]) &gt;= 60 and INT([approximate_age]) &lt; 70) then &apos;60 to 69&apos;&#13;&#10;elseif (INT([approximate_age]) &gt;= 70 and INT([approximate_age]) &lt; 125) then &apos;Older than 69&apos;&#13;&#10;else &apos;Missing&apos;&#13;&#10;end' />
+            <calculation column='[Calculation_7570224103828506]' formula='CASE [fare_category]&#13;&#10;WHEN &apos;adult&apos; THEN &apos;Adult&apos;&#13;&#10;WHEN &apos;disabled&apos; THEN &apos;Disabled&apos;&#13;&#10;WHEN &apos;do not know&apos; THEN &apos;Missing / Unsure&apos;&#13;&#10;WHEN &apos;easypass or class pass&apos; THEN &apos;Other Discount&apos;&#13;&#10;WHEN &apos;Missing&apos; THEN &apos;Missing / Unsure&apos;&#13;&#10;WHEN &apos;student&apos; THEN &apos;Other Discount&apos;&#13;&#10;WHEN &apos;other discount&apos; THEN &apos;Other Discount&apos;&#13;&#10;WHEN &apos;free&apos; THEN &apos;Other Discount&apos;&#13;&#10;WHEN &apos;other&apos; THEN &apos;Other Discount&apos;&#13;&#10;WHEN &apos;senior&apos; THEN &apos;Senior&apos;&#13;&#10;WHEN &apos;senior or disabled&apos; THEN &apos;Senior or Disabled&apos;&#13;&#10;WHEN &apos;youth&apos; THEN &apos;Youth&apos;&#13;&#10;WHEN &apos;medicare&apos; THEN &apos;Senior&apos;&#13;&#10;ELSE &apos;Error&apos;&#13;&#10;END' />
             <calculation column='[Number of Records]' formula='1' />
           </calculations>
           <refresh>
-            <refresh-event add-from-file-path='' increment-value='%null%' refresh-type='create' rows-inserted='5496' timestamp-start='2015-01-05 19:48:09.096' />
+            <refresh-event add-from-file-path='' increment-value='%null%' refresh-type='create' rows-inserted='5496' timestamp-start='2015-01-06 21:39:32.901' />
           </refresh>
           <metadata-records>
             <metadata-record class='column'>
@@ -388,7 +390,7 @@
               <family>AgeMediumCategory#csv</family>
               <local-type>real</local-type>
               <aggregation>Sum</aggregation>
-              <approx-count>3732</approx-count>
+              <approx-count>3764</approx-count>
               <contains-null>false</contains-null>
               <statistics>
                 <statistic aggregation='Min' datatype='real'>0.0</statistic>
@@ -445,7 +447,7 @@
               <family>AgeMediumCategory#csv</family>
               <local-type>real</local-type>
               <aggregation>Sum</aggregation>
-              <approx-count>3240</approx-count>
+              <approx-count>3251</approx-count>
               <contains-null>false</contains-null>
               <statistics>
                 <statistic aggregation='Min' datatype='real'>0.0</statistic>
@@ -458,6 +460,60 @@
                 <attribute datatype='integer' name='DebugRemoteMetadata (size)'>8</attribute>
                 <attribute datatype='integer' name='DebugRemoteMetadata (storagewidth)'>2</attribute>
                 <attribute datatype='string' name='DebugRemoteType'>&quot;double&quot;</attribute>
+              </attributes>
+            </metadata-record>
+            <metadata-record class='column'>
+              <remote-name>Calculation_6780221130809601</remote-name>
+              <remote-type>129</remote-type>
+              <local-name>[Calculation_6780221130809601]</local-name>
+              <parent-name>[Extract]</parent-name>
+              <remote-alias>Calculation_6780221130809601</remote-alias>
+              <local-type>string</local-type>
+              <aggregation>Count</aggregation>
+              <approx-count>8</approx-count>
+              <scale>1</scale>
+              <width>16</width>
+              <contains-null>false</contains-null>
+              <collation flag='0' name='binary' />
+              <statistics>
+                <statistic aggregation='Min' datatype='string'>&quot;Cash&quot;</statistic>
+                <statistic aggregation='Max' datatype='string'>&quot;Ticket or Token&quot;</statistic>
+              </statistics>
+              <attributes>
+                <attribute datatype='string' name='DebugRemoteCollation'>&quot;binary&quot;</attribute>
+                <attribute datatype='boolean' name='DebugRemoteMetadata (comparable)'>true</attribute>
+                <attribute datatype='string' name='DebugRemoteMetadata (compression)'>&quot;heap&quot;</attribute>
+                <attribute datatype='boolean' name='DebugRemoteMetadata (distinct)'>true</attribute>
+                <attribute datatype='integer' name='DebugRemoteMetadata (size)'>64</attribute>
+                <attribute datatype='integer' name='DebugRemoteMetadata (storagewidth)'>1</attribute>
+                <attribute datatype='string' name='DebugRemoteType'>&quot;str&quot;</attribute>
+              </attributes>
+            </metadata-record>
+            <metadata-record class='column'>
+              <remote-name>Calculation_7570224103828506</remote-name>
+              <remote-type>129</remote-type>
+              <local-name>[Calculation_7570224103828506]</local-name>
+              <parent-name>[Extract]</parent-name>
+              <remote-alias>Calculation_7570224103828506</remote-alias>
+              <local-type>string</local-type>
+              <aggregation>Count</aggregation>
+              <approx-count>7</approx-count>
+              <scale>1</scale>
+              <width>18</width>
+              <contains-null>false</contains-null>
+              <collation flag='0' name='binary' />
+              <statistics>
+                <statistic aggregation='Min' datatype='string'>&quot;Adult&quot;</statistic>
+                <statistic aggregation='Max' datatype='string'>&quot;Youth&quot;</statistic>
+              </statistics>
+              <attributes>
+                <attribute datatype='string' name='DebugRemoteCollation'>&quot;binary&quot;</attribute>
+                <attribute datatype='boolean' name='DebugRemoteMetadata (comparable)'>true</attribute>
+                <attribute datatype='string' name='DebugRemoteMetadata (compression)'>&quot;heap&quot;</attribute>
+                <attribute datatype='boolean' name='DebugRemoteMetadata (distinct)'>true</attribute>
+                <attribute datatype='integer' name='DebugRemoteMetadata (size)'>72</attribute>
+                <attribute datatype='integer' name='DebugRemoteMetadata (storagewidth)'>1</attribute>
+                <attribute datatype='string' name='DebugRemoteType'>&quot;str&quot;</attribute>
               </attributes>
             </metadata-record>
           </metadata-records>
@@ -1749,8 +1805,6 @@
           <field>[csv.41592.618980856481].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
-      <viewpoint>
-      </viewpoint>
     </window>
     <window auto-hidden='0' class='worksheet' maximized='0' name='Age.trips.est'>
       <cards>
@@ -1788,8 +1842,6 @@
           <field>[csv.41592.618980856481].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
-      <viewpoint>
-      </viewpoint>
     </window>
     <window auto-hidden='0' class='worksheet' maximized='0' name='Age.trips.pct'>
       <cards>
@@ -1864,8 +1916,6 @@
           <field>[csv.41592.618980856481].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
-      <viewpoint>
-      </viewpoint>
     </window>
     <window auto-hidden='0' class='worksheet' maximized='0' name='Fare Cat.boards.est'>
       <cards>
@@ -1903,8 +1953,6 @@
           <field>[csv.41592.618980856481].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
-      <viewpoint>
-      </viewpoint>
     </window>
     <window auto-hidden='0' class='worksheet' maximized='0' name='Fare Cat.boards.pct'>
       <cards>

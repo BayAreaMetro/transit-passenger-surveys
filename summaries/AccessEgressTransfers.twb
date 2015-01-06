@@ -174,15 +174,13 @@
         </aliases>
       </column>
       <extract count='-1' enabled='true' units='records'>
-        <connection class='dataengine' dbname='M:\Data\OnBoard\Data and Reports\_data Legacy\Data summaries\AccessEgressTransfers#csv (AccessEgressTransfersDepart.csv).tde' schema='Extract' tablename='Extract' update-time='01/05/2015 07:30:06 PM'>
+        <connection class='dataengine' dbname='M:\Data\OnBoard\Data and Reports\_data Legacy\Data summaries\AccessEgressTransfers#csv (AccessEgressTransfersDepart.csv).tde' schema='Extract' tablename='Extract' update-time='01/06/2015 09:38:17 PM'>
           <relation name='Extract' table='[Extract].[Extract]' type='table' />
           <calculations>
-            <calculation column='[Calculation_3000224114639164]' formula='if (trim([access_mode])=&quot;walk&quot; and trim([egress_mode])=&quot;walk&quot;) then &quot;Walk at both ends&quot;&#13;&#10;elseif (trim([access_mode])=&quot;pnr&quot; or trim([egress_mode])=&quot;pnr&quot;) then &quot;Drive and park at one end&quot;&#13;&#10;elseif (trim([access_mode])=&quot;knr&quot; or trim([egress_mode])=&quot;knr&quot;) then &quot;Drive and dropped off at one end&quot;&#13;&#10;elseif (trim([access_mode])=&quot;bike&quot; or trim([egress_mode])=&quot;bike&quot;) then &quot;Bike at one end&quot;&#13;&#10;else &quot;Missing&quot;&#13;&#10;end' />
-            <calculation column='[Calculation_7970221122403174]' formula='CASE [boardings]&#13;&#10;WHEN 1 THEN &quot;None&quot;&#13;&#10;WHEN 2 THEN &quot;One&quot;&#13;&#10;WHEN 3 THEN &quot;Two&quot;&#13;&#10;ELSE &quot;Three+&quot;&#13;&#10;END' />
             <calculation column='[Number of Records]' formula='1' />
           </calculations>
           <refresh>
-            <refresh-event add-from-file-path='' increment-value='%null%' refresh-type='create' rows-inserted='579' timestamp-start='2015-01-05 19:30:06.902' />
+            <refresh-event add-from-file-path='' increment-value='%null%' refresh-type='create' rows-inserted='579' timestamp-start='2015-01-06 21:38:17.294' />
           </refresh>
           <metadata-records>
             <metadata-record class='column'>
@@ -359,10 +357,10 @@
               <family>AccessEgressTransfers#csv</family>
               <local-type>real</local-type>
               <aggregation>Sum</aggregation>
-              <approx-count>527</approx-count>
+              <approx-count>548</approx-count>
               <contains-null>false</contains-null>
               <statistics>
-                <statistic aggregation='Min' datatype='real'>0.0</statistic>
+                <statistic aggregation='Min' datatype='real'>0.0096677240000000008</statistic>
                 <statistic aggregation='Max' datatype='real'>81363.917499896997</statistic>
               </statistics>
               <attributes>
@@ -412,69 +410,15 @@
               <family>AccessEgressTransfers#csv</family>
               <local-type>real</local-type>
               <aggregation>Sum</aggregation>
-              <approx-count>504</approx-count>
+              <approx-count>521</approx-count>
               <contains-null>false</contains-null>
               <statistics>
-                <statistic aggregation='Min' datatype='real'>0.0</statistic>
+                <statistic aggregation='Min' datatype='real'>0.019335448000000002</statistic>
                 <statistic aggregation='Max' datatype='real'>81363.917499896997</statistic>
               </statistics>
               <attributes>
                 <attribute datatype='integer' name='DebugRemoteMetadata (size)'>8</attribute>
                 <attribute datatype='string' name='DebugRemoteType'>&quot;double&quot;</attribute>
-              </attributes>
-            </metadata-record>
-            <metadata-record class='column'>
-              <remote-name>Calculation_3000224114639164</remote-name>
-              <remote-type>129</remote-type>
-              <local-name>[Calculation_3000224114639164]</local-name>
-              <parent-name>[Extract]</parent-name>
-              <remote-alias>Calculation_3000224114639164</remote-alias>
-              <local-type>string</local-type>
-              <aggregation>Count</aggregation>
-              <approx-count>5</approx-count>
-              <scale>1</scale>
-              <width>32</width>
-              <contains-null>false</contains-null>
-              <collation flag='0' name='binary' />
-              <statistics>
-                <statistic aggregation='Min' datatype='string'>&quot;Bike at one end&quot;</statistic>
-                <statistic aggregation='Max' datatype='string'>&quot;Walk at both ends&quot;</statistic>
-              </statistics>
-              <attributes>
-                <attribute datatype='string' name='DebugRemoteCollation'>&quot;binary&quot;</attribute>
-                <attribute datatype='boolean' name='DebugRemoteMetadata (comparable)'>true</attribute>
-                <attribute datatype='string' name='DebugRemoteMetadata (compression)'>&quot;heap&quot;</attribute>
-                <attribute datatype='boolean' name='DebugRemoteMetadata (distinct)'>true</attribute>
-                <attribute datatype='integer' name='DebugRemoteMetadata (size)'>128</attribute>
-                <attribute datatype='integer' name='DebugRemoteMetadata (storagewidth)'>1</attribute>
-                <attribute datatype='string' name='DebugRemoteType'>&quot;str&quot;</attribute>
-              </attributes>
-            </metadata-record>
-            <metadata-record class='column'>
-              <remote-name>Calculation_7970221122403174</remote-name>
-              <remote-type>129</remote-type>
-              <local-name>[Calculation_7970221122403174]</local-name>
-              <parent-name>[Extract]</parent-name>
-              <remote-alias>Calculation_7970221122403174</remote-alias>
-              <local-type>string</local-type>
-              <aggregation>Count</aggregation>
-              <approx-count>4</approx-count>
-              <scale>1</scale>
-              <width>6</width>
-              <contains-null>false</contains-null>
-              <collation flag='0' name='binary' />
-              <statistics>
-                <statistic aggregation='Min' datatype='string'>&quot;None&quot;</statistic>
-                <statistic aggregation='Max' datatype='string'>&quot;Two&quot;</statistic>
-              </statistics>
-              <attributes>
-                <attribute datatype='string' name='DebugRemoteCollation'>&quot;binary&quot;</attribute>
-                <attribute datatype='boolean' name='DebugRemoteMetadata (comparable)'>true</attribute>
-                <attribute datatype='string' name='DebugRemoteMetadata (compression)'>&quot;heap&quot;</attribute>
-                <attribute datatype='boolean' name='DebugRemoteMetadata (distinct)'>true</attribute>
-                <attribute datatype='integer' name='DebugRemoteMetadata (size)'>24</attribute>
-                <attribute datatype='integer' name='DebugRemoteMetadata (storagewidth)'>1</attribute>
-                <attribute datatype='string' name='DebugRemoteType'>&quot;str&quot;</attribute>
               </attributes>
             </metadata-record>
           </metadata-records>
@@ -1867,6 +1811,8 @@
           <field>[csv.41558.498367719905].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
+      <viewpoint>
+      </viewpoint>
     </window>
     <window auto-hidden='0' class='worksheet' maximized='0' name='Access &amp; Egress.n'>
       <cards>
@@ -1901,6 +1847,8 @@
           <field>[csv.41558.498367719905].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
+      <viewpoint>
+      </viewpoint>
     </window>
     <window auto-hidden='0' class='worksheet' maximized='0' name='Transfers.trips.est'>
       <cards>
@@ -1939,6 +1887,8 @@
           <field>[csv.41558.498367719905].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
+      <viewpoint>
+      </viewpoint>
     </window>
     <window auto-hidden='0' class='worksheet' maximized='0' name='Transfers.trips.pct'>
       <cards>
@@ -1977,6 +1927,8 @@
           <field>[csv.41558.498367719905].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
+      <viewpoint>
+      </viewpoint>
     </window>
     <window auto-hidden='0' class='worksheet' maximized='0' name='Transfers.n'>
       <cards>
@@ -2015,6 +1967,8 @@
           <field>[csv.41558.498367719905].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
+      <viewpoint>
+      </viewpoint>
     </window>
     <window auto-hidden='0' class='worksheet' maximized='0' name='Acc &amp; Egr Details.trips.est'>
       <cards>
@@ -2048,6 +2002,8 @@
           <field>[csv.41558.498367719905].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
+      <viewpoint>
+      </viewpoint>
     </window>
     <window auto-hidden='0' class='worksheet' maximized='0' name='Acc &amp; Egr Details.trips.pct'>
       <cards>
@@ -2081,6 +2037,8 @@
           <field>[csv.41558.498367719905].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
+      <viewpoint>
+      </viewpoint>
     </window>
     <window auto-hidden='0' class='worksheet' maximized='0' name='Acc &amp; Egr Details.n'>
       <cards>
@@ -2114,6 +2072,8 @@
           <field>[csv.41558.498367719905].[none:weekpart:nk]</field>
         </color-one-way>
       </highlight>
+      <viewpoint>
+      </viewpoint>
     </window>
   </windows>
   <thumbnails>
