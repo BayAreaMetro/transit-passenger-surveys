@@ -2,7 +2,7 @@
 
 <workbook source-platform='win' version='8.3' xml:base='https://public.tableausoftware.com' xmlns:user='http://www.tableausoftware.com/xml/user'>
   <!-- build 8200.14.0819.2015                                -->
-  <repository-location id='Language' path='/workbooks' revision='1.5' />
+  <repository-location id='Language' path='/workbooks' revision='1.8' />
   <preferences>
   </preferences>
   <datasources>
@@ -198,6 +198,9 @@
         <connection class='dataengine' dbname='M:\Data\OnBoard\Data and Reports\_data Legacy\Data summaries\Language#csv (Language.csv).tde' schema='Extract' tablename='Extract' update-time='01/06/2015 11:05:26 PM'>
           <relation name='Extract' table='[Extract].[Extract]' type='table' />
           <calculations>
+            <calculation column='[Calculation_6140214143436047]' formula='CASE [language_at_home] &#13;&#10;WHEN &apos;CANTONESE&apos; THEN &apos;Chinese&apos;&#13;&#10;WHEN &apos;CHINESE&apos;   THEN &apos;Chinese&apos;&#13;&#10;WHEN &apos;CHINESE-CANTONESE&apos; THEN &apos;Chinese&apos;&#13;&#10;WHEN &apos;CHINESE-MANDARIN&apos; THEN &apos;Chinese&apos;&#13;&#10;WHEN &apos;ENGLISH ONLY&apos; THEN &apos;English&apos;&#13;&#10;WHEN &apos;FRENCH&apos; THEN &apos;Other&apos;&#13;&#10;WHEN &apos;FRENCH CREOLE&apos; THEN &apos;Other&apos;&#13;&#10;WHEN &apos;HINDI&apos; THEN &apos;Other&apos;&#13;&#10;WHEN &apos;KOREAN&apos; THEN &apos;Other&apos; &#13;&#10;WHEN &apos;MANDARIN&apos; THEN &apos;Chinese&apos;&#13;&#10;WHEN &apos;OTHER&apos; THEN &apos;Other&apos;&#13;&#10;WHEN &apos;POLISH&apos; THEN &apos;Other&apos;&#13;&#10;WHEN &apos;PORTUGUESE&apos; THEN &apos;Other&apos;&#13;&#10;WHEN &apos;RUSSIAN&apos; THEN &apos;Other&apos;&#13;&#10;WHEN &apos;SPANISH&apos; THEN &apos;Spanish&apos;&#13;&#10;WHEN &apos;TAGALOG&apos; THEN &apos;Tagalog&apos;&#13;&#10;WHEN &apos;VIETNAMESE&apos; THEN &apos;Other&apos;&#13;&#10;ELSE &apos;Other&apos;&#13;&#10;END' />
+            <calculation column='[Calculation_8400923101941575]' formula='CASE [interview_language]&#13;&#10;WHEN &apos;ENGLISH&apos; THEN &apos;English&apos;&#13;&#10;WHEN &apos;SPANISH&apos; THEN &apos;Spanish&apos;&#13;&#10;WHEN &apos;CHINESE&apos; THEN &apos;Chinese&apos;&#13;&#10;WHEN &apos;Cantonese Chinese&apos; THEN &apos;Chinese&apos;&#13;&#10;WHEN &apos;Mandarin Chinese&apos; THEN &apos;Chinese&apos;&#13;&#10;WHEN &apos;KOREAN&apos; THEN &apos;Other&apos;&#13;&#10;WHEN &apos;VIETNAMESE&apos; THEN &apos;Other&apos;&#13;&#10;WHEN &apos;NA&apos; THEN &apos;Missing&apos;&#13;&#10;ELSE [interview_language]&#13;&#10;END' />
+            <calculation column='[Calculation_8850106151314528]' formula='CASE [field_language]&#13;&#10;WHEN &apos;KOREAN&apos; THEN &apos;Other&apos;&#13;&#10;WHEN &apos;VIETNAMESE&apos; THEN &apos;Other&apos;&#13;&#10;WHEN &apos;SPANISH&apos; THEN &apos;Spanish&apos;&#13;&#10;WHEN &apos;ENGLISH&apos; THEN &apos;English&apos;&#13;&#10;WHEN &apos;TAGALOG&apos; THEN &apos;Tagalog&apos;&#13;&#10;WHEN &apos;CHINESE&apos; THEN &apos;Chinese&apos;&#13;&#10;WHEN &apos;NA&apos; THEN &apos;Missing&apos;&#13;&#10;ELSE TRIM(field_language)&#13;&#10;END' />
             <calculation column='[Number of Records]' formula='1' />
           </calculations>
           <refresh>
@@ -479,6 +482,87 @@
               <attributes>
                 <attribute datatype='integer' name='DebugRemoteMetadata (size)'>8</attribute>
                 <attribute datatype='string' name='DebugRemoteType'>&quot;double&quot;</attribute>
+              </attributes>
+            </metadata-record>
+            <metadata-record class='column'>
+              <remote-name>Calculation_6140214143436047</remote-name>
+              <remote-type>129</remote-type>
+              <local-name>[Calculation_6140214143436047]</local-name>
+              <parent-name>[Extract]</parent-name>
+              <remote-alias>Calculation_6140214143436047</remote-alias>
+              <local-type>string</local-type>
+              <aggregation>Count</aggregation>
+              <approx-count>5</approx-count>
+              <scale>1</scale>
+              <width>7</width>
+              <contains-null>false</contains-null>
+              <collation flag='0' name='binary' />
+              <statistics>
+                <statistic aggregation='Min' datatype='string'>&quot;Chinese&quot;</statistic>
+                <statistic aggregation='Max' datatype='string'>&quot;Tagalog&quot;</statistic>
+              </statistics>
+              <attributes>
+                <attribute datatype='string' name='DebugRemoteCollation'>&quot;binary&quot;</attribute>
+                <attribute datatype='boolean' name='DebugRemoteMetadata (comparable)'>true</attribute>
+                <attribute datatype='string' name='DebugRemoteMetadata (compression)'>&quot;heap&quot;</attribute>
+                <attribute datatype='boolean' name='DebugRemoteMetadata (distinct)'>true</attribute>
+                <attribute datatype='integer' name='DebugRemoteMetadata (size)'>28</attribute>
+                <attribute datatype='integer' name='DebugRemoteMetadata (storagewidth)'>1</attribute>
+                <attribute datatype='string' name='DebugRemoteType'>&quot;str&quot;</attribute>
+              </attributes>
+            </metadata-record>
+            <metadata-record class='column'>
+              <remote-name>Calculation_8400923101941575</remote-name>
+              <remote-type>129</remote-type>
+              <local-name>[Calculation_8400923101941575]</local-name>
+              <parent-name>[Extract]</parent-name>
+              <remote-alias>Calculation_8400923101941575</remote-alias>
+              <local-type>string</local-type>
+              <aggregation>Count</aggregation>
+              <approx-count>6</approx-count>
+              <scale>1</scale>
+              <width>1073741823</width>
+              <contains-null>false</contains-null>
+              <collation flag='0' name='binary' />
+              <statistics>
+                <statistic aggregation='Min' datatype='string'>&quot;CHINESE&quot;</statistic>
+                <statistic aggregation='Max' datatype='string'>&quot;VIETNAMESE&quot;</statistic>
+              </statistics>
+              <attributes>
+                <attribute datatype='string' name='DebugRemoteCollation'>&quot;binary&quot;</attribute>
+                <attribute datatype='boolean' name='DebugRemoteMetadata (comparable)'>true</attribute>
+                <attribute datatype='string' name='DebugRemoteMetadata (compression)'>&quot;heap&quot;</attribute>
+                <attribute datatype='boolean' name='DebugRemoteMetadata (distinct)'>true</attribute>
+                <attribute datatype='integer' name='DebugRemoteMetadata (size)'>4294967292</attribute>
+                <attribute datatype='integer' name='DebugRemoteMetadata (storagewidth)'>1</attribute>
+                <attribute datatype='string' name='DebugRemoteType'>&quot;str&quot;</attribute>
+              </attributes>
+            </metadata-record>
+            <metadata-record class='column'>
+              <remote-name>Calculation_8850106151314528</remote-name>
+              <remote-type>129</remote-type>
+              <local-name>[Calculation_8850106151314528]</local-name>
+              <parent-name>[Extract]</parent-name>
+              <remote-alias>Calculation_8850106151314528</remote-alias>
+              <local-type>string</local-type>
+              <aggregation>Count</aggregation>
+              <approx-count>6</approx-count>
+              <scale>1</scale>
+              <width>1073741823</width>
+              <contains-null>false</contains-null>
+              <collation flag='0' name='binary' />
+              <statistics>
+                <statistic aggregation='Min' datatype='string'>&quot;Chinese&quot;</statistic>
+                <statistic aggregation='Max' datatype='string'>&quot;Tagalog&quot;</statistic>
+              </statistics>
+              <attributes>
+                <attribute datatype='string' name='DebugRemoteCollation'>&quot;binary&quot;</attribute>
+                <attribute datatype='boolean' name='DebugRemoteMetadata (comparable)'>true</attribute>
+                <attribute datatype='string' name='DebugRemoteMetadata (compression)'>&quot;heap&quot;</attribute>
+                <attribute datatype='boolean' name='DebugRemoteMetadata (distinct)'>true</attribute>
+                <attribute datatype='integer' name='DebugRemoteMetadata (size)'>4294967292</attribute>
+                <attribute datatype='integer' name='DebugRemoteMetadata (storagewidth)'>1</attribute>
+                <attribute datatype='string' name='DebugRemoteType'>&quot;str&quot;</attribute>
               </attributes>
             </metadata-record>
           </metadata-records>
