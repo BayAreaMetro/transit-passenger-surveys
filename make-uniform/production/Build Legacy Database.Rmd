@@ -15,7 +15,6 @@ Refactoring the approach to building a standard survey database.  This script re
 #### _ISSUES_
 
 #### _TODO_
-1.  Remove Napa Vine once added to Standard
 
 ## Overhead
 
@@ -124,6 +123,10 @@ table(survey.legacy$onoff_exit_station)
 # Clean up for merge
 survey.legacy <- survey.legacy %>%
   select(-vehicles_additional_info, -workers_additional_info)
+
+# Remove Napa Vine (added to Standard)
+survey.legacy <- survey.legacy %>%
+  filter(!(operator == "Napa Vine"))
 
 # Write legacy disk
 save(survey.legacy, file = F_OUTPUT_RDATA)

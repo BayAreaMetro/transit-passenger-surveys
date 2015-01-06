@@ -16,8 +16,7 @@ Procedure to translate any number of on-board survey data sets into a single dat
 1.  Work carefully through first few datasets, as the code is a bit coarse in places
 
 #### _TODO_
-1.  How to handle operators with mixed modes
-3.  Standard variables to add when real data comes in: survey language, expansion weight, survey type (tablet or paper)
+
 
 ## Overhead
 
@@ -43,8 +42,8 @@ F_ALIGHT_TO_BE_GEOCODED  = "M:/Data/OnBoard/Data and Reports/_geocoding Standard
 F_SPATIAL_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/spatial_places_geocoded.csv"
 F_TRANSIT_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/boarding_alighting_places_geocoded.csv"
 
-F_CALTRAIN_SURVEY = "M:/Data/OnBoard/Data and Reports/Caltrain/As CSV/Caltrain_PilotTest_MainSurvey_Database_SubmittedOct16 NO POUND OR SINGLE QUOTE.csv"
-F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK NO POUND OR SINGLE QUOTE.csv"
+F_CALTRAIN_SURVEY = "M:/Data/OnBoard/Data and Reports/Caltrain/As CSV/Caltrain_Final_Submitted_12_31_2014_WITH PLACEHOLDERS NO POUND OR SINGLE QUOTE.csv"
+F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv"
 
 F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
 ```
@@ -69,7 +68,7 @@ dictionary.cat <- dictionary.all %>%
 
 ### Caltrain Pilot
 ```{r operator-caltrain}
-survey.CAL.key  <- 'Caltrain Pilot'
+survey.CAL.key  <- 'Caltrain'
 survey.CAL.year <- 2014
 
 # Set survey tech by route if necessary in operator chunk
@@ -191,20 +190,25 @@ Set_Operator_Name <- function(input_vector){
     
     # Transit Agencies
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("AC Transit")) > 0L, "AC TRANSIT", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("AirBART")) > 0L, "MUNI", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("AirBART")) > 0L, "AC TRANSIT", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("AirTrain")) > 0L, "BART", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Capitol Corridor")) > 0L, "AMTRAK", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("County Connection")) > 0L,"COUNTY CONNECTION", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Fairfield and")) > 0L,"FAIRFIELD-SUISUN",output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Golden Gate Tran")) > 0L, "GOLDEN GATE TRANSIT", output_field)) %>%
-     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Golden Gate Ferry")) > 0L, "GOLDEN GATE FERRY", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Golden Gate Ferry")) > 0L, "GOLDEN GATE FERRY", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Muni")) > 0L, "MUNI", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("SamTrans")) > 0L, "SAMTRANS",  output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Sam Trans")) > 0L, "SAMTRANS",  output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("SF Bay Ferry")) > 0L, "SF BAY FERRY", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Soltrans")) > 0L, "SOLTRANS", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Tri Delta")) > 0L, "TRI-DELTA",  output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("WestCAT")) > 0L, "WESTCAT",  output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("VINE")) > 0L, "NAPA VINE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("VTA")) > 0L, "VTA", output_field)) %>% 
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("VTA")) > 0L, "VTA", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("DASH Downtown Area Shuttle")) > 0L, "VTA", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Tiburon FERRY Tiburon To Angel Island State Park")) > 0L, "BLUE GOLD FERRY", output_field)) %>%
+    
     
     # OTHER
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Stanford")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
@@ -212,7 +216,17 @@ Set_Operator_Name <- function(input_vector){
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Corinthian lines shuttle")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Caltrain- Shuttles Genentech")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Kaiser shuttle")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("San Jose airport shuttle")) > 0L,  "PRIVATE SHUTTLE", output_field))
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("San Jose airport shuttle")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("American Canyon Safeway")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Shuttles Broadway - Millbrae")) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Calistoga Handy Van")) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Lake Transit")) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Saint Helena Shuttle")) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Burlingame Trolley Shuttle")) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("SCMTD Highway 17")) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Santa Cruz Metro")) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Menlo Park Shuttle Midday Shuttle")) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, ignore.case("Palo Alto E Embarcadero Shuttle")) > 0L,  "OTHER", output_field)) 
   
   return(output_df$output_field)
 }
@@ -223,12 +237,14 @@ Set_Base_Technology <- function(input_vector){
   operator = c("AC TRANSIT",        "AIR BART",         "AMTRAK",              "BART",              "CALTRAIN",
                "COUNTY CONNECTION", "FAIRFIELD-SUISUN", "GOLDEN GATE TRANSIT", "GOLDEN GATE FERRY", "MUNI", 
                "NAPA VINE",         "SAMTRANS",         "SF BAY FERRY",        "SOLTRANS",          "TRI-DELTA", 
-               "WESTCAT",           "VTA",              "OTHER",               "PRIVATE SHUTTLE")
+               "WESTCAT",           "VTA",              "OTHER",               "PRIVATE SHUTTLE",   "OTHER AGENCY",
+               "BLUE GOLD FERRY")
   
   technology = c("local bus", "local bus", "commuter rail", "heavy rail", "commuter rail",
                  "local bus", "local bus", "express bus",   "ferry",      "local bus", 
                  "local bus", "local bus", "ferry",         "local bus",  "local bus",
-                 "local bus", "local bus", "local bus",     "local bus")
+                 "local bus", "local bus", "local bus",     "local bus",  "local bus",
+                 "ferry")
   
   tech_df <- data.frame(operator, technology)
   
@@ -264,7 +280,7 @@ Update_Technology <- function(input_vector){
 
 
 ## Build Standard variables
-```{r standard-variables}
+```{r standard-variables-part1}
 # Step 1:  Age-related transformations
 # -------------------------------------------------------------------------------------
 
@@ -277,7 +293,8 @@ survey.standard <- survey.flat %>%
 survey.standard <- survey.standard %>%
   mutate(year_born = ifelse(year_born == 1900, 2000, year_born)) %>%
   mutate(year_born = ifelse(year_born == 1901, 2001, year_born)) %>%
-  mutate(year_born = ifelse(year_born == 3884, 1984, year_born))
+  mutate(year_born = ifelse(year_born == 3884, 1984, year_born)) %>%
+  mutate(year_born = ifelse(year_born == 2014, NA, year_born))
 
 table(survey.standard$year_born)
 
@@ -359,7 +376,7 @@ survey.standard <- survey.standard %>%
 table(survey.standard$tour_purp)
 
 
-# Step 3:  Update Key locations
+# Step 3:  Update Key locations and Status Flags
 # -------------------------------------------------------------------------------------
 
 # Home
@@ -381,6 +398,12 @@ survey.standard <- survey.standard %>%
   mutate(school_lat = ifelse((dest_purp == 'grade school' | dest_purp == 'high school' | dest_purp == 'college') & is.na(school_lat), dest_lat, school_lat)) %>%
   mutate(school_lon = ifelse((dest_purp == 'grade school' | dest_purp == 'high school' | dest_purp == 'college') & is.na(school_lon), dest_lon, school_lon)) 
   
+# Work and Student status
+survey.standard <- survey.standard %>%
+  mutate(work_status = ifelse(orig_purp == 'work' | dest_purp == 'work', 'full- or part-time', work_status)) %>%
+  mutate(student_status = ifelse(orig_purp == 'grade school' | dest_purp == 'grade school', 'full- or part-time', student_status)) %>%
+  mutate(student_status = ifelse(orig_purp == 'high school'  | dest_purp == 'high school',  'full- or part-time', student_status)) %>%
+  mutate(student_status = ifelse(orig_purp == 'college'      | dest_purp == 'college',      'full- or part-time', student_status))
 
 # Step 4:  Automobile Sufficiency
 # -------------------------------------------------------------------------------------
@@ -596,13 +619,24 @@ survey.standard <- survey.standard %>%
 
 table(survey.standard$boardings, survey.standard$survey_boardings)
 
+# Build debug data frame to find odds and ends
 debug.transfers <- survey.standard %>%
-  filter(!(boardings == survey_boardings))
+  filter(!(boardings == survey_boardings)) %>%
+  select(ID, operator,
+         first_route_before_survey_board,  first_before_operator,  first_before_technology,
+         second_route_before_survey_board, second_before_operator, second_before_technology,
+         third_route_before_survey_board,  third_before_operator,  third_before_technology,
+         first_route_after_survey_alight,   first_after_operator,  first_after_technology,
+         second_route_after_survey_alight, second_after_operator, second_after_technology,
+         third_route_after_survey_alight,  third_after_operator,  third_after_technology)
 
 survey.standard <- survey.standard %>%
   select(-survey_boardings)
 
+```
 
+
+``` {r standard-variables-part2}
 # Step 7:  Standardize Demographics
 # -------------------------------------------------------------------------------------
 survey.standard <- survey.standard %>%
@@ -641,37 +675,53 @@ table(survey.standard$eng_proficient)
   
 # Step 8:  Create route if needed, set dates and times
 # -------------------------------------------------------------------------------------
-
 # Build route from entry and exit station, as needed
 survey.standard <- survey.standard %>%
-  mutate(route = ifelse(!is.na(onoff_enter_station), paste(onoff_enter_station,onoff_exit_station, sep = " "), route))
+  mutate(route = ifelse(!is.na(onoff_enter_station), paste(onoff_enter_station, onoff_exit_station, sep = " "), route))
 
-# Day part and week part
+# Deal with date and time
 survey.standard <- survey.standard %>%
-  mutate(date = as.Date(str_trim(str_sub(date_string, 1, 10)), format = "%m/%d/%Y")) %>%
-  mutate(field_start = min(date)) %>%
-  mutate(field_end   = max(date)) %>%
-  # Day part (string manip to get time)
-  mutate(time_start = as.numeric(str_trim(str_sub(date_string, -5, -4)))) %>%
+  mutate(date_string = ifelse(str_length(date_string) == 0, NA, date_string)) %>%
+  mutate(time_string = ifelse(str_length(time_string) == 0, NA, time_string))
+
+table(survey.standard$date_string)
+table(survey.standard$time_string)
+
+# Get day of the week from date
+survey.standard <- survey.standard %>%
+  mutate(date = as.Date(date_string, format = "%m/%d/%Y")) %>%
+  mutate(day_of_the_week = toupper(weekdays(date)))
+
+table(survey.standard$day_of_the_week)
+
+# Get field dates from date
+field.dates <- survey.standard %>%
+  group_by(operator, survey_year) %>%
+  filter(!is.na(date)) %>%
+  summarise(field_start = min(date), field_end = max(date))
+
+survey.standard <- left_join(survey.standard, field.dates, by = c("operator", "survey_year"))
+
+# Deal with time
+survey.standard <- survey.standard %>%
+  mutate(am_pm = str_trim(str_sub(time_string, 6, 8))) %>%
+  mutate(raw_hour = str_sub(time_string, 1, 2)) %>%
+  mutate(hour = as.numeric(gsub("[:,]", "", raw_hour))) %>%
+  mutate(time_start = ifelse(am_pm == "PM" & hour < 12, hour + 12, ifelse(am_pm == "AM" & hour == 12, 0, hour))) %>%
   mutate(day_part = 'EVENING') %>%
   mutate(day_part = ifelse(time_start > 2  & time_start < 6,  'EARLY AM', day_part)) %>%
   mutate(day_part = ifelse(time_start > 5  & time_start < 11, 'AM PEAK' , day_part)) %>%
   mutate(day_part = ifelse(time_start > 10 & time_start < 15, 'MIDDAY'  , day_part)) %>%
-  mutate(day_part = ifelse(time_start > 14 & time_start < 19, 'PM PEAK' , day_part)) %>%
-  # Day of week
-  mutate(day_of_the_week = toupper(weekdays(date))) %>%
-  # Weekpart
-  mutate(weekpart = ifelse(day_of_the_week == 'SATURDAY' | day_of_the_week == 'SUNDAY', 'WEEKEND', 'WEEKDAY'))
-  
+  mutate(day_part = ifelse(time_start > 14 & time_start < 19, 'PM PEAK' , day_part))
 
-table(survey.standard$date)
 table(survey.standard$field_start)
 table(survey.standard$field_end)
 table(survey.standard$time_start)
 table(survey.standard$day_part)
 table(survey.standard$day_of_the_week)
-table(survey.standard$weekpart)
 
+survey.standard <- survey.standard %>%
+  select(-date_string, -time_string, -am_pm, -raw_hour, -hour)
 
 ```
 
@@ -746,10 +796,6 @@ survey.standard <- left_join(survey.standard, geo_spatial_maz, by = c("Unique_ID
 survey.standard <- left_join(survey.standard, geo_spatial_taz, by = c("Unique_ID"))
 survey.standard <- left_join(survey.standard, geo_transit_tap, by = c("Unique_ID"))
 
-table(survey.standard$home_maz)
-table(survey.standard$home_taz)
-table(survey.standard$first_board_tap)
-
 remove(geocoded_spatial_places, geocoded_transit_places, geo_spatial_maz, geo_spatial_taz, geo_transit_tap)
 ```
 
@@ -772,15 +818,15 @@ survey.standard <- survey.standard %>%
   mutate(first_board_lat        = as.numeric(first_board_lat)) %>%
   mutate(first_board_lon        = as.numeric(first_board_lon)) %>%
   mutate(last_alight_lat        = as.numeric(last_alight_lat)) %>%
-  mutate(last_alight_lon        = as.numeric(last_alight_lon))
+  mutate(last_alight_lon        = as.numeric(last_alight_lon)) %>%
+  mutate(weight                 = as.numeric(weight))
 
 # Drop variables we don't want to carry forward to standard dataset
 survey.standard <- survey.standard %>%
   select(-at_school_after_dest_purp, 
          -at_school_prior_to_orig_purp, 
          -at_work_after_dest_purp, 
-         -at_work_prior_to_orig_purp, 
-         -date_string,
+         -at_work_prior_to_orig_purp,
          -date,
          -time_start,
          -vehicle_numeric_cat,
@@ -824,16 +870,16 @@ survey.standard <- survey.standard %>%
 
 ## Write RData to Disk
 ```{r disk-write}
-# Add missing variables (TODO: add when real data becomes available)
+# Compute trip weight, replace missing weights with zero, and set field language to interview language
 survey.standard <- survey.standard %>%
-  mutate(weight = 1.0) %>%
+  mutate(weight = ifelse(is.na(weight), 0.0, weight)) %>%
   mutate(trip_weight = ifelse(boardings > 0, weight / boardings, weight)) %>%
-  mutate(interview_language = 'Missing') %>%
-  mutate(field_language = 'Missing')
+  mutate(field_language = interview_language)
 
 
 save(survey.standard, file = F_OUTPUT_RDATA)
 ```
+
 
 
 

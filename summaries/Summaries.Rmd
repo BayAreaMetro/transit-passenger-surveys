@@ -45,7 +45,7 @@ load(F_INPUT_LEGACY_RDATA)
 load(F_INPUT_STANDARD_RDATA)
 
 str(survey.standard, list.len = 500)
-str(survey.legacy, list.len = 500)
+str(survey.legacy,   list.len = 500)
 
 data.ready <- rbind(survey.standard, survey.legacy)
 
@@ -173,7 +173,7 @@ write.csv(sum.date, paste(D_OUTPUT_TABLEAU, "FieldDates.csv", sep = ""), row.nam
 ### First Boarding and Last Alighting
 ```{r boarding-alighting}
 sum.board <- data.ready.sum %>%
-  group_by(operator, weekpart, first_board_lat, first_board_lon, last_alight_lat, last_alight_lon) %>%
+  group_by(operator, weekpart, day_part, first_board_lat, first_board_lon, last_alight_lat, last_alight_lon) %>%
   summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
 
 write.csv(sum.board, paste(D_OUTPUT_TABLEAU, "BoardingAndAlighting.csv", sep = ""), row.names = FALSE, quote = T)
