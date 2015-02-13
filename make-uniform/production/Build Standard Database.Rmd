@@ -71,7 +71,7 @@ dictionary.cat <- dictionary.all %>%
 survey.CAL.key  <- 'Caltrain'
 survey.CAL.year <- 2014
 
-# Set survey tech by route if necessary in operator chunk
+# Set survey tech by route if necessary in standard variables Step 8
 survey.CAL.tech <- 'commuter rail'
 
 # Prepare operator-specific dictionary
@@ -100,7 +100,7 @@ remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, dictionary.CAL, variabl
 survey.NAP.key  <- 'Napa Vine'
 survey.NAP.year <- 2014
 
-# Set survey tech by route if necessary in operator chunk
+# Set survey tech by route if necessary in standard variables Step 8
 survey.NAP.tech <- 'local bus'
 
 # Prepare operator-specific dictionary
@@ -679,6 +679,10 @@ table(survey.standard$eng_proficient)
 survey.standard <- survey.standard %>%
   mutate(route = ifelse(!is.na(onoff_enter_station), paste(onoff_enter_station, onoff_exit_station, sep = " "), route))
 
+# Be-spoke survey technology updates, as needed
+survey.standard <- survey.standard %>%
+  mutate(survey_tech = ifelse(operator == "Napa Vine" & (route == 21 | route == 25 | route == 29), "express bus", survey_tech))
+
 # Deal with date and time
 survey.standard <- survey.standard %>%
   mutate(date_string = ifelse(str_length(date_string) == 0, NA, date_string)) %>%
@@ -879,10 +883,6 @@ survey.standard <- survey.standard %>%
 
 save(survey.standard, file = F_OUTPUT_RDATA)
 ```
-
-
-
-
 
 
 
