@@ -120,6 +120,28 @@ survey.legacy <- survey.legacy %>%
 table(survey.legacy$onoff_enter_station)
 table(survey.legacy$onoff_exit_station)
 
+# Update the technology and path for County Connection
+table(survey.legacy$survey_tech)
+table(survey.legacy$path_label)
+
+survey.legacy <- survey.legacy %>%
+  mutate(survey_tech = ifelse(operator == "County Connection" & route == "91X", "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "County Connection" & route == "92X", "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "County Connection" & route == "93X", "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "County Connection" & route == "95X", "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "County Connection" & route == "96X", "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "County Connection" & route == "97X", "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "County Connection" & route == "98X", "express bus", survey_tech))
+
+survey.legacy <- survey.legacy %>%
+  mutate(path_line_haul = ifelse(operator == "County Connection" & 
+                                   survey_tech == "express bus" & 
+                                   path_line_haul == "LOC", "EXP", path_line_haul)) %>%
+  mutate(path_label = paste(path_access,"-", path_line_haul, "-", path_egress, sep = ""))
+
+table(survey.legacy$survey_tech)
+table(survey.legacy$path_label)
+
 # Clean up for merge
 survey.legacy <- survey.legacy %>%
   select(-vehicles_additional_info, -workers_additional_info)
