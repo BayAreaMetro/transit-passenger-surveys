@@ -14,7 +14,7 @@ runtime: shiny
 2014 08 06 dto: very early days
 
 ## Purpose
-A key question for the transit on-board survey is whether or not there is value in performing an on/off pre-survey for small operators.  To help answer this question, we collected deep on/off sample (approximately 70 percent of all ons and offs) for the Tri-Delta system.  What we want to know is (a) is it possible to craft logical weights based on boarding-alighting patterns for low ridership systems and, (b) if so, when and where and for whom would expansion weights based on route + direction + time of day be meaningfully different than weights based on route + time-of-day + direction + boarding-alighting?  
+A key question for the transit on-board survey is whether or not there is value in performing an on/off pre-survey for small operators.  To help answer this question, we collected a deep on/off sample (approximately 70 percent of all ons and offs) for the Tri-Delta system.  What we want to know is (a) is it possible to craft logical weights based on boarding-alighting patterns for low ridership systems and, (b) if so, when and where and for whom would expansion weights based on route + direction + time of day be meaningfully different than weights based on route + time-of-day + direction + boarding-alighting?  
 
 ## Outputs
 1.  `TODO` In-line charts and ugly tables
@@ -75,7 +75,77 @@ tab_onoff <- tab_onoff %>%
 
 table(tab_onoff$onoff_count)
 
-# START HERE: join by route, then route + dir, then add time of day, see how well you match as you go, building up to full match, figure out what's going on.
+# Step 1: join by route, access success
+onoff_sum_route <- onoff %>%
+  group_by(route) %>%
+  summarise(onoff_count = n())
+  
+tab_onoff <- left_join(tablet, onoff_sum_route, by = c("route"))
+
+tab_onoff <- tab_onoff %>%
+  mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
+
+table(tab_onoff$onoff_count)
+
+route_missing <- tab_onoff %>%
+  filter(onoff_count == 0)
+
+table(route_missing$route)
+table(onoff_sum_route$route)
+
+# Results from Step 1: we lose 278 of 1259 because the on-off is missing routes 392, 393, 394, and 395
+
+# Step 2: join non-missing routes, from Step 1, and direction
+onoff_sum_route_direction <- onoff %>%
+  group_by(route, direction) %>%
+  summarise(onoff_count = n())
+
+tablet_route <- tablet %>%
+  filter(route != 392) %>%
+  filter(route != 393) %>%
+  filter(route != 394) %>%
+  filter(route != 395)
+tab_onoff <- left_join(tablet_route, onoff_sum_route_direction, by = c("route", "direction"))
+
+tab_onoff <- tab_onoff %>%
+  mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
+
+table(tab_onoff$onoff_count)
+
+# Results from Step 2: once we account for routes, we do not lose anything else by adding direction
+
+# Step 3: join non-missing routes, from Step 1, and direction, and time-of-day
+onoff_sum_route_direction_time <- onoff %>%
+  group_by(route, direction, time_period) %>%
+  summarise(onoff_count = n())
+
+tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_time, by = c("route", "direction", "time_period"))
+
+tab_onoff <- tab_onoff %>%
+  mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
+
+table(tab_onoff$onoff_count)
+
+# Results from Step 3: once we account for routes, we do not lose anything else by adding direction
+
+
+# START HERE: go through board, then alight, then board + alight
+# then try a linear programming approach, where you try to satisfy multiple criteria (starting with two)
+
+# Step 4: join non-missing routes, from Step 1, and direction, and time-of-day, and boarding location
+onoff_sum_route_direction_time_board <- onoff %>%
+  group_by(route, direction, time_period, board_id) %>%
+  summarise(onoff_count = n())
+
+tab_onoff <- 
+
+
+
+
+
+
+
+
 
 ```
 
