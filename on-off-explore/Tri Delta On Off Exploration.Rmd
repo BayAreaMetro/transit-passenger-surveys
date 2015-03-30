@@ -11,7 +11,7 @@ runtime: shiny
 ## Administration
 
 ## Status
-2014 08 06 dto: very early days
+very early days
 
 ## Purpose
 A key question for the transit on-board survey is whether or not there is value in performing an on/off pre-survey for small operators.  To help answer this question, we collected a deep on/off sample (approximately 70 percent of all ons and offs) for the Tri-Delta system.  What we want to know is (a) is it possible to craft logical weights based on boarding-alighting patterns for low ridership systems and, (b) if so, when and where and for whom would expansion weights based on route + direction + time of day be meaningfully different than weights based on route + time-of-day + direction + boarding-alighting?  
@@ -27,6 +27,9 @@ A key question for the transit on-board survey is whether or not there is value 
 library(knitr)
 suppressMessages(library(dplyr))
 library(stringr)
+library(lpSolve)
+library(linprog)
+library(optimx)
 ```
 
 ```{r setup, include=FALSE}
@@ -38,15 +41,51 @@ knitr::opts_chunk$set(cache=TRUE)
 input.tablet <- read.table(file = "M:/Data/OnBoard/Data and Reports/Tri Delta/As CSV/ONBOARD NO POUND OR SINGLE QUOTE.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
 
 input.onoff  <- read.table(file = "M:/Data/OnBoard/Data and Reports/Tri Delta/As CSV/ON2OFF NO POUND OR SINGLE QUOTE.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+input.stops <- read.table(file = "M:/Data/OnBoard/Data and Reports/Tri Delta/As CSV/RTD_ROUTE_STOPS_ALL_MODES_MAR_2 NO POUND OR SINGLE QUOTE.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
 ```
 
-## Peek around
-```{r peek-around}
+## Prepare datasets
+```{r prepare-datasets}
 tablet <- input.tablet %>%
-  select(tablet_id = ID, route_dir = ROUTE.CODE, direction = DIRECTION, time_period = TIME_PERIOD, board_id = BOARDING_LOCATION_STOPID, BOARDING_LOCATION_STOPID_SHP, alight_id = ALIGHTING_LOCATION_STOPID, ALIGHTING_LOCATION_STOPID_SHP, weight = UNLINKED_WGHT_FCTR)
+  select(tablet_id = ID, 
+         route_dir = ROUTE.CODE, 
+         direction = DIRECTION, 
+         time_period = TIME_PERIOD, 
+         board_id = BOARDING_LOCATION_STOPID, 
+         board_shp = BOARDING_LOCATION_STOPID_SHP, 
+         alight_id = ALIGHTING_LOCATION_STOPID, 
+         alight_shp = ALIGHTING_LOCATION_STOPID_SHP, 
+         weight = UNLINKED_WGHT_FCTR)
 
 onoff <- input.onoff %>%
-  select(onoff_id = ETC_ID, ROUTE_ON, DIRECTION_ON, ROUTE_OFF, DIRECTION_OFF, time_period = TIME.PERIOD, board_id = BOARDING_STOPID_, BOARDING_STOPID_SHP, board_seq = BOARDING_STOPSEQUENCE, alight_id = ALIGHTING_STOPID_, ALIGHTING_STOPID_SHP, alight_seq = ALIGHTING_STOPSEQUENCE, MATCH_CONFIDENCE = matchConfidence)
+  select(onoff_id = ETC_ID, 
+         ROUTE_ON, 
+         DIRECTION_ON, 
+         ROUTE_OFF, 
+         DIRECTION_OFF, 
+         time_period = TIME.PERIOD, 
+         board_id = BOARDING_STOPID_, 
+         BOARDING_STOPID_SHP, 
+         board_seq = BOARDING_STOPSEQUENCE, 
+         alight_id = ALIGHTING_STOPID_, 
+         ALIGHTING_STOPID_SHP, 
+         alight_seq = ALIGHTING_STOPSEQUENCE, 
+         MATCH_CONFIDENCE = matchConfidence)
+
+stops <- input.stops %>%
+  select(operator = CPT_AGENCY, 
+         route = SCH_ROUTED, 
+         direction = RTD_PATTER, 
+         stop_seq = SCH_STOPPO, 
+         stop_shp = CPT_STOPPO) %>%
+  filter(operator == '3D') %>%
+  select(-operator)
+
+# Suppress the route patterns and loops
+stops <- stops %>%
+  group_by(route, direction, stop_shp) %>%
+  summarise(stop_seq = min(stop_seq))
 
 # Join by route, direction, time of day, board, alight
 tablet <- tablet %>%
@@ -74,6 +113,110 @@ tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
 
 table(tab_onoff$onoff_count)
+```
+
+
+
+```{r route-segments-explore}
+
+# How many stops does each route + direction have?
+onoff_stops <- onoff %>%
+  filter(MATCH_CONFIDENCE == "100%") %>%
+  group_by(route, direction) %>%
+  summarise(max_board_seq = max(board_seq), max_alight_seq = max(alight_seq))
+
+# Use the number of stops to create break points
+segment_breaks <- onoff_stops %>%
+  mutate(break_2_1 = round((max_board_seq + max_alight_seq)/4)) %>%
+  mutate(break_3_1 = round((max_board_seq + max_alight_seq)/6)) %>%
+  mutate(break_3_2 = break_3_1 * 2) %>%
+  mutate(break_4_1 = round((max_board_seq + max_alight_seq)/8)) %>%
+  mutate(break_4_2 = break_4_1 * 2) %>%
+  mutate(break_4_3 = break_4_1 * 3)
+
+# Use the break points to put the ons and offs into boarding and alighting segments (TODO: make more elegant, generalizable)
+onoff_breaks <- onoff %>%
+  filter(MATCH_CONFIDENCE == "100%")
+
+onoff_breaks <- left_join(onoff_breaks, segment_breaks, by = c("route", "direction"))
+
+onoff_breaks <- onoff_breaks %>%
+  mutate(board_seg_2  = ifelse(board_seq  <  break_2_1, 1, 2)) %>%
+  mutate(alight_seg_2 = ifelse(alight_seq <  break_2_1, 1, 2)) %>%
+  
+  mutate(board_seg_3  = ifelse(board_seq  <  break_3_1, 1, 2)) %>%
+  mutate(board_seg_3  = ifelse(board_seq  >= break_3_2, 3, board_seg_3)) %>%
+  
+  mutate(alight_seg_3 = ifelse(alight_seq <  break_3_1, 1, 2)) %>%
+  mutate(alight_seg_3 = ifelse(alight_seq >= break_3_2, 3, alight_seg_3)) %>%
+  
+  mutate(board_seg_4  = ifelse(board_seq  < break_4_1, 1, 2)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_1 & board_seq < break_4_2, 2, board_seg_4)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_2 & board_seq < break_4_3, 3, board_seg_4)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_3, 4, board_seg_4)) %>%
+  
+  mutate(alight_seg_4 = ifelse(alight_seq < break_4_1, 1, 2)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_1 & alight_seq < break_4_2, 2, alight_seg_4)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_2 & alight_seq < break_4_3, 3, alight_seg_4)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_3, 4, alight_seg_4)) %>%
+  
+  select(-break_2_1, -break_3_1, -break_3_2, -break_4_1, -break_4_2, -break_4_3, -max_board_seq, -max_alight_seq)
+
+table(onoff_breaks$board_seg_2)
+table(onoff_breaks$board_seg_3)
+table(onoff_breaks$board_seg_4)
+
+table(onoff_breaks$alight_seg_2)
+table(onoff_breaks$alight_seg_3)
+table(onoff_breaks$alight_seg_4)
+
+# Use the break points to put the tablet into boarding and alighting segments
+stops_board <- stops %>%
+  select(route, direction, board_seq = stop_seq, board_shp = stop_shp)
+
+stops_alight <- stops %>%
+  select(route, direction, alight_seq = stop_seq, alight_shp = stop_shp)
+
+tablet_breaks <- left_join(tablet,        stops_board,  by = c("route", "direction", "board_shp"))
+tablet_breaks <- left_join(tablet_breaks, stops_alight, by = c("route", "direction", "alight_shp"))
+
+tablet_breaks <- left_join(tablet_breaks, segment_breaks, by = c("route", "direction"))
+
+tablet_breaks <- tablet_breaks %>%
+  mutate(board_seg_2  = ifelse(board_seq  <  break_2_1, 1, 2)) %>%
+  mutate(alight_seg_2 = ifelse(alight_seq <  break_2_1, 1, 2)) %>%
+  
+  mutate(board_seg_3  = ifelse(board_seq  <  break_3_1, 1, 2)) %>%
+  mutate(board_seg_3  = ifelse(board_seq  >= break_3_2, 3, board_seg_3)) %>%
+  
+  mutate(alight_seg_3 = ifelse(alight_seq <  break_3_1, 1, 2)) %>%
+  mutate(alight_seg_3 = ifelse(alight_seq >= break_3_2, 3, alight_seg_3)) %>%
+  
+  mutate(board_seg_4  = ifelse(board_seq  < break_4_1, 1, 2)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_1 & board_seq < break_4_2, 2, board_seg_4)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_2 & board_seq < break_4_3, 3, board_seg_4)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_3, 4, board_seg_4)) %>%
+  
+  mutate(alight_seg_4 = ifelse(alight_seq < break_4_1, 1, 2)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_1 & alight_seq < break_4_2, 2, alight_seg_4)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_2 & alight_seq < break_4_3, 3, alight_seg_4)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_3, 4, alight_seg_4)) %>%
+  
+  select(-break_2_1, -break_3_1, -break_3_2, -break_4_1, -break_4_2, -break_4_3, -max_board_seq, -max_alight_seq)
+
+table(tablet_breaks$board_seg_2)
+table(tablet_breaks$board_seg_3)
+table(tablet_breaks$board_seg_4)
+
+table(tablet_breaks$alight_seg_2)
+table(tablet_breaks$alight_seg_3)
+table(tablet_breaks$alight_seg_4)
+
+
+```
+
+
+```{r check-matches}
 
 # Step 1: join by route, access success
 onoff_sum_route <- onoff %>%
@@ -128,24 +271,251 @@ table(tab_onoff$onoff_count)
 
 # Results from Step 3: once we account for routes, we do not lose anything else by adding direction
 
-
-# START HERE: go through board, then alight, then board + alight
-# then try a linear programming approach, where you try to satisfy multiple criteria (starting with two)
-
-# Step 4: join non-missing routes, from Step 1, and direction, and time-of-day, and boarding location
+# Step 4: join non-missing routes, from Step 1, and direction, time-of-day, and boarding location
 onoff_sum_route_direction_time_board <- onoff %>%
   group_by(route, direction, time_period, board_id) %>%
   summarise(onoff_count = n())
 
-tab_onoff <- 
+tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_time_board, by = c("route", "direction", "time_period", "board_id"))
+
+tab_onoff <- tab_onoff %>%
+  mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
+
+table(tab_onoff$onoff_count)
+
+# Results from Step 4: once we account for routes, we lose 817 out of 981
+
+# Step 5: join non-missing routes, from Step 1, and direction, boarding location (back off time from Step 4)
+onoff_sum_route_direction_board <- onoff %>%
+  group_by(route, direction, board_id) %>%
+  summarise(onoff_count = n())
+
+tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_board, by = c("route", "direction", "board_id"))
+
+tab_onoff <- tab_onoff %>%
+  mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
+
+table(tab_onoff$onoff_count)
+
+# Results from Step 5: once we account for routes and relax time of day, we lose 779 out of 981 (seems very high)
+
+# Step 6: join non-missing routes, from Step 1, and direction, time-of-day, and boarding location
+onoff_sum_route_direction_time_alight <- onoff %>%
+  group_by(route, direction, time_period, alight_id) %>%
+  summarise(onoff_count = n())
+
+tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_time_alight, by = c("route", "direction", "time_period", "alight_id"))
+
+tab_onoff <- tab_onoff %>%
+  mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
+
+table(tab_onoff$onoff_count)
+
+# Results from Step 6: once we account for routes, we lose 832 out of 981
+
+# Step 7: join non-missing routes, from Step 1, and direction, boarding location (back off time from Step 4)
+onoff_sum_route_direction_alight <- onoff %>%
+  group_by(route, direction, alight_id) %>%
+  summarise(onoff_count = n())
+
+tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_alight, by = c("route", "direction", "alight_id"))
+
+tab_onoff <- tab_onoff %>%
+  mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
+
+table(tab_onoff$onoff_count)
+
+# Results from Step 7: once we account for routes and relax time of day, we lose 779 out of 981 (seems very high)
+
+# Step 8: join non-missing routes, from Step 1, and direction, time-of-day, boarding location, and alighting location
+onoff_sum_route_direction_time_board_alight <- onoff %>%
+  group_by(route, direction, time_period, board_id, alight_id) %>%
+  summarise(onoff_count = n())
+
+tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_time_board_alight, by = c("route", "direction", "time_period", "board_id", "alight_id"))
+
+tab_onoff <- tab_onoff %>%
+  mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
+
+table(tab_onoff$onoff_count)
+
+# Results from Step 8: we lose 964 out of 981
+
+# Step 9: join non-missing routes, from Step 1, and direction, time-of-day, and two-stage boarding sequence
+onoff_sum_route_direction_time_boardseq <- onoff_breaks %>%
+  group_by(route, direction, time_period, board_seg_2) %>%
+  summarise(onoff_count = n())
+
+tablet_breaks_route <- tablet_breaks %>%
+  filter(route != 392) %>%
+  filter(route != 393) %>%
+  filter(route != 394) %>%
+  filter(route != 395)
+
+tab_onoff <- left_join(tablet_breaks_route, onoff_sum_route_direction_time_boardseq, by = c("route", "direction", "time_period", "board_seg_2"))
+
+tab_onoff <- tab_onoff %>%
+  mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
+
+table(tab_onoff$onoff_count)
+
+# Results from Step 9: we lose 109 out of 981
+
+# Step 10: join non-missing routes, from Step 1, and direction, time-of-day, and three-stage boarding sequence
+onoff_sum_route_direction_time_boardseq <- onoff_breaks %>%
+  group_by(route, direction, time_period, board_seg_3) %>%
+  summarise(onoff_count = n())
+
+tab_onoff <- left_join(tablet_breaks_route, onoff_sum_route_direction_time_boardseq, by = c("route", "direction", "time_period", "board_seg_3"))
+
+tab_onoff <- tab_onoff %>%
+  mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
+
+table(tab_onoff$onoff_count)
+
+# Results from Step 10: we lose 121 out of 981
+
+# Step 11: join non-missing routes, from Step 1, and direction, time-of-day, and four-stage boarding sequence
+onoff_sum_route_direction_time_boardseq <- onoff_breaks %>%
+  group_by(route, direction, time_period, board_seg_4) %>%
+  summarise(onoff_count = n())
+
+tab_onoff <- left_join(tablet_breaks_route, onoff_sum_route_direction_time_boardseq, by = c("route", "direction", "time_period", "board_seg_4"))
+
+tab_onoff <- tab_onoff %>%
+  mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
+
+table(tab_onoff$onoff_count)
+
+# Results from Step 11: we lose 126 out of 981
+
+# Okay: this seems to work well
+
+```
+
+```{r mini-optim}
+
+# Mini-example, Optimization Pass 1
+
+# Consider a survey with five passengers: A, B, C, D, and E
+# Passengers A and B ride route 10 E; passengers C, D, and E ride route 10 W
+# Consider three targets: 10-E ridership is 100 (target 1), 10-w ridership is 300 (2), and system ridership is 450 (3)
+# Consider the following weights on the targets: 1, 1.00; 2, 1.25; and 3, 1.50
+
+# The function we want to minimize is:
+# sum = weight_1 * abs(target 1 - est 1) + weight_2 * abs(target 2 - est 2) + weight_3 * abs(target 3 - est 3),
+# 
+# where weight_1 = 1.00; weight_2 = 1.25; weight_3 = 1.50; target 1 = 100; target 2 = 300; target 3 = 450; est 1 is the sum of weights on A and B; est 2 is the sum of weights on C, D, and E; and est 3 is the sum of all the weights
+
+targets_vector = c( target_1 = 100,
+                    target_2 = 300,
+                    target_3 = 450)
+
+target_weights_vector = c( weight_1 = 1.00,
+                           weight_2 = 1.25,
+                           weight_3 = 1.50)
+
+passenger_vector   = c("A", "B", "C", "D", "E")
+target_1_incidence = c(  1,   1,   0,   0,   0)
+target_2_incidence = c(  0,   0,   1,   1,   1)
+target_3_incidence = c(  1,   1,   1,   1,   1)
+
+survey_df = data.frame(passenger_vector, target_1_incidence, target_2_incidence, target_3_incidence)
+
+optimization_function <- function(x, survey_df, targets_v, target_weights_v) {
+  
+  working_df <- cbind(survey_df, x)
+  
+  working_df <- survey_df %>%
+    mutate(target_1_value = target_1_incidence * x) %>%
+    mutate(target_2_value = target_2_incidence * x) %>%
+    mutate(target_3_value = target_3_incidence * x)
+  
+  target_1 <- sum(working_df$target_1_value)
+  target_2 <- sum(working_df$target_2_value)
+  target_3 <- sum(working_df$target_3_value)
+  
+  target_estimates_vector = c(target_1, target_2, target_3)
+  
+  error <- c(0,0,0)
+  for (i in 1:length(targets_v)) {
+    
+    error[i] <- target_weights_v[i] * abs(target_estimates_vector[i] - targets_v[i])
+    
+  }
+  
+  return(sum(error))
+}
+
+survey_weights_vector <- c(1, 1, 1, 1, 1)
+optimization_function(survey_weights_vector, survey_df, targets_vector, target_weights_vector)
+
+starting_weights_vector <- c(1,1,1,1,1)
+weights <- optimx(starting_weights_vector, fn = optimization_function, control = list(all.methods = TRUE, save.failures = TRUE, trace = 0), survey_df = survey_df, targets_v = targets_vector, target_weights_v = target_weights_vector)
+
+```
 
 
+```{r mini-linprog}
 
+# Mini-example, Linear Programming Pass 1
 
+# Consider a survey with five passengers: A, B, C, D, and E
+# Passengers A and B ride route 10 E; passengers C, D, and E ride route 10 W
+# Consider three targets: 10-E ridership is 100 (target x), 10-W ridership is 300 (y), system ridership is 450 (z)
+# Consider the following weights on the targets: x, 1.00; y, 1.25; z, 1.50.
 
+weight_x = 2.00
+weight_y = 1.00
+weight_z = 2.00
 
+# In this case, our constraints are the targets
+targets_vector = c( target_x = 100 * weight_x,
+                    target_y = 300 * weight_y,
+                    target_z = 450 * weight_z)
 
+# We want to know how many of each passenger we want, with each passenger having the same margin
+passenger_vector = c (pax_A = 1,
+                      pax_B = 1,
+                      pax_C = 1,
+                      pax_D = 1,
+                      pax_E = 1)
 
+# Our matrix (3 x 5) is an incidence of passengers for each target, using the weights as the incidence
+incidence_matrix_1 = rbind( c( weight_x * 1.0, weight_y * 0.0, weight_z * 1.0), # passenger A
+                            c( weight_x * 1.0, weight_y * 0.0, weight_z * 1.0), # passenger B
+                            c( weight_x * 0.0, weight_y * 1.0, weight_z * 1.0), # passenger C
+                            c( weight_x * 0.0, weight_y * 1.0, weight_z * 1.0), # passenger D
+                            c( weight_x * 0.0, weight_y * 1.0, weight_z * 1.0)) # passenger E
+
+incidence_matrix = rbind( c(weight_x * 1.0, weight_x * 1.0, weight_x * 0.0, weight_x * 0.0, weight_x * 0.0),
+                          c(weight_y * 0.0, weight_y * 0.0, weight_y * 1.0, weight_y * 1.0, weight_y * 1.0),
+                          c(weight_z * 1.0, weight_z * 1.0, weight_z * 1.0, weight_z * 1.0, weight_z * 1.0))
+
+rownames(incidence_matrix) <- names(targets_vector)
+colnames(incidence_matrix) <- names(passenger_vector)
+
+constraints_direction_vector = c(">=", ">=", "<=")
+
+# Minimize weights, subject to constraints
+# solveLP(passenger_vector, targets_vector, incidence_matrix, const.dir = constraints_direction_vector)
+
+# Maximize weights (implicitly within <= constraints)
+# solveLP(passenger_vector, targets_vector, incidence_matrix, maximum = TRUE)
+
+# Maximize passengers, subject to constraints
+solveLP(passenger_vector, targets_vector, incidence_matrix, maximum = TRUE, const.dir = constraints_direction_vector)
+
+# Lessons learned from mini-example
+# 1. we do not need to enumerate each passenger; rather, we need to enumerate the minimum number of passenger classes.  In this case, we had two types of passenger classes: route 10 west and route 10 east.  The optimization has no reason to evenly spread the weights to all passengers in a class.
+
+# 2.  the objective function is minimizing the number of passengers in order to satisfy our constraints.  need to think more about how we want the objective function to behave.  We want to minimize the error.  Think through how to do that within this framework.
+
+#3.  the third go at solveLP is what i had in mind, but it's artificial, as the constraints are set with my a priori knowledge of the behavior. as with (2), spend more time thinking about this.
+
+# So ... have another go at the mini-example, this time addressing (1) above and tinkering more to address (2) and (3).
+
+# Thinking more about it, a more general optimization routine may be better than the linear programming packages.  Start with optim and give optimx a go as well.  Re-do mini example with optim. 
 
 ```
 
