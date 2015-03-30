@@ -28,6 +28,7 @@ library(knitr)
 suppressMessages(library(dplyr))
 library(stringr)
 library(optimx)
+library(reshape2)
 ```
 
 ```{r setup, include=FALSE}
@@ -435,15 +436,14 @@ optimization_function <- function(x, obs_target_v, import_v, inc_mtx) {
   # Compute estimated targets 
   est_target_v <- x %*% inc_mtx
   
-  error <- 0 * seq(1:length(obs_target_v))
-  for (i in 1:length(obs_target_v)) {
-    
-    error[i] <- import_v[i] * abs(est_target_v[i] - obs_target_v[i])
-    
-    }
+  # Compute errors
+  error_df <- data.frame(obs_target_v, est_target_v, import_v)
+  error_df <- error_df %>%
+    mutate(error <- import_v * abs(est_target_v - obs_target_v))
   
-  return(sum(error))
-  
+  # Return errors
+  return(sum(error_df$error))
+
 }
 
 # Test the optimization function
@@ -463,3 +463,26 @@ optimal_weights <- optimx(starting_weights_vector,
 
 # Next steps:
 ## 1. Start in on a small example with the Tri-Delta data
+
+```{r small-tri-delta-example}
+
+# Step 1: build the observed targets vector from the on-off counts
+obs_targets_df <- onoff %>%
+  filter(MATCH_CONFIDENCE == "100%") %>%
+  group_by(route, direction, time_period) %>%
+  summarise(onoff_count = n()) %>%
+  ungroup() %>%
+  mutate(target_id = paste(route, "--", direction, "--", time_period, sep = ""))
+
+obs_targets_vector <- obs_targets_df$onoff_count
+
+# Step 2: build the importance weights vector (all 1s for now)
+importance_weights_vector <- obs_targets_vector * 0 + 1
+
+# Step 3: build the incidence matrix (summarised tablet rows * 88)
+
+# START HERE: need to cast the targets df, so you have an incidence with the route, direction, and time, then need to summarise the tablet by these dimensions, then need to join the two
+
+
+```
+
