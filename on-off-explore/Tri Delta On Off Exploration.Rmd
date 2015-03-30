@@ -27,8 +27,6 @@ A key question for the transit on-board survey is whether or not there is value 
 library(knitr)
 suppressMessages(library(dplyr))
 library(stringr)
-library(lpSolve)
-library(linprog)
 library(optimx)
 ```
 
@@ -393,129 +391,75 @@ table(tab_onoff$onoff_count)
 
 ```
 
-```{r mini-optim}
+```{r mini-clean}
 
-# Mini-example, Optimization Pass 1
+# Mini-example, optimization, pass 3
 
-# Consider a survey with five passengers: A, B, C, D, and E
-# Passengers A and B ride route 10 E; passengers C, D, and E ride route 10 W
-# Consider three targets: 10-E ridership is 100 (target 1), 10-w ridership is 300 (2), and system ridership is 450 (3)
-# Consider the following weights on the targets: 1, 1.00; 2, 1.25; and 3, 1.50
+# Consider a survey with five passengers on two routes
+survey_id = c(1, 2, 3, 4, 5)
+route = c(10, 10, 10, 10, 10)
+direction = c("E", "E", "W", "W", "W")
 
-# The function we want to minimize is:
-# sum = weight_1 * abs(target 1 - est 1) + weight_2 * abs(target 2 - est 2) + weight_3 * abs(target 3 - est 3),
-# 
-# where weight_1 = 1.00; weight_2 = 1.25; weight_3 = 1.50; target 1 = 100; target 2 = 300; target 3 = 450; est 1 is the sum of weights on A and B; est 2 is the sum of weights on C, D, and E; and est 3 is the sum of all the weights
+survey_data = data.frame(survey_id, route, direction)
 
-targets_vector = c( target_1 = 100,
-                    target_2 = 300,
-                    target_3 = 450)
+# Consider three targets: ridership on 10 E is 100, ridership on 10 W is 300, system ridership is 450
+observed_targets_vector = c(target_1 = 100,
+                            target_2 = 300,
+                            target_3 = 450)
 
-target_weights_vector = c( weight_1 = 1.00,
-                           weight_2 = 1.25,
-                           weight_3 = 1.50)
+# Consider importance weights on the three targets of 1.00, 1.25, and 1.50
+importance_weights_vector = c(weight_1 = 1.00,
+                              weight_2 = 1.25,
+                              weight_3 = 1.50)
 
-passenger_vector   = c("A", "B", "C", "D", "E")
-target_1_incidence = c(  1,   1,   0,   0,   0)
-target_2_incidence = c(  0,   0,   1,   1,   1)
-target_3_incidence = c(  1,   1,   1,   1,   1)
+# Create three incidence dummies on the survey for each target
+survey_data <- survey_data %>%
+  mutate(target_1_incidence = ifelse(route == 10 & direction == "E", 1, 0)) %>%
+  mutate(target_2_incidence = ifelse(route == 10 & direction == "W", 1, 0)) %>%
+  mutate(target_3_incidence = 1)
 
-survey_df = data.frame(passenger_vector, target_1_incidence, target_2_incidence, target_3_incidence)
+# Create unique weights to target incidence array
+unique_weights <- survey_data %>%
+  group_by(route, direction) %>%
+  summarise(target_1_count = sum(target_1_incidence), 
+            target_2_count = sum(target_2_incidence), 
+            target_3_count = sum(target_3_incidence)) %>%
+  ungroup() %>%
+  select(target_1_count, target_2_count, target_3_count)
 
-optimization_function <- function(x, survey_df, targets_v, target_weights_v) {
+incidence_matrix <- data.matrix(unique_weights)
+
+# Define the optimization function
+optimization_function <- function(x, obs_target_v, import_v, inc_mtx) {
   
-  working_df <- cbind(survey_df, x)
+  # Compute estimated targets 
+  est_target_v <- x %*% inc_mtx
   
-  working_df <- survey_df %>%
-    mutate(target_1_value = target_1_incidence * x) %>%
-    mutate(target_2_value = target_2_incidence * x) %>%
-    mutate(target_3_value = target_3_incidence * x)
-  
-  target_1 <- sum(working_df$target_1_value)
-  target_2 <- sum(working_df$target_2_value)
-  target_3 <- sum(working_df$target_3_value)
-  
-  target_estimates_vector = c(target_1, target_2, target_3)
-  
-  error <- c(0,0,0)
-  for (i in 1:length(targets_v)) {
+  error <- 0 * seq(1:length(obs_target_v))
+  for (i in 1:length(obs_target_v)) {
     
-    error[i] <- target_weights_v[i] * abs(target_estimates_vector[i] - targets_v[i])
+    error[i] <- import_v[i] * abs(est_target_v[i] - obs_target_v[i])
     
-  }
+    }
   
   return(sum(error))
+  
 }
 
-survey_weights_vector <- c(1, 1, 1, 1, 1)
-optimization_function(survey_weights_vector, survey_df, targets_vector, target_weights_vector)
+# Test the optimization function
+x <- c(75, 100)
+optimization_function(x, observed_targets_vector, importance_weights_vector, incidence_matrix)
 
-starting_weights_vector <- c(1,1,1,1,1)
-weights <- optimx(starting_weights_vector, fn = optimization_function, control = list(all.methods = TRUE, save.failures = TRUE, trace = 0), survey_df = survey_df, targets_v = targets_vector, target_weights_v = target_weights_vector)
+# Find the optimal weights using OPTIMX
+starting_weights_vector <- c(1,1)
+optimal_weights <- optimx(starting_weights_vector, 
+                          fn = optimization_function, 
+                          obs_target_v = observed_targets_vector,
+                          import_v = importance_weights_vector,
+                          inc_mtx = incidence_matrix)
 
-```
-
-
-```{r mini-linprog}
-
-# Mini-example, Linear Programming Pass 1
-
-# Consider a survey with five passengers: A, B, C, D, and E
-# Passengers A and B ride route 10 E; passengers C, D, and E ride route 10 W
-# Consider three targets: 10-E ridership is 100 (target x), 10-W ridership is 300 (y), system ridership is 450 (z)
-# Consider the following weights on the targets: x, 1.00; y, 1.25; z, 1.50.
-
-weight_x = 2.00
-weight_y = 1.00
-weight_z = 2.00
-
-# In this case, our constraints are the targets
-targets_vector = c( target_x = 100 * weight_x,
-                    target_y = 300 * weight_y,
-                    target_z = 450 * weight_z)
-
-# We want to know how many of each passenger we want, with each passenger having the same margin
-passenger_vector = c (pax_A = 1,
-                      pax_B = 1,
-                      pax_C = 1,
-                      pax_D = 1,
-                      pax_E = 1)
-
-# Our matrix (3 x 5) is an incidence of passengers for each target, using the weights as the incidence
-incidence_matrix_1 = rbind( c( weight_x * 1.0, weight_y * 0.0, weight_z * 1.0), # passenger A
-                            c( weight_x * 1.0, weight_y * 0.0, weight_z * 1.0), # passenger B
-                            c( weight_x * 0.0, weight_y * 1.0, weight_z * 1.0), # passenger C
-                            c( weight_x * 0.0, weight_y * 1.0, weight_z * 1.0), # passenger D
-                            c( weight_x * 0.0, weight_y * 1.0, weight_z * 1.0)) # passenger E
-
-incidence_matrix = rbind( c(weight_x * 1.0, weight_x * 1.0, weight_x * 0.0, weight_x * 0.0, weight_x * 0.0),
-                          c(weight_y * 0.0, weight_y * 0.0, weight_y * 1.0, weight_y * 1.0, weight_y * 1.0),
-                          c(weight_z * 1.0, weight_z * 1.0, weight_z * 1.0, weight_z * 1.0, weight_z * 1.0))
-
-rownames(incidence_matrix) <- names(targets_vector)
-colnames(incidence_matrix) <- names(passenger_vector)
-
-constraints_direction_vector = c(">=", ">=", "<=")
-
-# Minimize weights, subject to constraints
-# solveLP(passenger_vector, targets_vector, incidence_matrix, const.dir = constraints_direction_vector)
-
-# Maximize weights (implicitly within <= constraints)
-# solveLP(passenger_vector, targets_vector, incidence_matrix, maximum = TRUE)
-
-# Maximize passengers, subject to constraints
-solveLP(passenger_vector, targets_vector, incidence_matrix, maximum = TRUE, const.dir = constraints_direction_vector)
-
-# Lessons learned from mini-example
-# 1. we do not need to enumerate each passenger; rather, we need to enumerate the minimum number of passenger classes.  In this case, we had two types of passenger classes: route 10 west and route 10 east.  The optimization has no reason to evenly spread the weights to all passengers in a class.
-
-# 2.  the objective function is minimizing the number of passengers in order to satisfy our constraints.  need to think more about how we want the objective function to behave.  We want to minimize the error.  Think through how to do that within this framework.
-
-#3.  the third go at solveLP is what i had in mind, but it's artificial, as the constraints are set with my a priori knowledge of the behavior. as with (2), spend more time thinking about this.
-
-# So ... have another go at the mini-example, this time addressing (1) above and tinkering more to address (2) and (3).
-
-# Thinking more about it, a more general optimization routine may be better than the linear programming packages.  Start with optim and give optimx a go as well.  Re-do mini example with optim. 
 
 ```
 
+# Next steps:
+## 1. Start in on a small example with the Tri-Delta data
