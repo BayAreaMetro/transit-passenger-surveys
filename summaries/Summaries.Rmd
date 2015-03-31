@@ -188,3 +188,42 @@ sum.wgt <- data.ready.sum %>%
 write.csv(sum.wgt, paste(D_OUTPUT_TABLEAU, "DistributionOfWeights.csv", sep = ""), row.names = FALSE, quote = T)
 
 ```
+### Simplified Auto Sufficiency
+```{r autos}
+sum.autos <- data.ready.sum %>%
+  group_by(operator, weekpart, auto_suff) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.autos, paste(D_OUTPUT_TABLEAU, "AutoSufficiency.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
+### Gender
+```{r gender}
+sum.autos <- data.ready.sum %>%
+  group_by(operator, weekpart, auto_suff) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.autos, paste(D_OUTPUT_TABLEAU, "AutoSufficiency.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
+
+### Age Category
+```{r agecat}
+
+data.ready.sum$agecat[data.ready.sum$approximate_age>=0 & data.ready.sum$approximate_age <= 17]     <- "17 or Younger"
+data.ready.sum$agecat[data.ready.sum$approximate_age >=18 & data.ready.sum$approximate_age <= 24]   <- "18 to 24"
+data.ready.sum$agecat[data.ready.sum$approximate_age >=25 & data.ready.sum$approximate_age <= 34]   <- "25 to 34"
+data.ready.sum$agecat[data.ready.sum$approximate_age >=35 & data.ready.sum$approximate_age <= 44]   <- "35 to 44"
+data.ready.sum$agecat[data.ready.sum$approximate_age >=45 & data.ready.sum$approximate_age <= 54]   <- "45 to 54"
+data.ready.sum$agecat[data.ready.sum$approximate_age >=55 & data.ready.sum$approximate_age <= 64]   <- "55 to 64"
+data.ready.sum$agecat[data.ready.sum$approximate_age >=65]                                          <- "65+"
+data.ready.sum$agecat[data.ready.sum$approximate_age=="Missing"]                                    <- "Missing"
+data.ready.sum$agecat[data.ready.sum$approximate_age == -9]                                         <- "Missing"
+
+sum.age <- data.ready.sum %>%
+  group_by(operator, weekpart, agecat) %>%
+  summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
+
+write.csv(sum.age, paste(D_OUTPUT_TABLEAU, "AgeCats.csv", sep = ""), row.names = FALSE, quote = T)
+
+```
