@@ -218,11 +218,11 @@ table(tablet_breaks$alight_seg_4)
 ```{r check-matches}
 
 # Step 1: join by route, access success
-onoff_sum_route <- onoff %>%
+onoff_sum <- onoff %>%
   group_by(route) %>%
   summarise(onoff_count = n())
   
-tab_onoff <- left_join(tablet, onoff_sum_route, by = c("route"))
+tab_onoff <- left_join(tablet, onoff_sum, by = c("route"))
 
 tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
@@ -233,12 +233,12 @@ route_missing <- tab_onoff %>%
   filter(onoff_count == 0)
 
 table(route_missing$route)
-table(onoff_sum_route$route)
+table(onoff_sum$route)
 
 # Results from Step 1: we lose 278 of 1259 because the on-off is missing routes 392, 393, 394, and 395
 
 # Step 2: join non-missing routes, from Step 1, and direction
-onoff_sum_route_direction <- onoff %>%
+onoff_sum <- onoff %>%
   group_by(route, direction) %>%
   summarise(onoff_count = n())
 
@@ -247,7 +247,7 @@ tablet_route <- tablet %>%
   filter(route != 393) %>%
   filter(route != 394) %>%
   filter(route != 395)
-tab_onoff <- left_join(tablet_route, onoff_sum_route_direction, by = c("route", "direction"))
+tab_onoff <- left_join(tablet_route, onoff_sum, by = c("route", "direction"))
 
 tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
@@ -257,11 +257,11 @@ table(tab_onoff$onoff_count)
 # Results from Step 2: once we account for routes, we do not lose anything else by adding direction
 
 # Step 3: join non-missing routes, from Step 1, and direction, and time-of-day
-onoff_sum_route_direction_time <- onoff %>%
+onoff_sum <- onoff %>%
   group_by(route, direction, time_period) %>%
   summarise(onoff_count = n())
 
-tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_time, by = c("route", "direction", "time_period"))
+tab_onoff <- left_join(tablet_route, onoff_sum, by = c("route", "direction", "time_period"))
 
 tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
@@ -271,11 +271,11 @@ table(tab_onoff$onoff_count)
 # Results from Step 3: once we account for routes, we do not lose anything else by adding direction
 
 # Step 4: join non-missing routes, from Step 1, and direction, time-of-day, and boarding location
-onoff_sum_route_direction_time_board <- onoff %>%
+onoff_sum <- onoff %>%
   group_by(route, direction, time_period, board_id) %>%
   summarise(onoff_count = n())
 
-tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_time_board, by = c("route", "direction", "time_period", "board_id"))
+tab_onoff <- left_join(tablet_route, onoff_sum, by = c("route", "direction", "time_period", "board_id"))
 
 tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
@@ -285,11 +285,11 @@ table(tab_onoff$onoff_count)
 # Results from Step 4: once we account for routes, we lose 817 out of 981
 
 # Step 5: join non-missing routes, from Step 1, and direction, boarding location (back off time from Step 4)
-onoff_sum_route_direction_board <- onoff %>%
+onoff_sum <- onoff %>%
   group_by(route, direction, board_id) %>%
   summarise(onoff_count = n())
 
-tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_board, by = c("route", "direction", "board_id"))
+tab_onoff <- left_join(tablet_route, onoff_sum, by = c("route", "direction", "board_id"))
 
 tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
@@ -299,11 +299,11 @@ table(tab_onoff$onoff_count)
 # Results from Step 5: once we account for routes and relax time of day, we lose 779 out of 981 (seems very high)
 
 # Step 6: join non-missing routes, from Step 1, and direction, time-of-day, and boarding location
-onoff_sum_route_direction_time_alight <- onoff %>%
+onoff_sum <- onoff %>%
   group_by(route, direction, time_period, alight_id) %>%
   summarise(onoff_count = n())
 
-tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_time_alight, by = c("route", "direction", "time_period", "alight_id"))
+tab_onoff <- left_join(tablet_route, onoff_sum, by = c("route", "direction", "time_period", "alight_id"))
 
 tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
@@ -313,11 +313,11 @@ table(tab_onoff$onoff_count)
 # Results from Step 6: once we account for routes, we lose 832 out of 981
 
 # Step 7: join non-missing routes, from Step 1, and direction, boarding location (back off time from Step 4)
-onoff_sum_route_direction_alight <- onoff %>%
+onoff_sum <- onoff %>%
   group_by(route, direction, alight_id) %>%
   summarise(onoff_count = n())
 
-tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_alight, by = c("route", "direction", "alight_id"))
+tab_onoff <- left_join(tablet_route, onoff_sum, by = c("route", "direction", "alight_id"))
 
 tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
@@ -327,11 +327,11 @@ table(tab_onoff$onoff_count)
 # Results from Step 7: once we account for routes and relax time of day, we lose 779 out of 981 (seems very high)
 
 # Step 8: join non-missing routes, from Step 1, and direction, time-of-day, boarding location, and alighting location
-onoff_sum_route_direction_time_board_alight <- onoff %>%
+onoff_sum <- onoff %>%
   group_by(route, direction, time_period, board_id, alight_id) %>%
   summarise(onoff_count = n())
 
-tab_onoff <- left_join(tablet_route, onoff_sum_route_direction_time_board_alight, by = c("route", "direction", "time_period", "board_id", "alight_id"))
+tab_onoff <- left_join(tablet_route, onoff_sum, by = c("route", "direction", "time_period", "board_id", "alight_id"))
 
 tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
@@ -341,7 +341,7 @@ table(tab_onoff$onoff_count)
 # Results from Step 8: we lose 964 out of 981
 
 # Step 9: join non-missing routes, from Step 1, and direction, time-of-day, and two-stage boarding sequence
-onoff_sum_route_direction_time_boardseq <- onoff_breaks %>%
+onoff_sum <- onoff_breaks %>%
   group_by(route, direction, time_period, board_seg_2) %>%
   summarise(onoff_count = n())
 
@@ -351,7 +351,7 @@ tablet_breaks_route <- tablet_breaks %>%
   filter(route != 394) %>%
   filter(route != 395)
 
-tab_onoff <- left_join(tablet_breaks_route, onoff_sum_route_direction_time_boardseq, by = c("route", "direction", "time_period", "board_seg_2"))
+tab_onoff <- left_join(tablet_breaks_route, onoff_sum, by = c("route", "direction", "time_period", "board_seg_2"))
 
 tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
@@ -361,11 +361,11 @@ table(tab_onoff$onoff_count)
 # Results from Step 9: we lose 109 out of 981
 
 # Step 10: join non-missing routes, from Step 1, and direction, time-of-day, and three-stage boarding sequence
-onoff_sum_route_direction_time_boardseq <- onoff_breaks %>%
+onoff_sum <- onoff_breaks %>%
   group_by(route, direction, time_period, board_seg_3) %>%
   summarise(onoff_count = n())
 
-tab_onoff <- left_join(tablet_breaks_route, onoff_sum_route_direction_time_boardseq, by = c("route", "direction", "time_period", "board_seg_3"))
+tab_onoff <- left_join(tablet_breaks_route, onoff_sum, by = c("route", "direction", "time_period", "board_seg_3"))
 
 tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
@@ -375,11 +375,11 @@ table(tab_onoff$onoff_count)
 # Results from Step 10: we lose 121 out of 981
 
 # Step 11: join non-missing routes, from Step 1, and direction, time-of-day, and four-stage boarding sequence
-onoff_sum_route_direction_time_boardseq <- onoff_breaks %>%
+onoff_sum <- onoff_breaks %>%
   group_by(route, direction, time_period, board_seg_4) %>%
   summarise(onoff_count = n())
 
-tab_onoff <- left_join(tablet_breaks_route, onoff_sum_route_direction_time_boardseq, by = c("route", "direction", "time_period", "board_seg_4"))
+tab_onoff <- left_join(tablet_breaks_route, onoff_sum, by = c("route", "direction", "time_period", "board_seg_4"))
 
 tab_onoff <- tab_onoff %>%
   mutate(onoff_count = ifelse(is.na(onoff_count), 0, onoff_count))
@@ -472,16 +472,94 @@ obs_targets_df <- onoff %>%
   group_by(route, direction, time_period) %>%
   summarise(onoff_count = n()) %>%
   ungroup() %>%
-  mutate(target_id = paste(route, "--", direction, "--", time_period, sep = ""))
+  mutate(target_id = paste(route, "--", direction, "--", time_period, sep = "")) %>%
+  select(target_id, onoff_count)
 
-obs_targets_vector <- obs_targets_df$onoff_count
+# Add in an all routes target, scaled up by 10 percent (to make the optimization do something)
+all_routes_target_df <- data.frame(target_id = c("all_routes"), onoff_count = c(sum(obs_targets_df$onoff_count) * 1.10))
+
+obs_targets_df <- rbind(obs_targets_df, all_routes_target_df)
+
+observed_targets_vector <- obs_targets_df$onoff_count
 
 # Step 2: build the importance weights vector (all 1s for now)
 importance_weights_vector <- obs_targets_vector * 0 + 1
 
-# Step 3: build the incidence matrix (summarised tablet rows * 88)
+# Step 3: build the incidence matrix (summarised tablet rows * 99)
+est_targets_df <- tablet %>%
+  filter(route != 392) %>%
+  filter(route != 393) %>%
+  filter(route != 394) %>%
+  filter(route != 395) %>%
+  group_by(route, direction, time_period) %>%
+  summarise(records = n())
 
-# START HERE: need to cast the targets df, so you have an incidence with the route, direction, and time, then need to summarise the tablet by these dimensions, then need to join the two
+est_targets_list_df <- est_targets_df %>%
+  ungroup() %>%
+  mutate(target_id = paste(route, "--", direction, "--", time_period, sep = "")) %>%
+  select(target_id)
+
+# Get all the target rows as columns
+obs_targets_columns <- obs_targets_df %>%
+  mutate(one = 1)
+obs_targets_columns <- dcast(obs_targets_columns, target_id ~ target_id, value.var = "one")
+obs_targets_columns[is.na(obs_targets_columns)] <- 0
+obs_targets_columns <- obs_targets_columns %>%
+  mutate(all_routes = 1)
+
+# Join the target columns to the survey rows
+est_targets_list_df <- left_join(est_targets_list_df, obs_targets_columns, by = c("target_id"))
+
+est_targets_list_df <- est_targets_list_df %>%
+  select(-target_id)
+
+incidence_matrix <- data.matrix(est_targets_list_df)
+
+# Step 4: check the optimization function
+starting_weights_vector <- sample(1:length(est_targets_list_df$all_routes))
+for (i in 1:length(starting_weights_vector)) starting_weights_vector[i] <- 1
+x <- starting_weights_vector
+optimization_function(x, observed_targets_vector, importance_weights_vector, incidence_matrix)
+
+# Step 5: run the optimization
+starting_weights_vector <- sample(1:length(est_targets_df$all_routes))
+for (i in 1:length(starting_weights_vector)) starting_weights_vector[i] <- 1
+
+optimal_weights <- optimx(starting_weights_vector, 
+                          fn = optimization_function, 
+                          obs_target_v = observed_targets_vector,
+                          import_v = importance_weights_vector,
+                          inc_mtx = incidence_matrix)
+
+# Step 6: extract the weights
+weights_df <- optimal_weights %>%
+  filter(convcode == 0) %>%
+  select(-convcode, -value, -fevals, -gevals, -niter, -kkt1, -kkt2, -xtimes)
+
+weights_df <- as.data.frame(t(data.matrix(weights_df)))
+
+tablet_weights <- cbind(est_targets_df, weights_df)
+
+tablet_weights <- tablet_weights %>%
+  select(route, direction, time_period, records, optimal_weights = V1)
+
+# Step 7: compare the optimal weights to the ETC weights
+tablet_etc_weights <- tablet %>%
+  filter(route != 392) %>%
+  filter(route != 393) %>%
+  filter(route != 394) %>%
+  filter(route != 395) %>%
+  group_by(route, direction, time_period) %>%
+  summarise(sum_weights = sum(weight))
+
+# START HERE: join the above two files and inspect the differences
+
+
+
+
+
+
+
 
 
 ```
