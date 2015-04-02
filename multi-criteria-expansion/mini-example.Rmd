@@ -1,0 +1,120 @@
+---
+title: "Mini-Example"
+author: "David Ory"
+html_document:
+    toc: true
+    theme: cosmo
+runtime: shiny
+---
+
+## Administration
+
+#### Status
+no known bugs
+
+#### Purpose
+Demonstrate multi-criteria transit on-board survey expansion using R tools via a mini (i.e., trivial) example. 
+
+#### Overhead
+```{r}
+library(knitr)
+suppressMessages(library(dplyr))
+library(stringr)
+library(optimx)
+library(reshape2)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+## Optimization Function
+#### Inputs
+1. `x` - a vector of length M representing each of the unique survey weights that need to be calculated
+2. `obs_target_v` - a vector of length N containing each expansion target
+3. `import_v` - a vector of length N containing the importance weight for each expansion target
+4. `inc_mtx` - a matrix of dimensions M x N containing a dummy variable denoting the relevance of each unique survey weight to each expansion target
+```{r optimization-function}
+optimization_function <- function(x, obs_target_v, import_v, inc_mtx) {
+  
+  # Compute estimated targets 
+  est_target_v <- x %*% inc_mtx
+  
+  # Compute importance-weighted errors, which is the objective function
+  error_df <- data.frame(obs_target_v, est_target_v, import_v)
+  error_df <- error_df %>%
+    mutate(error <- import_v * abs(est_target_v - obs_target_v))
+  
+  # Return errors
+  return(sum(error_df$error))
+
+}
+
+```
+
+## Mini-Example
+Consider a survey with records for five passengers, A, B, C, D, and E.  Passengers A and B ride the 10E bus; passengers C, D, and E ride the 10W bus.  External information suggests the target ridership for the 10E bus is 100; the target ridership for the 10W bus is 300; and the system ridership is 450.
+```{r mini-example}
+#  Create the survey data
+survey_id = c(1, 2, 3, 4, 5)
+route = c(10, 10, 10, 10, 10)
+direction = c("E", "E", "W", "W", "W")
+
+survey_data = data.frame(survey_id, route, direction)
+
+# Create the observed targets vector (length N, which is 3 in this example)
+observed_targets_vector = c(target_1 = 100,
+                            target_2 = 300,
+                            target_3 = 450)
+
+# Create the importance weights vector (assume we subjectively determine that matching target 3 is a bit more important than matching target 2 which is a bit more important than matching target 1)
+importance_weights_vector = c(weight_1 = 1.00,
+                              weight_2 = 1.25,
+                              weight_3 = 1.50)
+
+# Create the incidence matrix (length M, which is the number of unique weights (2), by N, the number of targets)
+incidence_matrix = data.frame (target_1 = c(1, 0), # unique weight 1 (route 10E) is relevant to target 1
+                               target_2 = c(0, 1), # unique weight 2 (route 10W) is relevant to target 2
+                               target_3 = c(1, 1)) # both weights are relevant to target 3
+
+incidence_matrix = data.matrix(incidence_matrix)
+
+# Create a vector of starting weights
+starting_weights_vector <- c(1,1)
+
+# Run the optimization
+optimx_results <- optimx(starting_weights_vector,
+                         fn = optimization_function,
+                         method = "L-BFGS-B",
+                         lower = 1.00,
+                         upper = Inf,
+                         obs_target_v = observed_targets_vector,
+                         import_v = importance_weights_vector,
+                         inc_mtx = incidence_matrix)
+
+# Extract and label results
+unique_weights <- as.data.frame(t(coef(optimx_results)))
+names(unique_weights)[1] <- "sum_weights"
+unique_weights <- cbind(unique_weights, unique_weight_id = c("10---E", "10---W"))
+
+# Summarize survey to unique categories and join optimal weights
+survey_summary <- survey_data %>%
+  group_by(route, direction) %>%
+  summarise(records = n()) %>%
+  mutate(unique_weight_id = paste(route, "---", direction, sep = ""))
+
+survey_summary <- left_join(survey_summary, unique_weights, by = c("unique_weight_id"))
+
+# Compute record weights and join to survey
+survey_summary <- survey_summary %>%
+  mutate(record_weight = sum_weights / records) %>%
+  select(-unique_weight_id, -sum_weights, -records)
+
+survey_data <- left_join(survey_data, survey_summary, by = c("route", "direction"))
+
+survey_data
+
+
+```
+
+

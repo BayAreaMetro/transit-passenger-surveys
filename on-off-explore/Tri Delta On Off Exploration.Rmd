@@ -392,77 +392,6 @@ table(tab_onoff$onoff_count)
 
 ```
 
-```{r mini-clean}
-
-# Mini-example, optimization, pass 3
-
-# Consider a survey with five passengers on two routes
-survey_id = c(1, 2, 3, 4, 5)
-route = c(10, 10, 10, 10, 10)
-direction = c("E", "E", "W", "W", "W")
-
-survey_data = data.frame(survey_id, route, direction)
-
-# Consider three targets: ridership on 10 E is 100, ridership on 10 W is 300, system ridership is 450
-observed_targets_vector = c(target_1 = 100,
-                            target_2 = 300,
-                            target_3 = 450)
-
-# Consider importance weights on the three targets of 1.00, 1.25, and 1.50
-importance_weights_vector = c(weight_1 = 1.00,
-                              weight_2 = 1.25,
-                              weight_3 = 1.50)
-
-# Create three incidence dummies on the survey for each target
-survey_data <- survey_data %>%
-  mutate(target_1_incidence = ifelse(route == 10 & direction == "E", 1, 0)) %>%
-  mutate(target_2_incidence = ifelse(route == 10 & direction == "W", 1, 0)) %>%
-  mutate(target_3_incidence = 1)
-
-# Create unique weights to target incidence array
-unique_weights <- survey_data %>%
-  group_by(route, direction) %>%
-  summarise(target_1_count = sum(target_1_incidence), 
-            target_2_count = sum(target_2_incidence), 
-            target_3_count = sum(target_3_incidence)) %>%
-  ungroup() %>%
-  select(target_1_count, target_2_count, target_3_count)
-
-incidence_matrix <- data.matrix(unique_weights)
-
-# Define the optimization function
-optimization_function <- function(x, obs_target_v, import_v, inc_mtx) {
-  
-  # Compute estimated targets 
-  est_target_v <- x %*% inc_mtx
-  
-  # Compute errors
-  error_df <- data.frame(obs_target_v, est_target_v, import_v)
-  error_df <- error_df %>%
-    mutate(error <- import_v * abs(est_target_v - obs_target_v))
-  
-  # Return errors
-  return(sum(error_df$error))
-
-}
-
-# Test the optimization function
-x <- c(75, 100)
-optimization_function(x, observed_targets_vector, importance_weights_vector, incidence_matrix)
-
-# Find the optimal weights using OPTIMX
-starting_weights_vector <- c(1,1)
-optimal_weights <- optimx(starting_weights_vector, 
-                          fn = optimization_function, 
-                          obs_target_v = observed_targets_vector,
-                          import_v = importance_weights_vector,
-                          inc_mtx = incidence_matrix)
-
-
-```
-
-# Next steps:
-## 1. Start in on a small example with the Tri-Delta data
 
 ```{r small-tri-delta-example}
 
@@ -475,15 +404,16 @@ obs_targets_df <- onoff %>%
   mutate(target_id = paste(route, "--", direction, "--", time_period, sep = "")) %>%
   select(target_id, onoff_count)
 
-# Add in an all routes target, scaled up by 10 percent (to make the optimization do something)
-all_routes_target_df <- data.frame(target_id = c("all_routes"), onoff_count = c(sum(obs_targets_df$onoff_count) * 1.10))
+# Add in an all routes target, scaled up to match the sum of the ETC weights
+all_routes_target_df <- data.frame(target_id = c("all_routes"), onoff_count = c(sum(obs_targets_df$onoff_count) * 9849.0 / 7718.9))
 
 obs_targets_df <- rbind(obs_targets_df, all_routes_target_df)
 
 observed_targets_vector <- obs_targets_df$onoff_count
 
-# Step 2: build the importance weights vector (all 1s for now)
-importance_weights_vector <- obs_targets_vector * 0 + 1
+# Step 2: build the importance weights vector (all 1s for now, but experiment with higher weight for regional target)
+importance_weights_vector <- observed_targets_vector * 0 + 1
+importance_weights_vector[89] <- 500.0
 
 # Step 3: build the incidence matrix (summarised tablet rows * 99)
 est_targets_df <- tablet %>%
@@ -518,18 +448,25 @@ incidence_matrix <- data.matrix(est_targets_list_df)
 # Step 4: check the optimization function
 starting_weights_vector <- sample(1:length(est_targets_list_df$all_routes))
 for (i in 1:length(starting_weights_vector)) starting_weights_vector[i] <- 1
+
 x <- starting_weights_vector
 optimization_function(x, observed_targets_vector, importance_weights_vector, incidence_matrix)
 
-# Step 5: run the optimization
-starting_weights_vector <- sample(1:length(est_targets_df$all_routes))
-for (i in 1:length(starting_weights_vector)) starting_weights_vector[i] <- 1
-
+# Step 5: run the optimization (generically and with lower and upper bounds)
 optimal_weights <- optimx(starting_weights_vector, 
                           fn = optimization_function, 
                           obs_target_v = observed_targets_vector,
                           import_v = importance_weights_vector,
                           inc_mtx = incidence_matrix)
+
+optimal_weights_test <- optimx(starting_weights_vector, 
+                               fn = optimization_function, 
+                               method = "L-BFGS-B",
+                               lower = 1.00,
+                               upper = 400.00,
+                               obs_target_v = observed_targets_vector,
+                               import_v = importance_weights_vector,
+                               inc_mtx = incidence_matrix)
 
 # Step 6: extract the weights
 weights_df <- optimal_weights %>%
@@ -551,6 +488,11 @@ tablet_etc_weights <- tablet %>%
   filter(route != 395) %>%
   group_by(route, direction, time_period) %>%
   summarise(sum_weights = sum(weight))
+
+compare_weights <- left_join(tablet_etc_weights, tablet_weights, by = c("route", "direction", "time_period"))
+
+sum(compare_weights$sum_weights)
+sum(compare_weights$optimal_weights)
 
 # START HERE: join the above two files and inspect the differences
 
