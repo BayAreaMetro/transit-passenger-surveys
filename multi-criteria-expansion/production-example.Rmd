@@ -79,9 +79,10 @@ observed <- input.onoff %>%
   mutate(time_period = ifelse(time_period == "AM2", "AM PEAK",  time_period)) %>%
   mutate(time_period = ifelse(time_period == "MID", "MIDDAY",   time_period)) %>%
   mutate(time_period = ifelse(time_period == "PM1", "PM PEAK",  time_period)) %>%
-  mutate(time_period = ifelse(time_period == "PM2", "EVENING",  time_period))
+  mutate(time_period = ifelse(time_period == "PM2", "EVENING",  time_period)) %>%
+  filter(match_confidence == "100%")
 
-stops <- input.stops %>%
+stops <- input.sequence %>%
   select(operator = CPT_AGENCY, 
          route = SCH_ROUTED, 
          direction = RTD_PATTER, 
@@ -94,7 +95,79 @@ stops <- input.stops %>%
 
 #### Add route break points
 ```{r route-breaks}
+# Determine maximum number of routes by direction
+segment_breaks <- observed %>%
+  group_by(route, direction) %>%
+  summarise(max_board_seq = max(board_seq), max_alight_seq = max(alight_seq))
 
+# TODO: make this more elegant
+
+# Create the segment breaks
+segment_breaks <- segment_breaks %>%
+  mutate(break_2_1 = round((max_board_seq + max_alight_seq) / 4)) %>%
+  mutate(break_3_1 = round((max_board_seq + max_alight_seq) / 6)) %>%
+  mutate(break_3_2 = break_3_1 * 2) %>%
+  mutate(break_4_1 = round((max_board_seq + max_alight_seq) / 8)) %>%
+  mutate(break_4_2 = break_4_1 * 2) %>%
+  mutate(break_4_3 = break_4_1 * 3)
+
+# Place the observed data into the segment breaks
+observed <- left_join(observed, segment_breaks, by = c("route", "direction"))
+
+observed <- observed %>%
+  # Two segments
+  mutate(board_seg_2  = ifelse(board_seq  < break_2_1, 1, 2)) %>%
+  mutate(alight_seg_2 = ifelse(alight_seq < break_2_1, 1, 2)) %>%
+  # Three segments
+  mutate(board_seg_3  = ifelse(board_seq  <  break_3_1, 1, 2)) %>%
+  mutate(board_seg_3  = ifelse(board_seq  >= break_3_2, 3, board_seg_3)) %>%
+  mutate(alight_seg_3 = ifelse(alight_seq <  break_3_1, 1, 2)) %>%
+  mutate(alight_seg_3 = ifelse(alight_seq >= break_3_2, 3, alight_seg_3)) %>%
+  # Four segments
+  mutate(board_seg_4  = ifelse(board_seq  <  break_4_1, 1, 2)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_1 & board_seq < break_4_2, 2, board_seg_4)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_2 & board_seq < break_4_3, 3, board_seg_4)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_3, 4, board_seg_4)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq <  break_4_1, 1, 2)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_1 & alight_seq < break_4_2, 2, alight_seg_4)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_2 & alight_seq < break_4_3, 3, alight_seg_4)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_3, 4, alight_seg_4)) %>%
+  # Remove excess variables
+  select(-break_2_1, -break_3_1, -break_3_2, -break_4_1, -break_4_2, -break_4_3, -max_board_seq, -max_alight_seq)
+
+# Place the survey data into the segment breaks
+stops_board <- stops %>%
+  select(route, direction, board_seq = stop_seq, board_shp = stop_shp)
+
+stops_alight <- stops %>%
+  select(route, direction, alight_seq = stop_seq, alight_shp = stop_shp)
+
+survey <- left_join(survey, stops_board, by = c("route",  "direction", "board_shp")) 
+survey <- left_join(survey, stops_alight, by = c("route", "direction", "alight_shp"))
+survey <- left_join(survey, segment_breaks, by = c("route", "direction"))
+
+survey <- survey %>%
+  # Two segments
+  mutate(board_seg_2  = ifelse(board_seq  < break_2_1, 1, 2)) %>%
+  mutate(alight_seg_2 = ifelse(alight_seq < break_2_1, 1, 2)) %>%
+  # Three segments
+  mutate(board_seg_3  = ifelse(board_seq  <  break_3_1, 1, 2)) %>%
+  mutate(board_seg_3  = ifelse(board_seq  >= break_3_2, 3, board_seg_3)) %>%
+  mutate(alight_seg_3 = ifelse(alight_seq <  break_3_1, 1, 2)) %>%
+  mutate(alight_seg_3 = ifelse(alight_seq >= break_3_2, 3, alight_seg_3)) %>%
+  # Four segments
+  mutate(board_seg_4  = ifelse(board_seq  <  break_4_1, 1, 2)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_1 & board_seq < break_4_2, 2, board_seg_4)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_2 & board_seq < break_4_3, 3, board_seg_4)) %>%
+  mutate(board_seg_4  = ifelse(board_seq  >= break_4_3, 4, board_seg_4)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq <  break_4_1, 1, 2)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_1 & alight_seq < break_4_2, 2, alight_seg_4)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_2 & alight_seq < break_4_3, 3, alight_seg_4)) %>%
+  mutate(alight_seg_4 = ifelse(alight_seq >= break_4_3, 4, alight_seg_4)) %>%
+  # Remove excess variables
+  select(-break_2_1, -break_3_1, -break_3_2, -break_4_1, -break_4_2, -break_4_3, -max_board_seq, -max_alight_seq)
+
+# TODO: what to do with non-matches (NA right now)
 
 ```
 
@@ -124,20 +197,82 @@ optimization_function <- function(x, obs_target_v, import_v, inc_mtx) {
 ```
 
 ## Production-Example
-Expand the Tri-Delta survey by (i) route, direction, and time-of-day; (ii) system-wide ridership; (iii) route, direction, and boarding sequence category (Y categories); (iv) route, direction, and alighting sequence category (Y categories); and, (v) route, direction, boarding sequence category, and alighting sequence category (X categories).  
+Expand the Tri-Delta survey by (i) route, direction, and time-of-day; (ii) system-wide ridership; (iii) route, direction, and boarding sequence category (4 categories); (iv) route, direction, and alighting sequence category (4 categories); and, (v) route, direction, boarding sequence category, and alighting sequence category (3 categories).  
 
 #### Prepare the observed targets vector
 ```{r observed-targets}
+# Target Set 1: Route, direction, and time-of-day
+observed_targets_1 <- observed %>%
+  group_by(route, direction, time_period) %>%
+  summarise(target_count = n()) %>%
+  ungroup() %>%
+  mutate(target_id = paste(route, "---", direction, "---", time_period, sep = "")) %>%
+  select(target_id, target_count)
+
+# Target Set 2: System-wide ridership (match sum of existing survey weights)
+observed_targets_2 <- data.frame(target_id = c("all_routes"), target_count = c(9849))
+
+# Target Set 3: Route, direction, 4-category boarding segment
+observed_targets_3 <- observed %>%
+  group_by(route, direction, board_seg_4) %>%
+  summarise(target_count = n()) %>%
+  ungroup() %>%
+  mutate(target_id = paste(route, "---", direction, "---board-", board_seg_4, sep = "")) %>%
+  select(target_id, target_count)
+
+# Target Set 4: Route, direction, 4-category alighting segment
+observed_targets_4 <- observed %>%
+  group_by(route, direction, alight_seg_4) %>%
+  summarise(target_count = n()) %>%
+  ungroup() %>%
+  mutate(target_id = paste(route, "---", direction, "---alight-", alight_seg_4, sep = "")) %>%
+  select(target_id, target_count)
+
+# Target Set 5: Route, direction, 3-category boarding, 3-category alighting
+observed_targets_5 <- observed %>%
+  group_by(route, direction, board_seg_3, alight_seg_3) %>%
+  summarise(target_count = n()) %>%
+  ungroup() %>%
+  mutate(target_id = paste(route, "---", direction, "---board-", board_seg_3, "---alight-", alight_seg_3, sep = "")) %>%
+  select(target_id, target_count)
+
+# Combine the targets
+observed_targets <- rbind(observed_targets_1, observed_targets_2, observed_targets_3, observed_targets_4, observed_targets_5)
+observed_targets_vector <- observed_targets$target_count
 
 ```
 
 #### Build the importance weight vector
 ```{r importance-weights}
+weight_route_direction_time = 1.0
+weight_all_routes = 20.0
+weight_route_direction_board  = 2.0
+weight_route_direction_alight = 2.0
+weight_route_direction_board_alight = 3.0
+
+importance_weights <- observed_targets %>%
+  # Default weight
+  mutate(weight = weight_route_direction_time) %>%
+  # All routes
+  mutate(weight = ifelse(str_detect(target_id, "all_routes"), weight_all_routes, weight)) %>%
+  # Boardings
+  mutate(weight = ifelse(str_detect(target_id, "board")  & !str_detect(target_id, "alight"), weight_route_direction_board, weight)) %>%
+  # Alightings
+  mutate(weight = ifelse(!str_detect(target_id, "board") & str_detect(target_id, "alight"), weight_route_direction_alight, weight)) %>%
+  # Boardings + Alightings
+  mutate(weight = ifelse(str_detect(target_id, "board")  & str_detect(target_id, "alight"), weight_route_direction_board_alight, weight))
+
+importance_weights_vector <- importance_weights$weight
 
 ```
 
 #### Build the incidence matrix
 ```{r incidence-matrix}
+
+# START HERE
+# For each group of targets, (a) create a square matrix with target_id (perhaps add a category variable to the observed_targets data frame), (b) fill the square matrix with diagonal ones; (c) compute the appropriate target_id in the survey; (d) join the dummies matrix to the survey; (e) do this in the same order as when you create the targets; (f) cbind; (g) push to matrix
+
+
   
 ```
 

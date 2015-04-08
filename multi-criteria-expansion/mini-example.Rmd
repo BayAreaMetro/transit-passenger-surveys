@@ -41,7 +41,7 @@ optimization_function <- function(x, obs_target_v, import_v, inc_mtx) {
   # Compute importance-weighted errors, which is the objective function
   error_df <- data.frame(obs_target_v, est_target_v, import_v)
   error_df <- error_df %>%
-    mutate(error <- import_v * abs(est_target_v - obs_target_v))
+    mutate(error = import_v * abs(est_target_v - obs_target_v))
   
   # Return errors
   return(sum(error_df$error))
