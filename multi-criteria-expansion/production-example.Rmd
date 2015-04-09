@@ -10,7 +10,16 @@ runtime: shiny
 ## Administration
 
 #### Status
-early days, porting from small-example
+brute force approach *seems* to be working
+
+#### TODO
+1. Extract the route, direction, time of day targets, and the system-wide ridership target, from the survey's existing weights, to make the comparisons to the existing weights fair & informative.
+
+2. Make the whole thing more elegant and generalizable (perhaps in a separate branch?), i.e. put the targets in a database in which parameters can be extracted for all the joining bits? make all the observed inputs external files (perhaps this is a branch?)? The current use case, in which we have all this observed data ready to go, is unlikely to be typical. If we do read in the key files externally, what checks are needed to make sure the optimization will work? Will the inputs point to variable names in the survey?  Think more about all of this.
+
+3. Can we make the optimization faster?  Other methods?
+
+4. Experiment with changing the target importance weights to make sure the response is as expected
 
 #### Purpose
 Demonstrate multi-criteria transit on-board survey expansion using R tools via a production (i.e.,  practice-ready) example using real data.  Here, we use two surveys performed on Tri-Delta.  The first survey was a simple on-off count performed for ~70 percent of the riders; we assume this data represents the population ridership characteristics.  The second survey is a personal interview survey containing typical questions; this survey has already been expanded to external data, which will give us some results to compare to.
@@ -100,7 +109,7 @@ segment_breaks <- observed %>%
   group_by(route, direction) %>%
   summarise(max_board_seq = max(board_seq), max_alight_seq = max(alight_seq))
 
-# TODO: make this more elegant
+# TODO: make this more elegant/generalizable
 
 # Create the segment breaks
 segment_breaks <- segment_breaks %>%
@@ -147,6 +156,9 @@ survey <- left_join(survey, stops_alight, by = c("route", "direction", "alight_s
 survey <- left_join(survey, segment_breaks, by = c("route", "direction"))
 
 survey <- survey %>%
+  select(-board_shp, -alight_shp)
+
+survey <- survey %>%
   # Two segments
   mutate(board_seg_2  = ifelse(board_seq  < break_2_1, 1, 2)) %>%
   mutate(alight_seg_2 = ifelse(alight_seq < break_2_1, 1, 2)) %>%
@@ -168,6 +180,7 @@ survey <- survey %>%
   select(-break_2_1, -break_3_1, -break_3_2, -break_4_1, -break_4_2, -break_4_3, -max_board_seq, -max_alight_seq)
 
 # TODO: what to do with non-matches (NA right now)
+# should be fine as the survey record will not be incident to any targets if they are missing
 
 ```
 
@@ -268,34 +281,237 @@ importance_weights_vector <- importance_weights$weight
 
 #### Build the incidence matrix
 ```{r incidence-matrix}
+# TODO: make more elegant/generalizable
 
-# START HERE
-# For each group of targets, (a) create a square matrix with target_id (perhaps add a category variable to the observed_targets data frame), (b) fill the square matrix with diagonal ones; (c) compute the appropriate target_id in the survey; (d) join the dummies matrix to the survey; (e) do this in the same order as when you create the targets; (f) cbind; (g) push to matrix
+# Create a data set with the unique weights we'll need for the survey
+unique_weights <- survey %>%
+  group_by(route, direction, time_period, board_seg_3, board_seg_4, alight_seg_3, alight_seg_4) %>%
+  summarise(records = n()) %>%
+  mutate(target_id_1 = paste(route, "---", direction, "---", time_period, sep = "")) %>%
+  mutate(target_id_2 = "all_routes") %>%
+  mutate(target_id_3 = paste(route, "---", direction, "---board-", board_seg_4, sep = "")) %>%
+  mutate(target_id_4 = paste(route, "---", direction, "---alight-", alight_seg_4, sep = "")) %>%
+  mutate(target_id_5 = paste(route, "---", direction, "---board-", board_seg_3, "---alight-", alight_seg_3, sep = ""))
+
+# Append the observed targets incidence matrices, one at a time
+
+# Target 1 (route, direction, time period)
+observed_targets_incidence_1 <- observed_targets_1 %>%
+  mutate(one = 1)
+observed_targets_incidence_1 <- dcast(observed_targets_incidence_1, target_id ~ target_id, value.var = "one")
+observed_targets_incidence_1[is.na(observed_targets_incidence_1)] <- 0
+observed_targets_incidence_1 <- observed_targets_incidence_1 %>%
+  rename(target_id_1 = target_id)
+
+# Target 2 (all routes)
+observed_targets_incidence_2 <- observed_targets_2 %>%
+  mutate(one = 1)
+observed_targets_incidence_2 <- dcast(observed_targets_incidence_2, target_id ~ target_id, value.var = "one")
+observed_targets_incidence_2[is.na(observed_targets_incidence_2)] <- 0
+observed_targets_incidence_2 <- observed_targets_incidence_2 %>%
+  rename(target_id_2 = target_id)
+
+# Target 3 (route, direction, boarding segment)
+observed_targets_incidence_3 <- observed_targets_3 %>%
+  mutate(one = 1)
+observed_targets_incidence_3 <- dcast(observed_targets_incidence_3, target_id ~ target_id, value.var = "one")
+observed_targets_incidence_3[is.na(observed_targets_incidence_3)] <- 0
+observed_targets_incidence_3 <- observed_targets_incidence_3 %>%
+  rename(target_id_3 = target_id)
+
+# Target 4 (route, direction, alighting segment)
+observed_targets_incidence_4 <- observed_targets_4 %>%
+  mutate(one = 1)
+observed_targets_incidence_4 <- dcast(observed_targets_incidence_4, target_id ~ target_id, value.var = "one")
+observed_targets_incidence_4[is.na(observed_targets_incidence_4)] <- 0
+observed_targets_incidence_4 <- observed_targets_incidence_4 %>%
+  rename(target_id_4 = target_id)
+
+# Target 5 (route, direction, boarding segment, alighting segment)
+observed_targets_incidence_5 <- observed_targets_5 %>%
+  mutate(one = 1)
+observed_targets_incidence_5 <- dcast(observed_targets_incidence_5, target_id ~ target_id, value.var = "one")
+observed_targets_incidence_5[is.na(observed_targets_incidence_5)] <- 0
+observed_targets_incidence_5 <- observed_targets_incidence_5 %>%
+  rename(target_id_5 = target_id)
 
 
+# Join the incidence matrices to the survey
+incidence_matrix <- unique_weights %>%
+  ungroup() %>%
+  select(target_id_1, target_id_2, target_id_3, target_id_4, target_id_5)
+
+incidence_matrix <- left_join(incidence_matrix, observed_targets_incidence_1, by = c("target_id_1"))
+incidence_matrix <- left_join(incidence_matrix, observed_targets_incidence_2, by = c("target_id_2"))
+incidence_matrix <- left_join(incidence_matrix, observed_targets_incidence_3, by = c("target_id_3"))
+incidence_matrix <- left_join(incidence_matrix, observed_targets_incidence_4, by = c("target_id_4"))
+incidence_matrix <- left_join(incidence_matrix, observed_targets_incidence_5, by = c("target_id_5"))
+
+incidence_matrix <- incidence_matrix %>%
+  select(-target_id_1) %>%
+  select(-target_id_2) %>%
+  select(-target_id_3) %>%
+  select(-target_id_4) %>%
+  select(-target_id_5)
+
+# Fill the NAs with 0
+incidence_matrix[is.na(incidence_matrix)] <- 0
+
+incidence_matrix <- data.matrix(incidence_matrix)
   
 ```
 
 #### Execute the optimization and extract results
 ```{r run-optimization}
+# Create a vector of starting weights
+starting_weights_vector <- unique_weights$records * 0 + 1.0
 
+# Test the optimization function
+optimization_function(starting_weights_vector, observed_targets_vector, importance_weights_vector, incidence_matrix)
+
+# Run the optimization (keep track of computing time)
+start_time <- proc.time()
+optimx_results <- optimx(starting_weights_vector,
+                         fn = optimization_function,
+                         method = "L-BFGS-B",
+                         lower = 1.00,
+                         upper = Inf,
+                         obs_target_v = observed_targets_vector,
+                         import_v = importance_weights_vector,
+                         inc_mtx = incidence_matrix)
+proc.time() - start_time
+# ~2200 seconds (~35 minutes)
+
+sum_unique_weights <- as.data.frame(t(coef(optimx_results)))
+names(sum_unique_weights)[1] <- "sum_weights"
 
 ```
 
 #### Join optimization results to survey data
 ```{r join-results}
+survey_summary <- cbind(unique_weights, sum_unique_weights)
 
+survey_summary <- survey_summary %>%
+  mutate(record_weight = sum_weights / records) %>%
+  select(-target_id_1, -target_id_2, -target_id_3, -target_id_4, -target_id_5, -sum_weights, -records)
+
+survey <- left_join(survey, survey_summary, by = c("route", "direction", "time_period", "board_seg_3", "board_seg_4", "alight_seg_3", "alight_seg_4"))
 
 ```
 
 #### Explore the difference in the two sets of weights
 ```{r weight-diff}
+survey_explore <- survey %>%
+  mutate(diff = record_weight - weight) %>%
+  mutate(abs_diff = abs(diff)) %>%
+  arrange(desc(abs_diff))
 
+# Compare the two sets of weights against each of the targets
+# Note this is not an apples to apples comparison as the base weights are expanded to external data, not the on/off survey
+
+# Target 1: route, direction, time
+target_compare <- survey %>%
+  group_by(route, direction, time_period) %>%
+  summarise(sum_base_weights = sum(weight), sum_optim_weights = sum(record_weight)) %>%
+  mutate(target_id = paste(route, "---", direction, "---", time_period, sep = ""))
+
+target_compare <- left_join(target_compare, observed_targets_1, by = c("target_id"))
+
+target_compare <- target_compare %>%
+  mutate(base_error  = sum_base_weights - target_count) %>%
+  mutate(optim_error = sum_optim_weights - target_count) %>%
+  mutate(base_error_sqd = base_error * base_error) %>%
+  mutate(optim_error_sqd = optim_error * optim_error) %>%
+  arrange(desc(base_error_sqd))
+
+sqrt(mean(target_compare$base_error_sqd))
+sqrt(mean(target_compare$optim_error_sqd))
+
+# Base: 121; Optim: 54
+
+# Target 2: system wide ridership
+abs(sum(survey$weight)-sum(observed_targets_2$target_count))
+abs(sum(survey$record_weight)-sum(observed_targets_2$target_count))
+
+# Base: 1842; Optim: 0
+
+# TODO: check why the base is so far off (external counts likely inconsistent with )
+
+# Target 3: route, direction, boarding location
+target_compare <- survey %>%
+  group_by(route, direction, board_seg_4) %>%
+  summarise(sum_base_weights = sum(weight), sum_optim_weights = sum(record_weight)) %>%
+  mutate(target_id = paste(route, "---", direction, "---board-", board_seg_4, sep = ""))
+
+target_compare <- left_join(target_compare, observed_targets_3, by = c("target_id"))
+
+target_compare <- target_compare %>%
+  filter(!is.na(target_count))
+
+target_compare <- target_compare %>%
+  mutate(base_error  = sum_base_weights - target_count) %>%
+  mutate(optim_error = sum_optim_weights - target_count) %>%
+  mutate(base_error_sqd = base_error * base_error) %>%
+  mutate(optim_error_sqd = optim_error * optim_error) %>%
+  arrange(desc(base_error_sqd))
+
+sqrt(mean(target_compare$base_error_sqd))
+sqrt(mean(target_compare$optim_error_sqd))
+
+# Base: 154; Optim: 25
+
+# Target 4: route, direction, alighting location
+target_compare <- survey %>%
+  group_by(route, direction, alight_seg_4) %>%
+  summarise(sum_base_weights = sum(weight), sum_optim_weights = sum(record_weight)) %>%
+  mutate(target_id = paste(route, "---", direction, "---alight-", alight_seg_4, sep = ""))
+
+target_compare <- left_join(target_compare, observed_targets_4, by = c("target_id"))
+
+target_compare <- target_compare %>%
+  filter(!is.na(target_count))
+
+target_compare <- target_compare %>%
+  mutate(base_error  = sum_base_weights - target_count) %>%
+  mutate(optim_error = sum_optim_weights - target_count) %>%
+  mutate(base_error_sqd = base_error * base_error) %>%
+  mutate(optim_error_sqd = optim_error * optim_error) %>%
+  arrange(desc(base_error_sqd))
+
+sqrt(mean(target_compare$base_error_sqd))
+sqrt(mean(target_compare$optim_error_sqd))
+  
+# Base: 139; Optim: 33
+
+# Target 5: route, direction, boarding, alighting
+target_compare <- survey %>%
+  group_by(route, direction, board_seg_3, alight_seg_3) %>%
+  summarise(sum_base_weights = sum(weight), sum_optim_weights = sum(record_weight)) %>%
+  mutate(target_id = paste(route, "---", direction, "---board-", board_seg_3, "---alight-", alight_seg_3, sep = ""))
+
+target_compare <- left_join(target_compare, observed_targets_5, by = c("target_id"))
+
+target_compare <- target_compare %>%
+  filter(!is.na(target_count))
+
+target_compare <- target_compare %>%
+  mutate(base_error  = sum_base_weights - target_count) %>%
+  mutate(optim_error = sum_optim_weights - target_count) %>%
+  mutate(base_error_sqd = base_error * base_error) %>%
+  mutate(optim_error_sqd = optim_error * optim_error) %>%
+  arrange(desc(base_error_sqd))
+
+sqrt(mean(target_compare$base_error_sqd))
+sqrt(mean(target_compare$optim_error_sqd))
+
+# Base: 98; Optim: 15
 ```
 
 ## Data writes
 #### Write the example extracted input files to disk for others' reference
 ```{r data-writes}
+write.csv(survey,   file = paste(output_dir, "production-example-survey.csv",   sep = ""), row.names = FALSE, quote = F)
+write.csv(observed, file = paste(output_dir, "production-example-observed.csv", sep = ""), row.names = FALSE, quote = F)
 
 ```
 
