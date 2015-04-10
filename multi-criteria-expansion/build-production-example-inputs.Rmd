@@ -180,6 +180,10 @@ survey <- survey %>%
 
 #### Prepare the observed targets definition file
 ```{r observed-targets-defined}
+observed_targets_defn <- data.frame(target_category_id = c("A", "B", "B", "B", "C", "C", "C", "D", "D", "D", "E", "E", "E", "E"), 
+                                    survey_variable = c("all_routes",
+                                                        "route", "direction", "time_period",
+                                                        "route", "direction", "board_seg_4",
                                                         "route", "direction", "alight_seg_4",
                                                         "route", "direction", "board_seg_3", "alight_seg_3"))
 
@@ -188,10 +192,32 @@ survey <- survey %>%
 #### Prepare observed target counts, importance weights, and target keys file
 ```{r observed-target-counts-weights}
 # Set the importance weight variables
+weight_A_all_routes = 20.0
+weight_B_route_direction_time = 1.0
 weight_C_route_direction_board  = 2.0
 weight_D_route_direction_alight = 2.0
 weight_E_route_direction_board_alight = 3.0
 
+# Target Category A: all routes (from the survey)
+observed_targets_A <- data.frame(target_count = sum(survey$weight))
+observed_targets_A <- observed_targets_A %>%
+  mutate(importance_weight = weight_A_all_routes) %>%
+  mutate(target_category_id = "A") %>%
+  mutate(route = NA) %>%
+  mutate(direction = NA) %>%
+  mutate(time_period  = NA) %>%
+  mutate(board_seg_3  = NA) %>%
+  mutate(alight_seg_3 = NA) %>%
+  mutate(board_seg_4  = NA) %>%
+  mutate(alight_seg_4 = NA)
+
+# Target Category B: route, direction, time_period (from the survey using the existing weights)
+observed_targets_B <- survey %>%
+  group_by(route, direction, time_period) %>%
+  summarise(target_count = sum(weight)) %>%
+  ungroup() %>%
+  mutate(importance_weight = weight_B_route_direction_time) %>%
+  mutate(target_category_id = "B") %>%
   mutate(board_seg_3  = NA) %>%
   mutate(alight_seg_3 = NA) %>%
   mutate(board_seg_4  = NA) %>%
@@ -243,10 +269,12 @@ observed_targets <- cbind(target_id, observed_targets)
 #### Write the example extracted input files to disk for others' reference
 ```{r data-writes}
 write.csv(survey, file = paste(output_dir, "production-example-survey.csv",   sep = ""), row.names = FALSE, quote = F)
+save(survey, file = paste(output_dir, "production-example-survey.Rdata", sep = ""))
 
 write.csv(observed_targets_defn, file = paste(output_dir, "observed-target-definitions.csv", sep = ""), row.names = FALSE, quote = F)
+save(observed_targets_defn, file = paste(output_dir, "observed-target-definitions.Rdata", sep = ""))
 
 write.csv(observed_targets, file = paste(output_dir, "observed-target-counts.csv", sep = ""), row.names = FALSE, quote = F)
+save(observed_targets, file = paste(output_dir, "observed-target-counts.Rdata", sep = ""))
 
 ```
-
