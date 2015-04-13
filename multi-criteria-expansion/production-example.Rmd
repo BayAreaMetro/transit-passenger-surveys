@@ -10,7 +10,7 @@ runtime: shiny
 ## Administration
 
 #### Status
-beta version with external inputs -- need to finish, check, refine
+Seems to be working, need to refine, improve, refine
 
 #### TODO
 1. Can we make the optimization faster?  Other methods?
@@ -52,6 +52,7 @@ library(stringr)
 library(optimx)
 library(reshape2)
 suppressMessages(library(dplyr))
+library(ggplot2)
 ```
 
 ```{r setup, include=FALSE}
@@ -116,7 +117,7 @@ importance_weights_vector <- observed_targets$importance_weight
 
 #### Prepare the incidence matrix
 ```{r incidence-matrix}
-# TODO: add some checking, debugging, and formalize special case static names
+# TODO: add some checking, debugging
 
 # Extract a vector of the unique variables in the targets
 unique_variables <- data.frame(survey_variable = unique(observed_targets_defn$survey_variable))
@@ -164,18 +165,16 @@ for (i in 1:length(target_categories_vector)) {
   
   variable_names <- variable_names$survey_variable
   
+  # Account for all_routes exception
+  if (length(variable_names) == 1) next
+  
   # Build the formula string that we'll use in the casting
   formula_string <- ""
   for (j in 1:length(variable_names)) {
-    
+
     if (j > 1) formula_string <- paste(formula_string, "+", sep = " ")
     
-    if(variable_names[j] == all_routes_string) {
-      formula_string <- paste(formula_string, "target_id", sep = " ")
-    }
-    else{
-      formula_string <- paste(formula_string, variable_names[j], sep = " ")
-    }
+    formula_string <- paste(formula_string, variable_names[j], sep = " ")
     
   } # end for j
   
@@ -188,11 +187,7 @@ for (i in 1:length(target_categories_vector)) {
   casted <- dcast(these_targets, formula_string, value.var = "one")
   casted[is.na(casted)] <- 0
   
-  # account for "all_routes" exception
-  if (length(variable_names) > 1){
-    
-    incidence_matrix <- left_join(incidence_matrix, casted, by = variable_names)
-    }
+  incidence_matrix <- left_join(incidence_matrix, casted, by = variable_names)
   
 } # end for i
 
@@ -234,13 +229,11 @@ optimx_results <- optimx(starting_weights_vector,
                          import_v = importance_weights_vector,
                          inc_mtx = incidence_matrix)
 proc.time() - start_time
-# ~X seconds (~Y minutes) (was ~35 before)
+# ~2400 seconds (~40 minutes)
 
 sum_unique_weights <- as.data.frame(t(coef(optimx_results)))
 names(sum_unique_weights)[1] <- "sum_weights"
 ```
-
-# START HERE: if the optimization ran, begin here and work down
 
 #### Join optimization results to survey data
 ```{r results-to-data}
@@ -269,7 +262,7 @@ target <- observed_targets %>%
 abs(sum(survey$weight) - sum(target$target_count))
 abs(sum(survey$record_weight) - sum(target$target_count))
 
-# Base: X; Optim: Y
+# Base: 0; Optim: 0
 
 # Target B: route, direction, time of day
 target <- observed_targets %>%
@@ -291,7 +284,7 @@ target_compare <- target_compare %>%
 sqrt(mean(target_compare$base_error_sqd))
 sqrt(mean(target_compare$optim_error_sqd))
 
-# Base: X; Optim: Y
+# Base: 0; Optim: 63.5
 
 # Target C: route, direction, four-category boarding segment
 target <- observed_targets %>%
@@ -304,6 +297,7 @@ target_compare <- survey %>%
 target_compare <- left_join(target_compare, target, by = c("route", "direction", "board_seg_4"))
 
 target_compare <- target_compare %>%
+  filter(!is.na(target_count)) %>%
   mutate(base_error  = sum_base_weights - target_count) %>%
   mutate(optim_error = sum_optim_weights - target_count) %>%
   mutate(base_error_sqd = base_error * base_error) %>%
@@ -313,7 +307,7 @@ target_compare <- target_compare %>%
 sqrt(mean(target_compare$base_error_sqd))
 sqrt(mean(target_compare$optim_error_sqd))
 
-# Base: X; Optim: Y
+# Base: 154.6; Optim: 45.7
 
 # Target D: route, direction, four-category alighting segment
 target <- observed_targets %>%
@@ -326,6 +320,7 @@ target_compare <- survey %>%
 target_compare <- left_join(target_compare, target, by = c("route", "direction", "alight_seg_4"))
 
 target_compare <- target_compare %>%
+  filter(!is.na(target_count)) %>%
   mutate(base_error  = sum_base_weights - target_count) %>%
   mutate(optim_error = sum_optim_weights - target_count) %>%
   mutate(base_error_sqd = base_error * base_error) %>%
@@ -335,7 +330,7 @@ target_compare <- target_compare %>%
 sqrt(mean(target_compare$base_error_sqd))
 sqrt(mean(target_compare$optim_error_sqd))
 
-# Base: X; Optim: Y
+# Base: 139.6; Optim: 58.7
 
 # Target E: route, direction, three-category boarding segment, three-category alighting segment
 target <- observed_targets %>%
@@ -348,6 +343,7 @@ target_compare <- survey %>%
 target_compare <- left_join(target_compare, target, by = c("route", "direction", "board_seg_3", "alight_seg_3"))
 
 target_compare <- target_compare %>%
+  filter(!is.na(target_count)) %>%
   mutate(base_error  = sum_base_weights - target_count) %>%
   mutate(optim_error = sum_optim_weights - target_count) %>%
   mutate(base_error_sqd = base_error * base_error) %>%
@@ -357,12 +353,32 @@ target_compare <- target_compare %>%
 sqrt(mean(target_compare$base_error_sqd))
 sqrt(mean(target_compare$optim_error_sqd))
 
-# Base: X; Optim: Y
+# Base: 98.9; Optim: 20.2
 ```
+
+#### Plot the distributions
+```{r plot-distributions}
+weight_data <- survey %>%
+  select(weight) %>%
+  mutate(type = "original")
+
+record_weight_data <- survey %>%
+  select(weight = record_weight) %>%
+  mutate(type = "optimal")
+
+weight_data <- rbind(weight_data, record_weight_data)
+
+ggplot(weight_data, aes (x = weight, fill = type, binwidth = 1.0)) + geom_density()
+
+```
+
 
 ## Data writes
 #### Write the example results to disck for others' reference
 ```{r data-writes}
+survey <- survey %>%
+  select(-1)
+
 write.csv(survey, file = paste(remote_dir, "production-example-survey-results.csv",   sep = ""), row.names = FALSE, quote = F)
 
 ```
