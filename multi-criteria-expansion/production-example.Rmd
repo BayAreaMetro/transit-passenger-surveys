@@ -119,6 +119,10 @@ importance_weights_vector <- observed_targets$importance_weight
 ```{r incidence-matrix}
 # TODO: add some checking, debugging
 
+# Make sure the defined survey_variables are strings
+observed_targets_defn <- observed_targets_defn %>%
+  mutate(survey_variable = as.character(survey_variable))
+  
 # Extract a vector of the unique variables in the targets
 unique_variables <- data.frame(survey_variable = unique(observed_targets_defn$survey_variable))
 
@@ -141,17 +145,14 @@ all_routes_column <- left_join(all_routes_column, observed_targets, by = c("targ
 
 all_routes_column_name <- all_routes_column$target_id
 
-unique_weights <- unique_weights %>%
+incidence_matrix <- unique_weights %>%
   mutate(one = 1)
 
-names(unique_weights)[names(unique_weights) == "one"] <- all_routes_column_name 
+names(incidence_matrix)[names(incidence_matrix) == "one"] <- all_routes_column_name 
 
 # To create the rest of the incidence matrix, add a column of ones to the observed_targets dataframe
 observed_targets <- observed_targets %>%
   mutate(one = 1)
-
-# Pivot the incidence matrix off unique weights
-incidence_matrix <- unique_weights
 
 # Get the vector of target_categories
 target_categories_vector <- unique(observed_targets_defn$target_category_id)
@@ -229,7 +230,7 @@ optimx_results <- optimx(starting_weights_vector,
                          import_v = importance_weights_vector,
                          inc_mtx = incidence_matrix)
 proc.time() - start_time
-# ~2400 seconds (~40 minutes)
+# ~2400 to 2900 seconds (~40 to 50 minutes)
 
 sum_unique_weights <- as.data.frame(t(coef(optimx_results)))
 names(sum_unique_weights)[1] <- "sum_weights"
@@ -237,13 +238,45 @@ names(sum_unique_weights)[1] <- "sum_weights"
 
 #### Join optimization results to survey data
 ```{r results-to-data}
+unique_weights <- unique_weights 
 survey_summary <- cbind(unique_weights, sum_unique_weights)
 
 survey_summary <- survey_summary %>%
   mutate(record_weight = sum_weights / records) %>%
   select(-sum_weights, -records)
 
-survey <- left_join(survey, survey_summary, by = c("route", "direction", "time_period", "board_seg_3", "board_seg_4", "alight_seg_3", "alight_seg_4"))
+survey <- left_join(survey, survey_summary, by = unique_variables$survey_variable)
+
+```
+
+## Assess Performance
+#### Define root-mean-square-error method
+```{r rmse-function}
+compute_target_rmse <- function(obs_targets_df, target_defn_df, survey_df, category_string){
+  
+  target <- obs_targets_df %>%
+    filter(target_category_id == category_string)
+  
+  relevant_variables <- target_defn_df %>%
+    filter(target_category_id == category_string)
+  
+  target_compare <- survey_df %>%
+    group_by_(.dots = relevant_variables$survey_variable) %>%
+    summarise(sum_base_weights = sum(weight), sum_optim_weights = sum(record_weight))
+  
+  target_compare <- left_join(target_compare, target, by = relevant_variables$survey_variable)
+  
+  target_compare <- target_compare %>%
+    filter(!is.na(target_count)) %>%
+    mutate(base_error  = sum_base_weights - target_count) %>%
+    mutate(optim_error = sum_optim_weights - target_count) %>%
+    mutate(base_error_sqd = base_error * base_error) %>%
+    mutate(optim_error_sqd = optim_error * optim_error)
+  
+  return(c(sqrt(mean(target_compare$base_error_sqd)),
+           sqrt(mean(target_compare$optim_error_sqd))))
+    
+}
 
 ```
 
@@ -265,93 +298,30 @@ abs(sum(survey$record_weight) - sum(target$target_count))
 # Base: 0; Optim: 0
 
 # Target B: route, direction, time of day
-target <- observed_targets %>%
-  filter(target_category_id == "B")
-
-target_compare <- survey %>%
-  group_by(route, direction, time_period) %>%
-  summarise(sum_base_weights = sum(weight), sum_optim_weights = sum(record_weight))
-
-target_compare <- left_join(target_compare, target, by = c("route", "direction", "time_period"))
-
-target_compare <- target_compare %>%
-  mutate(base_error  = sum_base_weights - target_count) %>%
-  mutate(optim_error = sum_optim_weights - target_count) %>%
-  mutate(base_error_sqd = base_error * base_error) %>%
-  mutate(optim_error_sqd = optim_error * optim_error) %>%
-  arrange(desc(base_error_sqd))
-
-sqrt(mean(target_compare$base_error_sqd))
-sqrt(mean(target_compare$optim_error_sqd))
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "B")
+rmse_vector[1]
+rmse_vector[2]
 
 # Base: 0; Optim: 63.5
 
 # Target C: route, direction, four-category boarding segment
-target <- observed_targets %>%
-  filter(target_category_id == "C")
-
-target_compare <- survey %>%
-  group_by(route, direction, board_seg_4) %>%
-  summarise(sum_base_weights = sum(weight), sum_optim_weights = sum(record_weight))
-
-target_compare <- left_join(target_compare, target, by = c("route", "direction", "board_seg_4"))
-
-target_compare <- target_compare %>%
-  filter(!is.na(target_count)) %>%
-  mutate(base_error  = sum_base_weights - target_count) %>%
-  mutate(optim_error = sum_optim_weights - target_count) %>%
-  mutate(base_error_sqd = base_error * base_error) %>%
-  mutate(optim_error_sqd = optim_error * optim_error) %>%
-  arrange(desc(base_error_sqd))
-
-sqrt(mean(target_compare$base_error_sqd))
-sqrt(mean(target_compare$optim_error_sqd))
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "C")
+rmse_vector[1]
+rmse_vector[2]
 
 # Base: 154.6; Optim: 45.7
 
 # Target D: route, direction, four-category alighting segment
-target <- observed_targets %>%
-  filter(target_category_id == "D")
-
-target_compare <- survey %>%
-  group_by(route, direction, alight_seg_4) %>%
-  summarise(sum_base_weights = sum(weight), sum_optim_weights = sum(record_weight))
-
-target_compare <- left_join(target_compare, target, by = c("route", "direction", "alight_seg_4"))
-
-target_compare <- target_compare %>%
-  filter(!is.na(target_count)) %>%
-  mutate(base_error  = sum_base_weights - target_count) %>%
-  mutate(optim_error = sum_optim_weights - target_count) %>%
-  mutate(base_error_sqd = base_error * base_error) %>%
-  mutate(optim_error_sqd = optim_error * optim_error) %>%
-  arrange(desc(base_error_sqd))
-
-sqrt(mean(target_compare$base_error_sqd))
-sqrt(mean(target_compare$optim_error_sqd))
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "D")
+rmse_vector[1]
+rmse_vector[2]
 
 # Base: 139.6; Optim: 58.7
 
 # Target E: route, direction, three-category boarding segment, three-category alighting segment
-target <- observed_targets %>%
-  filter(target_category_id == "E")
-
-target_compare <- survey %>%
-  group_by(route, direction, board_seg_3, alight_seg_3) %>%
-  summarise(sum_base_weights = sum(weight), sum_optim_weights = sum(record_weight))
-
-target_compare <- left_join(target_compare, target, by = c("route", "direction", "board_seg_3", "alight_seg_3"))
-
-target_compare <- target_compare %>%
-  filter(!is.na(target_count)) %>%
-  mutate(base_error  = sum_base_weights - target_count) %>%
-  mutate(optim_error = sum_optim_weights - target_count) %>%
-  mutate(base_error_sqd = base_error * base_error) %>%
-  mutate(optim_error_sqd = optim_error * optim_error) %>%
-  arrange(desc(base_error_sqd))
-
-sqrt(mean(target_compare$base_error_sqd))
-sqrt(mean(target_compare$optim_error_sqd))
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "E")
+rmse_vector[1]
+rmse_vector[2]
 
 # Base: 98.9; Optim: 20.2
 ```
@@ -376,9 +346,6 @@ ggplot(weight_data, aes (x = weight, fill = type, binwidth = 1.0)) + geom_densit
 ## Data writes
 #### Write the example results to disck for others' reference
 ```{r data-writes}
-survey <- survey %>%
-  select(-1)
-
 write.csv(survey, file = paste(remote_dir, "production-example-survey-results.csv",   sep = ""), row.names = FALSE, quote = F)
 
 ```
