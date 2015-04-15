@@ -17,7 +17,7 @@ Seems to be working, need to refine, improve, refine
 
 2. Experiment with changing the target importance weights to make sure the response is as expected
 
-3. Can we put common elements into an R Package?
+3. Can we put common elements into an R Package? Or perhaps simply an R script with a library of methods?
 
 #### Purpose
 Demonstrate multi-criteria transit on-board survey expansion using R tools via a production (i.e.,  practice-ready) example using real data.  Here, we use two surveys performed on Tri-Delta.  The first survey was a simple on-off count performed for ~70 percent of the riders.  The second is a personal interview survey of ~5 percent of the riders. Here we use external files to define our targets.  Please see `build-production-example-inputs.Rmd` for the creation of these files.  Narrative details are as follows:
@@ -61,7 +61,9 @@ knitr::opts_chunk$set(cache=TRUE)
 
 #### Parameters
 ```{r parameters}
-all_routes_string <- "all_routes"
+all_routes_string = "all_routes"
+record_weight_lower_bound = 0.5
+record_weight_upper_bound = 50.0
 
 ```
 
@@ -213,24 +215,30 @@ incidence_matrix <- data.matrix(incidence_matrix)
 
 #### Execute the optimization and extract the results
 ```{r run-optimization}
-# Create a vector of starting weights
-starting_weights_vector <- unique_weights$records * 0 + 1.0
+# Set the lower and upper bounds for the weights (set in parameters section)
+unique_weights <- unique_weights %>%
+  mutate(minimum_weights = records * record_weight_lower_bound) %>%
+  mutate(maximum_weights = records * record_weight_upper_bound)
+
+# Set the starting weights as the minimum weights (note starting_weigths >= minimum_weights)
+starting_weights_vector <- unique_weights$minimum_weights
 
 # Test the optimization function
 optimization_function(starting_weights_vector, observed_targets_vector, importance_weights_vector, incidence_matrix)
-
+  
 # Run the optimization (keep track of computing time)
 start_time <- proc.time()
 optimx_results <- optimx(starting_weights_vector,
                          fn = optimization_function,
                          method = "L-BFGS-B",
-                         lower = 1.00,
-                         upper = Inf,
+                         lower = unique_weights$minimum_weights,
+                         upper = unique_weights$maximum_weights,
                          obs_target_v = observed_targets_vector,
                          import_v = importance_weights_vector,
                          inc_mtx = incidence_matrix)
 proc.time() - start_time
 # ~2400 to 2900 seconds (~40 to 50 minutes)
+
 
 sum_unique_weights <- as.data.frame(t(coef(optimx_results)))
 names(sum_unique_weights)[1] <- "sum_weights"

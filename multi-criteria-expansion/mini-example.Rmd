@@ -84,7 +84,7 @@ starting_weights_vector <- c(1,1)
 optimx_results <- optimx(starting_weights_vector,
                          fn = optimization_function,
                          method = "L-BFGS-B",
-                         lower = 1.00,
+                         lower = c(1.0, 1.0),
                          upper = Inf,
                          obs_target_v = observed_targets_vector,
                          import_v = importance_weights_vector,
