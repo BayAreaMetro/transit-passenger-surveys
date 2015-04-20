@@ -10,47 +10,57 @@ runtime: shiny
 ## Administration
 
 #### Status
-Seems to be working, need to refine, improve, refine
+seems to be working; two examples in place
 
 #### TODO
-1. Can we make the optimization faster?  Other methods?
+2. Vary weights, targets, etc, to make sure response is as expected (additional examples).
 
-2. Experiment with changing the target importance weights to make sure the response is as expected
-
-3. Can we put common elements into an R Package? Or perhaps simply an R script with a library of methods?
+3. Catch inconsistent input errors
 
 #### Purpose
-Demonstrate multi-criteria transit on-board survey expansion using R tools via a production (i.e.,  practice-ready) example using real data.  Here, we use two surveys performed on Tri-Delta.  The first survey was a simple on-off count performed for ~70 percent of the riders.  The second is a personal interview survey of ~5 percent of the riders. Here we use external files to define our targets.  Please see `build-production-example-inputs.Rmd` for the creation of these files.  Narrative details are as follows:
+Demonstrate multi-criteria transit on-board survey expansion using R tools via a production (i.e.,  practice-ready) example using real data.  Here, we use two surveys performed on Tri-Delta.  The first survey was a simple on-off count performed for ~70 percent of the riders.  The second is a personal interview survey of ~5 percent of the riders. Simple, external database files are used to define our targets.
 
-1.  Five categories of targets are defined, as follows:
-(a)  Category A: single, system-wide target;
-(b)  Category B: by route, direction, and time of day;
-(c)  Category C: by route, direction, and four-category boarding segment;
-(d)  Category D: by route, direction, and four-category alighting segment;
-(e)  Category E: by route, direction, three-category boarding segment, and three-category alighting segment.
+## Key Input Files
+#### Observed Target Counts
+The `observed-target-counts` input database must have the following fields:
+1. `target_id` - integer, a unique integer for the target;
+2. `target_count` - float, the target value for the target (i.e., the weights will be adjusted to match the targets);
+3. `importance_weight` - float, the importance weight for the target;
+4. `target_category_id` - string, a label for each group of targets;
+5. {survey variable names} - any number of columns that define the targets composition using the survey variable names, e.g., route, direction, time_period.  Each string MUST correspond to a variable in the survey data. 
 
-Note that if a single, system-wide target is used, it must be in Category A (i.e., be listed first).
+#### Observed Target Definitions
+The `observed-target-definitions` input database must have the following fields:
+1. `target_category_id` - string, a label for each group of targets;
+2. `survey_variable` - string, a label for the variables that comprise the target, with each variable being entered on a separate row in the database.  Each string MUST correspond to a variable in the survey data, with the exception of `all_routes` which denotes a target that is applied to all records in the survey.
 
-2.  Target categories A and B are drawn for the personal interview survey; categories C, D, and E are drawn from the on-off survey.
+Note that if a single, system-wide target is used, it must be in the first category listed.
 
-3.  The `observed-target-counts` input database must have the following fields:
-(a) `target_id` - integer, a unique integer for the target;
-(b) `target_count` - float, the target value for the target (i.e., the weights will be adjusted to match the targets);
-(c) `importance_weight` - float, the importance weight for the target;
-(d) `target_category` - string, a label for each group of targets;
-(e) {survey variable names} - any number of columns that define the targets composition using the survey variable names, e.g., route, direction, time_period.  Each string MUST correspond to a variable in the survey data. 
+#### Survey Data
+The `survey` data must have the variables (as columns) defined in the `observed-target-counts` and `observed-target-definitions` files.
 
-4.  The `observed-target-definitions` input database must have the following fields:
-(a) `target_category` - string, a label for each group of targets;
-(b) `survey_variable` - string, a label for the variables that comprise the target, with each variable being entered on a separate row in the database.  Each string MUST correspond to a variable in the survey data, with the exception of `all_routes` which denotes a target that is applied to all records in the survey.
+## Examples
+#### Example 1: Five categories of targets
+Please see `build-production-example-inputs.Rmd` for the creation of these files.  
 
+Five categories of targets are defined, as follows:
+1.  Category `A`: single, system-wide target;
+2.  Category `B`: by route, direction, and time of day;
+3.  Category `C`: by route, direction, and four-category boarding segment;
+4.  Category `D`: by route, direction, and four-category alighting segment;
+5.  Category `E`: by route, direction, three-category boarding segment, and three-category alighting segment.
 
-#### Overhead
-```{r}
+Target categories `A` and `B` are drawn for the personal interview survey; categories `C`, `D`, and `E` are drawn from the on-off survey.
+
+#### Example 2
+This example is as subset of Example 1 in which we use these procedures to try and re-create the existing survey weights by expanding to route, direction, and time of day (i.e., Category `B` from Example 1).
+
+## Overhead
+
+#### Libraries
+```{r libraries}
+source("method-library.R")
 library(knitr)
-library(stringr)
-library(optimx)
-library(reshape2)
 suppressMessages(library(dplyr))
 library(ggplot2)
 ```
@@ -59,170 +69,87 @@ library(ggplot2)
 knitr::opts_chunk$set(cache=TRUE)
 ```
 
-#### Parameters
-```{r parameters}
-all_routes_string = "all_routes"
-record_weight_lower_bound = 1.0
-record_weight_upper_bound = 25.0
-```
-
-
-## Optimization Function
-#### Inputs
-1. `x` - a vector of length M representing each of the unique survey weights that need to be calculated
-2. `obs_target_v` - a vector of length N containing each expansion target
-3. `import_v` - a vector of length N containing the importance weight for each expansion target
-4. `inc_mtx` - a matrix of dimensions M x N containing a dummy variable denoting the relevance of each unique survey weight to each expansion target
-```{r optimization-function}
-optimization_function <- function(x, obs_target_v, import_v, inc_mtx) {
-  
-  # Compute estimated targets 
-  est_target_v <- x %*% inc_mtx
-  
-  # Compute importance-weighted errors, which is the objective function
-  error_df <- data.frame(obs_target_v, est_target_v, import_v)
-  error_df <- error_df %>%
-    mutate(error <- import_v * abs(est_target_v - obs_target_v))
-  
-  # Return errors
-  return(sum(error_df$error))
-
-}
-
-```
-
 ## Data Preparation
 #### Remote data locations
 ```{r data-reads}
-#remote_dir <- "D:/files/My Box Files/Share Data/multi-criteria-expansion/"
-remote_dir <- "~DavidWork/Documents/multi-criteria-expansion-inputs/"
-
-F_INPUT_SURVEY  <- paste(remote_dir, "production-example-survey.Rdata", sep = "")
-F_INPUT_DEFNS   <- paste(remote_dir, "observed-target-counts.Rdata", sep = "")
-F_INPUT_TARGETS <- paste(remote_dir, "observed-target-definitions.Rdata", sep = "")
-
-load(F_INPUT_SURVEY)
-load(F_INPUT_DEFNS)
-load(F_INPUT_TARGETS)
+remote_dir <- "D:/files/My Box Files/Share Data/multi-criteria-expansion/"
+#remote_dir <- "~DavidWork/Documents/multi-criteria-expansion-inputs/"
 ```
 
-## Optimization Input Perparation
-#### Prepare the observed targets vector
-```{r observed-targets}
-observed_targets_vector <- observed_targets$target_count
-```
+## Convenience Methods
+#### Root-mean-square-error
+```{r rmse-method}
+compute_target_rmse <- function(obs_targets_df, target_defn_df, survey_df, category_string){
 
-#### Prepare the importance weights vector
-```{r importance-weights}
-importance_weights_vector <- observed_targets$importance_weight
-```
+  target <- obs_targets_df %>%
+    filter(target_category_id == category_string)
 
-#### Prepare the incidence matrix
-```{r incidence-matrix}
-# TODO: add some checking, debugging
+  relevant_variables <- target_defn_df %>%
+    filter(target_category_id == category_string)
 
-# Make sure the defined survey_variables are strings
-observed_targets_defn <- observed_targets_defn %>%
-  mutate(survey_variable = as.character(survey_variable))
-  
-# Extract a vector of the unique variables in the targets
-unique_variables <- data.frame(survey_variable = unique(observed_targets_defn$survey_variable))
+  target_compare <- survey_df %>%
+    group_by_(.dots = relevant_variables$survey_variable) %>%
+    summarise(sum_base_weights = sum(weight), sum_optim_weights = sum(record_weight))
 
-# Remove special case "all_routes"
-unique_variables <- unique_variables %>%
-  filter(survey_variable != all_routes_string) %>%
-  mutate(survey_variable = as.character(survey_variable))
+  target_compare <- left_join(target_compare, target, by = relevant_variables$survey_variable)
 
-# Condensed the survey to the set of unique weights needed
-unique_weights <- survey %>%
-  group_by_(.dots = unique_variables$survey_variable) %>%
-  summarise(records = n()) %>%
-  ungroup()
+  target_compare <- target_compare %>%
+    filter(!is.na(target_count)) %>%
+    mutate(base_error  = sum_base_weights - target_count) %>%
+    mutate(optim_error = sum_optim_weights - target_count) %>%
+    mutate(base_error_sqd = base_error * base_error) %>%
+    mutate(optim_error_sqd = optim_error * optim_error)
 
-# Add the special case all_routes incidence column
-all_routes_column <- observed_targets_defn %>%
-  filter(survey_variable == all_routes_string)
+  return(c(sqrt(mean(target_compare$base_error_sqd)),
+           sqrt(mean(target_compare$optim_error_sqd))))
 
-all_routes_column <- left_join(all_routes_column, observed_targets, by = c("target_category_id"))
-
-all_routes_column_name <- all_routes_column$target_id
-
-incidence_matrix <- unique_weights %>%
-  mutate(one = 1)
-
-names(incidence_matrix)[names(incidence_matrix) == "one"] <- all_routes_column_name 
-
-# To create the rest of the incidence matrix, add a column of ones to the observed_targets dataframe
-observed_targets <- observed_targets %>%
-  mutate(one = 1)
-
-# Get the vector of target_categories
-target_categories_vector <- unique(observed_targets_defn$target_category_id)
-
-# Loop over the target categories
-for (i in 1:length(target_categories_vector)) {
-  
-  # Loop over the variable names in the target category
-  variable_names <- observed_targets_defn %>%
-    filter(target_category_id == target_categories_vector[i])
-  
-  variable_names <- variable_names$survey_variable
-  
-  # Account for all_routes exception
-  if (length(variable_names) == 1) next
-  
-  # Build the formula string that we'll use in the casting
-  formula_string <- ""
-  for (j in 1:length(variable_names)) {
-
-    if (j > 1) formula_string <- paste(formula_string, "+", sep = " ")
-    
-    formula_string <- paste(formula_string, variable_names[j], sep = " ")
-    
-  } # end for j
-  
-  formula_string <- paste(formula_string, "~ target_id", sep = " ")
-  
-  # select the relevant columns to cast
-  these_targets <- observed_targets %>%
-    filter(target_category_id == target_categories_vector[i])
-  
-  casted <- dcast(these_targets, formula_string, value.var = "one")
-  casted[is.na(casted)] <- 0
-  
-  incidence_matrix <- left_join(incidence_matrix, casted, by = variable_names)
-  
-} # end for i
-
-# Trim the survey variable columns
-unique_variables_v <- unique_variables$survey_variable
-for (i in 1:length(unique_variables_v)) {
-  incidence_matrix <- incidence_matrix %>%
-    select(-matches(unique_variables_v[i]))
 }
 
-# Trim the records column
-incidence_matrix <- incidence_matrix %>%
-  select(-records)
+```
 
-# Fill the NAs with 0
-incidence_matrix[is.na(incidence_matrix)] <- 0
-
-# Save as matrix
-incidence_matrix <- data.matrix(incidence_matrix)
+#### Density plots
+```{r density-plots}
+make_a_density_plot <- function(survey_with_results_df, title_str){
+  
+  weight_data <- survey_with_results_df %>%
+    select(weight) %>%
+    mutate(type = "original")
+  
+  record_weight_data <- survey_with_results_df %>%
+    select(weight = record_weight) %>%
+    mutate(type = "optimal")
+  
+  weight_data <- rbind(weight_data, record_weight_data)
+  
+  ggplot(weight_data, aes (x = weight, fill = type, binwidth = 1.0)) + 
+    geom_density(alpha = 0.4) + 
+    labs(title = title_str) + 
+    xlab("Survey Record Weight") + 
+    ylab("Density")
+  
+  }
 
 ```
 
-#### Execute the optimization and extract the results
-```{r run-optimization}
-# Set the lower and upper bounds for the weights (set in parameters section)
-unique_weights <- unique_weights %>%
-  mutate(minimum_weights = records * record_weight_lower_bound) %>%
-  mutate(maximum_weights = records * record_weight_upper_bound)
 
-# Set the starting weights as the minimum weights (note starting_weigths >= minimum_weights)
-starting_weights_vector <- unique_weights$minimum_weights
+## Example 1
+#### Example 1 Inputs
+```{r example-01-inputs}
+F_INPUT_SURVEY  <- paste(remote_dir, "production-example-survey.Rdata", sep = "")
+F_INPUT_TARGETS <- paste(remote_dir, "observed-target-counts.Rdata", sep = "")
+F_INPUT_DEFNS   <- paste(remote_dir, "observed-target-definitions.Rdata", sep = "")
 
+<<<<<<< HEAD
+load(F_INPUT_SURVEY)
+load(F_INPUT_TARGETS)
+load(F_INPUT_DEFNS)
+```
+
+#### Example 1 Paramaters
+```{r example-01-parameters}
+record_weight_lower_bound = 1.0
+record_weight_upper_bound = 30.0
+=======
 # Test the optimization function
 optimization_function(starting_weights_vector, observed_targets_vector, importance_weights_vector, incidence_matrix)
   
@@ -257,96 +184,131 @@ survey_summary <- survey_summary %>%
   select(-sum_weights, -records)
 
 survey <- left_join(survey, survey_summary, by = unique_variables$survey_variable)
+>>>>>>> master
 ```
 
-## Assess Performance
-#### Define root-mean-square-error method
-```{r rmse-function}
-compute_target_rmse <- function(obs_targets_df, target_defn_df, survey_df, category_string){
-  
-  target <- obs_targets_df %>%
-    filter(target_category_id == category_string)
-  
-  relevant_variables <- target_defn_df %>%
-    filter(target_category_id == category_string)
-  
-  target_compare <- survey_df %>%
-    group_by_(.dots = relevant_variables$survey_variable) %>%
-    summarise(sum_base_weights = sum(weight), sum_optim_weights = sum(record_weight))
-  
-  target_compare <- left_join(target_compare, target, by = relevant_variables$survey_variable)
-  
-  target_compare <- target_compare %>%
-    filter(!is.na(target_count)) %>%
-    mutate(base_error  = sum_base_weights - target_count) %>%
-    mutate(optim_error = sum_optim_weights - target_count) %>%
-    mutate(base_error_sqd = base_error * base_error) %>%
-    mutate(optim_error_sqd = optim_error * optim_error)
-  
-  return(c(sqrt(mean(target_compare$base_error_sqd)),
-           sqrt(mean(target_compare$optim_error_sqd))))
-    
-}
+#### Example 1 Optimization
+```{r example-01-optimization}
+survey_with_results_ex01 <- execute_optimization(observed_targets, 
+                                                 observed_targets_defn,
+                                                 survey,
+                                                 record_weight_lower_bound,
+                                                 record_weight_upper_bound) 
 ```
 
-#### Explore the difference in the two sets of weights
-```{r compare-weights}
-survey_explore <- survey %>%
-  mutate(diff = record_weight - weight) %>%
-  mutate(abs_diff = abs(diff)) %>%
-  arrange(desc(abs_diff))
+#### Example 1 Summaries
+```{r example-01-results}
+# Print target RMSEs
 
-# Compare the two sets of weights against each of the targets
+# Target definitions variables must be characters
+observed_targets_defn <- observed_targets_defn %>%
+  mutate(target_category_id = as.character(target_category_id)) %>%
+  mutate(survey_variable = as.character(survey_variable))
 
-# Target A: system-wide
+# target A
 target <- observed_targets %>%
   filter(target_category_id == "A")
-abs(sum(survey$weight) - sum(target$target_count))
-abs(sum(survey$record_weight) - sum(target$target_count))
+abs(sum(survey_with_results_ex01$weight) - sum(target$target_count))
+abs(sum(survey_with_results_ex01$record_weight) - sum(target$target_count))
 
-# Target B: route, direction, time of day
-rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "B")
+# target B
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey_with_results_ex01, "B")
 rmse_vector[1]
 rmse_vector[2]
 
-# Target C: route, direction, four-category boarding segment
-rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "C")
+# target C
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey_with_results_ex01, "C")
 rmse_vector[1]
 rmse_vector[2]
 
-# Target D: route, direction, four-category alighting segment
-rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "D")
+# target D
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey_with_results_ex01, "D")
 rmse_vector[1]
 rmse_vector[2]
 
-# Target E: route, direction, three-category boarding segment, three-category alighting segment
-rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "E")
+# target E
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey_with_results_ex01, "E")
 rmse_vector[1]
 rmse_vector[2]
+
+# Plot histrogram
+example_01_density_plot <- make_a_density_plot(survey_with_results_ex01, 
+                                               "Example 01 Distribution of Original and Optimal Weights")
+example_01_density_plot
 
 ```
 
-#### Plot the distributions
-```{r plot-distributions}
-weight_data <- survey %>%
-  select(weight) %>%
-  mutate(type = "original")
-
-record_weight_data <- survey %>%
-  select(weight = record_weight) %>%
-  mutate(type = "optimal")
-
-weight_data <- rbind(weight_data, record_weight_data)
-
-ggplot(weight_data, aes (x = weight, fill = type, binwidth = 1.0)) + geom_density()
-
+#### Example 1 clean-up
+```{r example-01-clean-up}
+survey_with_results_ex01 <- survey_with_results_ex01 %>%
+  mutate(ex_01_weight = record_weight)
 ```
 
 
-## Data writes
-#### Write the example results to disck for others' reference
+## Example 2
+#### Example 2 Inputs
+```{r example-02-inputs}
+# Same input survey
+F_INPUT_TARGETS <- paste(remote_dir, "observed-target-counts-ex02.csv", sep = "")
+F_INPUT_DEFNS   <- paste(remote_dir, "observed-target-definitions-ex02.csv", sep = "")
+
+observed_targets <- read.table(file = F_INPUT_TARGETS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+observed_targets_defn <- read.table(file = F_INPUT_DEFNS,   header = TRUE, sep = ",", stringsAsFactors = FALSE)
+```
+
+#### Example 2 Paramaters
+```{r example-02-parameters}
+record_weight_lower_bound = 0.25
+record_weight_upper_bound = 50.0
+```
+
+#### Example 2 Optimization
+```{r example-02-optimization}
+survey_with_results_ex02 <- execute_optimization(observed_targets, 
+                                                 observed_targets_defn,
+                                                 survey,
+                                                 record_weight_lower_bound,
+                                                 record_weight_upper_bound) 
+```
+
+
+#### Example 2 Summaries
+```{r example-02-results}
+# Print target RMSEs
+
+# target B
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey_with_results_ex02, "B")
+rmse_vector[1]
+rmse_vector[2]
+
+# Plot histrogram
+example_02_density_plot <- make_a_density_plot(survey_with_results_ex02, 
+                                               "Example 02 Distribution of Original and Optimal Weights")
+example_02_density_plot
+
+```
+
+#### Example 2 clean-up
+```{r example-02-clean-up}
+survey_with_results_ex02 <- survey_with_results_ex02 %>%
+  mutate(ex_02_weight = record_weight)
+```
+
+
+## Data Writes
+#### Write the example outputs to disk
 ```{r data-writes}
-write.csv(survey, file = paste(remote_dir, "production-example-survey-results.csv",   sep = ""), row.names = FALSE, quote = F)
+# Example 1
+write.csv(survey_with_results_ex01, 
+          file = paste(remote_dir, "production-example-survey-results.csv",   sep = ""), 
+          row.names = FALSE, 
+          quote = F)
+
+# Example 2
+write.csv(survey_with_results_ex02, 
+          file = paste(remote_dir, "production-example-02-survey-results.csv",   sep = ""), 
+          row.names = FALSE, 
+          quote = F)
 
 ```
 
