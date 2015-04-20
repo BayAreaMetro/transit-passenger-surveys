@@ -239,7 +239,6 @@ optimx_results <- optimx(starting_weights_vector,
 proc.time() - start_time
 # ~2400 to 2900 seconds (~40 to 50 minutes)
 
-
 sum_unique_weights <- as.data.frame(t(coef(optimx_results)))
 names(sum_unique_weights)[1] <- "sum_weights"
 ```
@@ -254,7 +253,6 @@ survey_summary <- survey_summary %>%
   select(-sum_weights, -records)
 
 survey <- left_join(survey, survey_summary, by = unique_variables$survey_variable)
-
 ```
 
 ## Assess Performance
