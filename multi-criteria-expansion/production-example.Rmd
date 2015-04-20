@@ -62,9 +62,8 @@ knitr::opts_chunk$set(cache=TRUE)
 #### Parameters
 ```{r parameters}
 all_routes_string = "all_routes"
-record_weight_lower_bound = 0.5
-record_weight_upper_bound = 50.0
-
+record_weight_lower_bound = 1.0
+record_weight_upper_bound = 25.0
 ```
 
 
@@ -95,7 +94,8 @@ optimization_function <- function(x, obs_target_v, import_v, inc_mtx) {
 ## Data Preparation
 #### Remote data locations
 ```{r data-reads}
-remote_dir <- "D:/files/My Box Files/Share Data/multi-criteria-expansion/"
+#remote_dir <- "D:/files/My Box Files/Share Data/multi-criteria-expansion/"
+remote_dir <- "~DavidWork/Documents/multi-criteria-expansion-inputs/"
 
 F_INPUT_SURVEY  <- paste(remote_dir, "production-example-survey.Rdata", sep = "")
 F_INPUT_DEFNS   <- paste(remote_dir, "observed-target-counts.Rdata", sep = "")
@@ -237,7 +237,11 @@ optimx_results <- optimx(starting_weights_vector,
                          import_v = importance_weights_vector,
                          inc_mtx = incidence_matrix)
 proc.time() - start_time
+<<<<<<< HEAD
 # ~2400 to 2900 seconds (~40 to 50 minutes)
+=======
+# ~2300 to 2900 seconds (~40 to 50 minutes)
+>>>>>>> origin/master
 
 sum_unique_weights <- as.data.frame(t(coef(optimx_results)))
 names(sum_unique_weights)[1] <- "sum_weights"
@@ -283,7 +287,6 @@ compute_target_rmse <- function(obs_targets_df, target_defn_df, survey_df, categ
            sqrt(mean(target_compare$optim_error_sqd))))
     
 }
-
 ```
 
 #### Explore the difference in the two sets of weights
@@ -301,35 +304,26 @@ target <- observed_targets %>%
 abs(sum(survey$weight) - sum(target$target_count))
 abs(sum(survey$record_weight) - sum(target$target_count))
 
-# Base: 0; Optim: 0
-
 # Target B: route, direction, time of day
 rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "B")
 rmse_vector[1]
 rmse_vector[2]
-
-# Base: 0; Optim: 63.5
 
 # Target C: route, direction, four-category boarding segment
 rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "C")
 rmse_vector[1]
 rmse_vector[2]
 
-# Base: 154.6; Optim: 45.7
-
 # Target D: route, direction, four-category alighting segment
 rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "D")
 rmse_vector[1]
 rmse_vector[2]
-
-# Base: 139.6; Optim: 58.7
 
 # Target E: route, direction, three-category boarding segment, three-category alighting segment
 rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey, "E")
 rmse_vector[1]
 rmse_vector[2]
 
-# Base: 98.9; Optim: 20.2
 ```
 
 #### Plot the distributions
