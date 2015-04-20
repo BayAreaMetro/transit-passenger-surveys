@@ -139,6 +139,7 @@ F_INPUT_SURVEY  <- paste(remote_dir, "production-example-survey.Rdata", sep = ""
 F_INPUT_TARGETS <- paste(remote_dir, "observed-target-counts.Rdata", sep = "")
 F_INPUT_DEFNS   <- paste(remote_dir, "observed-target-definitions.Rdata", sep = "")
 
+<<<<<<< HEAD
 load(F_INPUT_SURVEY)
 load(F_INPUT_TARGETS)
 load(F_INPUT_DEFNS)
@@ -148,6 +149,42 @@ load(F_INPUT_DEFNS)
 ```{r example-01-parameters}
 record_weight_lower_bound = 1.0
 record_weight_upper_bound = 30.0
+=======
+# Test the optimization function
+optimization_function(starting_weights_vector, observed_targets_vector, importance_weights_vector, incidence_matrix)
+  
+# Run the optimization (keep track of computing time)
+start_time <- proc.time()
+optimx_results <- optimx(starting_weights_vector,
+                         fn = optimization_function,
+                         method = "L-BFGS-B",
+                         lower = unique_weights$minimum_weights,
+                         upper = unique_weights$maximum_weights,
+                         obs_target_v = observed_targets_vector,
+                         import_v = importance_weights_vector,
+                         inc_mtx = incidence_matrix)
+proc.time() - start_time
+<<<<<<< HEAD
+# ~2400 to 2900 seconds (~40 to 50 minutes)
+=======
+# ~2300 to 2900 seconds (~40 to 50 minutes)
+>>>>>>> origin/master
+
+sum_unique_weights <- as.data.frame(t(coef(optimx_results)))
+names(sum_unique_weights)[1] <- "sum_weights"
+```
+
+#### Join optimization results to survey data
+```{r results-to-data}
+unique_weights <- unique_weights 
+survey_summary <- cbind(unique_weights, sum_unique_weights)
+
+survey_summary <- survey_summary %>%
+  mutate(record_weight = sum_weights / records) %>%
+  select(-sum_weights, -records)
+
+survey <- left_join(survey, survey_summary, by = unique_variables$survey_variable)
+>>>>>>> master
 ```
 
 #### Example 1 Optimization
