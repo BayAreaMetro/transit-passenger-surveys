@@ -98,6 +98,8 @@ execute_optimization <- function(target_counts_df,
     summarise(records = n()) %>%
     ungroup()
   
+  # TODO: re-factor to account for case when it's not present
+  
   # Add the special case all_routes incidence column
   all_routes_column <- targets_defn_df %>%
     filter(survey_variable == all_routes_string) %>%
@@ -110,7 +112,12 @@ execute_optimization <- function(target_counts_df,
   incidence_matrix <- unique_weights %>%
     mutate(one = 1)
   
-  names(incidence_matrix)[names(incidence_matrix) == "one"] <- all_routes_column_name 
+  # If all_routes is present, re-name row of ones, else delete the row of ones
+  if (nrow(all_routes_column) > 0) {
+    names(incidence_matrix)[names(incidence_matrix) == "one"] <- all_routes_column_name
+  } else {
+    incidence_matrix <- select(incidence_matrix, -one)
+  } 
   
   # To create the rest of the incidence matrix, add a column of ones to the targets dataframe
   target_counts_df <- target_counts_df %>%
