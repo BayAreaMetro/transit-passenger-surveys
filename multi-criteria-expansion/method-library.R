@@ -92,8 +92,6 @@ execute_optimization <- function(target_counts_df,
     filter(survey_variable != all_routes_string) %>%
     mutate(survey_variable = as.character(survey_variable))
   
-  # TODO: need to test this
-  
   # Throw an error if target variables are not in the survey
   check_variables <- unique_variables$survey_variable
   for (i in length(check_variables)) {
