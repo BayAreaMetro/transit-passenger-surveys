@@ -55,6 +55,17 @@ Target categories `A` and `B` are drawn for the personal interview survey; categ
 #### Example 2
 This example is as subset of Example 1 in which we use these procedures to try and re-create the existing survey weights by expanding to route, direction, and time of day (i.e., Category `B` from Example 1).
 
+#### Example 3
+The same example as Example 1, but with different importance weights.  Specifically, we change:
+
+1.  Category `A` importance weight from 20 to 20
+2.  Category `B` importance weight from  1 to 5
+3.  Category `C` importance weight from  2 to 0
+4.  Category `D` importance weight from  2 to 0
+5.  Category `E` importance weight from  3 to 1
+
+We could, of course, remove categories `C` and `D`, but leave them in here to test the script mechanics.  We expect the RMSE performance of the different targets to move in the expected direction.
+
 ## Overhead
 
 #### Libraries
@@ -211,10 +222,11 @@ survey_with_results_ex01 <- survey_with_results_ex01 %>%
 ## Example 2
 #### Example 2 Inputs
 ```{r example-02-inputs}
-# Same input survey
+F_INPUT_SURVEY  <- paste(remote_dir, "production-example-survey.Rdata", sep = "")
 F_INPUT_TARGETS <- paste(remote_dir, "observed-target-counts-ex02.csv", sep = "")
 F_INPUT_DEFNS   <- paste(remote_dir, "observed-target-definitions-ex02.csv", sep = "")
 
+load(F_INPUT_SURVEY)
 observed_targets <- read.table(file = F_INPUT_TARGETS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
 observed_targets_defn <- read.table(file = F_INPUT_DEFNS,   header = TRUE, sep = ",", stringsAsFactors = FALSE)
 ```
@@ -222,7 +234,7 @@ observed_targets_defn <- read.table(file = F_INPUT_DEFNS,   header = TRUE, sep =
 #### Example 2 Paramaters
 ```{r example-02-parameters}
 record_weight_lower_bound = 0.25
-record_weight_upper_bound = 50.0
+record_weight_upper_bound = 50.0 
 ```
 
 #### Example 2 Optimization
@@ -258,6 +270,82 @@ survey_with_results_ex02 <- survey_with_results_ex02 %>%
 ```
 
 
+## Example 3
+#### Example 3 Inputs
+```{r example-03-inputs}
+F_INPUT_SURVEY  <- paste(remote_dir, "production-example-survey.Rdata", sep = "")
+F_INPUT_TARGETS <- paste(remote_dir, "observed-target-counts-ex03.csv", sep = "")
+F_INPUT_DEFNS   <- paste(remote_dir, "observed-target-definitions-ex03.csv", sep = "")
+
+load(F_INPUT_SURVEY)
+observed_targets <- read.table(file = F_INPUT_TARGETS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+observed_targets_defn <- read.table(file = F_INPUT_DEFNS,   header = TRUE, sep = ",", stringsAsFactors = FALSE)
+```
+
+#### Example 3 Paramaters
+```{r example-03-parameters}
+record_weight_lower_bound = 1.0
+record_weight_upper_bound = 30.0
+```
+
+#### Example 3 Optimization
+```{r example-03-optimization}
+survey_with_results_ex03 <- execute_optimization(observed_targets, 
+                                                 observed_targets_defn,
+                                                 survey,
+                                                 record_weight_lower_bound,
+                                                 record_weight_upper_bound) 
+```
+
+#### Example 3 Summaries
+```{r example-03-results}
+# Print target RMSEs
+
+# Target definitions variables must be characters
+observed_targets_defn <- observed_targets_defn %>%
+  mutate(target_category_id = as.character(target_category_id)) %>%
+  mutate(survey_variable = as.character(survey_variable))
+
+# target A
+target <- observed_targets %>%
+  filter(target_category_id == "A")
+abs(sum(survey_with_results_ex03$weight) - sum(target$target_count))
+abs(sum(survey_with_results_ex03$record_weight) - sum(target$target_count))
+
+# target B
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey_with_results_ex03, "B")
+rmse_vector[1]
+rmse_vector[2]
+
+# target C
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey_with_results_ex03, "C")
+rmse_vector[1]
+rmse_vector[2]
+
+# target D
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey_with_results_ex03, "D")
+rmse_vector[1]
+rmse_vector[2]
+
+# target E
+rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey_with_results_ex03, "E")
+rmse_vector[1]
+rmse_vector[2]
+
+# Plot histrogram
+example_03_density_plot <- make_a_density_plot(survey_with_results_ex03, 
+                                               "Example 03 Distribution of Original and Optimal Weights")
+example_03_density_plot
+
+```
+
+#### Example 3 clean-up
+```{r example-03-clean-up}
+survey_with_results_ex03 <- survey_with_results_ex03 %>%
+  mutate(ex_03_weight = record_weight)
+```
+
+
 ## Data Writes
 #### Write the example outputs to disk
 ```{r data-writes}
@@ -270,6 +358,12 @@ write.csv(survey_with_results_ex01,
 # Example 2
 write.csv(survey_with_results_ex02, 
           file = paste(remote_dir, "production-example-02-survey-results.csv",   sep = ""), 
+          row.names = FALSE, 
+          quote = F)
+
+# Example 3
+write.csv(survey_with_results_ex03, 
+          file = paste(remote_dir, "production-example-03-survey-results.csv",   sep = ""), 
           row.names = FALSE, 
           quote = F)
 

@@ -92,13 +92,23 @@ execute_optimization <- function(target_counts_df,
     filter(survey_variable != all_routes_string) %>%
     mutate(survey_variable = as.character(survey_variable))
   
+  # TODO: need to test this
+  
+  # Throw an error if target variables are not in the survey
+  check_variables <- unique_variables$survey_variable
+  for (i in length(check_variables)) {
+    if (!(check_variables[i] %in% names(survey_df))) {
+      cat("Error: The target definitions file includes \'", check_variables[i], "\', but the survey file does not.\n")
+      cat("The survey data is returned without weights computed.")
+      return(survey)
+    }
+  }
+  
   # Condensed the survey to the set of unique weights needed
   unique_weights <- survey_df %>%
     group_by_(.dots = unique_variables$survey_variable) %>%
     summarise(records = n()) %>%
     ungroup()
-  
-  # TODO: re-factor to account for case when it's not present
   
   # Add the special case all_routes incidence column
   all_routes_column <- targets_defn_df %>%
@@ -186,7 +196,8 @@ execute_optimization <- function(target_counts_df,
   # Set the starting weights as the minimum weights
   starting_weights_vector <- unique_weights$minimum_weights
   
-  # Run the optimization 
+  # Run the optimization and record the time
+  start_time <- proc.time()
   optimx_results <- optimx(starting_weights_vector,
                            fn = optimization_function,
                            method = "L-BFGS-B",
@@ -195,6 +206,12 @@ execute_optimization <- function(target_counts_df,
                            obs_target_v = observed_targets_vector,
                            import_v = importance_weights_vector,
                            inc_mtx = incidence_matrix)
+  
+  cat("Information: Optimization run time = ", 
+      as.character(round((proc.time() - start_time)[1], digits = 2)),
+      " seconds; ",
+      as.character(round(((proc.time() - start_time)[1])/60.0, digits = 2)),
+      "minutes.\n")
   
   sum_unique_weights <- as.data.frame(t(coef(optimx_results)))
   names(sum_unique_weights)[1] <- "sum_weights"
