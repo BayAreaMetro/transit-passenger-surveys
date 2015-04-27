@@ -144,7 +144,7 @@ execute_optimization <- function(target_counts_df,
     variable_names <- variable_names$survey_variable
     
     # Account for all_routes exception
-    if (length(variable_names) == 1) next
+    if (variable_names[1] == all_routes_string) next
     
     # Build the formula string that we'll use in the casting
     formula_string <- ""
@@ -188,11 +188,12 @@ execute_optimization <- function(target_counts_df,
   
   # Prepare the upper and lower bound vectors
   unique_weights <- unique_weights %>%
-    mutate(minimum_weights = records * rw_lower_scalar) %>%
-    mutate(maximum_weights = records * rw_upper_scalar)
+    mutate(minimum_weights  = records * rw_lower_scalar) %>%
+    mutate(maximum_weights  = records * rw_upper_scalar) %>%
+    mutate(midpoint_weights = (minimum_weights + maximum_weights)/2.0)
   
-  # Set the starting weights as the minimum weights
-  starting_weights_vector <- unique_weights$minimum_weights
+  # Set the starting weights as the mid-point between the minimum and maximum weights
+  starting_weights_vector <- unique_weights$midpoint_weights
   
   # Run the optimization and record the time
   start_time <- proc.time()
