@@ -1,5 +1,5 @@
 ---
-title: "Build-Caltrain-Expansion-Inputs"
+title: "Build-Caltrain-Expansion-Inputs-Approach-Two"
 author: "David Ory"
 html_document:
     toc: true
@@ -19,7 +19,7 @@ seems to be working; may need to iterate after expansion is worked out
 Build the `observed targets` and the `observed targets definitions` files for the Caltrain surveys.  The targets will be as follows:
 
 1.  Category `A` - system ridership
-2.  Category `B` - ridership by boarding station, alighting station, and time of day
+2.  Category `B` - ridership by boarding station and alighting station
 3.  Category `C` - ridership by line number
 4.  Category `D` - ridership by service type (local, limited, baby bullet)
 
@@ -56,9 +56,9 @@ line_ridership <- read.table(file = F_LINE, header = TRUE, sep = ",", stringsAsF
 #### Definitions
 ```{r definitions}
 # Definitions
-observed_targets_defn <- data.frame(target_category_id = c("A", "B", "B", "B", "C", "D"), 
+observed_targets_defn <- data.frame(target_category_id = c("A", "B", "B", "C", "D"), 
                                     survey_variable    = c("all_routes",
-                                                           "board_station", "alight_station", "time_period",
+                                                           "board_station", "alight_station",
                                                            "line_number",
                                                            "service_type"))
 
@@ -81,12 +81,11 @@ sum(survey$LINKED_WGT_FCTR_RTD)
 
 # Counts
 observed_targets <- data.frame(target_count       = c(43400), 
-                               importance_weight  = c(10),
+                               importance_weight  = c(30),
                                target_category_id = c("A"),
                                line_number        = c(NA),
                                board_station      = c(NA),
                                alight_station     = c(NA),
-                               time_period        = c(NA),
                                service_type       = c(NA))
 
 ```
@@ -94,15 +93,14 @@ observed_targets <- data.frame(target_count       = c(43400),
 #### Category B
 ```{r b-targets}
 target_b <- survey %>%
-  group_by(ENTER_STATION, EXIT_STATION, TIME_PERIOD) %>%
+  group_by(ENTER_STATION, EXIT_STATION) %>%
   summarise(target_count = sum(LINKED_WGT_FCTR_BtoA)) %>%
   ungroup() %>%
   mutate(target_category_id = "B") %>%
-  mutate(importance_weight = 1) %>%
+  mutate(importance_weight = 20) %>%
   mutate(line_number = NA) %>%
   rename(board_station  = ENTER_STATION) %>%
   rename(alight_station = EXIT_STATION) %>%
-  rename(time_period = TIME_PERIOD) %>%
   mutate(service_type = NA)
 
 # Bind with A
@@ -118,10 +116,9 @@ target_c <- line_ridership %>%
   mutate(target_count = total_boardings * 43400.0 / 52615.0) %>%
   select(-total_boardings) %>%
   mutate(target_category_id = "C") %>%
-  mutate(importance_weight = 5) %>%
+  mutate(importance_weight = 1) %>%
   mutate(board_station = NA) %>%
   mutate(alight_station = NA) %>%
-  mutate(time_period = NA) %>%
   mutate(service_type = NA)
 
 # Bind with A+B
@@ -147,11 +144,10 @@ target_d <- target_d %>%
   filter(!is.na(service_type)) %>%
   mutate(target_count = target_count * 43400.0 / 52615.0) %>%
   mutate(target_category_id = "D") %>%
-  mutate(importance_weight = 50) %>%
+  mutate(importance_weight = 2) %>%
   mutate(line_number = NA) %>%
   mutate(board_station = NA) %>%
-  mutate(alight_station = NA) %>%
-  mutate(time_period = NA)
+  mutate(alight_station = NA)
 
 names(observed_targets)
 names(target_d)
@@ -169,19 +165,18 @@ observed_targets <- cbind(target_id, observed_targets)
 ## Data writes
 ```{r writes}
 write.csv(observed_targets_defn, 
-          file = paste(output_dir, "observed-target-definitions.csv", sep = ""), 
+          file = paste(output_dir, "observed-target-definitions-two.csv", sep = ""), 
           row.names = FALSE, 
           quote = F)
 
-save(observed_targets_defn, file = paste(output_dir, "observed-target-definitions.Rdata", sep = ""))
+save(observed_targets_defn, file = paste(output_dir, "observed-target-definitions-two.Rdata", sep = ""))
 
 write.csv(observed_targets, 
-          file = paste(output_dir, "observed-target-counts.csv", sep = ""), 
+          file = paste(output_dir, "observed-target-counts-two.csv", sep = ""), 
           row.names = FALSE, 
           quote = F)
 
-save(observed_targets, file = paste(output_dir, "observed-target-counts.Rdata", sep = ""))
+save(observed_targets, file = paste(output_dir, "observed-target-counts-two.Rdata", sep = ""))
 
 
 ```
-

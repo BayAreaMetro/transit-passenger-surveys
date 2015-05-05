@@ -98,7 +98,7 @@ execute_optimization <- function(target_counts_df,
     if (!(check_variables[i] %in% names(survey_df))) {
       cat("Error: The target definitions file includes \'", check_variables[i], "\', but the survey file does not.\n")
       cat("The survey data is returned without weights computed.")
-      return(survey)
+      return(survey_df)
     }
   }
   
@@ -193,13 +193,14 @@ execute_optimization <- function(target_counts_df,
     mutate(midpoint_weights = (minimum_weights + maximum_weights)/2.0)
   
   # Set the starting weights as the mid-point between the minimum and maximum weights
-  starting_weights_vector <- unique_weights$midpoint_weights
+  starting_weights_vector <- unique_weights$minimum_weights
   
   # Run the optimization and record the time
   start_time <- proc.time()
   optimx_results <- optimx(starting_weights_vector,
                            fn = optimization_function,
                            method = "L-BFGS-B",
+                           itnmax = 500,
                            lower = unique_weights$minimum_weights,
                            upper = unique_weights$maximum_weights,
                            obs_target_v = observed_targets_vector,
@@ -219,10 +220,10 @@ execute_optimization <- function(target_counts_df,
   
   survey_summary <- survey_summary %>%
     mutate(record_weight = sum_weights / records) %>%
-    select(-sum_weights, -records)
+    select(-sum_weights, -records, -minimum_weights, -maximum_weights, -midpoint_weights)
   
-  survey <- left_join(survey, survey_summary, by = unique_variables$survey_variable)
+  survey_df <- left_join(survey_df, survey_summary, by = unique_variables$survey_variable)
   
-  return(survey)
+  return(survey_df)
 }
 

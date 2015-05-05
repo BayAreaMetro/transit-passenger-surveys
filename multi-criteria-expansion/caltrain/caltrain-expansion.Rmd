@@ -10,20 +10,13 @@ runtime: shiny
 ## Administration
 
 #### Status
-seems to be working, though the optimization currently takes 20 hours
+seems to be working, though the optimization currently takes over 50 hours
 
 #### TODO
-0. is run time a function of wildly inconsistent targets? re-scale target C to find out
-
-1. when done, merge into standard database?
-
-2. narrow the range of the bounds so it runs faster
-
-3. rebuild the targets with the on/off counts from the sampling plan?
-
+1.  explore different importance weighting schemes to find one i like 
 
 #### Purpose
-The Caltrain survey was expanded by the consultant two ways: (a) by boarding station, alighting station, and time of day; and, (b) by route, time, and direction.  These two expansions were done independently.
+The Caltrain survey was expanded by the consultant two ways: (a) by boarding station, alighting station, and time of day; and, (b) by route, time, and direction (with asserted maximum weights).  These two expansions were done independently.
 
 Here, we use the multi-criteria transit expansion procedures to expand the survey using the following targets:
 
@@ -41,7 +34,7 @@ See `build-caltrain-expansion-inputs.Rmd` for the cross-walk from the survey to 
 source("../method-library.R")
 library(knitr)
 suppressMessages(library(dplyr))
-library(ggplot2)
+suppressMessages(library(ggplot2))
 ```
 
 ```{r setup, include=FALSE}
@@ -54,8 +47,8 @@ knitr::opts_chunk$set(cache=TRUE)
 input_dir <- "M:/Data/OnBoard/Data and Reports/Caltrain/" 
 
 F_SURVEY  <- paste(input_dir, "As CSV/Caltrain_Final_Submitted_1_5_2015_withSERVICETYPE NO POUND OR SINGLE QUOTE.csv", sep = "")
-F_TARGETS <- paste(input_dir, "multi-criteria-expansion/observed-target-counts.Rdata", sep = "")
-F_DEFNS   <- paste(input_dir, "multi-criteria-expansion/observed-target-definitions.Rdata", sep = "")
+F_TARGETS <- paste(input_dir, "multi-criteria-expansion/observed-target-counts-two.Rdata", sep = "")
+F_DEFNS   <- paste(input_dir, "multi-criteria-expansion/observed-target-definitions-two.Rdata", sep = "")
 
 survey <- read.table(file = F_SURVEY, header = TRUE, sep = ",", stringsAsFactors = FALSE)
 load(F_TARGETS)
@@ -81,23 +74,13 @@ survey <- survey %>%
 ## Optimization
 ```{r optimization}
 record_weight_lower_bound = 1.0
-record_weight_upper_bound = 40.0
+record_weight_upper_bound = 300.0
 
 survey_with_results <- execute_optimization(observed_targets, 
                                             observed_targets_defn,
                                             survey,
                                             record_weight_lower_bound,
                                             record_weight_upper_bound) 
-```
-
-```{r debug}
-# target_counts_df <- observed_targets
-# targets_defn_df <- observed_targets_defn
-# survey_df <- survey
-# rw_lower_scalar <- record_weight_lower_bound
-# rw_upper_scalar <- record_weight_upper_bound
-# 
-
 ```
 
 ## Convenience methods
@@ -145,15 +128,9 @@ observed_targets_defn <- observed_targets_defn %>%
 # Target A
 target <- observed_targets %>%
   filter(target_category_id == "A")
-cat("Original B/A: ", abs(sum(survey_with_results$weight_bat) - sum(target$target_count)))
-cat("Original RTD: ", abs(sum(survey_with_results$weight_rtd) - sum(target$target_count)))
-cat("Optimal     : ", abs(sum(survey_with_results$record_weight) - sum(target$target_count)))
-
-# Target A
-rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey_with_results, "A")
-rmse_vector[1]
-rmse_vector[2]
-rmse_vector[3]
+abs(sum(survey_with_results$weight_bat) - sum(target$target_count))
+abs(sum(survey_with_results$weight_rtd) - sum(target$target_count))
+abs(sum(survey_with_results$record_weight) - sum(target$target_count))
 
 # Target B
 rmse_vector <- compute_target_rmse(observed_targets, observed_targets_defn, survey_with_results, "B")
@@ -194,5 +171,12 @@ ggplot(chart_data, aes (x = weight, fill = type, binwidth = 1.0)) +
   xlab("Survey Record Weight") + 
   ylab("Density")
 
+```
+
+## Write
+```{r write}
+F_OUT <- paste(input_dir, "multi-criteria-expansion/optimal-weights.csv", sep = "")
+
+write.csv(survey_with_results, file = F_OUT, row.names = FALSE, quote = F)
 ```
 
