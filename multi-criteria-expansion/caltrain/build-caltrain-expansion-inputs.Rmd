@@ -10,10 +10,7 @@ runtime: shiny
 ## Administration
 
 #### Status
-seems to be working; may need to iterate after expansion is worked out
-
-#### TODO
-1. Is it worth re-building the Category `B` targets from the source data?
+seems to be working
 
 #### Purpose
 Build the `observed targets` and the `observed targets definitions` files for the Caltrain surveys.  The targets will be as follows:
@@ -81,7 +78,7 @@ sum(survey$LINKED_WGT_FCTR_RTD)
 
 # Counts
 observed_targets <- data.frame(target_count       = c(43400), 
-                               importance_weight  = c(10),
+                               importance_weight  = c(1),
                                target_category_id = c("A"),
                                line_number        = c(NA),
                                board_station      = c(NA),
@@ -118,7 +115,7 @@ target_c <- line_ridership %>%
   mutate(target_count = total_boardings * 43400.0 / 52615.0) %>%
   select(-total_boardings) %>%
   mutate(target_category_id = "C") %>%
-  mutate(importance_weight = 5) %>%
+  mutate(importance_weight = 1) %>%
   mutate(board_station = NA) %>%
   mutate(alight_station = NA) %>%
   mutate(time_period = NA) %>%
@@ -147,7 +144,7 @@ target_d <- target_d %>%
   filter(!is.na(service_type)) %>%
   mutate(target_count = target_count * 43400.0 / 52615.0) %>%
   mutate(target_category_id = "D") %>%
-  mutate(importance_weight = 50) %>%
+  mutate(importance_weight = 1) %>%
   mutate(line_number = NA) %>%
   mutate(board_station = NA) %>%
   mutate(alight_station = NA) %>%

@@ -10,10 +10,8 @@ runtime: shiny
 ## Administration
 
 #### Status
-seems to be working, though the optimization currently takes over 50 hours
+seems to be working
 
-#### TODO
-1.  explore different importance weighting schemes to find one i like 
 
 #### Purpose
 The Caltrain survey was expanded by the consultant two ways: (a) by boarding station, alighting station, and time of day; and, (b) by route, time, and direction (with asserted maximum weights).  These two expansions were done independently.
@@ -47,8 +45,8 @@ knitr::opts_chunk$set(cache=TRUE)
 input_dir <- "M:/Data/OnBoard/Data and Reports/Caltrain/" 
 
 F_SURVEY  <- paste(input_dir, "As CSV/Caltrain_Final_Submitted_1_5_2015_withSERVICETYPE NO POUND OR SINGLE QUOTE.csv", sep = "")
-F_TARGETS <- paste(input_dir, "multi-criteria-expansion/observed-target-counts-two.Rdata", sep = "")
-F_DEFNS   <- paste(input_dir, "multi-criteria-expansion/observed-target-definitions-two.Rdata", sep = "")
+F_TARGETS <- paste(input_dir, "multi-criteria-expansion/observed-target-counts.Rdata", sep = "")
+F_DEFNS   <- paste(input_dir, "multi-criteria-expansion/observed-target-definitions.Rdata", sep = "")
 
 survey <- read.table(file = F_SURVEY, header = TRUE, sep = ",", stringsAsFactors = FALSE)
 load(F_TARGETS)
