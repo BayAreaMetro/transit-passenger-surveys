@@ -1,0 +1,124 @@
+---
+title: "Build Database"
+author: "David Ory"
+output: 
+   html_document:
+      theme: cosmo
+      toc: yes
+---
+
+## Administration
+
+#### Purpose
+This script consumes, modifies, and consolidates data extracted from SF MTA's standard APC summary worksheets.  An Excel macro found in `extract_flat_file.xlsm` is used to extract a route-specific database from the standard MTA route-specific spreadsheets.  These databases are consumed here.  
+
+#### Outputs
+1.  A consolidated database of APC data
+
+#### TODO
+1. Push all the data through excel, through the script, check in tableau
+
+#### ISSUES
+
+## Procedure
+
+#### Overhead
+```{r overhead, results = 'hide'}
+library(knitr)
+library(reshape2)
+suppressMessages(library(dplyr))
+library(stringr)
+```
+
+```{r config, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+#### Remote I/O Locations
+```{r remote-io}
+F_INPUT_DIRECTORY  = "M:/Data/Transit/2015 APC/Muni/"
+
+F_OUTPUT = "M:/Data/Transit/2015 APC/Muni/consolidated-database.csv"
+
+INPUT_FILE_PREFIX = "2015_Winter"
+
+input_file_suffix_array = c("0001","__NX", "01AX")
+
+```
+
+
+#### Clean and re-shape data method
+```{r clean-method}
+clean_and_reshape_data <- function(input_file_suffix){
+  
+  # read in the data
+  input_file_name <- paste(F_INPUT_DIRECTORY, INPUT_FILE_PREFIX, input_file_suffix, ".csv", sep = "")
+  input_df <- read.table(file = input_file_name, header = TRUE, sep = ",", stringsAsFactors = FALSE, strip.white = TRUE)
+  
+  # cleaning step 1: variable tidying
+  output_df <- input_df %>%
+    filter(nchar(stop_location) > 3) %>%
+    
+    mutate(start_date = NA) %>%
+    mutate(end_date   = NA) %>%
+    mutate(start_date = ifelse(date_range == 'FEB02_MAR13_2015', as.Date("2015-02-02"), start_date)) %>%
+    mutate(end_date   = ifelse(date_range == 'FEB02_MAR13_2015', as.Date("2015-03-13"), end_date))   %>%
+    
+    mutate(week_part = ifelse(week_part == "_WEEKDAYS", "WEEKDAYS", week_part)) %>%
+    mutate(direction = ifelse(direction == "_INBOUND", "INBOUND", direction)) %>%
+    mutate(route = paste(route)) %>%
+    select(-date_range)
+  
+  # cleaning step 2: make variables from the strings
+  output_df <- cbind(output_df, colsplit(output_df$stop_location, "-", c("stop_sequence", "stop_location_two")))
+  
+  output_df <- output_df %>%
+    mutate(stop_sequence = as.numeric(stop_sequence)) %>%
+    mutate(stop_location = stop_location_two) %>%
+    select(-stop_location_two)
+  
+  output_df <- cbind(output_df, colsplit(output_df$capacity_str, "Capacity = ", c("delete_me", "capacity")))
+  
+  output_df <- output_df %>%
+    mutate(capacity = as.numeric(capacity)) %>%
+    select(-capacity_str, -delete_me)
+  
+  # reshape to get time dimension
+  output_df <- melt(output_df, id = c("start_date", "end_date", "week_part", 
+                                      "route", "direction", "stop_location", "stop_sequence", 
+                                      "capacity_std", "capacity")) 
+  
+  output_df <- cbind(output_df, colsplit(output_df$variable, "_", c("on_off", "time_of_day")))
+  
+  output_df <- output_df %>%
+    mutate(boardings = ifelse(on_off == "on", as.numeric(value), 0)) %>%
+    mutate(alightings = ifelse(on_off == "off", as.numeric(value), 0)) %>%
+    select(-variable, -value, -on_off)
+  
+  output_df <- output_df %>%
+    group_by(start_date, end_date, week_part, route, direction, stop_location, stop_sequence, 
+             time_of_day, capacity_std, capacity) %>%
+    summarise(boardings = sum(boardings), alightings = sum(alightings))
+  
+}
+```
+
+
+#### Execute the method
+```{r iterate-method}
+for (i in 1:length(input_file_suffix_array)) {
+  
+  output_one <- clean_and_reshape_data(input_file_suffix_array[i])
+  
+  if (i == 1) output_bind <- output_one
+  else output_bind <- rbind(output_bind, output_one)
+  
+}
+```
+
+#### Write to disk
+```{r write}
+write.csv(output_bind, file = F_OUTPUT, row.names = FALSE, quote = F)
+
+```
+
