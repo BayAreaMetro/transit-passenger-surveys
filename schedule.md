@@ -6,6 +6,7 @@ title: Schedule
 # Survey Schedule
 
 | **Operator**                     | **Field Start** | **Field End** | **Method**           |
+|:---------------------------------|:----------------|:--------------|:---------------------|
 | AC Transit                       | 2012 Sep        | 2012 Dec      | Paper recruit + CATI |
 | Altamont Commuter Express (ACE)  | 2014 Apr        | 2014 Apr      | Personal Interview   |
 | Bay Area Rapid Transit (BART)    | 2015 Feb        | 2015 Jun      | Personal Interview   |
