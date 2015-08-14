@@ -5,7 +5,7 @@ title: Papers
 
 # Policy Documents
 
-* Resolution 3866 -- Describes requirements of MTC and transit agencies.  [PDF](https://mtc.legistar.com/View.ashx?M=F&ID=3866249&GUID=9910CC33-E4BA-4709-BC52-63CAE8A856FB)
+* [Resolution 3866](https://mtc.legistar.com/View.ashx?M=F&ID=3866249&GUID=9910CC33-E4BA-4709-BC52-63CAE8A856FB) -- Describes requirements of MTC and transit agencies.
 
 # Working Papers
 
