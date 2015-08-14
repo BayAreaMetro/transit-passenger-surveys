@@ -3,4 +3,11 @@ layout: page
 title: Steering
 ---
 
-*Work in Progress*
+# Steering Committee Activities
+
+## Meeting 01
+Meeting has not yet been scheduled.
+
+### Agenda
+### Key Outcomes
+
