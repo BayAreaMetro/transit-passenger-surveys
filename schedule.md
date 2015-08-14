@@ -5,11 +5,6 @@ title: Schedule
 
 # Survey Schedule
 
-| **Statement**                                     | **Purpose**                                                                                           |
-|---------------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| `RunModel.MatrixServerAddress = 192.168.1.200`    | The IP address of the machine upon which the Matrix Manager is being executed (`satmodel1` at MTC)    |
-| `RunModel.HouseholdServerAddress = 192.168.1.200` | The IP address of the machine upon which the Household Manager is being executed (`satmodel1` at MTC) |
-
 
 | **Operator**                     | **Field Start** | **Field End** | **Method**           |
 |:---------------------------------|:----------------|:--------------|:---------------------|
