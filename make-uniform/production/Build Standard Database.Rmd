@@ -43,7 +43,10 @@ F_SPATIAL_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/s
 F_TRANSIT_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/boarding_alighting_places_geocoded.csv"
 
 F_CALTRAIN_SURVEY = "M:/Data/OnBoard/Data and Reports/Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv"
+
 F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv"
+
+F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_EditChecks_ALL_BATCHES_COMBINED_July19 NO POUND OR SINGLE QUOTE.csv"
 
 F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
 ```
@@ -66,7 +69,37 @@ dictionary.cat <- dictionary.all %>%
 
 ## Operator specifics
 
-### Caltrain Pilot
+### BART
+```{r operator-bart}
+survey.BAR.key  <- 'BART'
+survey.BAR.year <- 2015
+
+# Set survey tech by route if necessary in standard variables Step 8
+survey.BAR.tech <- 'heavy rail'
+
+# Prepare operator-specific dictionary
+dictionary.BAR <- dictionary.all %>%
+  filter(operator == survey.BAR.key)
+
+variables.BAR <- as.character(factor(unique(unlist(dictionary.BAR$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.BAR <- read.csv(F_BART_SURVEY, header = TRUE)
+survey.BAR.select <- survey.BAR[ ,variables.BAR]
+
+# Reshape the data
+survey.BAR.melt <- melt(survey.BAR.select, id = 'ID')
+survey.BAR.melt <- select(survey.BAR.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.BAR.melt <- mutate(survey.BAR.melt, operator = survey.BAR.key)
+survey.BAR.melt <- mutate(survey.BAR.melt, survey_year = survey.BAR.year)
+survey.BAR.melt <- mutate(survey.BAR.melt, survey_tech = survey.BAR.tech)
+
+# Clean up
+remove(survey.BAR.key, survey.BAR.year, survey.BAR.tech, dictionary.BAR, variables.BAR, survey.BAR, survey.BAR.select)
+```
+
+
+### Caltrain
 ```{r operator-caltrain}
 survey.CAL.key  <- 'Caltrain'
 survey.CAL.year <- 2014
