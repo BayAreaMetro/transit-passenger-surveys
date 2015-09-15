@@ -16,7 +16,9 @@ Procedure to translate any number of on-board survey data sets into a single dat
 1.  Work carefully through first few datasets, as the code is a bit coarse in places
 
 #### _TODO_
-
+1.  Make sure BART has all the Napa and Caltrain variables before casting
+2.  Check to make sure BART IDs are unique
+3.  Finish BART debugging
 
 ## Overhead
 
@@ -86,6 +88,13 @@ variables.BAR <- as.character(factor(unique(unlist(dictionary.BAR$Survey_Variabl
 # Read data and select variables of interest
 survey.BAR <- read.csv(F_BART_SURVEY, header = TRUE)
 survey.BAR.select <- survey.BAR[ ,variables.BAR]
+
+# TODO: make sure BART IDs are unique
+debug <- survey.BAR %>%
+  group_by(ID) %>%
+  summarise(count = n())
+
+table(debug$count)
 
 # Reshape the data
 survey.BAR.melt <- melt(survey.BAR.select, id = 'ID')
@@ -159,7 +168,7 @@ remove(survey.NAP.key, survey.NAP.year, survey.NAP.tech, dictionary.NAP, variabl
 
 ## Combine across operators and flatten
 ```{r combine}
-survey.combine <- rbind(survey.CAL.melt, survey.NAP.melt)
+survey.combine <- rbind(survey.BAR.melt, survey.CAL.melt, survey.NAP.melt)
 
 # Join the dictionary and prepare the categorical variables
 survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
@@ -201,7 +210,7 @@ survey.adds <- survey.combine %>%
 survey.flat <- left_join(survey.flat, survey.adds, by = c("ID", "operator", "survey_year"))
 
 remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat, survey.adds)
-remove(survey.CAL.melt, survey.NAP.melt)
+remove(survey.BAR, melt, survey.CAL.melt, survey.NAP.melt)
 
 ```
 
