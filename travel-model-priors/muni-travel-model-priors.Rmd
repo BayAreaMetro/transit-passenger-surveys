@@ -34,28 +34,42 @@ knitr::opts_chunk$set(cache=TRUE)
 
 #### Remote I/O Locations
 ```{r remote-io}
-F_APC = "M:/Data/Transit/Muni APC Through Time/consolidated-database.csv"
-F_RAIL_DUMMY_APC = ""
-F_CHAMP = ""
-F_CROSSWALK = ""
-F_SEGMENTS = ""
-F_OUTPUT = ""
+F_APC_COUNTS     = "M:/Data/Transit/Muni APC Through Time/consolidated-database.csv"
+F_CHAMP_FLOWS    = ""
+F_RAIL_DMY_APC   = "M:/Data/Transit/Muni APC Through Time/_placeholder/dummy-rail-database.csv"
+F_APC_SEGMENTS   = "muni-apc-segments-database.csv"
+F_CHAMP_SEGMENTS = "muni-champ-segments-database.csv"
+
+F_OUTPUT = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/test-output-priors.csv"
+```
+
+#### Data reads
+```{r data-reads}
+
+apc_counts <- read.table(file = F_APC_COUNTS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+rail_counts <- read.table(file = F_RAIL_DMY_APC, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+apc_segments <- read.table(file = F_APC_SEGMENTS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+champ_segments <- read.table(file = F_CHAMP_SEGMENTS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
 ```
 
 
 # Rough outline of steps
 1.  Get the segment data from Shimon/Alex
 1.  Build the crosswalk which has an entry for each: Muni APC key and APC sequence number.  It then has multiple entries for CHAMP key and CHAMP sequence number.  Do this for five big lines first.
-1.  Create dummy entries in the APC data for the light rail lines using the CHAMP output.  Then add these lines to the dummy cross walk.
+1.  Create dummy entries in the APC data for the light rail lines using the CHAMP output.  Then add these lines to the dummy cross walk.  
 1.  Create a segment data base from the segment spreadsheet.  It has APC key, APC sequence number, and segment letter (e.g., A, B, C, ...). 
 1.  Read in all of the data.
 1.  Start with one line for one time of day.
-1.  Join the APC data with the segment database to get the segment letter for each stop.
-1.  Join the CHAMP data to the crosswalk and the segment database to get the boarding and alighting segment letter
+1.  Join the APC data with the apc segment database to get the segment letter for each stop.
+1.  Join the CHAMP data to the champ segment database to get the boarding and alighting segment letter
 1.  So, for each line, direction, and time-of-day, we'll summarize the CHAMP data to get flows by boarding segment and alighting segment.  Then we'll summarize APC to get boardings by segment and, separately, alighting by segment.
 1.  The APC sums are my marginals.  The CHAMP sums are my seed.  Try the log-linear approach.  See loglin-reference chunk.  Data frame to matrices reference: http://stackoverflow.com/questions/5158790/data-frame-or-matrix
 1.  Once you get it for one, create a function and loop by time-of-day and route.
 1.  Write out in a logical database.  Something like: APC name, direction, time-of-day, boarding segment, alighting segment, estimated flow.
+1.  Automate the creation of the rail counts/marginals
+1.  Build out the crosswalks per the actual segments
 
 ```{r loglin-reference}
 mat <- matrix(c(65,4,22,24,6,81,5,8,0,11,85,19,4,7,3,90),4,4)
