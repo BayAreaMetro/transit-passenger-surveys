@@ -16,7 +16,17 @@ This script consumes boarding and alighting data from SF Muni automated passenge
 1.  A consolidated database of flow estimates
 
 #### _TODO_
-1.  Everything, early days
+0.  Incorporate Drew's consolidated file
+1.  Scale rail boardings by some observed number
+2.  Build and apply time of day crosswalk
+3.  Select one route by one direction and time of day category for demo log-lin application
+4.  Generalize application for all routes and time of day categories
+5.  Select output format and test
+6.  Socialize progress
+7.  Build out cross-walk databases (assistance?)
+8.  Build out rail cross-walk databases
+9.  Generate rail estimates (which are simply the scaled model results)
+10.  Separate script: generic chi-squared tester using this as an input file and a standard survey input file
 
 ## Procedure
 
@@ -35,8 +45,7 @@ knitr::opts_chunk$set(cache=TRUE)
 #### Remote I/O Locations
 ```{r remote-io}
 F_APC_COUNTS     = "M:/Data/Transit/Muni APC Through Time/consolidated-database.csv"
-F_CHAMP_FLOWS    = ""
-F_RAIL_DMY_APC   = "M:/Data/Transit/Muni APC Through Time/_placeholder/dummy-rail-database.csv"
+F_CHAMP_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/champ-flows/test-flows.csv"
 F_APC_SEGMENTS   = "muni-apc-segments-database.csv"
 F_CHAMP_SEGMENTS = "muni-champ-segments-database.csv"
 
@@ -45,32 +54,114 @@ F_OUTPUT = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/test-outpu
 
 #### Data reads
 ```{r data-reads}
-
-apc_counts <- read.table(file = F_APC_COUNTS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
-rail_counts <- read.table(file = F_RAIL_DMY_APC, header = TRUE, sep = ",", stringsAsFactors = FALSE)
-
-apc_segments <- read.table(file = F_APC_SEGMENTS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+apc_counts     <- read.table(file = F_APC_COUNTS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+champ_flows    <- read.table(file = F_CHAMP_FLOWS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+apc_segments   <- read.table(file = F_APC_SEGMENTS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
 champ_segments <- read.table(file = F_CHAMP_SEGMENTS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+```
+
+#### Prepare CHAMP data
+```{r prep-champ}
+champ_df <- champ_flows %>%
+  select(champ_name, board_stop_sequence = SeqA, alight_stop_sequence = SeqB, time_of_day = TimeOfDay, flow = Trips)
+
+# First join to get APC route name and direction
+join_A <- champ_segments %>%
+  group_by(champ_name, apc_route, apc_direction) %>%
+  summarise(count = n()) %>%
+  select(-count)
+champ_df <- left_join(champ_df, join_A, by = c("champ_name"))
+
+# Next join the boarding segment
+join_B <- champ_segments %>%
+  select(champ_name, 
+         champ_board_stop_location = stop_location, 
+         board_stop_sequence = stop_sequence, 
+         board_segment = segment)
+champ_df <- left_join(champ_df, join_B, by = c("champ_name", "board_stop_sequence"))
+
+# Next join the alighting segment
+join_C <- champ_segments %>%
+  select(champ_name, 
+         champ_alight_stop_location = stop_location, 
+         alight_stop_sequence = stop_sequence, 
+         alight_segment = segment)
+champ_df <- left_join(champ_df, join_C, by = c("champ_name", "alight_stop_sequence"))
+
+# Summarize
+champ_sum <- champ_df %>%
+  group_by(champ_name, apc_route, apc_direction, time_of_day, board_segment, alight_segment) %>%
+  summarise(flow = sum(flow))
+
+# Q/A
+check <- champ_sum %>%
+  group_by(apc_route, apc_direction) %>%
+  summarise(boardings = sum(flow))
+
+head(check, n = 20)
+
+remove(join_A, join_B, join_C, check, champ_df)
 
 ```
 
+#### Extract rail counts from CHAMP data
+# TODO 
+scale by actual ridership daily estimate
+```{r rail-counts-from-champ}
+# Build a crosswalk
+champ_name   = c("MUNFI", "MUNFO", "MUNJI", "MUNJO", "MUNKI", "MUNKO", "MUNLI", "MUNLO", "MUNMI", "MUNMO", "MUNNI", "MUNNO")
+rail_names <- data.frame(champ_name)
+rail_names <- rail_names %>%
+  mutate(is_rail = TRUE)
 
-# Rough outline of steps
-1.  Get the segment data from Shimon/Alex
-1.  Build the crosswalk which has an entry for each: Muni APC key and APC sequence number.  It then has multiple entries for CHAMP key and CHAMP sequence number.  Do this for five big lines first.
-1.  Create dummy entries in the APC data for the light rail lines using the CHAMP output.  Then add these lines to the dummy cross walk.  
-1.  Create a segment data base from the segment spreadsheet.  It has APC key, APC sequence number, and segment letter (e.g., A, B, C, ...). 
-1.  Read in all of the data.
-1.  Start with one line for one time of day.
-1.  Join the APC data with the apc segment database to get the segment letter for each stop.
-1.  Join the CHAMP data to the champ segment database to get the boarding and alighting segment letter
-1.  So, for each line, direction, and time-of-day, we'll summarize the CHAMP data to get flows by boarding segment and alighting segment.  Then we'll summarize APC to get boardings by segment and, separately, alighting by segment.
-1.  The APC sums are my marginals.  The CHAMP sums are my seed.  Try the log-linear approach.  See loglin-reference chunk.  Data frame to matrices reference: http://stackoverflow.com/questions/5158790/data-frame-or-matrix
-1.  Once you get it for one, create a function and loop by time-of-day and route.
-1.  Write out in a logical database.  Something like: APC name, direction, time-of-day, boarding segment, alighting segment, estimated flow.
-1.  Automate the creation of the rail counts/marginals
-1.  Build out the crosswalks per the actual segments
+# Extract the data
+rail_df <- left_join(champ_sum, rail_names, by = c("champ_name"))
+rail_df <- na.omit(rail_df)
 
+# Boardings, then alightings
+rail_board <- rail_df %>%
+  select(apc_route, apc_direction, segment = board_segment, time_of_day, boardings = flow) %>%
+  group_by(apc_route, apc_direction, segment, time_of_day) %>%
+  summarise(boardings = sum(boardings))
+
+rail_alight <- rail_df %>%
+  select(apc_route, apc_direction, segment = alight_segment, time_of_day, alightings = flow) %>%
+  group_by(apc_route, apc_direction, segment, time_of_day) %>%
+  summarise(alightings = sum(alightings))
+
+# Join
+rail_counts <- merge(rail_board, rail_alight, by = c("apc_route", "apc_direction", "time_of_day", "segment"), all = TRUE)
+
+remove(rail_board, rail_alight, rail_names, champ_name, rail_df)
+
+```
+
+#### Prepare APC data 
+```{r prep-apc}
+# Join with the rail data
+apc_df <- rbind(apc_counts, rail_counts)
+
+# Select one tranche of counts and the data I need
+apc_df <- apc_df %>%
+  filter(start_date == "2015-02-02" | start_date == "2/2/2015") %>%
+  filter(week_part == "WEEKDAYS") %>%
+  select(route, direction, stop_location, stop_sequence, time_of_day, boardings, alightings)
+
+# Join the segments and filter
+apc_df <- left_join(apc_df, apc_segments, by = c("route", "direction", "stop_sequence"))
+apc_df <- na.omit(apc_df)
+
+table(apc_df$route)
+
+# Sum by segment
+apc_sum <- apc_df %>%
+  group_by(route, direction, time_of_day, segment) %>%
+  summarise(boardings = sum(boardings), alightings = sum(alightings))
+
+```
+
+# Reference
+Apply a log linear model to do IPF efficiently
 ```{r loglin-reference}
 mat <- matrix(c(65,4,22,24,6,81,5,8,0,11,85,19,4,7,3,90),4,4)
 
