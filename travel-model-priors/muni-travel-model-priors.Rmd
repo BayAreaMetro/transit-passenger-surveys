@@ -16,6 +16,9 @@ This script consumes boarding and alighting data from SF Muni automated passenge
 1.  A consolidated database of flow estimates
 
 #### _TODO_
+1.  Confirm that balancing is working
+2.  Catch and handle function errors
+3.  Add functionality to do daily sums
 4.  Generalize application for all routes and time of day categories
 5.  Select output format and test
 6.  Socialize progress
@@ -49,14 +52,22 @@ time_of_day_df <- data.frame(apc_time_of_day, champ_time_of_day)
 
 # Observed rail ridership
 #             F In  F Out  J in J out   K in  K out   L in  L out   M in  M out   N in  N out
-OBS_RAIL = c(11304, 11304, 8157, 8157, 17763, 17763, 15488, 15488, 14326, 14326, 22166, 22166)   
+OBS_RAIL = c(11304, 11304, 8157, 8157, 17763, 17763, 15488, 15488, 14326, 14326, 22166, 22166) 
+
+# Log linear fit parameters
+THRESH = 1.e-07
+ITER = 1000
 
 ```
 
 #### Remote I/O Locations
 ```{r remote-io}
-F_APC_COUNTS     = "M:/Data/Transit/Muni APC Through Time/consolidated-database.csv"
-F_CHAMP_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/champ-flows/Muni_OD_no_pound.csv"
+# F_APC_COUNTS     = "M:/Data/Transit/Muni APC Through Time/consolidated-database.csv"
+# F_CHAMP_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/champ-flows/Muni_OD_no_pound.csv"
+
+F_APC_COUNTS     = "~DavidWork/Documents/consolidated-database.csv"
+F_CHAMP_FLOWS    = "~DavidWork/Documents/Muni_OD_no_pound.csv"
+
 F_APC_SEGMENTS   = "muni-apc-segments-database.csv"
 F_CHAMP_SEGMENTS = "muni-champ-segments-database.csv"
 
@@ -204,96 +215,170 @@ remove(to_champ_time, apc_df)
 
 ```
 
-# Demo calculations
-```{r demo-calcs}
-select_route = "1"
-select_direction = "INBOUND"
-select_time_of_day = "AM"
-
-# Build the row marginals (boardings)
-boardings_df <- apc_sum %>%
-  ungroup() %>%
-  filter(route == select_route) %>%
-  filter(direction == select_direction) %>%
-  filter(time_of_day == select_time_of_day) %>%
-  arrange(segment) %>%
-  select(boardings)
-
-# Build the column marginals (alightings)
-alightings_df <- apc_sum %>%
-  ungroup() %>%
-  filter(route == select_route) %>%
-  filter(direction == select_direction) %>%
-  filter(time_of_day == select_time_of_day) %>%
-  arrange(segment) %>%
-  select(alightings)
-
-# Build the seed matrix (champ flows)
-seed_df <- champ_sum %>%
-  ungroup() %>%
-  filter(apc_route == select_route) %>%
-  filter(apc_direction == select_direction) %>%
-  filter(time_of_day == select_time_of_day) %>%
-  select(board_segment, alight_segment, flow)
-
-mtx_rows = length(unique(seed_df$board_segment))
-mtx_cols = length(unique(seed_df$alight_segment))
-mtx_dims = max(mtx_rows, mtx_cols)
-
-# Fill in missing rows (TODO: make more elegant)
-segment_lookup = c("A", "B", "C", "D", "E", "F", "G")
-for (i in 1:mtx_dims) {
+#### Row-column method
+```{r balancing-method}
+Balancing_Method <- function(select_route, select_direction, select_time_of_day, apc_df, champ_df) {
   
-  row_segment = segment_lookup[i]
+  # Build the row marginals (boardings)
+  boardings_df <- apc_df %>%
+    ungroup() %>%
+    filter(route == select_route) %>%
+    filter(direction == select_direction) %>%
+    filter(time_of_day == select_time_of_day) %>%
+    arrange(segment) %>%
+    select(boardings)
   
-  for (j in 1:mtx_dims) {
+  # Build the column marginals (alightings)
+  alightings_df <- apc_df %>%
+    ungroup() %>%
+    filter(route == select_route) %>%
+    filter(direction == select_direction) %>%
+    filter(time_of_day == select_time_of_day) %>%
+    arrange(segment) %>%
+    select(alightings)
+  
+  # Build the seed matrix (champ flows)
+  seed_df <- champ_df %>%
+    ungroup() %>%
+    filter(apc_route == select_route) %>%
+    filter(apc_direction == select_direction) %>%
+    filter(time_of_day == select_time_of_day) %>%
+    select(board_segment, alight_segment, flow)
+  
+  mtx_rows = length(unique(seed_df$board_segment))
+  mtx_cols = length(unique(seed_df$alight_segment))
+  mtx_dims = max(mtx_rows, mtx_cols)
+  
+  # Fill in missing rows (TODO: make more elegant)
+  segment_lookup = c("A", "B", "C", "D", "E", "F", "G")
+  for (i in 1:mtx_dims) {
     
-    col_segment = segment_lookup[j]
+    row_segment = segment_lookup[i]
     
-    work_df <- seed_df %>%
-      filter(board_segment  == row_segment) %>%
-      filter(alight_segment == col_segment) 
-    
-    if (nrow(work_df) == 0) {
-      board_segment  = c(row_segment)
-      alight_segment = c(col_segment)
+    for (j in 1:mtx_dims) {
       
-      # Use a seed of one unless it's going backwards
-      flow = c(1L)
-      if (i > j) flow = 0
+      col_segment = segment_lookup[j]
       
-      seed_df <- rbind(seed_df, data.frame(board_segment, alight_segment, flow))
+      work_df <- seed_df %>%
+        filter(board_segment  == row_segment) %>%
+        filter(alight_segment == col_segment) 
+      
+      if (nrow(work_df) == 0) {
+        board_segment  = c(row_segment)
+        alight_segment = c(col_segment)
+        
+        # Use a seed of one unless it's going backwards
+        flow = c(1L)
+        if (i > j) flow = 0
+        
+        seed_df <- rbind(seed_df, data.frame(board_segment, alight_segment, flow))
+        }
+      
+      } # j
+    } # i
+  
+  seed_df <- seed_df %>%
+    arrange(alight_segment, board_segment)
+  
+  seed_matrix <- matrix(seed_df$flow, mtx_dims, mtx_dims)
+  
+  # Fit the model
+  fit_matrix <- loglin(outer(boardings_df$boardings, alightings_df$alightings) / sum(boardings_df$boardings), 
+                       margin = list(1,2), 
+                       start = seed_matrix, 
+                       fit = TRUE, eps = THRESH, 
+                       iter = ITER)$fit
+  
+  # Put the fit matrix back into a data frame
+  output_df <- seed_df
+  for (i in 1:mtx_dims) {
+    boarding_segment = c(segment_lookup[i])
+    for (j in 1:mtx_dims) {
+      output_df <- output_df %>%
+        mutate(flow = ifelse(board_segment == segment_lookup[i] & alight_segment == segment_lookup[j], fit_matrix[i,j], flow))
       }
-    
+    }
+  
+  output_df <- output_df %>%
+    mutate(route = select_route) %>%
+    mutate(direction = select_direction) %>%
+    mutate(time_of_day = select_time_of_day) %>%
+    filter(flow > 0)
+  
+  return(output_df)
+  
+  }
+
+```
+
+#### Apply method
+```{r apply-method}
+route_vector <- unique(apc_sum$route)
+#direction_vector <- c("INBOUND", "OUTBOUND")
+#time_of_day_vector <- c("AM", "MD", "PM")
+
+direction_vector <- c("INBOUND")
+time_of_day_vector <- c("AM")
+
+# First route
+print(paste("Route: ", route_vector[1], 
+            "  Direction: ", direction_vector[1], 
+            "  Time of Day: ", time_of_day_vector[1], sep = ""))
+output_df <- Balancing_Method(route_vector[1], 
+                              direction_vector[1], 
+                              time_of_day_vector[1],
+                              apc_sum, champ_sum)
+
+# Rest of the routes
+for (i in 1:length(route_vector)) {
+  for (j in 1:length(direction_vector)) {
+    for (k in 1:length(time_of_day_vector)) {
+      
+      if (!(i == 1 & j == 1 & k == 1)) {
+        
+        print(paste("Route: ", route_vector[i], 
+                    "  Direction: ", direction_vector[j], 
+                    "  Time of Day: ", time_of_day_vector[k], sep = ""))
+        
+        work_df <- Balancing_Method(route_vector[i], 
+                                    direction_vector[j], 
+                                    time_of_day_vector[k],
+                                    apc_sum, champ_sum)
+        output_df <- rbind(output_df, work_df)
+        }
+      
+      } # k
     } # j
   } # i
+```
 
-seed_df <- seed_df %>%
-  arrange(alight_segment, board_segment)
+#### Write output to disk
+TODO
 
-seed_matrix <- matrix(seed_df$flow, mtx_dims, mtx_dims)
 
-# Fit the model
-fit_matrix <- loglin(outer(boardings_df$boardings, alightings_df$alightings) / sum(boardings_df$boardings), 
-                     margin = list(1,2), start = seed_matrix, fit = TRUE, eps = 1.e-05, iter = 100)$fit
+# DEBUG
+```{r debug}
+compare_champ <- champ_sum %>%
+  rename(route = apc_route, direction = apc_direction, champ_flow = flow)
 
-# Put the fit matrix back into a data frame
-output_df <- seed_df
-for (i in 1:mtx_dims) {
-  boarding_segment = c(segment_lookup[i])
-  for (j in 1:mtx_dims) {
-    output_df <- output_df %>%
-      mutate(flow = ifelse(board_segment == segment_lookup[i] & alight_segment == segment_lookup[j], fit_matrix[i,j], flow))
-  }
-}
+compare_champ <- left_join(output_df, compare_champ, by = c("route", "direction", "time_of_day", "board_segment", "alight_segment"))
 
-output_df <- output_df %>%
-  mutate(route = select_route) %>%
-  mutate(direction = select_direction) %>%
-  mutate(time_of_day = select_time_of_day) %>%
-  filter(flow > 0)
+one <- output_df %>%
+  group_by(route, direction, time_of_day, board_segment) %>%
+  summarise(boardings = sum(flow)) %>%
+  rename(segment = board_segment)
 
-# START HERE: do some QA/QC checks, then make it into a method
+two <- output_df %>%
+  group_by(route, direction, time_of_day, alight_segment) %>%
+  summarise(alightings = sum(flow)) %>%
+  rename(segment = alight_segment)
+
+compare_apc <- apc_sum %>%
+  rename(apc_boardings = boardings, apc_alightings = alightings)
+
+three <- left_join(one, two, by = c("route", "direction", "time_of_day", "segment"))
+compare_apc <- left_join(three, compare_apc, by = c("route", "direction", "time_of_day", "segment")) 
+
 
 ```
 
