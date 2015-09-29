@@ -16,8 +16,6 @@ This script consumes boarding and alighting data from SF Muni automated passenge
 1.  A consolidated database of flow estimates
 
 #### _TODO_
-1.  Scale rail boardings by some observed number
-3.  Select one route by one direction and time of day category for demo log-lin application
 4.  Generalize application for all routes and time of day categories
 5.  Select output format and test
 6.  Socialize progress
@@ -48,6 +46,10 @@ knitr::opts_chunk$set(cache=TRUE)
 champ_time_of_day = c("AM", "MD",  "MD",   "PM", "EV",  "EV",    "EV")
 apc_time_of_day   = c("am", "mid", "schl", "pm", "eve", "night", "owl")
 time_of_day_df <- data.frame(apc_time_of_day, champ_time_of_day)
+
+# Observed rail ridership
+#             F In  F Out  J in J out   K in  K out   L in  L out   M in  M out   N in  N out
+OBS_RAIL = c(11304, 11304, 8157, 8157, 17763, 17763, 15488, 15488, 14326, 14326, 22166, 22166)   
 
 ```
 
@@ -114,18 +116,35 @@ remove(join_A, join_B, join_C, check, champ_df)
 ```
 
 #### Extract rail counts from CHAMP data
-# TODO 
-scale by actual ridership daily estimate
 ```{r rail-counts-from-champ}
 # Build a crosswalk
-champ_name   = c("MUNFI", "MUNFO", "MUNJI", "MUNJO", "MUNKI", "MUNKO", "MUNLI", "MUNLO", "MUNMI", "MUNMO", "MUNNI", "MUNNO")
-rail_names <- data.frame(champ_name)
+champ_name = c("MUNFI", "MUNFO", "MUNJI", "MUNJO", "MUNKI", "MUNKO", "MUNLI", "MUNLO", "MUNMI", "MUNMO", "MUNNI", "MUNNO")
+obs_riders <- OBS_RAIL  
+rail_names <- data.frame(champ_name, obs_riders)
 rail_names <- rail_names %>%
   mutate(is_rail = TRUE)
+
+# Adjust the ridership to observed
+to_adjust <- champ_sum %>%
+  group_by(champ_name) %>%
+  summarise(flow = sum(flow))
+
+to_adjust <- left_join(to_adjust, rail_names, by = c("champ_name"))
+to_adjust <- na.omit(to_adjust)
+to_adjust <- to_adjust %>%
+  mutate(adj_fact = obs_riders / flow) %>%
+  select(champ_name, adj_fact)
+
+champ_sum <- left_join(champ_sum, to_adjust, by = c("champ_name"))
+champ_sum <- champ_sum %>%
+  mutate(flow = ifelse(is.na(adj_fact), flow, flow * adj_fact)) %>%
+  select(-adj_fact)
 
 # Extract the data
 rail_df <- left_join(champ_sum, rail_names, by = c("champ_name"))
 rail_df <- na.omit(rail_df)
+rail_df <- rail_df %>%
+  select(-obs_riders)
 
 # Boardings, then alightings
 rail_board <- rail_df %>%
@@ -143,7 +162,7 @@ rail_counts <- merge(rail_board, rail_alight, by = c("apc_route", "apc_direction
 rail_counts <- rail_counts %>%
   rename(route = apc_route, direction = apc_direction)
 
-remove(rail_board, rail_alight, rail_names, champ_name, rail_df)
+remove(rail_names, champ_name, obs_riders, to_adjust, rail_df, rail_board, rail_alight)
 
 ```
 
@@ -210,32 +229,71 @@ alightings_df <- apc_sum %>%
   select(alightings)
 
 # Build the seed matrix (champ flows)
-# START_HERE
+seed_df <- champ_sum %>%
+  ungroup() %>%
+  filter(apc_route == select_route) %>%
+  filter(apc_direction == select_direction) %>%
+  filter(time_of_day == select_time_of_day) %>%
+  select(board_segment, alight_segment, flow)
 
-# Run the function stub
-```
+mtx_rows = length(unique(seed_df$board_segment))
+mtx_cols = length(unique(seed_df$alight_segment))
+mtx_dims = max(mtx_rows, mtx_cols)
 
+# Fill in missing rows (TODO: make more elegant)
+segment_lookup = c("A", "B", "C", "D", "E", "F", "G")
+for (i in 1:mtx_dims) {
+  
+  row_segment = segment_lookup[i]
+  
+  for (j in 1:mtx_dims) {
+    
+    col_segment = segment_lookup[j]
+    
+    work_df <- seed_df %>%
+      filter(board_segment  == row_segment) %>%
+      filter(alight_segment == col_segment) 
+    
+    if (nrow(work_df) == 0) {
+      board_segment  = c(row_segment)
+      alight_segment = c(col_segment)
+      
+      # Use a seed of one unless it's going backwards
+      flow = c(1L)
+      if (i > j) flow = 0
+      
+      seed_df <- rbind(seed_df, data.frame(board_segment, alight_segment, flow))
+      }
+    
+    } # j
+  } # i
 
+seed_df <- seed_df %>%
+  arrange(alight_segment, board_segment)
 
-# Reference
-Apply a log linear model to do IPF efficiently
-```{r loglin-reference}
-mat <- matrix(c(65,4,22,24,6,81,5,8,0,11,85,19,4,7,3,90),4,4)
+seed_matrix <- matrix(seed_df$flow, mtx_dims, mtx_dims)
 
-rowmarg <- rep(100, nrow(mat))  # the row margin totals that you want
+# Fit the model
+fit_matrix <- loglin(outer(boardings_df$boardings, alightings_df$alightings) / sum(boardings_df$boardings), 
+                     margin = list(1,2), start = seed_matrix, fit = TRUE, eps = 1.e-05, iter = 100)$fit
 
-colmarg <- c(90, 120, 80, 110)  # the column margin totals that you want
+# Put the fit matrix back into a data frame
+output_df <- seed_df
+for (i in 1:mtx_dims) {
+  boarding_segment = c(segment_lookup[i])
+  for (j in 1:mtx_dims) {
+    output_df <- output_df %>%
+      mutate(flow = ifelse(board_segment == segment_lookup[i] & alight_segment == segment_lookup[j], fit_matrix[i,j], flow))
+  }
+}
 
-newmat <- loglin( outer(rowmarg, colmarg) / sum(rowmarg), margin=list(1,2),
-start=mat, fit=TRUE, eps=1.e-05, iter=100)$fit
+output_df <- output_df %>%
+  mutate(route = select_route) %>%
+  mutate(direction = select_direction) %>%
+  mutate(time_of_day = select_time_of_day) %>%
+  filter(flow > 0)
 
-newmat
-
-apply(newmat, 1, sum)
-
-apply(newmat, 2, sum)
-
-
+# START HERE: do some QA/QC checks, then make it into a method
 
 ```
 
