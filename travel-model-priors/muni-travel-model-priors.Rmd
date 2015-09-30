@@ -62,16 +62,17 @@ ITER = 1000
 
 #### Remote I/O Locations
 ```{r remote-io}
-# F_APC_COUNTS     = "M:/Data/Transit/Muni APC Through Time/consolidated-database.csv"
-# F_CHAMP_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/champ-flows/Muni_OD_no_pound.csv"
+F_APC_COUNTS     = "M:/Data/Transit/Muni APC Through Time/consolidated-database.csv"
+F_CHAMP_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/champ-flows/Muni_OD_no_pound.csv"
 
-F_APC_COUNTS     = "~DavidWork/Documents/consolidated-database.csv"
-F_CHAMP_FLOWS    = "~DavidWork/Documents/Muni_OD_no_pound.csv"
+# F_APC_COUNTS     = "~DavidWork/Documents/consolidated-database.csv"
+# F_CHAMP_FLOWS    = "~DavidWork/Documents/Muni_OD_no_pound.csv"
 
 F_APC_SEGMENTS   = "muni-apc-segments-database.csv"
 F_CHAMP_SEGMENTS = "muni-champ-segments-database.csv"
 
-F_OUTPUT = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/test-output-priors.csv"
+F_OUTPUT_PRIORS = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/test-output-priors.csv"
+F_OUTPUT_COMPS  = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/test-output-comparisons.csv"
 ```
 
 #### Data reads
@@ -283,7 +284,7 @@ Balancing_Method <- function(select_route, select_direction, select_time_of_day,
   seed_matrix <- matrix(seed_df$flow, mtx_dims, mtx_dims)
   
   # Fit the model
-  fit_matrix <- loglin(outer(boardings_df$boardings, alightings_df$alightings) / sum(boardings_df$boardings), 
+  fit_matrix <- loglin(outer(boardings_df$boardings, alightings_df$alightings) / sum(alightings_df$alightings), 
                        margin = list(1,2), 
                        start = seed_matrix, 
                        fit = TRUE, eps = THRESH, 
@@ -352,17 +353,17 @@ for (i in 1:length(route_vector)) {
   } # i
 ```
 
-#### Write output to disk
-TODO
-
-
-# DEBUG
-```{r debug}
+#### Build comparisons
+```{r comparison}
+# Flow comparison that we will not write out
 compare_champ <- champ_sum %>%
   rename(route = apc_route, direction = apc_direction, champ_flow = flow)
 
-compare_champ <- left_join(output_df, compare_champ, by = c("route", "direction", "time_of_day", "board_segment", "alight_segment"))
+compare_champ <- left_join(output_df, 
+                           compare_champ, 
+                           by = c("route", "direction", "time_of_day", "board_segment", "alight_segment"))
 
+# Boarding/alighting comparison that we will write out
 one <- output_df %>%
   group_by(route, direction, time_of_day, board_segment) %>%
   summarise(boardings = sum(flow)) %>%
@@ -373,12 +374,63 @@ two <- output_df %>%
   summarise(alightings = sum(flow)) %>%
   rename(segment = alight_segment)
 
-compare_apc <- apc_sum %>%
+compare_df <- apc_sum %>%
   rename(apc_boardings = boardings, apc_alightings = alightings)
 
 three <- left_join(one, two, by = c("route", "direction", "time_of_day", "segment"))
-compare_apc <- left_join(three, compare_apc, by = c("route", "direction", "time_of_day", "segment")) 
+compare_df <- left_join(three, compare_df, by = c("route", "direction", "time_of_day", "segment")) 
 
+one <- compare_champ %>%
+  group_by(route, direction, time_of_day, board_segment) %>%
+  summarise(champ_boardings = sum(champ_flow)) %>%
+  rename(segment = board_segment)
+
+two <- compare_champ %>%
+  group_by(route, direction, time_of_day, alight_segment) %>%
+  summarise(champ_alightings = sum(champ_flow)) %>%
+  rename(segment = alight_segment)
+
+three <- left_join(one, two, by = c("route", "direction", "time_of_day", "segment"))
+compare_df <- left_join(compare_df, three, by = c("route", "direction", "time_of_day", "segment"))
+
+compare_df[is.na(compare_df)] <- 0
+
+remove(one, two, three)
+```
+
+#### Write output to disk
+```{r write}
+output_df <- output_df %>%
+  select(route, direction, time_of_day, board_segment, alight_segment, route)
+
+write.csv(output_df, file = F_OUTPUT_PRIORS, row.names = FALSE, quote = F)
+
+compare_df <- compare_df %>%
+  select(route, direction, time_of_day, segment, boardings, apc_boardings, champ_boardings, 
+         alightings, apc_alightings, champ_alightings)
+
+head(compare_df, n = 20)
+
+write.csv(compare_df, file = F_OUTPUT_COMPS, row.names = FALSE, quote = F)
+```
+
+# DEBUG
+```{r check things}
+donkey <- champ_flows %>%
+  filter(champ_name == "MUN38LI") %>%
+  filter(SeqA > 10) %>%
+  filter(SeqA < 17) %>%
+  filter(TimeOfDay == "AM")
+
+head(donkey, n = 100)
+
+karate <- champ_flows %>%
+  filter(SeqA == SeqB)
+
+sum(karate$Trips)
+
+sum(champ_flows$Trips)
+  
 
 ```
 
