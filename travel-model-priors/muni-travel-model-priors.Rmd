@@ -16,15 +16,10 @@ This script consumes boarding and alighting data from SF Muni automated passenge
 1.  A consolidated database of flow estimates
 
 #### _TODO_
-1.  Confirm that balancing is working
-2.  Catch and handle function errors
-3.  Add functionality to do daily sums
-4.  Generalize application for all routes and time of day categories
-5.  Select output format and test
+0.  Get feedback from Drew on SeqA == SeqB
 6.  Socialize progress
 7.  Build out cross-walk databases (assistance?)
 8.  Build out rail cross-walk databases
-9.  Generate rail estimates (which are simply the scaled model results)
 10.  Separate script: generic chi-squared tester using this as an input file and a standard survey input file
 
 ## Procedure
@@ -116,14 +111,16 @@ champ_sum <- champ_df %>%
   group_by(champ_name, apc_route, apc_direction, time_of_day, board_segment, alight_segment) %>%
   summarise(flow = sum(flow))
 
-# Q/A
-check <- champ_sum %>%
-  group_by(apc_route, apc_direction) %>%
-  summarise(boardings = sum(flow))
+# Add in the daily sums
+daily <- champ_sum %>%
+  group_by(champ_name, apc_route, apc_direction, board_segment, alight_segment) %>%
+  summarise(flow = sum(flow)) %>%
+  ungroup() %>%
+  mutate(time_of_day = "daily")
 
-head(check, n = 20)
+champ_sum <- rbind(champ_sum, daily)
 
-remove(join_A, join_B, join_C, check, champ_df)
+remove(join_A, join_B, join_C, champ_df, daily)
 
 ```
 
@@ -139,6 +136,7 @@ rail_names <- rail_names %>%
 # Adjust the ridership to observed
 to_adjust <- champ_sum %>%
   group_by(champ_name) %>%
+  filter(!(time_of_day == "daily")) %>%
   summarise(flow = sum(flow))
 
 to_adjust <- left_join(to_adjust, rail_names, by = c("champ_name"))
@@ -205,19 +203,37 @@ apc_sum <- apc_df %>%
   group_by(route, direction, time_of_day, segment) %>%
   summarise(boardings = sum(boardings), alightings = sum(alightings))
 
-# Put in champ time-of-day
-to_champ_time <- time_of_day_df %>%
-  select(time_of_day = apc_time_of_day)
+# Add daily
+daily <- apc_sum %>%
+  group_by(route, direction, segment) %>%
+  summarise(boardings = sum(boardings), alightings = sum(alightings)) %>%
+  ungroup() %>%
+  mutate(time_of_day = "daily")
+
+apc_sum <- rbind(apc_sum, daily)
 
 # Join with the rail data
 apc_sum <- rbind(apc_sum, rail_counts)
 
-remove(to_champ_time, apc_df)
+remove(to_champ_time, apc_df, daily)
 
 ```
 
 #### Row-column method
-```{r balancing-method}
+```{r balancing-methods}
+Fill_Failed_Output <- function(select_route, select_direction, select_time_of_day) {
+  
+  output_df <- data.frame(route = c(select_route), 
+                          direction = c(select_direction),
+                          time_of_day = c(select_time_of_day),
+                          board_segment = c(NA),
+                          alight_segment = c(NA),
+                          flow = c(NA))
+  
+  return(output_df)
+  
+}
+
 Balancing_Method <- function(select_route, select_direction, select_time_of_day, apc_df, champ_df) {
   
   # Build the row marginals (boardings)
@@ -315,16 +331,14 @@ Balancing_Method <- function(select_route, select_direction, select_time_of_day,
 #### Apply method
 ```{r apply-method}
 route_vector <- unique(apc_sum$route)
-#direction_vector <- c("INBOUND", "OUTBOUND")
-#time_of_day_vector <- c("AM", "MD", "PM")
-
-direction_vector <- c("INBOUND")
-time_of_day_vector <- c("AM")
+direction_vector <- unique(apc_sum$direction)
+time_of_day_vector <- c("AM", "MD", "PM", "daily")
 
 # First route
 print(paste("Route: ", route_vector[1], 
             "  Direction: ", direction_vector[1], 
             "  Time of Day: ", time_of_day_vector[1], sep = ""))
+
 output_df <- Balancing_Method(route_vector[1], 
                               direction_vector[1], 
                               time_of_day_vector[1],
@@ -332,25 +346,32 @@ output_df <- Balancing_Method(route_vector[1],
 
 # Rest of the routes
 for (i in 1:length(route_vector)) {
+  route <- route_vector[i]
+  
   for (j in 1:length(direction_vector)) {
+    direction <- direction_vector[j]
+    
     for (k in 1:length(time_of_day_vector)) {
+      time_of_day <- time_of_day_vector[k]
       
       if (!(i == 1 & j == 1 & k == 1)) {
         
-        print(paste("Route: ", route_vector[i], 
-                    "  Direction: ", direction_vector[j], 
-                    "  Time of Day: ", time_of_day_vector[k], sep = ""))
+        print(paste("Route: ", route, 
+                    "  Direction: ", direction, 
+                    "  Time of Day: ", time_of_day, sep = ""))
         
-        work_df <- Balancing_Method(route_vector[i], 
-                                    direction_vector[j], 
-                                    time_of_day_vector[k],
-                                    apc_sum, champ_sum)
+        work_df <- tryCatch(Balancing_Method(route, direction,time_of_day,apc_sum, champ_sum),
+                            error = function(e) Fill_Failed_Output(route, direction, time_of_day))
+        
         output_df <- rbind(output_df, work_df)
         }
       
       } # k
     } # j
   } # i
+
+# remove those without fits
+output_df <- na.omit(output_df)
 ```
 
 #### Build comparisons
@@ -401,7 +422,7 @@ remove(one, two, three)
 #### Write output to disk
 ```{r write}
 output_df <- output_df %>%
-  select(route, direction, time_of_day, board_segment, alight_segment, route)
+  select(route, direction, time_of_day, board_segment, alight_segment, flow)
 
 write.csv(output_df, file = F_OUTPUT_PRIORS, row.names = FALSE, quote = F)
 
@@ -415,7 +436,7 @@ write.csv(compare_df, file = F_OUTPUT_COMPS, row.names = FALSE, quote = F)
 ```
 
 # DEBUG
-```{r check things}
+```{r check-things}
 donkey <- champ_flows %>%
   filter(champ_name == "MUN38LI") %>%
   filter(SeqA > 10) %>%
