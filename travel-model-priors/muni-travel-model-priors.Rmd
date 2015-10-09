@@ -16,7 +16,7 @@ This script consumes boarding and alighting data from SF Muni automated passenge
 1.  A consolidated database of flow estimates
 
 #### _TODO_
-0.  Get feedback from Drew on SeqA == SeqB
+1.  Debug
 6.  Socialize progress
 7.  Build out cross-walk databases (assistance?)
 8.  Build out rail cross-walk databases
@@ -57,17 +57,20 @@ ITER = 1000
 
 #### Remote I/O Locations
 ```{r remote-io}
-F_APC_COUNTS     = "M:/Data/Transit/Muni APC Through Time/consolidated-database.csv"
-F_CHAMP_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/champ-flows/Muni_OD_no_pound.csv"
+# F_APC_COUNTS     = "M:/Data/Transit/Muni APC Through Time/consolidated-database.csv"
+# F_CHAMP_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/champ-flows/Muni_OD_no_pound.csv"
 
-# F_APC_COUNTS     = "~DavidWork/Documents/consolidated-database.csv"
-# F_CHAMP_FLOWS    = "~DavidWork/Documents/Muni_OD_no_pound.csv"
+F_APC_COUNTS     = "~DavidWork/Documents/consolidated-database.csv"
+F_CHAMP_FLOWS    = "~DavidWork/Documents/Muni_OD_no_pound.csv"
 
 F_APC_SEGMENTS   = "muni-apc-segments-database.csv"
 F_CHAMP_SEGMENTS = "muni-champ-segments-database.csv"
 
-F_OUTPUT_PRIORS = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/test-output-priors.csv"
-F_OUTPUT_COMPS  = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/test-output-comparisons.csv"
+# F_OUTPUT_PRIORS = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/test-output-priors.csv"
+# F_OUTPUT_COMPS  = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/test-output-comparisons.csv"
+
+F_OUTPUT_PRIORS = "~DavidWork/Documents/test-output-priors.csv"
+F_OUTPUT_COMPS  = "~DavidWork/Documents/test-output-comparisons.csv"
 ```
 
 #### Data reads
@@ -436,22 +439,9 @@ write.csv(compare_df, file = F_OUTPUT_COMPS, row.names = FALSE, quote = F)
 ```
 
 # DEBUG
-```{r check-things}
-donkey <- champ_flows %>%
-  filter(champ_name == "MUN38LI") %>%
-  filter(SeqA > 10) %>%
-  filter(SeqA < 17) %>%
-  filter(TimeOfDay == "AM")
-
-head(donkey, n = 100)
-
-karate <- champ_flows %>%
-  filter(SeqA == SeqB)
-
-sum(karate$Trips)
-
-sum(champ_flows$Trips)
-  
+```{r debug}
+donkey <- champ_sum %>%
+  filter(champ_name == 'MUNNI' & time_of_day == 'AM')
 
 ```
 
