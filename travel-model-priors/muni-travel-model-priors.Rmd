@@ -16,10 +16,8 @@ This script consumes boarding and alighting data from SF Muni automated passenge
 1.  A consolidated database of flow estimates
 
 #### _TODO_
-1.  Debug
-6.  Socialize progress
+1.  Align 1, 14, and 38L with Alex segments
 7.  Build out cross-walk databases (assistance?)
-8.  Build out rail cross-walk databases
 10.  Separate script: generic chi-squared tester using this as an input file and a standard survey input file
 
 ## Procedure
@@ -49,6 +47,10 @@ time_of_day_df <- data.frame(apc_time_of_day, champ_time_of_day)
 #             F In  F Out  J in J out   K in  K out   L in  L out   M in  M out   N in  N out
 OBS_RAIL = c(11304, 11304, 8157, 8157, 17763, 17763, 15488, 15488, 14326, 14326, 22166, 22166) 
 
+# Champ rail names
+CHAMP_RAIL_NAMES = c("MUNFI", "MUNFO", "MUNJI", "MUNJO", "MUNKI", "MUNKO", 
+                     "MUNLI", "MUNLO", "MUNMI", "MUNMO", "MUNNI", "MUNNO")
+
 # Log linear fit parameters
 THRESH = 1.e-07
 ITER = 1000
@@ -57,20 +59,20 @@ ITER = 1000
 
 #### Remote I/O Locations
 ```{r remote-io}
-# F_APC_COUNTS     = "M:/Data/Transit/Muni APC Through Time/consolidated-database.csv"
-# F_CHAMP_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/champ-flows/Muni_OD_no_pound.csv"
+F_APC_COUNTS     = "M:/Data/Transit/Muni APC Through Time/consolidated-database.csv"
+F_CHAMP_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/champ-flows/Muni_OD_no_pound.csv"
 
-F_APC_COUNTS     = "~DavidWork/Documents/consolidated-database.csv"
-F_CHAMP_FLOWS    = "~DavidWork/Documents/Muni_OD_no_pound.csv"
+# F_APC_COUNTS     = "~DavidWork/Documents/consolidated-database.csv"
+# F_CHAMP_FLOWS    = "~DavidWork/Documents/Muni_OD_no_pound.csv"
 
 F_APC_SEGMENTS   = "muni-apc-segments-database.csv"
 F_CHAMP_SEGMENTS = "muni-champ-segments-database.csv"
 
-# F_OUTPUT_PRIORS = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/test-output-priors.csv"
-# F_OUTPUT_COMPS  = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/test-output-comparisons.csv"
+F_OUTPUT_PRIORS = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/priors.csv"
+F_OUTPUT_COMPS  = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/priors-comparisons.csv"
 
-F_OUTPUT_PRIORS = "~DavidWork/Documents/test-output-priors.csv"
-F_OUTPUT_COMPS  = "~DavidWork/Documents/test-output-comparisons.csv"
+# F_OUTPUT_PRIORS = "~DavidWork/Documents/test-output-priors.csv"
+# F_OUTPUT_COMPS  = "~DavidWork/Documents/test-output-comparisons.csv"
 ```
 
 #### Data reads
@@ -130,7 +132,7 @@ remove(join_A, join_B, join_C, champ_df, daily)
 #### Extract rail counts from CHAMP data
 ```{r rail-counts-from-champ}
 # Build a crosswalk
-champ_name = c("MUNFI", "MUNFO", "MUNJI", "MUNJO", "MUNKI", "MUNKO", "MUNLI", "MUNLO", "MUNMI", "MUNMO", "MUNNI", "MUNNO")
+champ_name = CHAMP_RAIL_NAMES
 obs_riders <- OBS_RAIL  
 rail_names <- data.frame(champ_name, obs_riders)
 rail_names <- rail_names %>%
@@ -221,6 +223,45 @@ apc_sum <- rbind(apc_sum, rail_counts)
 remove(to_champ_time, apc_df, daily)
 
 ```
+
+#### Get segment names from the crosswalks
+```{r segment-names}
+# join the segments
+champ_name = CHAMP_RAIL_NAMES
+champ_rail_segments <- champ_segments[which(champ_segments[,1] %in% champ_name),]
+
+champ_rail_segments <- champ_rail_segments %>%
+  select(route = apc_route, direction = apc_direction, stop_location, stop_sequence, segment)
+
+both_segments <- rbind(apc_segments, champ_rail_segments)
+
+segment_names <- both_segments %>%
+  group_by(route, direction, segment) %>%
+  summarise(first_stop_sequence = min(stop_sequence), last_stop_sequence = max(stop_sequence))
+
+# Get name for first
+segment_names <- segment_names %>%
+  rename(stop_sequence = first_stop_sequence)
+
+segment_names <- left_join(segment_names, both_segments, by = c("route", "direction", "segment", "stop_sequence"))
+
+segment_names <- segment_names %>%
+  rename(first_stop_sequence = stop_sequence, first_stop_location = stop_location)
+
+# Get name for last
+segment_names <- segment_names %>%
+  rename(stop_sequence = last_stop_sequence)
+
+segment_names <- left_join(segment_names, both_segments, by = c("route", "direction", "segment", "stop_sequence"))
+
+segment_names <- segment_names %>%
+  rename(last_stop_sequence = stop_sequence, last_stop_location = stop_location) %>%
+  select(-first_stop_sequence, -last_stop_sequence)
+
+remove(champ_rail_segments, champ_name, both_segments)
+
+```
+
 
 #### Row-column method
 ```{r balancing-methods}
@@ -375,6 +416,22 @@ for (i in 1:length(route_vector)) {
 
 # remove those without fits
 output_df <- na.omit(output_df)
+
+# add the segment names
+output_df <- output_df %>%
+  rename(segment = board_segment)
+output_df <- left_join(output_df, segment_names, by = c("route", "direction", "segment"))
+output_df <- output_df %>%
+  rename(board_segment = segment, board_segment_start = first_stop_location, board_segment_end = last_stop_location)
+
+output_df <- output_df %>%
+  rename(segment = alight_segment)
+output_df <- left_join(output_df, segment_names, by = c("route", "direction", "segment"))
+output_df <- output_df %>%
+  rename(alight_segment = segment, alight_segment_start = first_stop_location, alight_segment_end = last_stop_location)
+
+remove(work_df)
+
 ```
 
 #### Build comparisons
@@ -387,7 +444,11 @@ compare_champ <- left_join(output_df,
                            compare_champ, 
                            by = c("route", "direction", "time_of_day", "board_segment", "alight_segment"))
 
-# Boarding/alighting comparison that we will write out
+# Missing champ_flows get a zero
+compare_champ <- compare_champ %>%
+  mutate(champ_flow = ifelse(is.na(champ_flow), 0, champ_flow))
+
+# Summarise the output boardings and alightings by segment
 one <- output_df %>%
   group_by(route, direction, time_of_day, board_segment) %>%
   summarise(boardings = sum(flow)) %>%
@@ -398,12 +459,15 @@ two <- output_df %>%
   summarise(alightings = sum(flow)) %>%
   rename(segment = alight_segment)
 
+three <- left_join(one, two, by = c("route", "direction", "time_of_day", "segment"))
+
+# Join the output with the apc boardings and alightings by segment
 compare_df <- apc_sum %>%
   rename(apc_boardings = boardings, apc_alightings = alightings)
 
-three <- left_join(one, two, by = c("route", "direction", "time_of_day", "segment"))
 compare_df <- left_join(three, compare_df, by = c("route", "direction", "time_of_day", "segment")) 
 
+# Summarise the champ boardings and alightings by segment
 one <- compare_champ %>%
   group_by(route, direction, time_of_day, board_segment) %>%
   summarise(champ_boardings = sum(champ_flow)) %>%
@@ -419,18 +483,27 @@ compare_df <- left_join(compare_df, three, by = c("route", "direction", "time_of
 
 compare_df[is.na(compare_df)] <- 0
 
+# Add segment names
+compare_df <- left_join(compare_df, segment_names, by = c("route", "direction", "segment"))
+compare_df <- compare_df %>%
+  rename(segment_start = first_stop_location, segment_end = last_stop_location)
+  
+
 remove(one, two, three)
 ```
 
 #### Write output to disk
 ```{r write}
 output_df <- output_df %>%
-  select(route, direction, time_of_day, board_segment, alight_segment, flow)
+  select(route, direction, time_of_day, 
+         board_segment, board_segment_start, board_segment_end, 
+         alight_segment, alight_segment_start, alight_segment_end, 
+         flow)
 
 write.csv(output_df, file = F_OUTPUT_PRIORS, row.names = FALSE, quote = F)
 
 compare_df <- compare_df %>%
-  select(route, direction, time_of_day, segment, boardings, apc_boardings, champ_boardings, 
+  select(route, direction, time_of_day, segment, segment_start, segment_end, boardings, apc_boardings, champ_boardings, 
          alightings, apc_alightings, champ_alightings)
 
 head(compare_df, n = 20)
@@ -438,10 +511,4 @@ head(compare_df, n = 20)
 write.csv(compare_df, file = F_OUTPUT_COMPS, row.names = FALSE, quote = F)
 ```
 
-# DEBUG
-```{r debug}
-donkey <- champ_sum %>%
-  filter(champ_name == 'MUNNI' & time_of_day == 'AM')
-
-```
 
