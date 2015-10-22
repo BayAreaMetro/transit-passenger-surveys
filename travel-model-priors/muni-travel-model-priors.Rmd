@@ -14,6 +14,7 @@ This script consumes boarding and alighting data from SF Muni automated passenge
 
 #### Outputs
 1.  A consolidated database of flow estimates
+2.  A summary database comparing boardings and alightings across the sources
 
 #### _TODO_
 7.  Build out cross-walk databases (assistance?)
@@ -256,6 +257,11 @@ segment_names <- left_join(segment_names, both_segments, by = c("route", "direct
 segment_names <- segment_names %>%
   rename(last_stop_sequence = stop_sequence, last_stop_location = stop_location) %>%
   select(-first_stop_sequence, -last_stop_sequence)
+
+# Remove duplicates
+segment_names <- segment_names %>%
+  group_by(route, direction, segment) %>%
+  summarise(first_stop_location = min(first_stop_location), last_stop_location = min(last_stop_location))
 
 remove(champ_rail_segments, champ_name, both_segments)
 
