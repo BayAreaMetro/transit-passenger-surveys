@@ -516,4 +516,36 @@ head(compare_df, n = 20)
 write.csv(compare_df, file = F_OUTPUT_COMPS, row.names = FALSE, quote = F)
 ```
 
+# DEBUG
+```{r check-distribution}
+debug_route = "14"
+debug_dir = "INBOUND"
+debug_time = "AM"
+
+debug_est <- output_df %>%
+  filter(route == debug_route & direction == debug_dir & time_of_day == debug_time) %>%
+  select(route, direction, time_of_day, board_segment, alight_segment, flow)
+
+flow_sum = sum(debug_est$flow)
+
+debug_est <- debug_est %>%
+  mutate(est_flow_share = flow/flow_sum)
+
+debug_champ <- champ_sum %>%
+  filter(apc_route == debug_route & apc_direction == debug_dir & time_of_day == debug_time) %>%
+  select(route = apc_route, direction = apc_direction, board_segment, alight_segment, champ_flow = flow)
+
+champ_flow_sum = sum(debug_champ$champ_flow)
+
+debug_champ <- debug_champ %>%
+  mutate(champ_flow_share = champ_flow / champ_flow_sum)
+
+debug <- left_join(debug_est, debug_champ, by = c("route", "direction", "time_of_day", "board_segment", "alight_segment"))
+
+debug
+
+remove(debug_est, debug_champ, debug)
+
+
+```
 
