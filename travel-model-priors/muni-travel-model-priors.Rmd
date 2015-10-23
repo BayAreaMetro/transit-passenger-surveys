@@ -39,8 +39,8 @@ knitr::opts_chunk$set(cache=TRUE)
 # APC time codes: am (6 to 9 am), mid (9 am to 2 pm), schl (2 to 4 pm), pm (4 to 7 pm), eve (7 to 10 pm), night (10 pm to 1 am), owl (1 to 6 am), daily (all)
 # CHAMP time codes: EA (3 to 6 am), AM (6 to 9 am), MD (9 am to 3:30 pm), PM (3:30 to 6:30 pm), EV (6:30 pm to 3 am)
 
-champ_time_of_day = c("AM", "MD",  "MD",   "PM", "EV",  "EV",    "EV")
-apc_time_of_day   = c("am", "mid", "schl", "pm", "eve", "night", "owl")
+champ_time_of_day = c("AM", "MD",  "MD",   "PM", "EV",  "EV",    "EV",  "daily")
+apc_time_of_day   = c("am", "mid", "schl", "pm", "eve", "night", "owl", "daily")
 time_of_day_df <- data.frame(apc_time_of_day, champ_time_of_day)
 
 # Observed rail ridership
@@ -208,19 +208,12 @@ apc_sum <- apc_df %>%
   group_by(route, direction, time_of_day, segment) %>%
   summarise(boardings = sum(boardings), alightings = sum(alightings))
 
-# Add daily
-daily <- apc_sum %>%
-  group_by(route, direction, segment) %>%
-  summarise(boardings = sum(boardings), alightings = sum(alightings)) %>%
-  ungroup() %>%
-  mutate(time_of_day = "daily")
-
-apc_sum <- rbind(apc_sum, daily)
+table(apc_sum$time_of_day)
 
 # Join with the rail data
 apc_sum <- rbind(apc_sum, rail_counts)
 
-remove(to_champ_time, apc_df, daily)
+remove(to_champ_time, apc_df)
 
 ```
 
@@ -546,6 +539,25 @@ debug
 
 remove(debug_est, debug_champ, debug)
 
+```
+
+```{r check-bus-boardings}
+champ_bus <- champ_flows %>%
+  filter(champ_name == "MUN14I" | champ_name == "MUN1I" | champ_name == "MUN38LI") %>%
+  group_by(champ_name) %>%
+  summarize(boardings = sum(Trips))
+
+champ_bus
+
+apc_bus <- apc_counts %>%
+  filter(start_date == "2015-02-02" & direction == "INBOUND" & time_of_day == "daily") %>%
+  filter(route == "14" | route == "1" | route == "038L") %>%
+  group_by(route, direction) %>%
+  summarize(boardings = sum(boardings))
+
+apc_bus
+  
+remove(apc_bus, champ_bus)
 
 ```
 
