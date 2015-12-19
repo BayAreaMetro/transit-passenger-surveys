@@ -1,0 +1,143 @@
+---
+title: "Build CHAMP Crosswalk"
+author: "David Ory"
+output: 
+   html_document:
+      theme: cosmo
+      toc: yes
+---
+
+## Administration
+
+#### Purpose
+This script consumes a Muni route segmentation file and a SF CHAMP flow file.  It attempts to build a crosswalk relating the stop segment to each of the stops in the CHAMP file.  
+
+#### Outputs
+1.  A database relating the CHAMP stops to the Muni segments
+
+#### _TODO_
+1. Everything; early days
+
+## Procedure
+
+#### Overhead
+```{r overhead, results = 'hide'}
+library(knitr)
+library(reshape2)
+library(stringr)
+suppressMessages(library(dplyr))
+```
+
+```{r config, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+#### Remote I/O
+```{r remote-io}
+F_CHAMP_FLOWS = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/champ-flows/Muni_OD_no_pound.csv"
+F_MUNI_SEGS =   "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/MuniLineSegmentation_2015-09-29.csv"
+
+F_OUTPUT = "muni-champ-segments-database-automated.csv"
+
+```
+
+#### Parameters
+```{r champ-rename}
+champ_rename <- data.frame(champ_name = c("14L", "14SHORT", "1SHORT", "24EA", "28L", "30SHORT", "38_33RD", "38FTM",
+                                          "38L", "5EA",     "5SHORT", "71",   "71L", "80X",     "8X",      "94L",
+                                          "9L",  "K"),
+                           route_man  = c("14R", "14",     "1",       "24",   "28R", "30",      "38",      "38",
+                                          "38R", "5",      "5",       "7",    "7R",  "DUNO",    "8AX",     "DUNO",
+                                          "9R",  "KT"))
+
+champ_rename <- champ_rename %>%
+  mutate(route_man = paste(route_man))
+
+```
+
+
+#### Prepare the Muni Segmentation data
+```{r prep-muni}
+# Read in
+segments_input <- read.table(file = F_MUNI_SEGS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+# Melt
+segments_df <- melt(segments_input, id.vars = "Route")
+
+# Clean up
+segments_df <- segments_df %>%
+  rename(location = value) %>%
+  mutate(variable = paste(variable))
+
+# Columns from the variable column
+variable_split <- read.table(text = segments_df$variable, sep = ".", colClasses = "character")
+variable_split <- variable_split %>%
+  rename(segment_number = V2, start_or_end = V3) %>%
+  select(segment_number, start_or_end)
+  
+# More clean up
+segments_df <- segments_df %>%
+  select(route = Route, location)
+
+segments_df <- cbind(segments_df, variable_split)
+
+segments_df <- arrange(segments_df, route, segment_number, desc(start_or_end))
+
+segments_df <- segments_df %>%
+  filter(nchar(location) > 0)
+
+remove(variable_split, segments_input)
+
+```
+
+#### Prepare the CHAMP data
+```{r prep-champ}
+champ_input <- read.table(file = F_CHAMP_FLOWS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+# Extract the Muni name
+champ_df <- champ_input %>%
+  mutate(dir = str_sub(champ_name, start = -1)) %>%
+  mutate(direction = "MISSING") %>%
+  mutate(direction = ifelse(dir == "I", "INBOUND", direction)) %>%
+  mutate(direction = ifelse(dir == "O", "OUTBOUND", direction)) %>%
+  select(-dir) %>%
+  filter(direction != "MISSING") %>%
+  mutate(route = str_sub(champ_name, start = 4)) %>%
+  mutate(route = str_sub(route, start = 1, end = -2))
+
+table(champ_df$route)
+table(champ_df$direction)
+
+# START HERE:
+# 1. get the below join to work
+# 2. make sure most of the routes join
+# 3. move on to figuring out the problem: how to build the output
+
+# Add in the manual names
+champ_df <- left_join(champ_df, champ_rename, by = c("route"))
+
+# Check the join with the segment data
+champ_join <- champ_df %>%
+  group_by(route) %>%
+  summarise(champ_count = n())
+
+segments_join <- segments_df %>%
+  group_by(route) %>%
+  summarise(segments_count = n())
+
+table(champ_join$route)
+table(segments_join$route)
+
+join_test <- left_join(champ_join, segments_join, by = c("route"))
+
+join_errors <- join_test %>%
+  filter(is.na(segments_count))
+
+table(join_errors$route)
+
+
+
+
+
+```
+
