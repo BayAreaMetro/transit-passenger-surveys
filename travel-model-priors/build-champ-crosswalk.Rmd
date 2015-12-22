@@ -17,6 +17,8 @@ This script consumes a Muni route segmentation file and a SF CHAMP flow file.  I
 
 #### _TODO_
 1. Everything; early days
+2.  Ask Drew about 80X and 94L: what Muni routes do these belong to
+3.  Determine best way to match the strings
 
 ## Procedure
 
@@ -25,6 +27,7 @@ This script consumes a Muni route segmentation file and a SF CHAMP flow file.  I
 library(knitr)
 library(reshape2)
 library(stringr)
+library(stringdist)
 suppressMessages(library(dplyr))
 ```
 
@@ -43,7 +46,7 @@ F_OUTPUT = "muni-champ-segments-database-automated.csv"
 
 #### Parameters
 ```{r champ-rename}
-champ_rename <- data.frame(champ_name = c("14L", "14SHORT", "1SHORT", "24EA", "28L", "30SHORT", "38_33RD", "38FTM",
+champ_rename <- data.frame(route = c("14L", "14SHORT", "1SHORT", "24EA", "28L", "30SHORT", "38_33RD", "38FTM",
                                           "38L", "5EA",     "5SHORT", "71",   "71L", "80X",     "8X",      "94L",
                                           "9L",  "K"),
                            route_man  = c("14R", "14",     "1",       "24",   "28R", "30",      "38",      "38",
@@ -51,7 +54,8 @@ champ_rename <- data.frame(champ_name = c("14L", "14SHORT", "1SHORT", "24EA", "2
                                           "9R",  "KT"))
 
 champ_rename <- champ_rename %>%
-  mutate(route_man = paste(route_man))
+  mutate(route = paste(route)) %>%
+  mutate(route_man  = paste(route_man))
 
 ```
 
@@ -108,13 +112,14 @@ champ_df <- champ_input %>%
 table(champ_df$route)
 table(champ_df$direction)
 
-# START HERE:
-# 1. get the below join to work
-# 2. make sure most of the routes join
-# 3. move on to figuring out the problem: how to build the output
-
 # Add in the manual names
 champ_df <- left_join(champ_df, champ_rename, by = c("route"))
+
+champ_df <- champ_df %>%
+  mutate(route = ifelse(is.na(route_man), route, route_man)) %>%
+  select(-route_man)
+
+table(champ_df$route)
 
 # Check the join with the segment data
 champ_join <- champ_df %>%
@@ -135,9 +140,109 @@ join_errors <- join_test %>%
 
 table(join_errors$route)
 
+remove(champ_join, segments_join, join_test, champ_input)
+
+```
+
+#### String matching
+TODO: does this allow for duplicate match index in the outcome_df?
+```{r string-matching}
+champ_work <- champ_df %>%
+  select(champ_name, route, direction, SeqB, StreetsB)
+
+# initiaze the output data frame
+outcome_df <- data.frame (champ_name = character(),
+                          route = character(),
+                          direction = character(),
+                          SeqB = integer(),
+                          StreetsB = character(),
+                          location = character(),
+                          segment_number = character(),
+                          start_or_end = character())
+
+# loop through each route
+counter = 0
+for (rte in unique(segments_df$route)){
+  
+  seg_rte_df <- segments_df %>%
+    filter(route == rte)
+  
+  chp_rte_df <- champ_work %>%
+    filter(route == rte)
+  
+  # loop through each location
+  for (loc in unique(seg_rte_df$location)){
+    
+    seg_rte_loc_df <- seg_rte_df %>%
+      filter(location == loc)
+    
+    # join the location to the champ flows
+    string_match <- left_join(chp_rte_df, seg_rte_loc_df, by = c("route"))
+    
+    # do the approximate match
+    match_index <- amatch(loc, 
+                          string_match$StreetsB,
+                          nomatch = -99,
+                          matchNA = FALSE,
+                          method = "dl",
+                          weight = c(d = 0.9, i = 0.9, s = 0.9, t = 0.1), 
+                          maxDist = 3.0)
+    
+    print(match_index)
+    
+    if (match_index > 0) {
+      match_row <- string_match[match_index, ]
+      outcome_df <- rbind(outcome_df, match_row)
+      }
+    
+    } # loc
+  
+  } # rte
+
+remove(champ_work)
+
+```
+
+#### Segment CHAMP data
+```{r segment-champ}
+# Step 1: Build the output data I want without the segment labels
+champ_segments_df <- champ_df %>%
+  select(champ_name, apc_route = route, apc_direction = direction, stop_sequence = SeqB, stop_location = StreetsB) %>%
+  group_by(champ_name, apc_route, apc_direction, stop_sequence) %>%
+  summarise(stop_location = max(stop_location))
+
+# Add in first stops
+first_df <- champ_df %>%
+  select(champ_name, apc_route = route, apc_direction = direction, stop_sequence = SeqA, stop_location = StreetsA) %>%
+  filter(stop_sequence == 0) %>%
+  group_by(champ_name, apc_route, apc_direction, stop_sequence) %>%
+  summarise(stop_location = max(stop_location))
+
+champ_segments_df <- rbind(champ_segments_df, first_df)
+champ_segments_df <- arrange(champ_segments_df, apc_route, apc_direction, champ_name, stop_sequence, stop_location)
+champ_segments_df <- ungroup(champ_segments_df)
+
+# Step 2: join the segment labels
+outcome_join <- outcome_df %>%
+  select(champ_name, 
+         apc_route = route, 
+         apc_direction = direction, 
+         stop_sequence = SeqB, 
+         stop_location = StreetsB, 
+         match_location = location,
+         segment_number,
+         start_or_end)
+
+champ_segments_df <- left_join(champ_segments_df, outcome_join, by = c("champ_name", 
+                                                                       "apc_route", 
+                                                                       "apc_direction", 
+                                                                       "stop_sequence", 
+                                                                       "stop_location"))
+
+# Step 3: fill in the gaps
+# START HERE
 
 
-
-
+  
 ```
 
