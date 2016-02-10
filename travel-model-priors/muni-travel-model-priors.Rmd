@@ -511,6 +511,9 @@ write.csv(compare_df, file = F_OUTPUT_COMPS, row.names = FALSE, quote = F)
 
 # DEBUG
 ```{r check-distribution}
+
+table(compare_df$route)
+
 debug_route = "14"
 debug_dir = "INBOUND"
 debug_time = "AM"
@@ -541,6 +544,7 @@ remove(debug_est, debug_champ, debug)
 
 ```
 
+# MORE DEBUG
 ```{r check-bus-boardings}
 champ_bus <- champ_flows %>%
   filter(champ_name == "MUN14I" | champ_name == "MUN1I" | champ_name == "MUN38LI") %>%
@@ -558,6 +562,19 @@ apc_bus <- apc_counts %>%
 apc_bus
   
 remove(apc_bus, champ_bus)
+
+```
+
+# EVEN MORE DEBUG
+```{r why-does-balance-fail}
+# check champ for missing segments
+# missing <- champ_df %>%
+#   filter(!(is.na(board_segment) & is.na(alight_segment))) %>%
+#   filter(is.na(board_segment) | is.na(alight_segment))
+# 
+# table(missing$alight_stop_sequence, missing$apc_route)
+#   
+  
 
 ```
 
