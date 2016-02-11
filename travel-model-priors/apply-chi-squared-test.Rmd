@@ -1,0 +1,85 @@
+---
+title: "Apply Chi-Squared Test"
+author: "David Ory"
+output: 
+   html_document:
+      theme: cosmo
+      toc: yes
+---
+
+## Administration
+
+#### Purpose
+This script consumes prior and observed estimates of boarding and alighting pattern by route, direction, time-of-day, boarding segment, and alighting segment and then compares them via the chi-squared test.  The first set of prior estimates are the result of a data munging exercise using automated passenger count data and travel model data -- see `muni-travel-model-priors.Rmd`.  The observed estimates come from an on-to-off transit on-board survey. If the on-board survey proceeds iteratively, the priors can be updated with observed data and then be compared to subsequently collected observed data.
+
+The current implementation uses example data. 
+
+#### Outputs
+1.  A database of chi-squared test results
+
+#### _TODO_ 
+1.  Need to test with real data
+2.  Add some error catching in conjunction with 1
+
+## Procedure
+
+#### Overhead
+```{r overhead, results = 'hide'}
+library(knitr)
+suppressMessages(library(dplyr))
+```
+
+```{r config, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+#### Paramaters
+```{r parameters}
+
+```
+
+#### Remote I/O Locations
+```{r remote-io}
+F_PRIOR_FLOWS    = "example-priors.csv"
+F_OBSERVED_FLOWS = "example-observed.csv"
+
+F_OUTPUT = "example-chi-squared-results.csv"
+```
+
+#### Data reads
+```{r data-reads}
+priors_df <-   read.table(file = F_PRIOR_FLOWS,    header = TRUE, sep = ",", stringsAsFactors = FALSE)
+observed_df <- read.table(file = F_OBSERVED_FLOWS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+```
+
+#### Data joins
+```{r data-joins}
+priors_join <- priors_df %>%
+  rename(prior_flow = flow)
+
+observed_join <- observed_df %>%
+  rename(observed_flow = flow)
+
+joined_df <- left_join(priors_join, observed_join, by = c("route", "direction", "time_of_day", "board_segment", "alight_segment"))
+
+remove(priors_join, observed_join)
+```
+
+#### Chi-squared tests
+```{r chi-squared-tests}
+# use dplyr
+outcome_df <- joined_df %>%
+  group_by(route, direction, time_of_day) %>%
+  summarise(test_statistic = chisq.test(observed_flow, p = prior_flow/sum(prior_flow))$statistic[["X-squared"]],
+            test_df        = chisq.test(observed_flow, p = prior_flow/sum(prior_flow))$parameter[["df"]],
+            test_p_value   = chisq.test(observed_flow, p = prior_flow/sum(prior_flow))$p.value)
+
+```
+
+#### Data write
+```{r data-write}
+write.csv(outcome_df, file = F_OUTPUT, row.names = FALSE, quote = F)
+
+```
+
