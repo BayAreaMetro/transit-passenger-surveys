@@ -15,6 +15,7 @@ CONTENTS
 | **Name**                                  | **Affiliation**                       |
 |:------------------------------------------|---------------------------------------|
 | Shimon Israel                             | Metropolitan Transportation Commission| 
+| David Ory                                 | Metropolitan Transportation Commission| 
 
 
 ## Meeting Agendas
