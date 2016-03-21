@@ -48,7 +48,7 @@ F_CALTRAIN_SURVEY = "M:/Data/OnBoard/Data and Reports/Caltrain/As CSV/Caltrain_F
 
 F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv"
 
-F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_Final_Database_Mar10_SUBMITTED NO POUND OR SINGLE QUOTE.csv"
+F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy NO POUND OR SINGLE QUOTE.csv"
 
 F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
 ```
@@ -233,6 +233,7 @@ Set_Operator_Name <- function(input_vector){
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Caltrain", ignore_case = TRUE)) > 0L, "CALTRAIN", output_field)) %>%
     
     # Transit Agencies
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("ACE", ignore_case = TRUE)) > 0L, "ACE", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AC Transit", ignore_case = TRUE)) > 0L, "AC TRANSIT", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AirBART", ignore_case = TRUE)) > 0L, "AC TRANSIT", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AirTrain", ignore_case = TRUE)) > 0L, "BART", output_field)) %>%
@@ -241,20 +242,23 @@ Set_Operator_Name <- function(input_vector){
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Fairfield and", ignore_case = TRUE)) > 0L,"FAIRFIELD-SUISUN",output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Golden Gate Tran", ignore_case = TRUE)) > 0L, "GOLDEN GATE TRANSIT", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Golden Gate Ferry", ignore_case = TRUE)) > 0L, "GOLDEN GATE FERRY", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Marin Transit", ignore_case = TRUE)) > 0L, "MARIN TRANSIT", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Muni", ignore_case = TRUE)) > 0L, "MUNI", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Rio Vista Delta Breeze", ignore_case = TRUE)) > 0L, "RIO-VISTA", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("SamTrans", ignore_case = TRUE)) > 0L, "SAMTRANS",  output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Sam Trans", ignore_case = TRUE)) > 0L, "SAMTRANS",  output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Santa Rosa CityBus", ignore_case = TRUE)) > 0L, "SANTA ROSA CITYBUS", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("SF Bay Ferry", ignore_case = TRUE)) > 0L, "SF BAY FERRY", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Soltrans", ignore_case = TRUE)) > 0L, "SOLTRANS", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Tri Delta", ignore_case = TRUE)) > 0L, "TRI-DELTA",  output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Union City", ignore_case = TRUE)) > 0L, "UNION CITY",  output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("WestCAT", ignore_case = TRUE)) > 0L, "WESTCAT",  output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("VINE", ignore_case = TRUE)) > 0L, "NAPA VINE", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("VTA", ignore_case = TRUE)) > 0L, "VTA", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("DASH Downtown Area Shuttle", ignore_case = TRUE)) > 0L, "VTA", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Tiburon FERRY Tiburon To Angel Island State Park", ignore_case = TRUE)) > 0L, "BLUE GOLD FERRY", output_field)) %>%
     
-    
-    # OTHER
+    # PRIVATE SHUTTLE
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Stanford", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Commuter shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Corinthian lines shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
@@ -263,6 +267,32 @@ Set_Operator_Name <- function(input_vector){
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("San Jose airport shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("American Canyon Safeway", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Shuttles Broadway - Millbrae", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Genentech Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Sierra Point/Brisbane Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("San Francisco General Hospital (SFGH) Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Seton Medical Center Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("UCSF Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("CPMC Hospital Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("West Berkeley Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Highland Hospital Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("San Francisco General Hospital (SFGH) Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Seton Medical Center Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Oyster Point Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Utah Grand Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Childrens Hospital Oakland", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Apple Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Facebook Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Alta Bates Shuttles", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Harbor Bay Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Alameda County employee shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("San Leandro LINKS", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("North Burlingame shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Fairmont Hospital / Juvenile Justice Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Yahoo Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Bayhill Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Bishop Ranch Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    
+    # OTHER
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Calistoga Handy Van", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Lake Transit", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Saint Helena Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
@@ -270,7 +300,23 @@ Set_Operator_Name <- function(input_vector){
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("SCMTD Highway 17", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Santa Cruz Metro", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Menlo Park Shuttle Midday Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Palo Alto E Embarcadero Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) 
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Palo Alto E Embarcadero Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("CSU East Bay Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("UC Berkeley Campus Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Shuttle - other or unspecified", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Unknown", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("LBL / Lawrence Berkeley Lab Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Agency provided, but route not spec", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("San Francisco State (SFSU) Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("PresidiGO", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Emery Go-Round", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("B on Broadway", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Estuary Crossing - College of Alameda Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Other", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Monterey-Salinas Transit", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    
+    # Vague 'Ferry'
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Ferry", ignore_case = TRUE)) > 0L,  "SF BAY FERRY", output_field)) 
   
   return(output_df$output_field)
 }
@@ -278,20 +324,24 @@ Set_Operator_Name <- function(input_vector){
 # Set Technology
 Set_Base_Technology <- function(input_vector){
   
-  operator = c("AC TRANSIT",        "AIR BART",         "AMTRAK",              "BART",              "CALTRAIN",
-               "COUNTY CONNECTION", "FAIRFIELD-SUISUN", "GOLDEN GATE TRANSIT", "GOLDEN GATE FERRY", "MUNI", 
-               "NAPA VINE",         "SAMTRANS",         "SF BAY FERRY",        "SOLTRANS",          "TRI-DELTA", 
-               "WESTCAT",           "VTA",              "OTHER",               "PRIVATE SHUTTLE",   "OTHER AGENCY",
+  operator = c("ACE",               "AC TRANSIT",        "AIR BART",         "AMTRAK",              "BART",             
+               "CALTRAIN",          "COUNTY CONNECTION", "FAIRFIELD-SUISUN", "GOLDEN GATE TRANSIT", "GOLDEN GATE FERRY", 
+               "MARIN TRANSIT",     "MUNI",              "NAPA VINE",        "RIO-VISTA",           "SAMTRANS",
+               "SANTA ROSA CITYBUS","SF BAY FERRY",      "SOLTRANS",          "TRI-DELTA",          "UNION CITY",          
+               "WESTCAT",           "VTA",               "OTHER",             "PRIVATE SHUTTLE",  "OTHER AGENCY",        
                "BLUE GOLD FERRY")
   
-  technology = c("local bus", "local bus", "commuter rail", "heavy rail", "commuter rail",
-                 "local bus", "local bus", "express bus",   "ferry",      "local bus", 
-                 "local bus", "local bus", "ferry",         "local bus",  "local bus",
-                 "local bus", "local bus", "local bus",     "local bus",  "local bus",
+  technology = c("commuter rail", "local bus", "local bus", "commuter rail", "heavy rail", 
+                 "commuter rail", "local bus", "local bus", "express bus",   "ferry",      
+                 "local bus",     "local bus", "local bus", "local bus",     "local bus",
+                 "local bus",     "ferry",     "local bus", "local bus",     "local bus",     
+                 "local bus",     "local bus", "local bus", "local bus",     "local bus",     
                  "ferry")
   
   tech_df <- data.frame(operator, technology)
-  
+  tech_df <- tech_df %>%
+    mutate(operator = as.character(operator)) %>%
+    mutate(technology = as.character(technology))
   
   input_df <- as.data.frame(input_vector)
   colnames(input_df) <- c("operator")
@@ -481,6 +531,23 @@ remove(vehicles.dictionary, workers.dictionary)
 # -------------------------------------------------------------------------------------
 
 # Set operator for each of six legs (three before, three after)
+# - remove BART 'Missing - Dummy Record' before starting
+survey.standard <- survey.standard %>%
+  mutate(first_route_before_survey_board = 
+           ifelse(first_route_before_survey_board == "Missing - Dummy Record", "", first_route_before_survey_board)) %>%
+    mutate(second_route_before_survey_board = 
+           ifelse(second_route_before_survey_board == "Missing - Dummy Record", "", second_route_before_survey_board)) %>%
+    mutate(third_route_before_survey_board = 
+           ifelse(third_route_before_survey_board == "Missing - Dummy Record", "", third_route_before_survey_board))
+
+survey.standard <- survey.standard %>%
+  mutate(first_route_after_survey_alight = 
+           ifelse(first_route_after_survey_alight == "Missing - Dummy Record", "", first_route_after_survey_alight)) %>%
+    mutate(second_route_after_survey_alight = 
+           ifelse(second_route_after_survey_alight == "Missing - Dummy Record", "", second_route_after_survey_alight)) %>%
+    mutate(third_route_after_survey_alight = 
+           ifelse(third_route_after_survey_alight == "Missing - Dummy Record", "", third_route_after_survey_alight))
+
 first_before <- as.data.frame(Set_Operator_Name(survey.standard$first_route_before_survey_board))
 colnames(first_before) <- c("first_before_operator")
 
@@ -704,16 +771,17 @@ table(survey.standard$boardings)
 
 # If missing, compute number_transfers_orig_board and number_transfers_alight_dest
 survey.standard <- survey.standard %>%
+  mutate(first  = ifelse(str_length(first_route_before_survey_board)  == 0L, 0, 1)) %>%
+  mutate(second = ifelse(str_length(second_route_before_survey_board) == 0L, 0, 1)) %>%
+  mutate(third  = ifelse(str_length(third_route_before_survey_board)  == 0L, 0, 1)) %>%
   mutate(number_transfers_orig_board = ifelse(is.na(number_transfers_orig_board), 
-                                              !is.na(first_route_before_survey_board) + 
-                                                !is.na(second_route_before_survey_board) + 
-                                                !is.na(third_route_before_survey_board), 
-                                              number_transfers_orig_board)) %>%
-  mutate(number_transfers_alight_dest = ifelse(is.na(number_transfers_alight_dest),
-                                               !is.na(first_route_after_survey_alight) + 
-                                                 !is.na(second_route_after_survey_alight) + 
-                                                 !is.na(third_route_after_survey_alight),
-                                               number_transfers_alight_dest))
+         first + second + third, number_transfers_orig_board)) %>%
+  mutate(first  = ifelse(str_length(first_route_after_survey_alight)  == 0L, 0, 1)) %>%
+  mutate(second = ifelse(str_length(second_route_after_survey_alight) == 0L, 0, 1)) %>%
+  mutate(third  = ifelse(str_length(third_route_after_survey_alight)  == 0L, 0, 1)) %>%
+  mutate(number_transfers_alight_dest = ifelse(is.na(number_transfers_alight_dest), 
+         first + second + third, number_transfers_alight_dest)) %>%
+  select(-first, -second, -third)
 
 survey.standard <- survey.standard %>%
   mutate(survey_boardings = 1L + as.numeric(number_transfers_orig_board) + as.numeric(number_transfers_alight_dest))
@@ -882,10 +950,15 @@ write.places <- write.places %>%
   filter(!is.na(x_coord)) %>%
   filter(!is.na(y_coord))
 
+survey.standard <- survey.standard %>%
+  mutate(first_board_lat  = ifelse(number_transfers_orig_board == 0, survey_board_lat,   first_board_lat)) %>%
+  mutate(first_board_lon  = ifelse(number_transfers_orig_board == 0, survey_board_lon,   first_board_lon)) %>%
+  mutate(first_board_tech = ifelse(number_transfers_orig_board == 0, survey_tech,        first_board_tech)) %>%
+  mutate(last_alight_lat  = ifelse(number_transfers_alight_dest == 0, survey_alight_lat, last_alight_lat)) %>%
+  mutate(last_alight_lon  = ifelse(number_transfers_alight_dest == 0, survey_alight_lon, last_alight_lon)) %>%
+  mutate(last_alight_tech = ifelse(number_transfers_alight_dest == 0, survey_tech,       last_alight_tech))
+
 write.board <- survey.standard %>%
-  mutate(first_board_lat    = ifelse(number_transfers_orig_board == 0, survey_board_lat, first_board_lat)) %>%
-  mutate(first_board_lon    = ifelse(number_transfers_orig_board == 0, survey_board_lon, first_board_lon)) %>%
-  mutate(first_board_alight = ifelse(number_transfers_orig_board == 0, survey_tech,      first_board_tech)) %>%
   select(Unique_ID, first_board_lat, first_board_lon, first_board_tech) %>%
   mutate(first_board_lat = as.numeric(first_board_lat)) %>%
   mutate(first_board_lon = as.numeric(first_board_lon)) %>%
@@ -893,9 +966,6 @@ write.board <- survey.standard %>%
   filter(!is.na(first_board_lon))
 
 write.alight <- survey.standard %>%
-  mutate(last_alight_lat  = ifelse(number_transfers_alight_dest == 0, survey_alight_lat, last_alight_lat)) %>%
-  mutate(last_alight_lon  = ifelse(number_transfers_alight_dest == 0, survey_alight_lon, last_alight_lon)) %>%
-  mutate(last_alight_tech = ifelse(number_transfers_alight_dest == 0, survey_tech,       last_alight_tech)) %>%
   select(Unique_ID, last_alight_lat, last_alight_lon, last_alight_tech) %>%
   mutate(last_alight_lat = as.numeric(last_alight_lat)) %>%
   mutate(last_alight_lon = as.numeric(last_alight_lon)) %>%
