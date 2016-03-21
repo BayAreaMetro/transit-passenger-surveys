@@ -13,7 +13,7 @@ CONTENTS
 ## Steering Member List
 
 | **Name**                               | **Affiliation**                                        |
-|:---------------------------------------|--------------------------------------------------------|
+|:---------------------------------------|:-------------------------------------------------------|
 | Robert Del Rosario                     | AC Transit                                             | 
 | Howard Der                             | AC Transit                                             | 
 | Sally Goodman                          | AC Transit                                             |
