@@ -16,9 +16,6 @@ Procedure to translate any number of on-board survey data sets into a single dat
 1.  Work carefully through first few datasets, as the code is a bit coarse in places
 
 #### _TODO_
-1.  Make sure BART has all the Napa and Caltrain variables before casting
-2.  Check to make sure BART IDs are unique
-3.  Finish BART debugging
 
 ## Overhead
 
@@ -783,6 +780,9 @@ survey.standard <- survey.standard %>%
          first + second + third, number_transfers_alight_dest)) %>%
   select(-first, -second, -third)
 
+table(survey.standard$number_transfers_orig_board)
+table(survey.standard$number_transfers_alight_dest)
+
 survey.standard <- survey.standard %>%
   mutate(survey_boardings = 1L + as.numeric(number_transfers_orig_board) + as.numeric(number_transfers_alight_dest))
 
@@ -951,9 +951,9 @@ write.places <- write.places %>%
   filter(!is.na(y_coord))
 
 survey.standard <- survey.standard %>%
-  mutate(first_board_lat  = ifelse(number_transfers_orig_board == 0, survey_board_lat,   first_board_lat)) %>%
-  mutate(first_board_lon  = ifelse(number_transfers_orig_board == 0, survey_board_lon,   first_board_lon)) %>%
-  mutate(first_board_tech = ifelse(number_transfers_orig_board == 0, survey_tech,        first_board_tech)) %>%
+  mutate(first_board_lat  = ifelse(number_transfers_orig_board == 0,  survey_board_lat,  first_board_lat)) %>%
+  mutate(first_board_lon  = ifelse(number_transfers_orig_board == 0,  survey_board_lon,  first_board_lon)) %>%
+  mutate(first_board_tech = ifelse(number_transfers_orig_board == 0,  survey_tech,       first_board_tech)) %>%
   mutate(last_alight_lat  = ifelse(number_transfers_alight_dest == 0, survey_alight_lat, last_alight_lat)) %>%
   mutate(last_alight_lon  = ifelse(number_transfers_alight_dest == 0, survey_alight_lon, last_alight_lon)) %>%
   mutate(last_alight_tech = ifelse(number_transfers_alight_dest == 0, survey_tech,       last_alight_tech))
@@ -1090,6 +1090,5 @@ save(survey.standard, file = F_OUTPUT_RDATA)
 
 # DEBUG
 ```{r debug}
-
 ```
 
