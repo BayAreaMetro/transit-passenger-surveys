@@ -16,3 +16,5 @@ Discussion ideas put forward to improve on-board surveying practice.
 *	A Simple Bayesian Approach to Conducting On-Board Transit Passenger Surveys.  David Ory, MTC.  [Paper](https://mtcdrive.box.com/bayesian-onboard).
 
 *	A Simple Bayesian Approach for Efficiently Conducting On-Off Transit On-board Surveys.  David Ory, MTC.  [Paper](https://mtcdrive.box.com/bayesian-onoff).
+
+*	On the Expansion of Transit On-board Passenger Surveys.  David Ory, MTC.  [Paper](https://mtcdrive.box.com/multi-criteria-expansion)  
