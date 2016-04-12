@@ -18,10 +18,9 @@ The current implementation uses example data.
 1.  A database of chi-squared test results
 
 #### _TODO_ 
-1.  Bones in place
-2.  Need to debug this: specifically start with 44 and make sure sequence numbers are logical
-3.  Add a check to toss an error if the sequence is off, e.g., a flow from B to A.
-4.  Get this working for a few more routes and then make more general
+1.  Rather coarse implementation of the travel model priors compared to the observed
+2.  Build a separate script comparing successive observed data sets
+3.  Build this out for all the routes
 
 ## Procedure
 
@@ -41,14 +40,12 @@ obs_time_of_day = c("AM PEAK", "MIDDAY",  "SCHOOL",   "PM PEAK")
 time_of_day     = c("AM",      "MD",      "MD",       "PM")
 time_of_day_df <- data.frame(obs_time_of_day, time_of_day, stringsAsFactors = FALSE)
 
-# FIX ME
-# so, the forward is easy
-# the backwards, perhaps for now introduce another variable for the max segment
-# if the max is 3, then the 3,2,1 corresponds to A,B,C
-# if the max is 2, then the 2,1 corresponds to A,B
-# then make this more elegant, programmatic as more data comes in
-# perhaps just make this a separate database?
+# Utilities to convert sequence numbers to letters
+abc_123_board <- data.frame(board_segment  = c("A","B","C","D","E"), board_int  = c(1,2,3,4,5), stringsAsFactors = FALSE)
 
+abc_123_alight <- data.frame(alight_segment = c("A","B","C","D","E"), alight_int = c(1,2,3,4,5), stringsAsFactors = FALSE)
+
+# Database to get the backward segment letter to number translation right
 segment_number = c(1,2,3,4,5,
                    5,4,3,2,1,
                    4,3,2,1,
@@ -71,13 +68,19 @@ max_segment    = c(0,0,0,0,0,
                    2,2)
 number_to_letter <- data.frame(segment_number, segment_letter, segment_enum, max_segment, stringsAsFactors = FALSE)
 
-obs_route_name = c("9-San Bruno [ OUTBOUND ]",     "9-San Bruno [ INBOUND ]",
-                   "44-O Shaughnessy [ OUTBOUND ]", "44-O Shaughnessy [ INBOUND ]")
+# Build the data frame now, perhaps move to database if gets more complicated
+obs_route_name = c("9-San Bruno [ OUTBOUND ]",             "9-San Bruno [ INBOUND ]",
+                   "44-O Shaughnessy [ OUTBOUND ]",        "44-O Shaughnessy [ INBOUND ]",
+                   "48-Quintara/24th Street [ OUTBOUND ]", "48-Quintara/24th Street [ INBOUND ]",
+                   "27-Bryant [ OUTBOUND ]",               "27-Bryant [ INBOUND ]",
+                   "7-Haight/Noriega [ OUTBOUND ]",        "7-Haight/Noriega [ INBOUND ]")
 
-route          = c("9","9","44","44")
-direction      = c("OUTBOUND","INBOUND","OUTBOUND","INBOUND")
-segment_enum   = c("forward","backward","backward","backward")
-max_segment    = c(0,3,4,4)
+route          = c("9","9","44","44","48","48","27","27","71","71")
+direction      = c("OUTBOUND","INBOUND","OUTBOUND","INBOUND","OUTBOUND","INBOUND",
+                   "OUTBOUND","INBOUND","OUTBOUND","INBOUND")
+segment_enum   = c("forward","backward","forward","backward","forward","backward",
+                   "forward","backward","forward","backward")
+max_segment    = c(0,3,0,4,0,3,0,3,0,3)
 route_names <- data.frame(obs_route_name, route, direction, segment_enum, max_segment, stringsAsFactors = FALSE)
 
 ```
@@ -90,7 +93,14 @@ F_OBSERVED_FLOWS_09 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MU
 
 F_OBSERVED_FLOWS_44 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_SUBMITTAL1_20160408_4416.csv"
 
+F_OBSERVED_FLOWS_48 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_SUBMITTAL1_20160408_4801.csv"
+
+F_OBSERVED_FLOWS_27 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_SUBMITTAL1_20160408_2705.csv"
+
+F_OBSERVED_FLOWS_07 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_SUBMITTAL1_20160408_706.csv"
+
 F_OUTPUT = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/chi-squared-results.csv"
+F_OBSEST = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/observed-priors-results.csv"
 ```
 
 #### Data reads
@@ -101,7 +111,15 @@ observed_09 <- read.table(file = F_OBSERVED_FLOWS_09, header = TRUE, sep = ",", 
 
 observed_44 <- read.table(file = F_OBSERVED_FLOWS_44, header = TRUE, sep = ",", stringsAsFactors = FALSE)
 
-observed_df <- rbind(observed_09, observed_44)
+observed_48 <- read.table(file = F_OBSERVED_FLOWS_48, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+observed_27 <- read.table(file = F_OBSERVED_FLOWS_27, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+observed_07 <- read.table(file = F_OBSERVED_FLOWS_07, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+observed_df <- rbind(observed_09, observed_44, observed_48, observed_27, observed_07)
+
+remove(observed_09, observed_44, observed_48, observed_27, observed_07)
 
 ```
 
@@ -156,6 +174,8 @@ observed_sum <- rbind(observed_sum, observed_daily)
 priors_clean <- priors_df %>%
   select(route, direction, time_of_day, board_segment, alight_segment, prior_flow = flow)
 
+remove(observed_daily, observed_df, priors_df)
+
 ```
 
 
@@ -165,11 +185,43 @@ priors_clean <- priors_df %>%
 observed_join <- observed_sum %>%
   filter(is.na(time_of_day) == FALSE)
 
-joined_df <- left_join(observed_join, priors_clean, by = c("route", "direction", "time_of_day", "board_segment", "alight_segment"))
+joined_df <- left_join(observed_join, 
+                       priors_clean, 
+                       by = c("route", "direction", "time_of_day", "board_segment", "alight_segment"))
+
+# Remove rows with missing priors
+joined_df <- joined_df %>%
+  filter(is.na(prior_flow) == FALSE)
+
+# compute the prior shares and prior estimate
+temp_sums <- joined_df %>%
+  group_by(route, direction, time_of_day) %>%
+  summarise(prior_sum = sum(prior_flow), observed_sum = sum(observed_flow))
+
+joined_df <- left_join(joined_df, temp_sums, by = c("route", "direction", "time_of_day"))
+
+joined_df <- joined_df %>%
+  mutate(prior_share = ifelse(prior_sum > 0.0, prior_flow / prior_sum, 0.0)) %>%
+  mutate(prior_estimate = prior_share * observed_sum) %>%
+  select(-prior_sum, -observed_sum, -prior_share)
 
 # Fill in missing priors with 1
 joined_df <- joined_df %>%
   mutate(prior_flow = ifelse(is.na(prior_flow), 1, prior_flow))
+
+# Find illogical sequences
+illogical_sequences <- left_join(joined_df, abc_123_board, by = c("board_segment"))
+illogical_sequences <- left_join(illogical_sequences, abc_123_alight, by = c("alight_segment"))
+illogical_sequences <- illogical_sequences %>%
+  mutate(error = (board_int > alight_int)) %>%
+  filter(error)
+
+# Update route 71 to route 7
+joined_df <- joined_df %>%
+  ungroup() %>%
+  mutate(route = ifelse(route == "71", "7", route))
+
+remove(temp_sums)
 
 ```
 
@@ -178,15 +230,20 @@ joined_df <- joined_df %>%
 # use dplyr
 outcome_df <- joined_df %>%
   group_by(route, direction, time_of_day) %>%
-  summarise(test_statistic = chisq.test(observed_flow, p = prior_flow/sum(prior_flow))$statistic[["X-squared"]],
-            test_df        = chisq.test(observed_flow, p = prior_flow/sum(prior_flow))$parameter[["df"]],
-            test_p_value   = chisq.test(observed_flow, p = prior_flow/sum(prior_flow))$p.value)
+  summarise(test_statistic  = chisq.test(observed_flow, p = prior_flow/sum(prior_flow))$statistic[["X-squared"]],
+            test_df         = chisq.test(observed_flow, p = prior_flow/sum(prior_flow))$parameter[["df"]],
+            test_p_value    = chisq.test(observed_flow, p = prior_flow/sum(prior_flow))$p.value)
+
+
+# Add test results to observed-estimated database
+joined_df <- left_join(joined_df, outcome_df, by = c("route", "direction", "time_of_day"))
 
 ```
 
 #### Data write
 ```{r data-write}
 write.csv(outcome_df, file = F_OUTPUT, row.names = FALSE, quote = F)
+write.csv(joined_df,  file = F_OBSEST, row.names = FALSE, quote = F)
 
 ```
 
