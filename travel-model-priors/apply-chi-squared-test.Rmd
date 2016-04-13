@@ -230,7 +230,8 @@ illogical_sequences <- illogical_sequences %>%
 # Update route 71 to route 7
 joined_df <- joined_df %>%
   ungroup() %>%
-  mutate(route = ifelse(route == "71", "7", route))
+  mutate(route = ifelse(route == "71", "7", route)) %>%
+  mutate(route = ifelse(route == "071L", "7L", route))
 
 remove(temp_sums)
 
