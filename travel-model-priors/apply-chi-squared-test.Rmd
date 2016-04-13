@@ -18,15 +18,14 @@ The current implementation uses example data.
 1.  A database of chi-squared test results
 
 #### _TODO_ 
-1.  Rather coarse implementation of the travel model priors compared to the observed
-2.  Build a separate script comparing successive observed data sets
-3.  Build this out for all the routes
+1. Seems to be working -- build separate script to compare successive observed
 
 ## Procedure
 
 #### Overhead
 ```{r overhead, results = 'hide'}
 library(knitr)
+library(stringr)
 suppressMessages(library(dplyr))
 ```
 
@@ -73,15 +72,47 @@ obs_route_name = c("9-San Bruno [ OUTBOUND ]",             "9-San Bruno [ INBOUN
                    "44-O Shaughnessy [ OUTBOUND ]",        "44-O Shaughnessy [ INBOUND ]",
                    "48-Quintara/24th Street [ OUTBOUND ]", "48-Quintara/24th Street [ INBOUND ]",
                    "27-Bryant [ OUTBOUND ]",               "27-Bryant [ INBOUND ]",
-                   "7-Haight/Noriega [ OUTBOUND ]",        "7-Haight/Noriega [ INBOUND ]")
+                   "7-Haight/Noriega [ OUTBOUND ]",        "7-Haight/Noriega [ INBOUND ]",
+                   "18-46th Avenue [ OUTBOUND ]",          "18-46th Avenue [ INBOUND ]",
+                   "29-Sunset [ OUTBOUND ]",               "29-Sunset [ INBOUND ]",
+                   "54-Felton [ OUTBOUND ]",               "54-Felton [ INBOUND ]",
+                   "7R-Haight/Noriega Rapid [ OUTBOUND ]",  "7R-Haight/Noriega Rapid [ INBOUND ]",
+                   "9R-San Bruno Rapid [ OUTBOUND ]",       "9R-San Bruno Rapid [ INBOUND ]",
+                   "23-Monterey [ OUTBOUND ]",              "23-Monterey [ INBOUND ]",
+                   "36-Teresita [ OUTBOUND ]",              "36-Teresita [ INBOUND ]",
+                   "37-Corbett [ OUTBOUND ]",               "37-Corbett [ INBOUND ]",
+                   "57-Parkmerced [ OUTBOUND ]",            "57-Parkmerced [ INBOUND ]")
 
-route          = c("9","9","44","44","48","48","27","27","71","71")
-direction      = c("OUTBOUND","INBOUND","OUTBOUND","INBOUND","OUTBOUND","INBOUND",
-                   "OUTBOUND","INBOUND","OUTBOUND","INBOUND")
-segment_enum   = c("forward","backward","forward","backward","forward","backward",
-                   "forward","backward","forward","backward")
-max_segment    = c(0,3,0,4,0,3,0,3,0,3)
-route_names <- data.frame(obs_route_name, route, direction, segment_enum, max_segment, stringsAsFactors = FALSE)
+route          = c("9",    "9",  "44","44","48",  "48",
+                   "27",   "27", "71","71","18",  "18",
+                   "29",   "29", "54","54","071L","071L",
+                   "009L","009L","23","23","36",  "36",
+                   "37",  "37",  "57","57")
+max_segment    = c(0,3,0,4,0,3,
+                   0,3,0,3,0,2,
+                   0,3,0,3,0,3,
+                   0,3,0,2,0,2,
+                   0,2,0,3)
+
+route_names <- data.frame(obs_route_name, route, max_segment, stringsAsFactors = FALSE)
+
+# Get direction from the name and assume segment enumeration is backward for inbound
+route_names <- route_names %>%
+  mutate(inbound  = str_count(obs_route_name, "INBOUND")) %>%
+  mutate(outbound = str_count(obs_route_name, "OUTBOUND")) %>%
+  mutate(direction = "missing") %>%
+  mutate(direction = ifelse(inbound == 1,  "INBOUND", direction)) %>%
+  mutate(direction = ifelse(outbound == 1, "OUTBOUND", direction)) %>%
+  mutate(segment_enum = "missing") %>%
+  mutate(segment_enum = ifelse(inbound == 1,  "backward", segment_enum)) %>%
+  mutate(segment_enum = ifelse(outbound == 1, "forward",  segment_enum)) %>%
+  select(-inbound, -outbound)
+
+
+
+# TODO 
+# then find the NULL bug
+
 
 ```
 
@@ -89,15 +120,7 @@ route_names <- data.frame(obs_route_name, route, direction, segment_enum, max_se
 ```{r remote-io}
 F_PRIOR_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/priors.csv"
 
-F_OBSERVED_FLOWS_09 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_SUBMITTAL1_20160408_910.csv"
-
-F_OBSERVED_FLOWS_44 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_SUBMITTAL1_20160408_4416.csv"
-
-F_OBSERVED_FLOWS_48 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_SUBMITTAL1_20160408_4801.csv"
-
-F_OBSERVED_FLOWS_27 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_SUBMITTAL1_20160408_2705.csv"
-
-F_OBSERVED_FLOWS_07 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_SUBMITTAL1_20160408_706.csv"
+F_OBSERVED_FLOWS = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_SUBMITTAL1_20160408_database.csv"
 
 F_OUTPUT = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/chi-squared-results.csv"
 F_OBSEST = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/observed-priors-results.csv"
@@ -107,19 +130,7 @@ F_OBSEST = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/observed-priors-resu
 ```{r data-reads}
 priors_df <-   read.table(file = F_PRIOR_FLOWS,    header = TRUE, sep = ",", stringsAsFactors = FALSE)
 
-observed_09 <- read.table(file = F_OBSERVED_FLOWS_09, header = TRUE, sep = ",", stringsAsFactors = FALSE)
-
-observed_44 <- read.table(file = F_OBSERVED_FLOWS_44, header = TRUE, sep = ",", stringsAsFactors = FALSE)
-
-observed_48 <- read.table(file = F_OBSERVED_FLOWS_48, header = TRUE, sep = ",", stringsAsFactors = FALSE)
-
-observed_27 <- read.table(file = F_OBSERVED_FLOWS_27, header = TRUE, sep = ",", stringsAsFactors = FALSE)
-
-observed_07 <- read.table(file = F_OBSERVED_FLOWS_07, header = TRUE, sep = ",", stringsAsFactors = FALSE)
-
-observed_df <- rbind(observed_09, observed_44, observed_48, observed_27, observed_07)
-
-remove(observed_09, observed_44, observed_48, observed_27, observed_07)
+observed_df <- read.table(file = F_OBSERVED_FLOWS, header = TRUE, sep = ",", stringsAsFactors = FALSE)
 
 ```
 
@@ -246,4 +257,5 @@ write.csv(outcome_df, file = F_OUTPUT, row.names = FALSE, quote = F)
 write.csv(joined_df,  file = F_OBSEST, row.names = FALSE, quote = F)
 
 ```
+
 
