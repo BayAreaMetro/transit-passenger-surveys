@@ -62,7 +62,7 @@ MTC will procure consulting resources to carry out the Survey Program, and overs
 ## Funding Responsbiities of MTC and Operators
 
 
-MTC will contribute to the cost of the Survey Program. MTC will pay 80 percent of the cost to survey service provided by the 
+As desribed in Attachment B, Appendix B-5 of Resolution 3866 related to transit coordination, available [here](https://mtcdrive.box.com/Resolution-3866-Amendment). MTC will contribute to the cost of the Survey Program. MTC will pay 80 percent of the cost to survey service provided by the 
 
 
 
