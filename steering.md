@@ -50,9 +50,21 @@ CONTENTS
 
 ## Meeting Agendas
 
-### Meeting 01
-Meeting has not yet been scheduled.
+### Meeting 1 - 2016
+Wednesday, April 27th
+10:30 AM
+Fishbowl Conference Room, 3rd Floor
+101 8th Street
+Oakland, CA 94607
+
+Call-in Number: 888-273-3658
+Access Code: 9427202
 
 #### Agenda
+1, Introductions
+2. New website for the group
+3. Survey schedule
+4. SOP
+5. Title VI interpretation
 #### Key Outcomes
 
