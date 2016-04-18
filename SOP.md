@@ -49,7 +49,7 @@ An example task order is available [here](https://mtcdrive.box.com/Example-Task-
 
 ## Survey Scheduling
 
-The tentative schedule for surveying operators is available [here] (http://metropolitantransportationcommission.github.io/onboard-surveys/schedule/).
+The tentative schedule for surveying operators is available [here](http://metropolitantransportationcommission.github.io/onboard-surveys/schedule/).
 
 
 
