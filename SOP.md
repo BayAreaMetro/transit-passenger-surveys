@@ -1,9 +1,9 @@
 ---
 layout: page
-title: Steering
+title: SOP
 ---
 
-# Steering Committee Activities
+# Standard Operating Procedures for Conducting Surveys
 
 CONTENTS
 
