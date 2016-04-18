@@ -8,7 +8,7 @@ title: Steering
 CONTENTS
 
 1. [Steering Member List](#steering-member-list)
-2. [Meeting agendas](#meeting-agendas)
+2. [Meeting Agendas](#meeting-agendas)
 
 ## Steering Member List
 
