@@ -15,14 +15,57 @@ CONTENTS
 
 ## Procurement and Contracting
 
-MTC will procure consulting resources to carry out the Survey Program, and oversee consultant performance to ensure delivery of high quality data and survey summary products. 
+MTC will procure consulting resources to carry out the Survey Program, and oversee consultant performance to ensure delivery of high quality data and survey summary products. MTC's current contracting environment includes a "bench" of three consultants to spread the work among. All three were selected in a competitive recruitment and all have a lot of experience in transit passenger surveying. The three bench consultants from MTC's more recent procurement are Corey, Canapary, & Galanis of San Francisco, California; ETC Institute of Olathe, Kansas; and, Redhill Group of Irvine, California. 
+
+MTC staff works closely with operator liaisons in all matters related to survey scheduling (see Survey Scheduling, below), contracting, and administration. Work orders to the contractor are done using MTC-issued task orders. An recent example task order is available [here](https://mtcdrive.box.com/Example-Task-Order)
 
 ## Data Collection
 
+Custom questions from operators.
 
+Types of data collected include:
+
+1. Location data 
+	a. Trip origin 
+	b. First transit boarding 
+	c. Last transit alighting
+	d. Trip destination
+	e. Bus/rail transfer location points
+	f. Home location
+	g. Work location (if appropriate)
+	h. School location (if appropriate)
+	
+2. Access/egress modes 
+	a. Access mode from trip origin to first transit boarding
+	b. Egress mode from last transit alighting to trip destination
+	
+3. Type of trip taken
+	a. Origin type (e.g., home, work, shopping, etc.)
+	b. Destination type (same types as origin)
+	
+4. Time leaving home in the A.M. and returning home in the P.M.
+
+5. Fare payment
+	a. Payment method (e.g., cash, Clipper Card, paper transfer, etc.)
+	b. Payment category (e.g., adult, senior, youth, etc.)
+	
+6. Houshould and person demographics
+	a. Race/ethnicity
+	b. Age
+	c. Gender
+	d. Worker status
+	e. Student status
+	f. Ability to speak English
+	g. Language spoken in home other than English
+	h. Number of persons in household
+	i. Number of workers in household
+	j. Number of household working vehicles
+	k. Household income
+	
+7. Custom questions by operators. Examples include riding frequency and years using service.
+	
 
 An example survey instrument is [here](https://mtcdrive.box.com/v/muni-draft-survey)
-An example task order is available [here](https://mtcdrive.box.com/Example-Task-Order)
 
 
 ## Survey Scheduling
