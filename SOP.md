@@ -17,7 +17,7 @@ CONTENTS
 
 MTC will procure consulting resources to carry out the Survey Program, and oversee consultant performance to ensure delivery of high quality data and survey summary products. 
 
-## Survey Procedures, Questions, and Data Collection Methods
+## Data Collection
 
 
 
@@ -37,7 +37,7 @@ It is anticipated that it will take approximately five years to survey all TDA-c
 
 The tentative schedule for surveying operators is available [here](http://metropolitantransportationcommission.github.io/onboard-surveys/schedule/).
 
-## Funding Responsbiities of MTC and Operators
+## Survey Funding
 
 As described in Attachment B, Appendix B-5 of Resolution 3866 related to transit coordination, available [here](https://mtcdrive.box.com/Resolution-3866-Amendment), both MTC and the operators have respective funding responsbilities. As per the Resolution 3866 amendment, above, MTC will pay 80 percent of the cost to survey service of the top seven operators by ridership, and respective operators will pay a 20-percent share:
 
