@@ -8,9 +8,9 @@ title: SOP
 CONTENTS
 
 1. [Procurement and Contracting](#procurement-and-contracting)
-2. [Survey Procedures, Questions, and Data Collection Methods](#survey-procedures-questions-and-data-collection-methods)
+2. [Data Collection](#data-collection)
 3. [Survey Scheduling](#survey-scheduling)
-4. [Funding Responsibilities of MTC and Operators](#funding-responsibilities-of-mtc-and-operators)
+4. [Survey Funding](#survey-funding)
 5. [Data Distribution Procedures](#data-distribution-procedures)
 
 ## Procurement and Contracting
