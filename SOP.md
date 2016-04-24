@@ -27,7 +27,7 @@ Types of data collected include:
 
 1. Location data 
 
-	a. Trip origin
+	A. Trip origin
 	
 	b. First transit boarding 
 	
