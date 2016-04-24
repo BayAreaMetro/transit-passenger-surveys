@@ -26,40 +26,65 @@ Custom questions from operators.
 Types of data collected include:
 
 1. Location data 
-	a. Trip origin 
+
+	a. Trip origin
+	
 	b. First transit boarding 
+	
 	c. Last transit alighting
+	
 	d. Trip destination
+	
 	e. Bus/rail transfer location points
+	
 	f. Home location
+	
 	g. Work location (if appropriate)
+	
 	h. School location (if appropriate)
 	
 2. Access/egress modes 
+
 	a. Access mode from trip origin to first transit boarding
+	
 	b. Egress mode from last transit alighting to trip destination
 	
 3. Type of trip taken
+
 	a. Origin type (e.g., home, work, shopping, etc.)
+	
 	b. Destination type (same types as origin)
 	
 4. Time leaving home in the A.M. and returning home in the P.M.
 
 5. Fare payment
+
 	a. Payment method (e.g., cash, Clipper Card, paper transfer, etc.)
+	
 	b. Payment category (e.g., adult, senior, youth, etc.)
 	
 6. Houshould and person demographics
+
 	a. Race/ethnicity
+	
 	b. Age
+	
 	c. Gender
+	
 	d. Worker status
+	
 	e. Student status
+	
 	f. Ability to speak English
+	
 	g. Language spoken in home other than English
+	
 	h. Number of persons in household
+	
 	i. Number of workers in household
+	
 	j. Number of household working vehicles
+	
 	k. Household income
 	
 7. Custom questions by operators. Examples include riding frequency and years using service.
