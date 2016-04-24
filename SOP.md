@@ -27,20 +27,13 @@ Types of data collected include:
 
 **1. Location data** 
 
-	a. Trip origin
-	
-	b. First transit boarding 
-	
-	c. Last transit alighting
-	
-	d. Trip destination
-	
-	e. Bus/rail transfer location points
-	
-	f. Home location
-	
-	g. Work location (if appropriate)
-	
+	a. Trip origin	
+	b. First transit boarding 	
+	c. Last transit alighting	
+	d. Trip destination	
+	e. Bus/rail transfer location points	
+	f. Home location	
+	g. Work location (if appropriate)	
 	h. School location (if appropriate)
 	
 **2. Access/egress modes** 
