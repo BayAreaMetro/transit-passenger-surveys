@@ -21,7 +21,7 @@ MTC staff works closely with operator liaisons in all matters related to survey 
 
 ## Data Collection
 
-Custom questions from operators.
+It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of passenger boardings. Segmented by time of day. Custom questions from operators.
 
 Types of data collected include:
 
