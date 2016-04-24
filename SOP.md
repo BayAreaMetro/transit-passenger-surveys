@@ -25,9 +25,9 @@ Custom questions from operators.
 
 Types of data collected include:
 
-1. Location data 
+**1. Location data** 
 
-	A. Trip origin
+	a. Trip origin
 	
 	b. First transit boarding 
 	
