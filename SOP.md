@@ -43,27 +43,27 @@ Types of data collected include:
 	
 	h. School location (if appropriate)
 	
-2. Access/egress modes 
+**2. Access/egress modes** 
 
 	a. Access mode from trip origin to first transit boarding
 	
 	b. Egress mode from last transit alighting to trip destination
 	
-3. Type of trip taken
+**3. Type of trip taken**
 
 	a. Origin type (e.g., home, work, shopping, etc.)
 	
 	b. Destination type (same types as origin)
 	
-4. Time leaving home in the A.M. and returning home in the P.M.
+**4. Time leaving home in the A.M. and returning home in the P.M.**
 
-5. Fare payment
+**5. Fare payment**
 
 	a. Payment method (e.g., cash, Clipper Card, paper transfer, etc.)
 	
 	b. Payment category (e.g., adult, senior, youth, etc.)
 	
-6. Houshould and person demographics
+**6. Houshould and person demographics**
 
 	a. Race/ethnicity
 	
@@ -87,7 +87,7 @@ Types of data collected include:
 	
 	k. Household income
 	
-7. Custom questions by operators. Examples include riding frequency and years using service.
+**7. Custom questions by operators. Examples include riding frequency and years using service.**
 	
 
 An example survey instrument is [here](https://mtcdrive.box.com/v/muni-draft-survey)
