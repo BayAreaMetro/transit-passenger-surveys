@@ -7,11 +7,16 @@ title: SOP
 
 CONTENTS
 
-1. [Procurement and Contracting](#procurement-and-contracting)
-2. [Data Collection](#data-collection)
-3. [Survey Scheduling](#survey-scheduling)
-4. [Survey Funding](#survey-funding)
-5. [Data Distribution Procedures](#data-distribution-procedures)
+1. [SOP Goals](#sop-goals)
+2. [Procurement and Contracting](#procurement-and-contracting)
+3. [Data Collection](#data-collection)
+4. [Survey Scheduling](#survey-scheduling)
+5. [Survey Funding](#survey-funding)
+6. [Data Distribution Procedures](#data-distribution-procedures)
+
+## SOP Goals
+
+The Standard Operating Procedures here describe 
 
 ## Procurement and Contracting
 
@@ -21,7 +26,7 @@ MTC staff works closely with operator liaisons in all matters related to survey 
 
 ## Data Collection
 
-It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of passenger boardings. Segmented by time of day. Custom questions from operators.
+It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of passenger boardings. Sampling plans are developed which include random, day-long sampling of passengers. Survey quota goals are segmented by time of day periods (either MTC's time periods, the time periods used by operators, or custom time periods). The battery of questions asked passengers has become fairly standardized, with approximately 3-5 custom questions that can be added by operators. These include "customer service" style questions. The types of questions asked in a standard MTC survey are described below.
 
 Types of data collected include:
 
@@ -73,7 +78,7 @@ Types of data collected include:
 	b. Means of getting schedule information (paper schedules, internet site, etc.)
 	c. Overall satisfaction with service
 	
-A draft mock-up paper version of the Muni survey is available [here](https://mtcdrive.box.com/v/muni-draft-survey). The tablet "script" of the tablet computer-administered Napa VINE survey instrument is [here](https://mtcdrive.box.com/v/tablet-survey)
+Due to lower response rates and incompleteness of many surveys, MTC has migrated away from the use of paper survey instruments for transit passenger data collection. Instead, MTC has collected passenger data using two different methods. The first method, initially deployed in 2012, involved capturing passenger names and contact phone numbers, and then administering a follow-up computer-assisted telephone interview (CATI). The CATI survey efficiently tailors questions to match the travel patterns and demographic characteristics of each passenger.  More recently, beginning in 2014, MTC has been utilizing the method advocated by the Federal Transit Administration for transit passenger surveys, that of an in-person interview peformed with a tablet computer. Similar to the CATI approach, the tablet computer aids interviewers in asking questions via a surveying "script," skipping questions that aren't relevant to individual passengers. To help people understand the types of questions asked by MTC, a draft mock-up paper version of the Muni survey (which has been translated into an in-person tablet computer "script") is available [here](https://mtcdrive.box.com/v/muni-draft-survey). The tablet "script" of the tablet computer-administered Napa VINE survey instrument is provided [here](https://mtcdrive.box.com/v/tablet-survey) to understand what is captured in the fully expanded tablet compute script. It is important to remember that the computer administration skips through the survey, so not every question is asked of all passengers. 
 
 ## Survey Scheduling
 
