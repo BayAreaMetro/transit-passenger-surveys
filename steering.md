@@ -62,13 +62,15 @@ Call-in Number: 888-273-3658
 Access Code: 9427202  
 
 #### Agenda
+
 1, Introductions  
 2. New website for the group  
-  + Steering member list
-  + Survey schedule   
-  + SOP  
-  + Data sharing  
-3. Title VI presentation by Ibraheem Fakira of VTA, Title VI discussion 
-4. Next Meeting
-#### Key Outcomes
+3. Steering member list  
+4. Survey schedule   
+5. SOP  
+6. Data sharing  
+7. Title VI presentation by Ibraheem Fakira of VTA, Title VI discussion 
+8. Next Meeting  
+
+
 
