@@ -64,10 +64,10 @@ Access Code: 9427202
 #### Agenda
 1, Introductions  
 2. New website for the group (steering member list, survey schedule, SOP, etc.)  
-  - a. Steering member list  
-  - b. Survey schedule  
-  - c. SOP  
-  - d. Data sharing  
+  *Steering member list  
+  *Survey schedule  
+  *SOP  
+  *Data sharing  
 3. Title VI presentation by Ibraheem Fakira of VTA, Title VI discussion 
 4. 
 5. Title VI interpretation
