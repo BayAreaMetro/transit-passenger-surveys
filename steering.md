@@ -69,7 +69,7 @@ Access Code: 9427202
 4. Survey schedule   
 5. SOP  
 6. Data sharing  
-7. Title VI presentation by Ibraheem Fakira of VTA, Title VI discussion 
+7. Title VI presentation by Ibraheem Fakira of VTA, Title VI discussion   
 8. Next Meeting  
 
 
