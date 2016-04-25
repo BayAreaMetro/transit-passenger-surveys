@@ -54,13 +54,13 @@ CONTENTS
 
 **Wednesday, April 27, 2016**
 
-10:30 AM
-Claremont Conference Room, 2nd Floor
-101 8th Street
-Oakland, CA 94607
+10:30 AM  
+Claremont Conference Room, 2nd Floor  
+101 8th Street  
+Oakland, CA 94607  
 
-Call-in Number: 888-273-3658
-Access Code: 9427202
+Call-in Number: 888-273-3658  
+Access Code: 9427202  
 
 #### Agenda
 1, Introductions
