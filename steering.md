@@ -52,8 +52,7 @@ CONTENTS
 
 ### Meeting 1 - 2016
 
-**Wednesday, April 27, 2016**
-
+Wednesday, April 27, 2016  
 10:30 AM  
 Claremont Conference Room, 2nd Floor  
 101 8th Street  
@@ -63,10 +62,14 @@ Call-in Number: 888-273-3658
 Access Code: 9427202  
 
 #### Agenda
-1, Introductions
-2. New website for the group
-3. Survey schedule
-4. SOP
+1, Introductions  
+2. New website for the group (steering member list, survey schedule, SOP, etc.)  
+  a. Steering member list  
+  b. Survey schedule  
+  c. SOP  
+  d. Data sharing  
+3. Title VI presentation by Ibraheem Fakira of VTA, Title VI discussion 
+4. 
 5. Title VI interpretation
 #### Key Outcomes
 
