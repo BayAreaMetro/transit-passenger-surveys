@@ -51,9 +51,11 @@ CONTENTS
 ## Meeting Agendas
 
 ### Meeting 1 - 2016
-Wednesday, April 27th
+
+**Wednesday, April 27, 2016**
+
 10:30 AM
-Fishbowl Conference Room, 3rd Floor
+Claremont Conference Room, 2nd Floor
 101 8th Street
 Oakland, CA 94607
 
