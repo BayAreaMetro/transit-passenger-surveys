@@ -26,6 +26,7 @@ It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of pas
 Types of data collected include:
 
 **1. Location data** 
+
 	a. Trip origin	
 	b. First transit boarding 	
 	c. Last transit alighting	
@@ -36,20 +37,24 @@ Types of data collected include:
 	h. School location (if appropriate)
 	
 **2. Access/egress modes** 
+
 	a. Access mode from trip origin to first transit boarding	
 	b. Egress mode from last transit alighting to trip destination
 	
 **3. Type of trip taken**
+
 	a. Origin type (e.g., home, work, shopping, etc.)	
 	b. Destination type (same types as origin)
 	
 **4. Time leaving home in the A.M. and returning home in the P.M.**
 
 **5. Fare payment**
+
 	a. Payment method (e.g., cash, Clipper Card, paper transfer, etc.)	
 	b. Payment category (e.g., adult, senior, youth, etc.)
 	
 **6. Houshould and person demographics**
+
 	a. Race/ethnicity	
 	b. Age	
 	c. Gender	
@@ -63,6 +68,7 @@ Types of data collected include:
 	k. Household income
 	
 **7. Custom questions by operators. Examples include:.**
+
 	a. Frequency of riding the transit operator.
 	b. Means of getting schedule information (paper schedules, internet site, etc.)
 	c. Overall satisfaction with service
