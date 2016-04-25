@@ -26,11 +26,11 @@ MTC staff works closely with operator liaisons in all matters related to survey 
 
 ## Data Collection
 
-It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of passenger boardings, attempting to strike a balance between survey cost and sample representativeness of transit ridership. Sampling plans are developed which include random, day-long sampling of passengers. Survey quota goals are segmented by time of day periods (either MTC's time periods, the time periods used by operators, or custom time periods). The battery of questions asked passengers has become fairly standardized, with approximately 3-5 custom questions that can be added by operators. These include "customer service" style questions. The types of questions asked in a standard MTC survey are described below.
+It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of passenger boardings, attempting to strike a balance between survey cost and sample representativeness of transit ridership. Sampling plans are developed to select passengers randomly, spread over the day-long operating hours of transit routes. Survey quota goals are segmented by time of day periods (either MTC's time periods, the time periods used by operators, or custom time periods). The battery of questions asked passengers has become fairly standardized over the many sureys conducted by MTC. An exception to this is the approximately 3-5 custom questions that can be added by operators. These include "customer service" style questions. The types of questions asked in a standard MTC survey are described below.
 
 Types of data collected include:
 
-**1. Location data** 
+**1. Geocoded location data** 
 
 	a. Trip origin	
 	b. First transit boarding 	
@@ -67,10 +67,11 @@ Types of data collected include:
 	e. Student status	
 	f. Ability to speak English	
 	g. Language spoken in home other than English	
-	h. Number of persons in household	
-	i. Number of workers in household	
-	j. Number of household working vehicles	
-	k. Household income
+	h. Disability status
+	i. Number of persons in household	
+	j. Number of workers in household	
+	k. Number of household working vehicles	
+	l. Household income
 	
 **7. Custom questions by operators. Examples include:.**
 
