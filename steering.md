@@ -69,7 +69,6 @@ Access Code: 9427202
   * SOP  
   * Data sharing  
 3. Title VI presentation by Ibraheem Fakira of VTA, Title VI discussion 
-4. 
-5. Title VI interpretation
+4. Next Meeting
 #### Key Outcomes
 
