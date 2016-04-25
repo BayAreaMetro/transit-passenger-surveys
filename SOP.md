@@ -16,7 +16,7 @@ CONTENTS
 
 ## SOP Goals
 
-The Standard Operating Procedures here describe 
+The Standard Operating Procedures here describe how transit passenger surveys will be administered in cooperation between MTC and operators. Through this process, it is our current goal to cooperatively survey the entire region's Transportation Development Act (TDA) funded transit ridership over a five- to seven-year period. Survey goals include supporting operator Title VI reporting requirements; refinement of analytical planning tools, such as MTC's travel demand model; and providing data for regional and operator-specific ridership market and equity analyses. 
 
 ## Procurement and Contracting
 
@@ -26,7 +26,7 @@ MTC staff works closely with operator liaisons in all matters related to survey 
 
 ## Data Collection
 
-It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of passenger boardings. Sampling plans are developed which include random, day-long sampling of passengers. Survey quota goals are segmented by time of day periods (either MTC's time periods, the time periods used by operators, or custom time periods). The battery of questions asked passengers has become fairly standardized, with approximately 3-5 custom questions that can be added by operators. These include "customer service" style questions. The types of questions asked in a standard MTC survey are described below.
+It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of passenger boardings, attempting to strike a balance between survey cost and sample representativeness of transit ridership. Sampling plans are developed which include random, day-long sampling of passengers. Survey quota goals are segmented by time of day periods (either MTC's time periods, the time periods used by operators, or custom time periods). The battery of questions asked passengers has become fairly standardized, with approximately 3-5 custom questions that can be added by operators. These include "customer service" style questions. The types of questions asked in a standard MTC survey are described below.
 
 Types of data collected include:
 
@@ -104,7 +104,7 @@ As described in Attachment B, Appendix B-5 of Resolution 3866 related to transit
 6. San Mateo County Transit District (SamTrans)
 7. Santa Clara Valley Transportation Authority (VTA)
 
-Federally-funded operators not listed below will pay no cost to survey service they provide. MTC recognizes that, in some instances, operators would like to leverage scheduled survey activities to augment additional surveys to those paid for by MTC, or to perform outher related field work with the MTC-procured consultant. MTC will make every reasonable effort to accommodate such requests. Such requests can generally be incorporated into the scheduled work program via the addition of a funding agreement or modification of an existing agreement. 
+Federally-funded operators not listed above will pay no cost to survey service they provide. MTC recognizes that, in some instances, operators would like to leverage scheduled survey activities to augment additional surveys to those paid for by MTC, or to perform outher related field work with the MTC-procured consultant. MTC will make every reasonable effort to accommodate such requests. Such requests can generally be incorporated into the scheduled work program via the addition of a funding agreement or modification of an existing agreement. 
 
 ## Data Distribution Procedures
 
