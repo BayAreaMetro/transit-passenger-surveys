@@ -105,7 +105,7 @@ As described in Attachment B, Appendix B-5 of Resolution 3866 related to transit
 6. San Mateo County Transit District (SamTrans)
 7. Santa Clara Valley Transportation Authority (VTA)
 
-Federally-funded operators not listed above will pay no cost to survey service they provide. MTC recognizes that, in some instances, operators would like to leverage scheduled survey activities to augment additional surveys to those paid for by MTC, or to perform outher related field work with the MTC-procured consultant. MTC will make every reasonable effort to accommodate such requests. Such requests can generally be incorporated into the scheduled work program via the addition of a funding agreement or modification of an existing agreement. 
+Federally-funded operators not listed above will pay no cost to survey service they provide. MTC recognizes that, in some instances, operators would like to leverage scheduled survey activities to augment additional surveys to those paid for by MTC, or to perform other related field work with the MTC-procured consultant. MTC will make every reasonable effort to accommodate such requests. Such requests can generally be incorporated into the scheduled work program via the addition of a funding agreement or the modification of an existing agreement. Additional scope of this kind will be added at the operator's expense.  
 
 ## Data Distribution Procedures
 
