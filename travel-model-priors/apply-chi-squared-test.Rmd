@@ -76,27 +76,38 @@ obs_route_name = c("9-San Bruno [ OUTBOUND ]",             "9-San Bruno [ INBOUN
                    "18-46th Avenue [ OUTBOUND ]",          "18-46th Avenue [ INBOUND ]",
                    "29-Sunset [ OUTBOUND ]",               "29-Sunset [ INBOUND ]",
                    "54-Felton [ OUTBOUND ]",               "54-Felton [ INBOUND ]",
-                   "7R-Haight/Noriega Rapid [ OUTBOUND ]",  "7R-Haight/Noriega Rapid [ INBOUND ]",
-                   "9R-San Bruno Rapid [ OUTBOUND ]",       "9R-San Bruno Rapid [ INBOUND ]",
-                   "23-Monterey [ OUTBOUND ]",              "23-Monterey [ INBOUND ]",
-                   "36-Teresita [ OUTBOUND ]",              "36-Teresita [ INBOUND ]",
-                   "37-Corbett [ OUTBOUND ]",               "37-Corbett [ INBOUND ]",
-                   "57-Parkmerced [ OUTBOUND ]",            "57-Parkmerced [ INBOUND ]")
+                   "7R-Haight/Noriega Rapid [ OUTBOUND ]", "7R-Haight/Noriega Rapid [ INBOUND ]",
+                   "9R-San Bruno Rapid [ OUTBOUND ]",      "9R-San Bruno Rapid [ INBOUND ]",
+                   "23-Monterey [ OUTBOUND ]",             "23-Monterey [ INBOUND ]",
+                   "36-Teresita [ OUTBOUND ]",             "36-Teresita [ INBOUND ]",
+                   "37-Corbett [ OUTBOUND ]",              "37-Corbett [ INBOUND ]",
+                   "57-Parkmerced [ OUTBOUND ]",           "57-Parkmerced [ INBOUND ]",
+                   "1-California [ OUTBOUND ]",            "1-California [ INBOUND ]",
+                   "21-Hayes [ OUTBOUND ]",                "21-Hayes [ INBOUND ]",
+                   "30-Stockton [ OUTBOUND ]",             "30-Stockton [ INBOUND ]",
+                   "31-Balboa [ OUTBOUND ]",               "31-Balboa [ INBOUND ]",
+                   "3-Jackson [ OUTBOUND ]",               "3-Jackson [ INBOUND ]",
+                   "45-Union/Stockton [ OUTBOUND ]",       "45-Union/Stockton [ INBOUND ]",
+                   "5-Fulton [ OUTBOUND ]",                "5-Fulton [ INBOUND ]")
 
-route          = c("9",    "9",  "44","44","48",  "48",
-                   "27",   "27", "71","71","18",  "18",
-                   "29",   "29", "54","54","071L","071L",
-                   "009L","009L","23","23","36",  "36",
-                   "37",  "37",  "57","57")
+route          = c("9",    "9",    "44",   "44",   "48",   "48",
+                   "27",   "27",   "71",   "71",   "18",   "18",
+                   "29",   "29",   "54",   "54",   "071L", "071L",
+                   "009L", "009L", "23",   "23",   "36",   "36",
+                   "37",   "37",   "57",   "57",   "1",    "1",
+                   "21",   "21",   "30",   "30",   "31",   "31",
+                   "3",    "3",    "45",   "45",   "5",    "5")
 max_segment    = c(0,3,0,4,0,3,
                    0,3,0,3,0,2,
                    0,3,0,3,0,3,
-                   0,3,0,2,0,2,
-                   0,2,0,3)
+                   0,2,0,2,0,2,
+                   0,2,0,3,0,3,
+                   0,2,0,3,0,3,
+                   0,2,2,0,0,3)
 
 route_names <- data.frame(obs_route_name, route, max_segment, stringsAsFactors = FALSE)
 
-# Get direction from the name and assume segment enumeration is backward for inbound
+# Get direction from the name and use max_segment to set backward/forward
 route_names <- route_names %>%
   mutate(inbound  = str_count(obs_route_name, "INBOUND")) %>%
   mutate(outbound = str_count(obs_route_name, "OUTBOUND")) %>%
@@ -104,14 +115,9 @@ route_names <- route_names %>%
   mutate(direction = ifelse(inbound == 1,  "INBOUND", direction)) %>%
   mutate(direction = ifelse(outbound == 1, "OUTBOUND", direction)) %>%
   mutate(segment_enum = "missing") %>%
-  mutate(segment_enum = ifelse(inbound == 1,  "backward", segment_enum)) %>%
-  mutate(segment_enum = ifelse(outbound == 1, "forward",  segment_enum)) %>%
+  mutate(segment_enum = ifelse(max_segment == 0, "forward", segment_enum)) %>%
+  mutate(segment_enum = ifelse(max_segment > 0, "backward", segment_enum))%>%
   select(-inbound, -outbound)
-
-
-
-# TODO 
-# then find the NULL bug
 
 
 ```
@@ -120,7 +126,7 @@ route_names <- route_names %>%
 ```{r remote-io}
 F_PRIOR_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/priors.csv"
 
-F_OBSERVED_FLOWS = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_SUBMITTAL1_20160408_database.csv"
+F_OBSERVED_FLOWS = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_CONSOLIDATED_SUBMITTAL_3_20160422.csv"
 
 F_OUTPUT = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/chi-squared-results.csv"
 F_OBSEST = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/observed-priors-results.csv"
@@ -258,5 +264,4 @@ write.csv(outcome_df, file = F_OUTPUT, row.names = FALSE, quote = F)
 write.csv(joined_df,  file = F_OBSEST, row.names = FALSE, quote = F)
 
 ```
-
 
