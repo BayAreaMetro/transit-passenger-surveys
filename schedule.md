@@ -45,13 +45,13 @@ CONTENTS
 |                                  | SolTrans               | Dumbarton Express      |
 | 				   | Rio Vista Delta Breeze | Union City Transit     |
 | 				   | Vacaville City Coach   | WestCAT                |
+|                                  | Marin Transit          |	                     |
 |                                  |                        |	                     |
 | 2018                             | Golden Gate Ferries    | Wheels (LAVTA)         |
 |                                  | Golden Gate Transit    | WETA Ferries           |
 |                                  | Petaluma Transit       | Tri Delta Transit      |
 |                                  | Sonoma County Transit  |	                     |
 |                                  | Santa Rosa CityBus     |	                     |
-|                                  | Marin Transit          |	                     |
 |                                  |                        |	                     |
 | 2019                             | ACE                    | Caltrain               |
 |                                  | Napa VINE Transit      | SamTrans               |
