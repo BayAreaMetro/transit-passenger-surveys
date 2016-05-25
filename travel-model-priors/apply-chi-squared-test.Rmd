@@ -18,7 +18,8 @@ The current implementation uses example data.
 1.  A database of chi-squared test results
 
 #### _TODO_ 
-1. Seems to be working -- build separate script to compare successive observed
+1. Did I do Hellinger distance correct?
+2. Seems to be working -- build separate script to compare successive observed
 
 ## Procedure
 
@@ -69,7 +70,7 @@ number_to_letter <- data.frame(segment_number, segment_letter, segment_enum, max
 
 # Build the data frame now, perhaps move to database if gets more complicated
 obs_route_name = c("9-San Bruno [ OUTBOUND ]",             "9-San Bruno [ INBOUND ]",
-                   "44-O Shaughnessy [ OUTBOUND ]",        "44-O Shaughnessy [ INBOUND ]",
+                   "44-OShaughnessy [ OUTBOUND ]",        "44-OShaughnessy [ INBOUND ]",
                    "48-Quintara/24th Street [ OUTBOUND ]", "48-Quintara/24th Street [ INBOUND ]",
                    "27-Bryant [ OUTBOUND ]",               "27-Bryant [ INBOUND ]",
                    "7-Haight/Noriega [ OUTBOUND ]",        "7-Haight/Noriega [ INBOUND ]",
@@ -88,7 +89,18 @@ obs_route_name = c("9-San Bruno [ OUTBOUND ]",             "9-San Bruno [ INBOUN
                    "31-Balboa [ OUTBOUND ]",               "31-Balboa [ INBOUND ]",
                    "3-Jackson [ OUTBOUND ]",               "3-Jackson [ INBOUND ]",
                    "45-Union/Stockton [ OUTBOUND ]",       "45-Union/Stockton [ INBOUND ]",
-                   "5-Fulton [ OUTBOUND ]",                "5-Fulton [ INBOUND ]")
+                   "5-Fulton [ OUTBOUND ]",                "5-Fulton [ INBOUND ]",
+                   "14-Mission [ OUTBOUND ]",              "14-Mission [ INBOUND ]",
+                   "22-Fillmore [ OUTBOUND ]",             "22-Fillmore [ INBOUND ]",
+                   "24-Divisadero [ OUTBOUND ]",           "24-Divisadero [ INBOUND ]",
+                   "33-Ashbury/18th [ OUTBOUND ]",         "33-Ashbury/18th [ INBOUND ]",
+                   "49-Van Ness/Mission [ OUTBOUND ]",     "49-Van Ness/Mission [ INBOUND ]",
+                   "6-Haight/Parnassus [ OUTBOUND ]",      "6-Haight/Parnassus [ INBOUND ]",
+                   "14R-Mission Rapid [ OUTBOUND ]",       "14R-Mission Rapid [ INBOUND ]",
+                   "28R-19th Avenue Rapid [ OUTBOUND ]",   "28R-19th Avenue Rapid [ INBOUND ]",
+                   "38-Geary [ OUTBOUND ]",                "38-Geary [ INBOUND ]",
+                   "38R-Geary Rapid [ OUTBOUND ]",         "38R-Geary Rapid [ INBOUND ]",
+                   "8-Bayshore [ OUTBOUND ]",              "8-Bayshore [ INBOUND ]")
 
 route          = c("9",    "9",    "44",   "44",   "48",   "48",
                    "27",   "27",   "71",   "71",   "18",   "18",
@@ -96,14 +108,23 @@ route          = c("9",    "9",    "44",   "44",   "48",   "48",
                    "009L", "009L", "23",   "23",   "36",   "36",
                    "37",   "37",   "57",   "57",   "1",    "1",
                    "21",   "21",   "30",   "30",   "31",   "31",
-                   "3",    "3",    "45",   "45",   "5",    "5")
+                   "3",    "3",    "45",   "45",   "5",    "5",
+                   "14",   "14",   "22",   "22",   "24",   "24",
+                   "33",   "33",   "49",   "49",   "6",    "6",
+                   "014L", "014L", "028L", "028L", "38",   "38",
+                   "038L", "038L", "8",    "8")
+
 max_segment    = c(0,3,0,4,0,3,
                    0,3,0,3,0,2,
                    0,3,0,3,0,3,
                    0,2,0,2,0,2,
                    0,2,0,3,0,3,
                    0,2,0,3,0,3,
-                   0,2,2,0,0,3)
+                   0,2,2,0,0,3,
+                   0,3,0,3,0,3,
+                   0,3,0,3,0,3,
+                   0,3,0,2,0,3,
+                   0,3,0,3)
 
 route_names <- data.frame(obs_route_name, route, max_segment, stringsAsFactors = FALSE)
 
@@ -126,7 +147,7 @@ route_names <- route_names %>%
 ```{r remote-io}
 F_PRIOR_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/priors.csv"
 
-F_OBSERVED_FLOWS = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_CONSOLIDATED_SUBMITTAL_3_20160422.csv"
+F_OBSERVED_FLOWS = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_CONSOLIDATED_SUBMITTAL_6_20160513.csv"
 
 F_OUTPUT = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/chi-squared-results.csv"
 F_OBSEST = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/observed-priors-results.csv"
@@ -243,6 +264,7 @@ remove(temp_sums)
 
 ```
 
+
 #### Chi-squared tests
 ```{r chi-squared-tests}
 # use dplyr
@@ -258,10 +280,36 @@ joined_df <- left_join(joined_df, outcome_df, by = c("route", "direction", "time
 
 ```
 
+#### Hellinger distance
+```{r hellinger-dist}
+# see discrete distributions formula here: https://en.wikipedia.org/wiki/Hellinger_distance
+
+flow_sums <- joined_df %>%
+  group_by(route, direction, time_of_day) %>%
+  summarise(sum_observed_flow = sum(observed_flow), sum_prior_flow = sum(prior_flow))
+
+hellinger_df <- left_join(joined_df, flow_sums, by = c("route","direction","time_of_day"))
+
+hellinger_df <- hellinger_df %>%
+  mutate(obs_prob   = ifelse(sum_observed_flow > 0L, observed_flow / sum_observed_flow, 0L)) %>%
+  mutate(prior_prob = ifelse(sum_prior_flow > 0L, prior_flow / sum_prior_flow, 0L)) %>%
+  mutate(prob_diff = sqrt(obs_prob) - sqrt(prior_prob)) %>%
+  mutate(prob_diff = sqrt(prob_diff * prob_diff)) %>%
+  group_by(route, direction, time_of_day) %>%
+  summarise(hellinger_dist = sum(prob_diff)) %>%
+  mutate(hellinger_dist = 1/sqrt(2) * hellinger_dist)
+
+joined_df <- left_join(joined_df, hellinger_df, by = c("route", "direction", "time_of_day"))
+
+
+remove(flow_sums, hellinger_df)
+
+```
+
+
 #### Data write
 ```{r data-write}
 write.csv(outcome_df, file = F_OUTPUT, row.names = FALSE, quote = F)
 write.csv(joined_df,  file = F_OBSEST, row.names = FALSE, quote = F)
 
 ```
-

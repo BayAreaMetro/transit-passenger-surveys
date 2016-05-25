@@ -218,11 +218,11 @@ write.csv(sum.autos, paste(D_OUTPUT_TABLEAU, "AutoSufficiency.csv", sep = ""), r
 ```
 ### Gender
 ```{r gender}
-sum.autos <- data.ready.sum %>%
-  group_by(operator, weekpart, auto_suff) %>%
+sum.gender <- data.ready.sum %>%
+  group_by(operator, weekpart, gender) %>%
   summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
 
-write.csv(sum.autos, paste(D_OUTPUT_TABLEAU, "AutoSufficiency.csv", sep = ""), row.names = FALSE, quote = T)
+write.csv(sum.gender, paste(D_OUTPUT_TABLEAU, "Gender.csv", sep = ""), row.names = FALSE, quote = T)
 
 ```
 
