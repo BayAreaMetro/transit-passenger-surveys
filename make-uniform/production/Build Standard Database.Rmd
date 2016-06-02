@@ -398,17 +398,6 @@ table(survey.standard$approximate_age)
 # Step 2:  Trip- and tour-purpose-related transformations
 # -------------------------------------------------------------------------------------
 
-# Deal with NAs in variables used by tour purpose logic
-survey.standard$orig_purp[is.na(survey.standard$orig_purp)] <- 'missing'
-survey.standard$dest_purp[is.na(survey.standard$dest_purp)] <- 'missing'
-survey.standard$work_status[is.na(survey.standard$work_status)] <- 'missing'
-survey.standard$student_status[is.na(survey.standard$student_status)] <- 'missing'
-survey.standard$at_work_prior_to_orig_purp[is.na(survey.standard$at_work_prior_to_orig_purp)] <- 'missing'
-survey.standard$at_work_after_dest_purp[is.na(survey.standard$at_work_after_dest_purp)] <- 'missing'
-survey.standard$at_school_prior_to_orig_purp[is.na(survey.standard$at_school_prior_to_orig_purp)] <- 'missing'
-survey.standard$at_school_after_dest_purp[is.na(survey.standard$at_school_after_dest_purp)] <- 'missing'
-survey.standard$approximate_age[is.na(survey.standard$approximate_age)] <- 'missing'
-
 # Refine school purpose
 survey.standard <- survey.standard %>%
   mutate(orig_purp = ifelse(orig_purp == "school", "high school", orig_purp)) %>%
