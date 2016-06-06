@@ -398,6 +398,18 @@ table(survey.standard$approximate_age)
 # Step 2:  Trip- and tour-purpose-related transformations
 # -------------------------------------------------------------------------------------
 
+# Recode key variables from NA to 'missing'
+survey.standard <- survey.standard %>%
+  mutate(orig_purp       = ifelse(is.na(orig_purp), 'missing', orig_purp)) %>%
+  mutate(dest_purp       = ifelse(is.na(dest_purp), 'missing', dest_purp)) %>%
+  mutate(work_status     = ifelse(is.na(work_status), 'missing', work_status)) %>%
+  mutate(student_status  = ifelse(is.na(student_status), 'missing', student_status)) %>%
+  mutate(approximate_age = ifelse(is.na(approximate_age), 'missing', approximate_age)) %>%
+  mutate(at_work_prior_to_orig_purp = ifelse(is.na(at_work_prior_to_orig_purp), 'not relevant', at_work_prior_to_orig_purp)) %>%
+  mutate(at_work_after_dest_purp = ifelse(is.na(at_work_after_dest_purp), 'not relevant', at_work_after_dest_purp)) %>%
+  mutate(at_school_prior_to_orig_purp = ifelse(is.na(at_school_prior_to_orig_purp), 'not relevant', at_school_prior_to_orig_purp)) %>%
+  mutate(at_school_after_dest_purp = ifelse(is.na(at_school_after_dest_purp), 'not relevant', at_school_after_dest_purp))
+
 # Refine school purpose
 survey.standard <- survey.standard %>%
   mutate(orig_purp = ifelse(orig_purp == "school", "high school", orig_purp)) %>%
