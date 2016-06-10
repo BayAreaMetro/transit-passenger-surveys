@@ -48,6 +48,7 @@ F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine
 F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy NO POUND OR SINGLE QUOTE.csv"
 
 F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
+F_ANCILLARY_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.RData"
 ```
 
 
@@ -1042,6 +1043,14 @@ survey.standard <- survey.standard %>%
   mutate(last_alight_lon        = as.numeric(last_alight_lon)) %>%
   mutate(weight                 = as.numeric(weight))
 
+# Create an ancillary data set for requested variables
+ancillary_df <- survey.standard %>%
+  select(Unique_ID, 
+         at_school_after_dest_purp, 
+         at_school_prior_to_orig_purp, 
+         at_work_after_dest_purp, 
+         at_work_prior_to_orig_purp)
+
 # Drop variables we don't want to carry forward to standard dataset
 survey.standard <- survey.standard %>%
   select(-at_school_after_dest_purp, 
@@ -1098,6 +1107,7 @@ survey.standard <- survey.standard %>%
   mutate(field_language = interview_language)
 
 save(survey.standard, file = F_OUTPUT_RDATA)
+save(ancillary_df, file = F_ANCILLARY_OUTPUT_RDATA)
 ```
 
 # DEBUG
