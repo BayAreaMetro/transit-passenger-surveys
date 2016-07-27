@@ -69,38 +69,56 @@ max_segment    = c(0,0,0,0,0,
 number_to_letter <- data.frame(segment_number, segment_letter, segment_enum, max_segment, stringsAsFactors = FALSE)
 
 # Build the data frame now, perhaps move to database if gets more complicated
-obs_route_name = c("9-San Bruno [ OUTBOUND ]",             "9-San Bruno [ INBOUND ]",
-                   "44-OShaughnessy [ OUTBOUND ]",        "44-OShaughnessy [ INBOUND ]",
-                   "48-Quintara/24th Street [ OUTBOUND ]", "48-Quintara/24th Street [ INBOUND ]",
-                   "27-Bryant [ OUTBOUND ]",               "27-Bryant [ INBOUND ]",
-                   "7-Haight/Noriega [ OUTBOUND ]",        "7-Haight/Noriega [ INBOUND ]",
-                   "18-46th Avenue [ OUTBOUND ]",          "18-46th Avenue [ INBOUND ]",
-                   "29-Sunset [ OUTBOUND ]",               "29-Sunset [ INBOUND ]",
-                   "54-Felton [ OUTBOUND ]",               "54-Felton [ INBOUND ]",
-                   "7R-Haight/Noriega Rapid [ OUTBOUND ]", "7R-Haight/Noriega Rapid [ INBOUND ]",
-                   "9R-San Bruno Rapid [ OUTBOUND ]",      "9R-San Bruno Rapid [ INBOUND ]",
-                   "23-Monterey [ OUTBOUND ]",             "23-Monterey [ INBOUND ]",
-                   "36-Teresita [ OUTBOUND ]",             "36-Teresita [ INBOUND ]",
-                   "37-Corbett [ OUTBOUND ]",              "37-Corbett [ INBOUND ]",
-                   "57-Parkmerced [ OUTBOUND ]",           "57-Parkmerced [ INBOUND ]",
-                   "1-California [ OUTBOUND ]",            "1-California [ INBOUND ]",
-                   "21-Hayes [ OUTBOUND ]",                "21-Hayes [ INBOUND ]",
-                   "30-Stockton [ OUTBOUND ]",             "30-Stockton [ INBOUND ]",
-                   "31-Balboa [ OUTBOUND ]",               "31-Balboa [ INBOUND ]",
-                   "3-Jackson [ OUTBOUND ]",               "3-Jackson [ INBOUND ]",
-                   "45-Union/Stockton [ OUTBOUND ]",       "45-Union/Stockton [ INBOUND ]",
-                   "5-Fulton [ OUTBOUND ]",                "5-Fulton [ INBOUND ]",
-                   "14-Mission [ OUTBOUND ]",              "14-Mission [ INBOUND ]",
-                   "22-Fillmore [ OUTBOUND ]",             "22-Fillmore [ INBOUND ]",
-                   "24-Divisadero [ OUTBOUND ]",           "24-Divisadero [ INBOUND ]",
-                   "33-Ashbury/18th [ OUTBOUND ]",         "33-Ashbury/18th [ INBOUND ]",
-                   "49-Van Ness/Mission [ OUTBOUND ]",     "49-Van Ness/Mission [ INBOUND ]",
-                   "6-Haight/Parnassus [ OUTBOUND ]",      "6-Haight/Parnassus [ INBOUND ]",
-                   "14R-Mission Rapid [ OUTBOUND ]",       "14R-Mission Rapid [ INBOUND ]",
-                   "28R-19th Avenue Rapid [ OUTBOUND ]",   "28R-19th Avenue Rapid [ INBOUND ]",
-                   "38-Geary [ OUTBOUND ]",                "38-Geary [ INBOUND ]",
-                   "38R-Geary Rapid [ OUTBOUND ]",         "38R-Geary Rapid [ INBOUND ]",
-                   "8-Bayshore [ OUTBOUND ]",              "8-Bayshore [ INBOUND ]")
+obs_route_name = c("9-San Bruno [ OUTBOUND ]",               "9-San Bruno [ INBOUND ]",
+                   "44-OShaughnessy [ OUTBOUND ]",           "44-OShaughnessy [ INBOUND ]",
+                   "48-Quintara/24th Street [ OUTBOUND ]",   "48-Quintara/24th Street [ INBOUND ]",
+                   "27-Bryant [ OUTBOUND ]",                 "27-Bryant [ INBOUND ]",
+                   "7-Haight/Noriega [ OUTBOUND ]",          "7-Haight/Noriega [ INBOUND ]",
+                   "18-46th Avenue [ OUTBOUND ]",            "18-46th Avenue [ INBOUND ]",
+                   "29-Sunset [ OUTBOUND ]",                 "29-Sunset [ INBOUND ]",
+                   "54-Felton [ OUTBOUND ]",                 "54-Felton [ INBOUND ]",
+                   "7R-Haight/Noriega Rapid [ OUTBOUND ]",   "7R-Haight/Noriega Rapid [ INBOUND ]",
+                   "9R-San Bruno Rapid [ OUTBOUND ]",        "9R-San Bruno Rapid [ INBOUND ]",
+                   "23-Monterey [ OUTBOUND ]",               "23-Monterey [ INBOUND ]",
+                   "36-Teresita [ OUTBOUND ]",               "36-Teresita [ INBOUND ]",
+                   "37-Corbett [ OUTBOUND ]",                "37-Corbett [ INBOUND ]",
+                   "57-Parkmerced [ OUTBOUND ]",             "57-Parkmerced [ INBOUND ]",
+                   "1-California [ OUTBOUND ]",              "1-California [ INBOUND ]",
+                   "21-Hayes [ OUTBOUND ]",                  "21-Hayes [ INBOUND ]",
+                   "30-Stockton [ OUTBOUND ]",               "30-Stockton [ INBOUND ]",
+                   "31-Balboa [ OUTBOUND ]",                 "31-Balboa [ INBOUND ]",
+                   "3-Jackson [ OUTBOUND ]",                 "3-Jackson [ INBOUND ]",
+                   "45-Union/Stockton [ OUTBOUND ]",         "45-Union/Stockton [ INBOUND ]",
+                   "5-Fulton [ OUTBOUND ]",                  "5-Fulton [ INBOUND ]",
+                   "14-Mission [ OUTBOUND ]",                "14-Mission [ INBOUND ]",
+                   "22-Fillmore [ OUTBOUND ]",               "22-Fillmore [ INBOUND ]",
+                   "24-Divisadero [ OUTBOUND ]",             "24-Divisadero [ INBOUND ]",
+                   "33-Ashbury/18th [ OUTBOUND ]",           "33-Ashbury/18th [ INBOUND ]",
+                   "49-Van Ness/Mission [ OUTBOUND ]",       "49-Van Ness/Mission [ INBOUND ]",
+                   "6-Haight/Parnassus [ OUTBOUND ]",        "6-Haight/Parnassus [ INBOUND ]",
+                   "14R-Mission Rapid [ OUTBOUND ]",         "14R-Mission Rapid [ INBOUND ]",
+                   "28R-19th Avenue Rapid [ OUTBOUND ]",     "28R-19th Avenue Rapid [ INBOUND ]",
+                   "38-Geary [ OUTBOUND ]",                  "38-Geary [ INBOUND ]",
+                   "38R-Geary Rapid [ OUTBOUND ]",           "38R-Geary Rapid [ INBOUND ]",
+                   "8-Bayshore [ OUTBOUND ]",                "8-Bayshore [ INBOUND ]",
+                   "10-Townsend [ OUTBOUND ]",               "10-Townsend [ INBOUND ]",
+                   "12-Folsom/Pacific [ OUTBOUND ]",         "12-Folsom/Pacific [ INBOUND ]",
+                   "19-Polk [ OUTBOUND ]",                   "19-Polk [ INBOUND ]",
+                   "22-Fillmore [ OUTBOUND ]",               "22-Fillmore [ INBOUND ]",
+                   "28-19th Avenue [ OUTBOUND ]",            "28-19th Avenue [ INBOUND ]",
+                   "2-Clement [ OUTBOUND ]",                 "2-Clement [ INBOUND ]",
+                   "30-Stockton [ OUTBOUND ]",               "30-Stockton [ INBOUND ]",
+                   "43-Masonic [ OUTBOUND ]",                "43-Masonic [ INBOUND ]",
+                   "47-Van Ness [ OUTBOUND ]",               "47-Van Ness [ INBOUND ]",
+                   "57-Parkmerced [ OUTBOUND ]",             "57-Parkmerced [ INBOUND ]",
+                   "5R-Fulton Rapid [ OUTBOUND ]",           "5R-Fulton Rapid [ INBOUND ]",
+                   "E-Embarcadero [ OUTBOUND ]",             "E-Embarcadero [ INBOUND ]",
+                   "F-Market & Wharves [ OUTBOUND ]",        "F-Market & Wharves [ INBOUND ]",
+                   "J-Church [ OUTBOUND ]",                  "J-Church [ INBOUND ]",
+                   "KT-Ingleside/Third Street [ OUTBOUND ]", "KT-Ingleside/Third Street [ INBOUND ]",
+                   "L-Taraval [ OUTBOUND ]",                 "L-Taraval [ INBOUND ]",
+                   "M-Ocean View [ OUTBOUND ]",              "M-Ocean View [ INBOUND ]",
+                   "N-Judah [ OUTBOUND ]",                   "N-Judah [ INBOUND ]")
 
 route          = c("9",    "9",    "44",   "44",   "48",   "48",
                    "27",   "27",   "71",   "71",   "18",   "18",
@@ -112,7 +130,13 @@ route          = c("9",    "9",    "44",   "44",   "48",   "48",
                    "14",   "14",   "22",   "22",   "24",   "24",
                    "33",   "33",   "49",   "49",   "6",    "6",
                    "014L", "014L", "028L", "028L", "38",   "38",
-                   "038L", "038L", "8",    "8")
+                   "038L", "038L", "8",    "8",    "10",   "10",
+                   "12",   "12",   "19",   "19",   "22",   "22",
+                   "28",   "28",   "2",    "2",    "30",   "30",
+                   "43",   "43",   "47",   "47",   "57",   "57",
+                   "005L", "005L", "E",    "E",    "F",    "F",
+                   "J",    "J",    "KT",   "KT",   "L",    "L",
+                   "M",    "M",    "N",    "N")
 
 max_segment    = c(0,3,0,4,3,0,
                    0,3,0,3,0,2,
@@ -124,7 +148,13 @@ max_segment    = c(0,3,0,4,3,0,
                    0,3,0,3,0,3,
                    0,3,0,3,0,3,
                    0,3,0,2,0,3,
-                   0,3,0,3)
+                   0,3,0,3,0,3,
+                   0,3,0,3,0,3,
+                   0,3,0,3,0,3,
+                   0,4,0,2,0,3,
+                   0,3,0,2,0,3,
+                   0,3,0,6,0,2,
+                   0,3,0,5)
 
 route_names <- data.frame(obs_route_name, route, max_segment, stringsAsFactors = FALSE)
 
@@ -147,7 +177,7 @@ route_names <- route_names %>%
 ```{r remote-io}
 F_PRIOR_FLOWS    = "M:/Data/OnBoard/Data and Reports/Muni/travel-model-priors/priors.csv"
 
-F_OBSERVED_FLOWS = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_CONSOLIDATED_SUBMITTAL_6_20160513.csv"
+F_OBSERVED_FLOWS = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_CONSOLIDATED_SUBMITTAL_1-7_20160727.csv"
 
 F_OUTPUT = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/chi-squared-results.csv"
 F_OBSEST = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/observed-priors-results.csv"
@@ -198,7 +228,8 @@ observed_clean <- observed_clean %>%
 
 observed_sum <- observed_clean %>%
   group_by(route, direction, time_of_day, board_segment, alight_segment) %>%
-  summarise(observed_flow = n())
+  summarise(observed_flow = n()) %>%
+  ungroup()
 
 observed_daily <- observed_clean %>%
   group_by(route, direction, board_segment, alight_segment) %>%
@@ -221,7 +252,7 @@ remove(observed_daily, observed_df, priors_df)
 ```{r data-joins}
 # Remove observed for non-relevant time periods
 observed_join <- observed_sum %>%
-  filter(is.na(time_of_day) == FALSE)
+  filter(!(is.na(time_of_day)))
 
 joined_df <- left_join(observed_join, 
                        priors_clean, 
@@ -267,8 +298,21 @@ remove(temp_sums)
 
 #### Chi-squared tests
 ```{r chi-squared-tests}
+# remove route/direction/time with fewer than 2 flow categories
+find_one <- joined_df %>%
+  group_by(route, direction, time_of_day) %>%
+  summarise(flag = n())
+
+find_one <- find_one %>%
+  filter(flag < 2)
+
+ready_chi <- left_join(joined_df, find_one, by = c("route", "direction", "time_of_day"))
+
+ready_chi <- ready_chi %>%
+  filter(is.na(flag))
+
 # use dplyr
-outcome_df <- joined_df %>%
+outcome_df <- ready_chi %>%
   group_by(route, direction, time_of_day) %>%
   summarise(test_statistic  = chisq.test(observed_flow, p = prior_flow/sum(prior_flow))$statistic[["X-squared"]],
             test_df         = chisq.test(observed_flow, p = prior_flow/sum(prior_flow))$parameter[["df"]],
@@ -277,6 +321,8 @@ outcome_df <- joined_df %>%
 
 # Add test results to observed-estimated database
 joined_df <- left_join(joined_df, outcome_df, by = c("route", "direction", "time_of_day"))
+
+remove(find_one)
 
 ```
 
@@ -313,3 +359,4 @@ write.csv(outcome_df, file = F_OUTPUT, row.names = FALSE, quote = F)
 write.csv(joined_df,  file = F_OBSEST, row.names = FALSE, quote = F)
 
 ```
+
