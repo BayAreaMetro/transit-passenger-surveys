@@ -47,6 +47,8 @@ F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine
 
 F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy NO POUND OR SINGLE QUOTE.csv"
 
+F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI Pilot Test NO POUND OR SINGLE QUOTE.csv"
+
 F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
 F_ANCILLARY_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.RData"
 ```
@@ -71,40 +73,40 @@ dictionary.cat <- dictionary.all %>%
 
 ### BART
 ```{r operator-bart}
-survey.BAR.key  <- 'BART'
-survey.BAR.year <- 2015
-
-# Set survey tech by route if necessary in standard variables Step 8
-survey.BAR.tech <- 'heavy rail'
-
-# Prepare operator-specific dictionary
-dictionary.BAR <- dictionary.all %>%
-  filter(operator == survey.BAR.key)
-
-variables.BAR <- as.character(factor(unique(unlist(dictionary.BAR$Survey_Variable, use.names = TRUE))))
-
-# Read data and select variables of interest
-survey.BAR <- read.csv(F_BART_SURVEY, header = TRUE)
-survey.BAR.select <- survey.BAR[ ,variables.BAR]
-
-# debug start
-# for (var in variables.BAR) {
-#   
-#   print(var)
-#   donkey <- survey.BAR[ ,var]
-#   
-# }
-# debug end
-
-# Reshape the data
-survey.BAR.melt <- melt(survey.BAR.select, id = 'ID')
-survey.BAR.melt <- select(survey.BAR.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.BAR.melt <- mutate(survey.BAR.melt, operator = survey.BAR.key)
-survey.BAR.melt <- mutate(survey.BAR.melt, survey_year = survey.BAR.year)
-survey.BAR.melt <- mutate(survey.BAR.melt, survey_tech = survey.BAR.tech)
-
-# Clean up
-remove(survey.BAR.key, survey.BAR.year, survey.BAR.tech, dictionary.BAR, variables.BAR, survey.BAR, survey.BAR.select)
+# survey.BAR.key  <- 'BART'
+# survey.BAR.year <- 2015
+# 
+# # Set survey tech by route if necessary in standard variables Step 8
+# survey.BAR.tech <- 'heavy rail'
+# 
+# # Prepare operator-specific dictionary
+# dictionary.BAR <- dictionary.all %>%
+#   filter(operator == survey.BAR.key)
+# 
+# variables.BAR <- as.character(factor(unique(unlist(dictionary.BAR$Survey_Variable, use.names = TRUE))))
+# 
+# # Read data and select variables of interest
+# survey.BAR <- read.csv(F_BART_SURVEY, header = TRUE)
+# survey.BAR.select <- survey.BAR[ ,variables.BAR]
+# 
+# # debug start
+# # for (var in variables.BAR) {
+# #   
+# #   print(var)
+# #   donkey <- survey.BAR[ ,var]
+# #   
+# # }
+# # debug end
+# 
+# # Reshape the data
+# survey.BAR.melt <- melt(survey.BAR.select, id = 'ID')
+# survey.BAR.melt <- select(survey.BAR.melt, ID, Survey_Variable = variable, Survey_Response = value)
+# survey.BAR.melt <- mutate(survey.BAR.melt, operator = survey.BAR.key)
+# survey.BAR.melt <- mutate(survey.BAR.melt, survey_year = survey.BAR.year)
+# survey.BAR.melt <- mutate(survey.BAR.melt, survey_tech = survey.BAR.tech)
+# 
+# # Clean up
+# remove(survey.BAR.key, survey.BAR.year, survey.BAR.tech, dictionary.BAR, variables.BAR, survey.BAR, survey.BAR.select)
 ```
 
 
@@ -136,6 +138,38 @@ survey.CAL.melt <- mutate(survey.CAL.melt, survey_tech = survey.CAL.tech)
 # Clean up
 remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, dictionary.CAL, variables.CAL, survey.CAL, survey.CAL.select)
 ```
+
+
+### Muni
+```{r operator-muni}
+survey.MUN.key  <- 'SF Muni'
+survey.MUN.year <- 2016
+
+# Set survey tech by route if necessary in standard variables Step 8
+survey.MUN.tech <- 'local bus'
+
+# Prepare operator-specific dictionary
+dictionary.MUN <- dictionary.all %>%
+  filter(operator == survey.MUN.key)
+
+variables.MUN <- as.character(factor(unique(unlist(dictionary.MUN$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.MUN <- read.csv(F_MUNI_SURVEY, header = TRUE)
+survey.MUN.select <- survey.MUN[ ,variables.MUN]
+
+# Reshape the data
+survey.MUN.melt <- melt(survey.MUN.select, id = 'ID')
+survey.MUN.melt <- select(survey.MUN.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.MUN.melt <- mutate(survey.MUN.melt, operator = survey.MUN.key)
+survey.MUN.melt <- mutate(survey.MUN.melt, survey_year = survey.MUN.year)
+survey.MUN.melt <- mutate(survey.MUN.melt, survey_tech = survey.MUN.tech)
+
+# Clean up
+remove(survey.MUN.key, survey.MUN.year, survey.MUN.tech, dictionary.MUN, variables.MUN, survey.MUN, survey.MUN.select)
+```
+
+
 
 ### Napa Vine
 ```{r operator-napa}
