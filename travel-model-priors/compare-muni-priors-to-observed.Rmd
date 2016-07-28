@@ -1,5 +1,5 @@
 ---
-title: "Apply Chi-Squared Test"
+title: "Compare Muni Priors to Observed"
 author: "David Ory"
 output: 
    html_document:
@@ -10,15 +10,12 @@ output:
 ## Administration
 
 #### Purpose
-This script consumes prior and observed estimates of boarding and alighting pattern by route, direction, time-of-day, boarding segment, and alighting segment and then compares them via the chi-squared test.  The first set of prior estimates are the result of a data munging exercise using automated passenger count data and travel model data -- see `muni-travel-model-priors.Rmd`.  The observed estimates come from an on-to-off transit on-board survey. If the on-board survey proceeds iteratively, the priors can be updated with observed data and then be compared to subsequently collected observed data.
-
-The current implementation uses example data. 
+This script consumes prior and observed estimates of boarding and alighting pattern by route, direction, time-of-day, boarding segment, and alighting segment and then compares them via the chi-squared test and computes the Hellinger Distance.  The prior estimates are the result of a data munging exercise using automated passenger count data and travel model data -- see `muni-travel-model-priors.Rmd`.  The observed estimates come from an on-to-off transit on-board survey. Forthcoming: if the on-board survey proceeds iteratively, the priors can be updated with observed data and then be compared to subsequently collected observed data.
 
 #### Outputs
-1.  A database of chi-squared test results
+1.  A database of chi-squared test and Hellinger distance results
 
 #### _TODO_ 
-1. Did I do Hellinger distance correct?
 2. Seems to be working -- build separate script to compare successive observed
 
 ## Procedure
@@ -151,7 +148,7 @@ max_segment    = c(0,3,0,4,3,0,
                    0,3,0,3,0,3,
                    0,3,0,3,0,3,
                    0,3,0,3,0,3,
-                   0,4,0,2,0,3,
+                   4,0,2,0,0,3,
                    0,3,0,2,0,3,
                    0,3,0,6,0,2,
                    0,3,0,5)
@@ -320,9 +317,9 @@ outcome_df <- ready_chi %>%
 
 
 # Add test results to observed-estimated database
-joined_df <- left_join(joined_df, outcome_df, by = c("route", "direction", "time_of_day"))
+joined_df <- left_join(ready_chi, outcome_df, by = c("route", "direction", "time_of_day"))
 
-remove(find_one)
+remove(find_one, ready_chi)
 
 ```
 
@@ -340,10 +337,10 @@ hellinger_df <- hellinger_df %>%
   mutate(obs_prob   = ifelse(sum_observed_flow > 0L, observed_flow / sum_observed_flow, 0L)) %>%
   mutate(prior_prob = ifelse(sum_prior_flow > 0L, prior_flow / sum_prior_flow, 0L)) %>%
   mutate(prob_diff = sqrt(obs_prob) - sqrt(prior_prob)) %>%
-  mutate(prob_diff = sqrt(prob_diff * prob_diff)) %>%
+  mutate(prob_diff = prob_diff * prob_diff) %>%
   group_by(route, direction, time_of_day) %>%
   summarise(hellinger_dist = sum(prob_diff)) %>%
-  mutate(hellinger_dist = 1/sqrt(2) * hellinger_dist)
+  mutate(hellinger_dist = 1/sqrt(2) * sqrt(hellinger_dist))
 
 joined_df <- left_join(joined_df, hellinger_df, by = c("route", "direction", "time_of_day"))
 
@@ -359,4 +356,3 @@ write.csv(outcome_df, file = F_OUTPUT, row.names = FALSE, quote = F)
 write.csv(joined_df,  file = F_OBSEST, row.names = FALSE, quote = F)
 
 ```
-
