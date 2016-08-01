@@ -73,40 +73,31 @@ dictionary.cat <- dictionary.all %>%
 
 ### BART
 ```{r operator-bart}
-# survey.BAR.key  <- 'BART'
-# survey.BAR.year <- 2015
-# 
-# # Set survey tech by route if necessary in chunk `combine`
-# survey.BAR.tech <- 'heavy rail'
-# 
-# # Prepare operator-specific dictionary
-# dictionary.BAR <- dictionary.all %>%
-#   filter(operator == survey.BAR.key)
-# 
-# variables.BAR <- as.character(factor(unique(unlist(dictionary.BAR$Survey_Variable, use.names = TRUE))))
-# 
-# # Read data and select variables of interest
-# survey.BAR <- read.csv(F_BART_SURVEY, header = TRUE)
-# survey.BAR.select <- survey.BAR[ ,variables.BAR]
-# 
-# # debug start
-# # for (var in variables.BAR) {
-# #   
-# #   print(var)
-# #   donkey <- survey.BAR[ ,var]
-# #   
-# # }
-# # debug end
-# 
-# # Reshape the data
-# survey.BAR.melt <- melt(survey.BAR.select, id = 'ID')
-# survey.BAR.melt <- select(survey.BAR.melt, ID, Survey_Variable = variable, Survey_Response = value)
-# survey.BAR.melt <- mutate(survey.BAR.melt, operator = survey.BAR.key)
-# survey.BAR.melt <- mutate(survey.BAR.melt, survey_year = survey.BAR.year)
-# survey.BAR.melt <- mutate(survey.BAR.melt, survey_tech = survey.BAR.tech)
-# 
-# # Clean up
-# remove(survey.BAR.key, survey.BAR.year, survey.BAR.tech, dictionary.BAR, variables.BAR, survey.BAR, survey.BAR.select)
+survey.BAR.key  <- 'BART'
+survey.BAR.year <- 2015
+
+# Set survey tech by route if necessary in chunk `combine`
+survey.BAR.tech <- 'heavy rail'
+
+# Prepare operator-specific dictionary
+dictionary.BAR <- dictionary.all %>%
+  filter(operator == survey.BAR.key)
+
+variables.BAR <- as.character(factor(unique(unlist(dictionary.BAR$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.BAR <- read.csv(F_BART_SURVEY, header = TRUE)
+survey.BAR.select <- survey.BAR[ ,variables.BAR]
+
+# Reshape the data
+survey.BAR.melt <- melt(survey.BAR.select, id = 'ID')
+survey.BAR.melt <- select(survey.BAR.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.BAR.melt <- mutate(survey.BAR.melt, operator = survey.BAR.key)
+survey.BAR.melt <- mutate(survey.BAR.melt, survey_year = survey.BAR.year)
+survey.BAR.melt <- mutate(survey.BAR.melt, survey_tech = survey.BAR.tech)
+
+# Clean up
+remove(survey.BAR.key, survey.BAR.year, survey.BAR.tech, dictionary.BAR, variables.BAR, survey.BAR, survey.BAR.select)
 ```
 
 
@@ -202,8 +193,7 @@ remove(survey.NAP.key, survey.NAP.year, survey.NAP.tech, dictionary.NAP, variabl
 
 ## Combine across operators and flatten
 ```{r combine}
-# survey.combine <- rbind(survey.BAR.melt, survey.CAL.melt, survey.NAP.melt)
-survey.combine <- rbind(survey.CAL.melt, survey.MUN.melt, survey.NAP.melt)
+survey.combine <- rbind(survey.BAR.melt, survey.CAL.melt, survey.MUN.melt, survey.NAP.melt)
 
 # Join the dictionary and prepare the categorical variables
 survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
@@ -897,7 +887,8 @@ survey.standard <- survey.standard %>%
 
 # Update fare medium for surveys with clipper detail
 survey.standard <- survey.standard %>%
-  mutate(fare_medium = ifelse(is.na(clipper_detail), fare_medium, clipper_detail))
+  mutate(fare_medium = ifelse(is.na(clipper_detail), fare_medium, clipper_detail)) %>%
+  select(-clipper_detail)
 
 table(survey.standard$work_status)
 table(survey.standard$student_status)
@@ -1170,11 +1161,11 @@ save(ancillary_df, file = F_ANCILLARY_OUTPUT_RDATA)
 #   }
 # }
 
-for(variable in colnames(survey.MUN.melt)){
-  if(!(variable %in% colnames(survey.NAP.melt))){
-    print(variable)
-  }
-}
+# for(variable in colnames(survey.MUN.melt)){
+#   if(!(variable %in% colnames(survey.NAP.melt))){
+#     print(variable)
+#   }
+# }
 
 ```
 
