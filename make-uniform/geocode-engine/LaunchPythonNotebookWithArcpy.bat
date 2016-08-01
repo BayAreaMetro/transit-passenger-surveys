@@ -1,7 +1,3 @@
-@echo off
-set ANACONDA=C:\Users\dory\AppData\Local\Continuum\Anaconda32
-set ESRI_PYTHON=C:\Python27\ArcGIS10.1
-set path=%ESRI_PYTHON%;%ANACONDA%;%ANACONDA%\Scripts
-set PYTHONPATH=%ANACONDA%\Lib\site-packages;%ESRI_PYTHON%\Lib\site-packages\;%ESRI_PYTHON%\Lib;%ANACONDA%\Lib;%pythonpath%
-start %ESRI_PYTHON%\python.exe -c "import sys; from IPython.html.notebookapp import launch_new_instance; sys.exit(launch_new_instance())" %*
-exit /B %ERRORLEVEL%
+:: Use 32-bit Anaconda install (if using 32-bit arcpy)
+:: See these instructions: https://my.usgs.gov/confluence/pages/viewpage.action?pageId=540116867#UsingAnacondamodulesfromtheESRIpythonenvironment(AllUsers)-4)SetupAnacondawith64bitpython(optional)
+C:\Anaconda2\python.exe C:\Anaconda2\cwp.py C:\Anaconda2 "C:/Anaconda2/python.exe" "C:/Anaconda2/Scripts/jupyter-notebook-script.py"
