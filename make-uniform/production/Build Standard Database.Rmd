@@ -47,6 +47,8 @@ F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine
 
 F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy NO POUND OR SINGLE QUOTE.csv"
 
+F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI Pilot Test_WORKING NO POUND OR SINGLE QUOTE.csv"
+
 F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
 F_ANCILLARY_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.RData"
 ```
@@ -74,7 +76,7 @@ dictionary.cat <- dictionary.all %>%
 survey.BAR.key  <- 'BART'
 survey.BAR.year <- 2015
 
-# Set survey tech by route if necessary in standard variables Step 8
+# Set survey tech by route if necessary in chunk `combine`
 survey.BAR.tech <- 'heavy rail'
 
 # Prepare operator-specific dictionary
@@ -86,15 +88,6 @@ variables.BAR <- as.character(factor(unique(unlist(dictionary.BAR$Survey_Variabl
 # Read data and select variables of interest
 survey.BAR <- read.csv(F_BART_SURVEY, header = TRUE)
 survey.BAR.select <- survey.BAR[ ,variables.BAR]
-
-# debug start
-# for (var in variables.BAR) {
-#   
-#   print(var)
-#   donkey <- survey.BAR[ ,var]
-#   
-# }
-# debug end
 
 # Reshape the data
 survey.BAR.melt <- melt(survey.BAR.select, id = 'ID')
@@ -113,7 +106,7 @@ remove(survey.BAR.key, survey.BAR.year, survey.BAR.tech, dictionary.BAR, variabl
 survey.CAL.key  <- 'Caltrain'
 survey.CAL.year <- 2014
 
-# Set survey tech by route if necessary in standard variables Step 8
+# Set survey tech by route if necessary in chunk `combine`
 survey.CAL.tech <- 'commuter rail'
 
 # Prepare operator-specific dictionary
@@ -137,12 +130,44 @@ survey.CAL.melt <- mutate(survey.CAL.melt, survey_tech = survey.CAL.tech)
 remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, dictionary.CAL, variables.CAL, survey.CAL, survey.CAL.select)
 ```
 
+
+### Muni
+```{r operator-muni}
+survey.MUN.key  <- 'SF Muni Pilot'
+survey.MUN.year <- 2016
+
+# Set survey tech by route if necessary in chunk `combine`
+survey.MUN.tech <- 'local bus'
+
+# Prepare operator-specific dictionary
+dictionary.MUN <- dictionary.all %>%
+  filter(operator == survey.MUN.key)
+
+variables.MUN <- as.character(factor(unique(unlist(dictionary.MUN$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.MUN <- read.csv(F_MUNI_SURVEY, header = TRUE)
+survey.MUN.select <- survey.MUN[ ,variables.MUN]
+
+# Reshape the data
+survey.MUN.melt <- melt(survey.MUN.select, id = 'ID')
+survey.MUN.melt <- select(survey.MUN.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.MUN.melt <- mutate(survey.MUN.melt, operator = survey.MUN.key)
+survey.MUN.melt <- mutate(survey.MUN.melt, survey_year = survey.MUN.year)
+survey.MUN.melt <- mutate(survey.MUN.melt, survey_tech = survey.MUN.tech)
+
+# Clean up
+remove(survey.MUN.key, survey.MUN.year, survey.MUN.tech, dictionary.MUN, variables.MUN, survey.MUN, survey.MUN.select)
+```
+
+
+
 ### Napa Vine
 ```{r operator-napa}
 survey.NAP.key  <- 'Napa Vine'
 survey.NAP.year <- 2014
 
-# Set survey tech by route if necessary in standard variables Step 8
+# Set survey tech by route if necessary in chunk `combine`
 survey.NAP.tech <- 'local bus'
 
 # Prepare operator-specific dictionary
@@ -168,7 +193,7 @@ remove(survey.NAP.key, survey.NAP.year, survey.NAP.tech, dictionary.NAP, variabl
 
 ## Combine across operators and flatten
 ```{r combine}
-survey.combine <- rbind(survey.BAR.melt, survey.CAL.melt, survey.NAP.melt)
+survey.combine <- rbind(survey.BAR.melt, survey.CAL.melt, survey.MUN.melt, survey.NAP.melt)
 
 # Join the dictionary and prepare the categorical variables
 survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
@@ -209,8 +234,19 @@ survey.adds <- survey.combine %>%
 
 survey.flat <- left_join(survey.flat, survey.adds, by = c("ID", "operator", "survey_year"))
 
+# Bespoke survey technology
+survey.flat <- survey.flat %>%
+  mutate(survey_tech = ifelse(operator == "Napa Vine" & (route == 21 | route == 25 | route == 29), "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("E-Emb", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("F-Mar", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("J-Chu", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("KT-Ing", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("L-Tar", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("M-Oce", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("N-Jud", ignore_case = TRUE)) > 0L, "light rail", survey_tech))
+
 remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat, survey.adds)
-remove(survey.BAR.melt, survey.CAL.melt, survey.NAP.melt)
+remove(survey.BAR.melt, survey.CAL.melt, survey.MUN.melt, survey.NAP.melt)
 
 ```
 
@@ -231,6 +267,7 @@ Set_Operator_Name <- function(input_vector){
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Caltrain", ignore_case = TRUE)) > 0L, "CALTRAIN", output_field)) %>%
     
     # Transit Agencies
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AC ", ignore_case = TRUE)) > 0L, "AC TRANSIT", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("ACE", ignore_case = TRUE)) > 0L, "ACE", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AC Transit", ignore_case = TRUE)) > 0L, "AC TRANSIT", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AirBART", ignore_case = TRUE)) > 0L, "AC TRANSIT", output_field)) %>%
@@ -238,6 +275,7 @@ Set_Operator_Name <- function(input_vector){
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Capitol Corridor", ignore_case = TRUE)) > 0L, "AMTRAK", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("County Connection", ignore_case = TRUE)) > 0L,"COUNTY CONNECTION", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Fairfield and", ignore_case = TRUE)) > 0L,"FAIRFIELD-SUISUN",output_field)) %>%
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Golden Gate ", ignore_case = TRUE)) > 0L, "GOLDEN GATE TRANSIT", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Golden Gate Tran", ignore_case = TRUE)) > 0L, "GOLDEN GATE TRANSIT", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Golden Gate Ferry", ignore_case = TRUE)) > 0L, "GOLDEN GATE FERRY", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Marin Transit", ignore_case = TRUE)) > 0L, "MARIN TRANSIT", output_field)) %>%
@@ -386,7 +424,8 @@ survey.standard <- survey.standard %>%
   mutate(year_born = ifelse(year_born == 1900, 2000, year_born)) %>%
   mutate(year_born = ifelse(year_born == 1901, 2001, year_born)) %>%
   mutate(year_born = ifelse(year_born == 3884, 1984, year_born)) %>%
-  mutate(year_born = ifelse(year_born == 2014, NA, year_born))
+  mutate(year_born = ifelse(year_born == 2014, NA, year_born)) %>%
+  mutate(year_born = ifelse(year_born == 1899, NA, year_born))
 
 table(survey.standard$year_born)
 
@@ -478,7 +517,6 @@ survey.standard <- survey.standard %>%
   mutate(tour_purp = ifelse(tour_purp == 'missing', orig_purp, tour_purp))
            
 table(survey.standard$tour_purp)
-
 
 # Step 3:  Update Key locations and Status Flags
 # -------------------------------------------------------------------------------------
@@ -823,7 +861,6 @@ survey.standard <- survey.standard %>%
 ``` {r standard-variables-part2}
 # Step 7:  Standardize Demographics
 # -------------------------------------------------------------------------------------
-
 survey.standard <- survey.standard %>%
   
   # Race
@@ -848,6 +885,11 @@ survey.standard <- survey.standard %>%
   mutate(language_at_home = ifelse(as.character(language_at_home_binary) == 'OTHER', as.character(language_at_home_detail), as.character(language_at_home_binary))) %>%
   select(-language_at_home_binary, -language_at_home_detail, -race_dmy_ind, -race_dmy_asn, -race_dmy_blk, -race_dmy_hwi, -race_dmy_wht, -race_dmy_oth, -race_dmy_sum, -race_other_string)
 
+# Update fare medium for surveys with clipper detail
+survey.standard <- survey.standard %>%
+  mutate(fare_medium = ifelse(is.na(clipper_detail), fare_medium, clipper_detail)) %>%
+  select(-clipper_detail)
+
 table(survey.standard$work_status)
 table(survey.standard$student_status)
 table(survey.standard$fare_medium)
@@ -864,10 +906,6 @@ table(survey.standard$eng_proficient)
 # Build route from entry and exit station, as needed
 survey.standard <- survey.standard %>%
   mutate(route = ifelse(!is.na(onoff_enter_station), paste(onoff_enter_station, onoff_exit_station, sep = " "), route))
-
-# Be-spoke survey technology updates, as needed
-survey.standard <- survey.standard %>%
-  mutate(survey_tech = ifelse(operator == "Napa Vine" & (route == 21 | route == 25 | route == 29), "express bus", survey_tech))
 
 # Deal with date and time
 survey.standard <- survey.standard %>%
@@ -938,7 +976,6 @@ survey.standard <- survey.standard %>%
 ### Geocode XY to Travel Model Geographies 
 (see `../geocode-engine` for tools)
 ```{r geocode-doit}
-
 # Prepare and write locations that need to be geo-coded to disk
 temp_lat <- survey.standard %>%
   select(Unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat, school = school_lat, workplace = workplace_lat)
@@ -1112,5 +1149,23 @@ save(ancillary_df, file = F_ANCILLARY_OUTPUT_RDATA)
 
 # DEBUG
 ```{r debug}
+# variables.MUN
+# colnames(survey.MUN)
+# 
+# for(variable in variables.MUN){
+#   if(variable %in% colnames(survey.MUN)){
+#     print(variable)
+#   }
+#   else{
+#     print(paste('donkey!!!',variable, sep = "---"))
+#   }
+# }
+
+# for(variable in colnames(survey.MUN.melt)){
+#   if(!(variable %in% colnames(survey.NAP.melt))){
+#     print(variable)
+#   }
+# }
+
 ```
 
