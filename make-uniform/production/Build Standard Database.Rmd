@@ -47,7 +47,7 @@ F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine
 
 F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy NO POUND OR SINGLE QUOTE.csv"
 
-F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI Pilot Test_WORKING NO POUND OR SINGLE QUOTE.csv"
+F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI Pilot Test_Cleaned_08192016_WORKING NO POUND OR SINGLE QUOTE.csv"
 
 F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
 F_ANCILLARY_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.RData"
@@ -1149,23 +1149,23 @@ save(ancillary_df, file = F_ANCILLARY_OUTPUT_RDATA)
 
 # DEBUG
 ```{r debug}
-# variables.MUN
-# colnames(survey.MUN)
-# 
-# for(variable in variables.MUN){
-#   if(variable %in% colnames(survey.MUN)){
-#     print(variable)
-#   }
-#   else{
-#     print(paste('donkey!!!',variable, sep = "---"))
-#   }
-# }
+variables.MUN
+colnames(survey.MUN)
+ 
+for(variable in variables.MUN){
+  if(variable %in% colnames(survey.MUN)){
+    print(variable)
+  }
+  else{
+    print(paste('donkey!!!',variable, sep = "---"))
+  }
+}
 
-# for(variable in colnames(survey.MUN.melt)){
-#   if(!(variable %in% colnames(survey.NAP.melt))){
-#     print(variable)
-#   }
-# }
+for(variable in colnames(survey.MUN.melt)){
+  if(!(variable %in% colnames(survey.NAP.melt))){
+    print(variable)
+  }
+}
 
 ```
 
