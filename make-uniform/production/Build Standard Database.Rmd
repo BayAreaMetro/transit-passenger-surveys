@@ -45,9 +45,9 @@ F_CALTRAIN_SURVEY = "M:/Data/OnBoard/Data and Reports/Caltrain/As CSV/Caltrain_F
 
 F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv"
 
-F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy NO POUND OR SINGLE QUOTE.csv"
+F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv"
 
-F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI Pilot Test_WORKING NO POUND OR SINGLE QUOTE.csv"
+F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI Pilot Test_Cleaned_08192016_WORKING NO POUND OR SINGLE QUOTE.csv"
 
 F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
 F_ANCILLARY_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.RData"
@@ -220,7 +220,7 @@ survey.to_flat <- rbind(survey.cat.to_flat, survey.non.to_flat)
 # Put together and then take apart a unique ID when flattening
 survey.to_flat <- survey.to_flat %>%
   mutate(Unique_ID = paste(ID, operator, survey_year, sep = "---")) %>%
-  select(-ID, -operator, -survey_year)
+  select(-ID, -operator, -survey_year, -survey_tech)
 
 survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
 
@@ -1151,7 +1151,7 @@ save(ancillary_df, file = F_ANCILLARY_OUTPUT_RDATA)
 ```{r debug}
 # variables.MUN
 # colnames(survey.MUN)
-# 
+#  
 # for(variable in variables.MUN){
 #   if(variable %in% colnames(survey.MUN)){
 #     print(variable)
@@ -1160,7 +1160,7 @@ save(ancillary_df, file = F_ANCILLARY_OUTPUT_RDATA)
 #     print(paste('donkey!!!',variable, sep = "---"))
 #   }
 # }
-
+# 
 # for(variable in colnames(survey.MUN.melt)){
 #   if(!(variable %in% colnames(survey.NAP.melt))){
 #     print(variable)

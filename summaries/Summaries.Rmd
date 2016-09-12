@@ -48,18 +48,18 @@ str(survey.standard, list.len = 500)
 str(survey.legacy,   list.len = 500)
 
 # DEBUG
-# legacy_names <- colnames(survey.legacy)
-# std_names <- colnames(survey.standard)
-# 
-# for (std_name in std_names) {
-#   if(!(std_name %in% legacy_names))
-#     print(std_name)
-# }
-# 
-# for (legacy_name in legacy_names) {
-#   if(!(legacy_name %in% std_names))
-#     print(legacy_name)
-# }
+legacy_names <- colnames(survey.legacy)
+std_names <- colnames(survey.standard)
+
+for (std_name in std_names) {
+  if(!(std_name %in% legacy_names))
+    print(std_name)
+}
+
+for (legacy_name in legacy_names) {
+  if(!(legacy_name %in% std_names))
+    print(legacy_name)
+}
 # end DEBUG
 
 data.ready <- rbind(survey.standard, survey.legacy)
@@ -192,6 +192,10 @@ write.csv(sum.date, paste(D_OUTPUT_TABLEAU, "FieldDates.csv", sep = ""), row.nam
 ### First Boarding and Last Alighting
 ```{r boarding-alighting}
 sum.board <- data.ready.sum %>%
+  filter(!is.na(first_board_lat)) %>%
+  filter(!is.na(first_board_lon)) %>%
+  filter(!is.na(last_alight_lat)) %>%
+  filter(!is.na(last_alight_lon)) %>%
   group_by(operator, weekpart, day_part, first_board_lat, first_board_lon, last_alight_lat, last_alight_lon) %>%
   summarise(freq = n(), weight = sum(weight), trip_weight = sum(trip_weight))
 
