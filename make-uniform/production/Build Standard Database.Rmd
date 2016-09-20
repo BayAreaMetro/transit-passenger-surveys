@@ -47,7 +47,7 @@ F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine
 
 F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv"
 
-F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI Pilot Test_Cleaned_08192016_WORKING NO POUND OR SINGLE QUOTE.csv"
+F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI_Data_08102016_09062016_revised_working NO POUND OR SINGLE QUOTE.csv"
 
 F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
 F_ANCILLARY_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.RData"
@@ -126,6 +126,9 @@ survey.CAL.melt <- mutate(survey.CAL.melt, operator = survey.CAL.key)
 survey.CAL.melt <- mutate(survey.CAL.melt, survey_year = survey.CAL.year)
 survey.CAL.melt <- mutate(survey.CAL.melt, survey_tech = survey.CAL.tech)
 
+# Cast Factor ID to inte
+survey.CAL.melt <- mutate(survey.CAL.melt, ID = as.numeric(ID))
+
 # Clean up
 remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, dictionary.CAL, variables.CAL, survey.CAL, survey.CAL.select)
 ```
@@ -133,7 +136,7 @@ remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, dictionary.CAL, variabl
 
 ### Muni
 ```{r operator-muni}
-survey.MUN.key  <- 'SF Muni Pilot'
+survey.MUN.key  <- 'SF Muni Early Tranche'
 survey.MUN.year <- 2016
 
 # Set survey tech by route if necessary in chunk `combine`
@@ -222,6 +225,8 @@ survey.to_flat <- survey.to_flat %>%
   mutate(Unique_ID = paste(ID, operator, survey_year, sep = "---")) %>%
   select(-ID, -operator, -survey_year, -survey_tech)
 
+# NOTE: if below cast warns about missing aggregation function, likely because (a) duplicate unique ID or (b) more than three variables.
+
 survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
 
 survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "operator", "survey_year")))
@@ -293,6 +298,9 @@ Set_Operator_Name <- function(input_vector){
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("VTA", ignore_case = TRUE)) > 0L, "VTA", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("DASH Downtown Area Shuttle", ignore_case = TRUE)) > 0L, "VTA", output_field)) %>%
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Tiburon FERRY Tiburon To Angel Island State Park", ignore_case = TRUE)) > 0L, "BLUE GOLD FERRY", output_field)) %>%
+    
+    # Correct AC route with 'union city' in the name
+    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AC 200 Union City BART", ignore_case = TRUE)) > 0L, "AC TRANSIT", output_field)) %>%
     
     # PRIVATE SHUTTLE
     mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Stanford", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
@@ -580,21 +588,22 @@ remove(vehicles.dictionary, workers.dictionary)
 
 # Set operator for each of six legs (three before, three after)
 # - remove BART 'Missing - Dummy Record' before starting
+# - remove Muni 'None' before starting
 survey.standard <- survey.standard %>%
   mutate(first_route_before_survey_board = 
            ifelse(first_route_before_survey_board == "Missing - Dummy Record", "", first_route_before_survey_board)) %>%
-    mutate(second_route_before_survey_board = 
+  mutate(second_route_before_survey_board = 
            ifelse(second_route_before_survey_board == "Missing - Dummy Record", "", second_route_before_survey_board)) %>%
-    mutate(third_route_before_survey_board = 
+  mutate(third_route_before_survey_board = 
            ifelse(third_route_before_survey_board == "Missing - Dummy Record", "", third_route_before_survey_board))
 
 survey.standard <- survey.standard %>%
   mutate(first_route_after_survey_alight = 
            ifelse(first_route_after_survey_alight == "Missing - Dummy Record", "", first_route_after_survey_alight)) %>%
-    mutate(second_route_after_survey_alight = 
+  mutate(second_route_after_survey_alight = 
            ifelse(second_route_after_survey_alight == "Missing - Dummy Record", "", second_route_after_survey_alight)) %>%
-    mutate(third_route_after_survey_alight = 
-           ifelse(third_route_after_survey_alight == "Missing - Dummy Record", "", third_route_after_survey_alight))
+  mutate(third_route_after_survey_alight = 
+           ifelse(third_route_after_survey_alight == "Missing - Dummy Record", "", third_route_after_survey_alight)) 
 
 first_before <- as.data.frame(Set_Operator_Name(survey.standard$first_route_before_survey_board))
 colnames(first_before) <- c("first_before_operator")
@@ -842,7 +851,7 @@ table(survey.standard$boardings, survey.standard$survey_boardings)
 # Build debug data frame to find odds and ends
 debug.transfers <- survey.standard %>%
   filter(!(boardings == survey_boardings)) %>%
-  select(ID, operator,
+  select(ID, operator, route, direction,
          boardings, survey_boardings,
          first_route_before_survey_board,  first_before_operator,  first_before_technology,
          second_route_before_survey_board, second_before_operator, second_before_technology,
@@ -1151,13 +1160,13 @@ save(ancillary_df, file = F_ANCILLARY_OUTPUT_RDATA)
 ```{r debug}
 # variables.MUN
 # colnames(survey.MUN)
-#  
+# 
 # for(variable in variables.MUN){
 #   if(variable %in% colnames(survey.MUN)){
 #     print(variable)
 #   }
 #   else{
-#     print(paste('donkey!!!',variable, sep = "---"))
+#     print(paste('donkey!!!',variable, sep = "--------------!!!---------------"))
 #   }
 # }
 # 
