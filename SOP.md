@@ -5,7 +5,7 @@ title: SOP
 
 # Standard Operating Procedures for Conducting Surveys
 
-This page provides information about MTC's Standard Operating Procedures (SOP) for conducting transit passenger surveys. Please use the Contents links below to find appropriate guidance.
+This page provides information about MTC's Standard Operating Procedures (SOP) for conducting transit passenger surveys. Please use the Contents links below to find appropriate guidance by section.
 
 CONTENTS
 
