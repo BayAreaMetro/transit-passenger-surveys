@@ -5,6 +5,8 @@ title: SOP
 
 # Standard Operating Procedures for Conducting Surveys
 
+This page provides information about MTC's Standard Operating Procedures (SOP) for conducting transit passenger surveys. Please use the Contents links below to find appropriate guidance.
+
 CONTENTS
 
 1. [SOP Goals](#sop-goals)
@@ -16,7 +18,7 @@ CONTENTS
 
 ## SOP Goals
 
-The Standard Operating Procedures here describe how Bay Area transit passenger surveys will be administered in cooperation between MTC and operators. Through this process, it is our current goal to cooperatively survey the entire region's Transportation Development Act (TDA) funded fixed-route transit ridership over a five- to seven-year period. Survey goals include supporting operator Title VI reporting requirements; refinement of analytical planning tools, such as MTC's travel demand model; and providing data for regional and operator-specific ridership market and equity analyses. 
+The SOPs here describe how Bay Area transit passenger surveys will be administered in cooperation between MTC and operators. Through this process, it is our current goal to cooperatively survey the entire region's Transportation Development Act (TDA) funded fixed-route transit ridership over a five- to seven-year period. Survey goals include supporting operator Title VI reporting requirements; refinement of analytical planning tools, such as MTC's travel demand model; and providing data for regional and operator-specific ridership market and equity analyses. 
 
 ## Procurement and Contracting
 
