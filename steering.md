@@ -5,6 +5,8 @@ title: Steering
 
 # Steering Committee Activities
 
+Below is a list of steering committee members affiliated with the Regional Onboard Survey Program and the agenda for the most recent meeting for the committee.
+
 CONTENTS
 
 1. [Steering Member List](#steering-member-list)
@@ -21,6 +23,7 @@ CONTENTS
 | Maureen Wetter                         | Bay Area Rapid Transit                                 |
 | Ruby Horta                             | County Connection                                      |
 | Nathan Atherstone                      | Fairfield and Suisum Transit                           |
+| Shaun Vigil                            | Fairfield and Suisun Transit
 | Barbara Vincent                        | Golden Gate Bridge, Highway and Transportation District|
 | Joshua Widmann                         | Golden Gate Bridge, Highway and Transportation District|
 | Melody Reebs                           | Marin Transit                                          |
