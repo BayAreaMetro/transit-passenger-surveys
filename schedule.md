@@ -38,13 +38,15 @@ CONTENTS
 
 | **Survey Year**                  | **Spring**             | **Fall**               |
 |:---------------------------------|:-----------------------|:-----------------------|
-| 2016                             | Muni                   | Muni (continued)       |
+| 2016                             |                        | Muni                   |
 |                                  |                        | VTA                    |
 |                                  |                        |                        |
-| 2017                             | FAST                   | AC Transit             |
-|                                  | SolTrans               | Dumbarton Express      |
-| 				   | Rio Vista Delta Breeze | Union City Transit     |
-| 				   | Vacaville City Coach   | WestCAT                |
+| 2017                             | Muni (continued)       | AC Transit             |
+|                                  | VTA (continued)        | Dumbarton Express      |
+|                                  | FAST                   | Union City Transit     |
+|                                  | SolTrans               | WestCAT                |
+| 				   | Rio Vista Delta Breeze |                        |
+| 				   | Vacaville City Coach   |                        |
 |                                  | Marin Transit          |	                     |
 |                                  |                        |	                     |
 | 2018                             | Golden Gate Ferries    | Wheels (LAVTA)         |

@@ -29,15 +29,14 @@ CONTENTS
 | David Ory                              | Metropolitan Transportation Commission                 |
 | Matthew Wilcox                         | Napa Valley Transportation Authority                   |
 | Joe Rye                                | Petaluma Transit                                       |
-| David Melilli                          | Rio Vista Breeze                                       |
+| David Melilli                          | Rio Vista Delta Breeze                                 |
 | Christiane Kwok                        | SamTrans/Caltrain                                      |
 | Patrick Thompson                       | SamTrans/Caltrain                                      |
 | Alex Demisch                           | San Francisco Municipal Transportation Authority       |
 | Alvin Lucas                            | Santa Clara Valley Transportation Authority            |
-| Rael Manlapas                          | Santa Clara Valley Transportation Authority            |
 | George Naylor                          | Santa Clara Valley Transportation Authority            |
 | Rachel Ede                             | Santa Rosa CityBus                                     |
-| Philip Kahmi                           | Solano Transportation Authority                        |
+| Philip Kamhi                           | Solano Transportation Authority                        |
 | Michael Abegg                          | SolTrans (Solano County Transit)                       |
 | Steve Schmitz                          | Sonoma County Transit                                  |
 | Steve Ponte                            | Tri-Delta (Eastern Contra Costa Transit Authority)     |
