@@ -4,5 +4,5 @@ title: Reports
 ---
 
 # Field Work Documentation 
-Operator-specific methodology and findings reports are available for download [here](https://mtcdrive.box.com/onboard-survey-reports).
+You can find a repository of operator-specific methodology and findings reports for download [here](https://mtcdrive.box.com/onboard-survey-reports).
 
