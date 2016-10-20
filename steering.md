@@ -22,7 +22,7 @@ CONTENTS
 | Brian Schmidt                          | Altamont Commuter Express                              |
 | Maureen Wetter                         | Bay Area Rapid Transit                                 |
 | Ruby Horta                             | County Connection                                      |
-| Nathan Atherstone                      | Fairfield and Suisum Transit                           |
+| Nathan Atherstone                      | Fairfield and Suisun Transit                           |
 | Shaun Vigil                            | Fairfield and Suisun Transit
 | Barbara Vincent                        | Golden Gate Bridge, Highway and Transportation District|
 | Joshua Widmann                         | Golden Gate Bridge, Highway and Transportation District|
