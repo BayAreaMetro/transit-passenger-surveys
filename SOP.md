@@ -5,7 +5,7 @@ title: SOP
 
 # Standard Operating Procedures for Conducting Surveys
 
-This page provides information about MTC's Standard Operating Procedures (SOP) for conducting transit passenger surveys. Please use the Contents links below to find appropriate guidance by section. Please refer any questions or comments to Shimon Israel at sisrael@mtc.ca.gov or 415-778-5239.
+This page provides information about MTC's Standard Operating Procedures (SOP) for conducting MTC-funded transit passenger surveys within the Bay Area. Please use the Contents links below to find appropriate guidance by section. Please refer any questions or comments to Shimon Israel at sisrael@mtc.ca.gov or 415-778-5239.
 
 CONTENTS
 
