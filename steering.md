@@ -3,9 +3,9 @@ layout: page
 title: Steering
 ---
 
-# Steering Committee Activities
+# Regional Onboard Survey Program Steering Committee
 
-Below is a list of steering committee members affiliated with the Regional Onboard Survey Program and the agenda for the most recent meeting for the committee.
+Below is a list of steering committee members affiliated with the Regional Onboard Survey Program. The agenda for the most recent committee meeting is also linked to below.
 
 CONTENTS
 
@@ -23,7 +23,7 @@ CONTENTS
 | Maureen Wetter                         | Bay Area Rapid Transit                                 |
 | Ruby Horta                             | County Connection                                      |
 | Nathan Atherstone                      | Fairfield and Suisun Transit                           |
-| Shaun Vigil                            | Fairfield and Suisun Transit
+| Shaun Vigil                            | Fairfield and Suisun Transit                           | 
 | Barbara Vincent                        | Golden Gate Bridge, Highway and Transportation District|
 | Joshua Widmann                         | Golden Gate Bridge, Highway and Transportation District|
 | Melody Reebs                           | Marin Transit                                          |
@@ -34,7 +34,6 @@ CONTENTS
 | Joe Rye                                | Petaluma Transit                                       |
 | David Melilli                          | Rio Vista Delta Breeze                                 |
 | Christiane Kwok                        | SamTrans/Caltrain                                      |
-| Patrick Thompson                       | SamTrans/Caltrain                                      |
 | Alex Demisch                           | San Francisco Municipal Transportation Authority       |
 | Alvin Lucas                            | Santa Clara Valley Transportation Authority            |
 | George Naylor                          | Santa Clara Valley Transportation Authority            |

@@ -14,7 +14,7 @@ CONTENTS
 3. [Data Collection](#data-collection)
 4. [Survey Scheduling](#survey-scheduling)
 5. [Survey Funding](#survey-funding)
-6. [Data Distribution Procedures](#data-distribution-procedures)
+6. [Data Sharing](#data-sharing)
 
 ## SOP Goals
 
@@ -109,6 +109,6 @@ As described in Attachment B, Appendix B-5 of Resolution 3866 related to transit
 
 Federally-funded Bay Area operators not listed above will pay no cost to survey service they provide. MTC recognizes that, in some instances, operators would like to leverage scheduled survey activities to augment additional surveys to those paid for by MTC, or to perform other related field work with the MTC-procured consultant. MTC will make every reasonable effort to accommodate such requests. Such requests can generally be incorporated into the scheduled work program via the addition of a funding agreement or with the modification of an existing agreement. Additional scope of this kind will be added at the operator's expense.  
 
-## Data Distribution Procedures
+## Data Sharing
 
 All deliverables produced by the Survey Program are shared equally between MTC and operators. Both operators and MTC own any reporting materials and the raw and processed data arising from data collection. Operators are free to decide how to use these work products and with whom to share them - including internal staff, outside consultants, other governmental entities, academic researchers, and other interested parties. Because the surveys ask respondents about some personal and household characteristics regarded as personally-identifiable information (PII), it is in the interests of both MTC and operators to safeguard these data from general public release. MTC has worked closely with its General Counsel to develop two non-disclosure agreements (NDA) for the purpose of sharing data containing PII: (1) an NDA for data with passenger location information (e.g., passenger home, work, school, etc. locations) geocoded to the discrete point level (latitude, longitude); and (2) an NDA for data with location information geocoded to more aggregate geographies such as census tracts, travel analysis zones (TAZ), or something equivalent or larger in size and/or population. The NDAs MTC uses are available [here](https://mtcdrive.app.box.com/v/BlankNDAs) for download. Transit operators are encouraged to develop similar instruments for safeguarding shared data, and/or to include protective language within their consultant contracts for this purpose. 
