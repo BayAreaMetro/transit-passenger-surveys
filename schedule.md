@@ -5,6 +5,8 @@ title: Schedule
 
 # Survey Schedule
 
+Below you'll find the operators previously surveyed in MTC's survey program and schedule for future survey work.
+
 CONTENTS
 
 1. [Operators Completed to Date](#operators-completed-to-date)

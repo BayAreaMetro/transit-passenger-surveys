@@ -5,7 +5,7 @@ title: Steering
 
 # Regional Onboard Survey Program Steering Committee
 
-Below is a list of steering committee members affiliated with the Regional Onboard Survey Program. The agenda for the most recent committee meeting is also linked to below.
+Below is a list of steering committee members affiliated with the MTC Regional Onboard Survey Program, by transit operator. The agenda for the most recent committee meeting is also linked to below.
 
 CONTENTS
 
