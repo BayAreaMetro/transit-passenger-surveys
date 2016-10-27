@@ -20,7 +20,7 @@ CONTENTS
 
 ## Working Papers
 
-Below are some papers produced by academics and practioners that utilize data collected in the Survey Program:
+Below are some papers produced by academics and transportation planning practioners that utilize data collected in the Survey Program:
 
 *	Application of Mitigating Flow Bias from Bus Origin/Destination Surveys in a Transit System.  David Schmitt and Jamie Snow, AECOM.  [Presentation slides](http://trbappcon.org/2015conf/presentations/200_2015-05-20%20Planning%20Apps%20-%20Mitigating%20Flow%20Bias%20v3%20051815.pptx).
 

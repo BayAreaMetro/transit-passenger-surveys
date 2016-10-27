@@ -24,11 +24,11 @@ The SOPs here describe how Bay Area transit passenger surveys will be administer
 
 MTC will procure consulting resources to carry out the Survey Program, and oversee consultant performance to ensure delivery of high quality data and survey summary products. MTC's current contracting environment includes a "bench" of three consultants to spread the work among. All three were selected in a competitive recruitment and all have a lot of experience in transit passenger surveying. The three bench consultants from MTC's most recent procurement are Corey, Canapary, & Galanis of San Francisco, California; ETC Institute of Olathe, Kansas; and, Redhill Group of Irvine, California. 
 
-MTC staff works closely with operator liaisons in all matters related to survey scheduling (see Survey Scheduling, below), contracting, and administration. Work is assigned to contractors via MTC-issued task orders, which include work scope, requested deliverables, budget, anticipated schedule, and other relevant items such as disadvantage business enterprise (DBE) subcontracting goals, etc. A recent example executed task order is available [here](https://mtcdrive.box.com/Example-Task-Order)
+MTC staff works closely with operator liaisons in all matters related to survey scheduling (see Survey Scheduling, below), contracting, and administration. Work is assigned to contractors via MTC-issued task orders, which include work scope, requested deliverables, budget, anticipated schedule, and other relevant items such as disadvantage business enterprise (DBE) subcontracting goals, etc. A recent example executed task order is available [here](https://mtcdrive.box.com/Example-Task-Order).
 
 ## Data Collection
 
-It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of passenger boardings, attempting to strike a balance between survey cost and sample representativeness of transit ridership. Sampling plans are developed to select passengers randomly, spread over the day-long operating hours of transit routes, for both weekday and weekend ridership, as relevant. Survey quota goals are segmented by time-of-day periods (either MTC's time periods, the time periods used by operators, or custom time periods). The battery of questions asked passengers has become mostly standardized over the many sureys conducted by MTC. An exception to this is the approximately 3-5 custom questions that can be added by operators. These include customer service-type questions such as frequency of ridership and rider experience on transit vehicles. The types of questions asked in a standard MTC survey are described below, and include:
+It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of passenger boardings, attempting to strike a balance between survey cost and sample representativeness of transit ridership. Sampling plans are developed to select passengers randomly, spread over the day-long operating hours of transit routes, for both weekday and weekend ridership, as relevant. Survey quota goals are segmented by time-of-day periods for weekday ridership (either MTC's time periods, the time periods used by operators, or custom time periods), and by Saturday and Sunday for weekends. The battery of questions asked passengers has become mostly standardized over the many surveys conducted by MTC. An exception to this is the approximately 3-5 questions that can be added by operators to produce a more customized survey. Example custom questions include customer service-type questions such as frequency of ridership and rider experience on transit vehicles. The types of questions asked in a standard MTC survey are described below, and include:
 
 **1. Geocoded location data** 
 
@@ -60,26 +60,27 @@ It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of pas
 	
 **6. Houshould and person demographics**
 
-	a. Race/ethnicity	
-	b. Age	
-	c. Gender	
-	d. Worker status	
-	e. Student status	
-	f. Ability to speak English	
-	g. Language spoken in home other than English	
-	h. Disability status
-	i. Number of persons in household	
-	j. Number of workers in household	
-	k. Number of household working vehicles	
-	l. Household income
+	a. Hispanic/Latino status
+	b. Race	
+	c. Age	
+	d. Gender	
+	e. Worker status	
+	f. Student status	
+	g. Ability to speak English	
+	h. Language spoken at home other than English	
+	i. Disability status
+	j. Number of persons in household	
+	k. Number of workers in household	
+	l. Number of household working vehicles	
+	m. Household income
 	
 **7. Custom questions by operators. Examples include:.**
 
-	a. Frequency of riding the transit operator.
+	a. Frequency of riding the transit operator
 	b. Means of getting schedule information (paper schedules, internet site, etc.)
 	c. Overall satisfaction with service
 	
-Due to lower response rates and incompleteness of many surveys, MTC has migrated away from the use of paper survey instruments for transit passenger data collection. Instead, MTC has collected passenger data using two different methods. The first method, initially deployed in 2012, involved capturing passenger names and contact phone numbers, and then administering a follow-up computer-assisted telephone interview (CATI). The CATI survey efficiently tailors questions to match the travel patterns and demographic characteristics of each passenger.  More recently, beginning in 2014, MTC has been utilizing the method advocated by the Federal Transit Administration for transit passenger surveys, that of an in-person interview peformed with a tablet computer. The tablet computer approach combines higher response rates with more complete and more accurate surveying. Similar to the CATI approach, the tablet computer aids interviewers in asking questions via a surveying "script," skipping questions that aren't relevant to individual passengers. To help people understand the types of questions asked by MTC, a draft mock-up paper version of the Muni survey (which has also been translated into an in-person tablet computer "script") is available [here](https://mtcdrive.box.com/v/muni-draft-survey). The tablet computer "script" of the in-person Napa VINE survey is provided [here](https://mtcdrive.box.com/v/tablet-survey) to understand what is captured in the fully expanded in-person questionnaire. It is important to remember that the tablet computer used by interviewers skips through the survey, so not every question is asked of all passengers. 
+Due to lower response rates and incompleteness of many surveys, MTC has migrated away from the use of paper survey instruments for transit passenger data collection. Instead, MTC has collected passenger data using two different methods. The first method, initially deployed in 2012, involved capturing passenger names and contact phone numbers, and then administering a follow-up computer-assisted telephone interview (CATI). The CATI survey efficiently tailors questions to match the travel patterns and demographic characteristics of each passenger.  More recently, beginning in 2014, MTC has been utilizing the method advocated by the Federal Transit Administration for transit passenger surveys, that of an in-person interview peformed with a tablet computer. The tablet computer approach combines higher response rates with more complete and more accurate surveying. Similar to the CATI approach, the tablet computer aids interviewers in asking questions via a surveying "script," skipping questions that aren't relevant to individual passengers. To help people understand the types of questions asked by MTC, a draft mock-up paper version of the Muni survey (which has also been translated into an in-person tablet computer "script") is available [here](https://mtcdrive.box.com/v/muni-final-survey). The tablet computer "script" of the in-person Napa VINE survey is provided [here](https://mtcdrive.box.com/v/tablet-survey) to understand what is captured in the fully expanded in-person questionnaire. It is important to remember that the tablet computer used by interviewers skips through the survey, so not every question is asked of all passengers. 
 
 It should be noted that, while MTC staff believe that an in-person interview utilizing a tablet computer is currently the best available survey technology, they are open to other methods of data collection and they seek the continual refinement of survey tools.
 
