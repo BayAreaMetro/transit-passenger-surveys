@@ -3,11 +3,19 @@ layout: page
 title: Papers
 ---
 
-# Policy Documents
+# Policy and Papers
+
+This page provides links to: (1) policy guidance relating to MTC's transit passenger data collection; and (2) academic and practioner working papers utilizing data collected by the Survey Program.
+
+CONTENTS
+
+
+
+## Policy Documents
 
 * [Resolution 3866](https://mtc.legistar.com/View.ashx?M=F&ID=3866249&GUID=9910CC33-E4BA-4709-BC52-63CAE8A856FB) -- Describes requirements of MTC and transit agencies.
 
-# Working Papers
+## Working Papers
 
 Discussion ideas put forward to improve on-board surveying practice.
 
