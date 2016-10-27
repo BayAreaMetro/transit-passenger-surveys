@@ -9,6 +9,8 @@ This page provides links to: (1) policy guidance relating to MTC's transit passe
 
 CONTENTS
 
+1. [Policy Documents](#policy-documents)
+2. [Working Papers](#working-papers)
 
 
 ## Policy Documents
