@@ -5,7 +5,7 @@ title: Data
 
 # Data and Reports
 
-Below you'll find some links to access aggregate summaries of data collected and consultant reports for completed surveys. 
+Below you'll find some links to access aggregate summaries of survey data and also consultant reports for completed survey efforts. 
 
 CONTENTS
 
