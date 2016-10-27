@@ -32,12 +32,11 @@ CONTENTS
 |                                  |                        |	                     |
 | 2015                             | BART                   |                        |
 |                                  |                        |                        |
-
-  
-  
-    
-      
-      
+ 
+ 
+<br/>
+<br/>
+<br/>
 
 ## Tentative Future Schedule
 
