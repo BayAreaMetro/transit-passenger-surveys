@@ -12,6 +12,8 @@ CONTENTS
 1. [Steering Member List](#steering-member-list)
 2. [Meeting Agendas](#meeting-agendas)
 
+<br/>
+
 ## Steering Member List
 
 | **Name**                               | **Affiliation**                                        |
@@ -48,6 +50,7 @@ CONTENTS
 | Robert Thompson                        | Western Contra Costa Transit Authority                 |
 | Cyrus Sheik                            | Wheels (Livermore-Amador Valley Transit Authority)     |
 
+<br/>
 
 ## Meeting Agendas
 

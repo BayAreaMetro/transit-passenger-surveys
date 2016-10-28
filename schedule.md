@@ -34,7 +34,6 @@ CONTENTS
 |                                  |                        |                        |
  
 <br/>
-<br/>
 
 ## Tentative Future Schedule
 
