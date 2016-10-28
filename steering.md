@@ -12,8 +12,6 @@ CONTENTS
 1. [Steering Member List](#steering-member-list)
 2. [Meeting Agendas](#meeting-agendas)
 
-<br/>
-
 ## Steering Member List
 
 | **Name**                               | **Affiliation**                                        |
