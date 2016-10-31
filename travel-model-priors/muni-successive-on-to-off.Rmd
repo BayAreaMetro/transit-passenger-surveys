@@ -1,0 +1,113 @@
+---
+title: "Muni Successive On-to-off"
+author: "David Ory"
+output: 
+   html_document:
+      theme: cosmo
+      toc: yes
+---
+
+## Administration
+
+#### Purpose
+This script consumes two rounds of on-to-off surveys on SF Muni. It compares the two data sets just as the `muni-travel-model-priors.Rmd` script compares the on-to-off counts with a set of priors derived from APC and travel model data.
+
+#### Outputs
+1.  TBD
+
+#### _TODO_
+1. Everything, early days
+
+## Procedure
+
+#### Overhead
+```{r overhead, results = 'hide'}
+library(knitr)
+suppressMessages(library(dplyr))
+```
+
+```{r config, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+#### Paramaters
+```{r parameters}
+
+
+```
+
+#### Remote I/O Locations
+```{r remote-io}
+F_OBS_FLOWS_ROUND_01 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_DRAFT-FINAL_CONSOLIDATED_SUBMITTAL_1-7_20160727.csv"
+F_OBS_FLOWS_ROUND_02 = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/As CSV/MUNI_ON2OFF_FINAL_20161025_ROUND2.csv"
+
+# TODO: do I need the summary from `compare-muni-priors-to-observed.Rmd`?
+F_OBSEST = "M:/Data/OnBoard/Data and Reports/Muni/On-to-Off/observed-priors-results.csv"
+```
+
+#### Data reads
+```{r data-reads}
+obs_round_01 <- read.table(file = F_OBS_FLOWS_ROUND_01, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+obs_round_02 <- read.table(file = F_OBS_FLOWS_ROUND_02, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+```
+
+#### Data cleans
+```{r data-clean}
+working_01 <- obs_round_01 %>%
+  mutate(round = 1L)
+
+working_02 <- obs_round_02 %>%
+  mutate(round = 2L)
+
+working <- rbind(working_01, working_02)
+
+working_sum <- working %>%
+  select(round, route = ROUTE_DESCRIPTION, board_segment = SEGMENT_ON, alight_segment = SEGMENT_OFF, time_of_day = TIME.PERIOD) %>%
+  group_by(round, route, time_of_day, board_segment, alight_segment) %>%
+  summarise(records = n())
+
+sum_round_02 <- working_sum %>%
+  ungroup() %>%
+  filter(round == 2) %>%
+  select(-round) %>%
+  rename(records_02 = records)
+
+sum_round_01 <- working_sum %>%
+  ungroup() %>%
+  filter(round == 1) %>%
+  select(-round) %>%
+  rename(records_01 = records)
+
+working_sum <- left_join(sum_round_02, sum_round_01, by = c("route", "time_of_day", "board_segment", "alight_segment"))
+
+working_sum <- working_sum %>%
+  mutate(records_01 = ifelse(is.na(records_01), 0L, records_01)) %>%
+  mutate(records_02 = ifelse(is.na(records_02), 0L, records_02))
+  
+remove(working_01, working_02, working, sum_round_01, sum_round_02)
+```
+
+#### Chi-squared tests
+```{r chi-squared}
+missing_round_01 <- working_sum %>%
+  group_by(route, time_of_day) %>%
+  summarise(sum_records_01 = sum(records_01)) %>%
+  ungroup() %>%
+  mutate(flag = ifelse(sum_records_01 > 0, TRUE, FALSE)) %>%
+  select(-sum_records_01)
+
+ready_chi <- left_join(working_sum, missing_round_01, by = c("route", "time_of_day"))
+
+ready_chi <- ready_chi %>%
+  filter(flag)
+
+outcome_df <- ready_chi %>%
+  group_by(route, time_of_day) %>%
+  summarise(test_statistic  = chisq.test(records_02, p = records_01/sum(records_01))$statistic[["X-squared"]],
+            test_df         = chisq.test(records_02, p = records_01/sum(records_01))$parameter[["df"]],
+            test_p_value    = chisq.test(records_02, p = records_01/sum(records_01))$p.value)
+
+```
+
+TODO: append the records and write out as CSV for Tableau
