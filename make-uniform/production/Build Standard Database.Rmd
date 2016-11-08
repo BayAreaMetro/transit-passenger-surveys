@@ -961,15 +961,23 @@ survey.standard <- left_join(survey.standard, field.dates, by = c("operator", "s
 survey.standard <- survey.standard %>%
   mutate(time_string = ifelse(time_string == "Missing - Dummy Record", NA, time_string)) %>%
   mutate(time_string = ifelse(time_string == "Missing - Question Not Asked", NA, time_string)) %>%
-  mutate(am_pm = str_trim(str_sub(time_string, -2, -1))) %>%
-  mutate(raw_hour = str_sub(time_string, 1, 2)) %>%
-  mutate(hour = as.numeric(gsub("[:,]", "", raw_hour))) %>%
-  mutate(time_start = ifelse(am_pm == "PM" & hour < 12, hour + 12, ifelse(am_pm == "AM" & hour == 12, 0, hour))) %>%
+  # interpret the time string
+  mutate(time1 = as.POSIXct(strptime(time_string, format="%l:%M:%S %p"))) %>%
+  mutate(time2 = as.POSIXct(strptime(time_string, format="%l:%M %p"))) %>%
+  mutate(time3 = as.POSIXct(strptime(time_string, format="%H:%M:%S"))) %>%
+  mutate(time4 = as.POSIXct(strptime(time_string, format="%H:%M"))) %>%
+  mutate(survey_time_posix = as.POSIXct(ifelse(!is.na(time1), time1, 
+                                  ifelse(!is.na(time2), time2,
+                                  ifelse(!is.na(time3), time3, time4))), origin="1970-01-01")) %>%
+  # create a time_start (in hours) for day_part
+  mutate(time_start = as.numeric(format(survey_time_posix,"%H"))) %>%
   mutate(day_part = 'EVENING') %>%
   mutate(day_part = ifelse(time_start > 2  & time_start < 6,  'EARLY AM', day_part)) %>%
   mutate(day_part = ifelse(time_start > 5  & time_start < 11, 'AM PEAK' , day_part)) %>%
   mutate(day_part = ifelse(time_start > 10 & time_start < 15, 'MIDDAY'  , day_part)) %>%
-  mutate(day_part = ifelse(time_start > 14 & time_start < 19, 'PM PEAK' , day_part))
+  mutate(day_part = ifelse(time_start > 14 & time_start < 19, 'PM PEAK' , day_part)) %>%
+  # keep survey_time to output
+  mutate(survey_time=format(survey_time_posix, format="%H:%M:%S"))
 
 table(survey.standard$field_start)
 table(survey.standard$field_end)
@@ -978,7 +986,7 @@ table(survey.standard$day_part)
 table(survey.standard$day_of_the_week)
 
 survey.standard <- survey.standard %>%
-  select(-date_string, -time_string, -am_pm, -raw_hour, -hour)
+  select(-date_string, -time_string, -time1, -time2, -time3, -time4, -survey_time_posix)
 
 ```
 
@@ -1151,6 +1159,10 @@ survey.standard <- survey.standard %>%
   mutate(weight = ifelse(is.na(weight), 0.0, weight)) %>%
   mutate(trip_weight = ifelse(boardings > 0, weight / boardings, weight)) %>%
   mutate(field_language = interview_language)
+
+# put new column, survey_time, at the end
+survey.standard <- survey.standard[,c(which(colnames(survey.standard)!="survey_time"),
+                                      which(colnames(survey.standard)=="survey_time"))]
 
 save(survey.standard, file = F_OUTPUT_RDATA)
 save(ancillary_df, file = F_ANCILLARY_OUTPUT_RDATA)

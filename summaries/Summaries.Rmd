@@ -52,8 +52,15 @@ legacy_names <- colnames(survey.legacy)
 std_names <- colnames(survey.standard)
 
 for (std_name in std_names) {
-  if(!(std_name %in% legacy_names))
+  if(!(std_name %in% legacy_names)) {
     print(std_name)
+    survey.legacy[,std_name] <- NA
+    if (typeof(survey.standard[,std_name])=="character") {
+      survey.legacy[,std_name] <- as.character(survey.legacy[,std_name])
+    } else if (typeof(survey.standar[,std_name]=="double")) {
+      survey.legacy[,std_name] <- as.numeric(survey.legacy[,std_name])
+    }
+  }
 }
 
 for (legacy_name in legacy_names) {
@@ -101,6 +108,11 @@ data.ready.sum <- data.ready %>%
 
 ## Data to Disk as CSV and RData
 ```{r write-disk}
+
+# put new column, survey_time, at the end
+data.ready <- data.ready[,c(which(colnames(data.ready)!="survey_time"),
+                            which(colnames(data.ready)=="survey_time"))]
+
 write.csv(data.ready, file = F_OUTPUT_CSV, row.names = FALSE, quote = T)
 
 survey <- data.ready
