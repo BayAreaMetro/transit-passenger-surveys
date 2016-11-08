@@ -54,6 +54,7 @@ std_names <- colnames(survey.standard)
 for (std_name in std_names) {
   if(!(std_name %in% legacy_names)) {
     print(std_name)
+    # New column in standardized data. Add NA column in legacy so rbind will succeed.
     survey.legacy[,std_name] <- NA
     if (typeof(survey.standard[,std_name])=="character") {
       survey.legacy[,std_name] <- as.character(survey.legacy[,std_name])
