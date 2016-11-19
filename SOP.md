@@ -24,7 +24,7 @@ The SOPs here describe how Bay Area transit passenger surveys will be administer
 
 MTC will procure consulting resources to carry out the Survey Program, and oversee consultant performance to ensure delivery of high quality data and survey summary products. MTC's current contracting environment includes a "bench" of three consultants to spread the work among. All three were selected in a competitive recruitment and all have a lot of experience in transit passenger surveying. The three bench consultants from MTC's most recent procurement are Corey, Canapary, & Galanis of San Francisco, California; ETC Institute of Olathe, Kansas; and, Redhill Group of Irvine, California. 
 
-MTC staff works closely with operator liaisons in all matters related to survey scheduling (see Survey Scheduling, below), contracting, and administration. Work is assigned to contractors via MTC-issued task orders, which include work scope, requested deliverables, budget, anticipated schedule, and other relevant items such as disadvantage business enterprise (DBE) subcontracting goals, etc. A recent example executed task order is available [here](https://mtcdrive.box.com/Example-Task-Order).
+MTC staff works closely with operator liaisons in all matters related to survey scheduling (see Survey Scheduling, below), contracting, and administration. Work is assigned to contractors via MTC-issued task orders, which include work scope, requested deliverables, budget, anticipated schedule, and other relevant items such as disadvantaged business enterprise (DBE) subcontracting goals, etc. A recent example executed task order is available [here](https://mtcdrive.box.com/Example-Task-Order).
 
 ## Data Collection
 
@@ -58,7 +58,7 @@ It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of pas
 	a. Payment method (e.g., cash, Clipper Card, paper transfer, etc.)	
 	b. Payment category (e.g., adult, senior, youth, etc.)
 	
-**6. Houshould and person demographics**
+**6. Househould and person demographics**
 
 	a. Hispanic/Latino status
 	b. Race	
@@ -74,7 +74,7 @@ It is MTC's goal to collect data from somewhere between 5 and 7.5 percent of pas
 	l. Number of household working vehicles	
 	m. Household income
 	
-**7. Custom questions by operators. Examples include:.**
+**7. Custom questions by operators. Examples include:**
 
 	a. Frequency of riding the transit operator
 	b. Means of getting schedule information (paper schedules, internet site, etc.)
@@ -98,7 +98,7 @@ The tentative schedule for surveying operators is available [here](http://data.m
 
 ## Survey Funding
 
-As described in Attachment B, Appendix B-5 of Resolution 3866 related to transit coordination, available [here](https://mtcdrive.box.com/Resolution-3866-Amendment), both MTC and the operators have respective funding responsbilities. As per the Resolution 3866 amendment, MTC will pay 80 percent of the cost to survey service of the top seven operators by ridership, and these operators will pay a 20-percent share. These larger operators are listed as follows:
+As described in Attachment B, Appendix B-5 of Resolution 3866 related to transit coordination, available [here](https://mtcdrive.box.com/Resolution-3866-Amendment), both MTC and the operators have respective funding responsibilities. As per the Resolution 3866 amendment, MTC will pay 80 percent of the cost to survey service of the top seven operators by ridership, and these operators will pay a 20-percent share. These larger operators are listed as follows:
 
 1. Alameda-Contra Costa Transit District (AC Transit)
 2. Bay Area Rapid Transit District (BART)
@@ -108,7 +108,7 @@ As described in Attachment B, Appendix B-5 of Resolution 3866 related to transit
 6. San Mateo County Transit District (SamTrans)
 7. Santa Clara Valley Transportation Authority (VTA)
 
-Federally-funded Bay Area operators not listed above will pay no cost to survey their service. MTC recognizes that operators might sometimes have surveying goals beyond satisfying baseline Title VI requirements, and that they might wish to leverage MTC's procurement to fulfill them. For example, an operator may want to implement a survey of special populations (such as attendees to sporting events) or to better understand which modes passengers use to get to/from certain rail stations, bus stops, or ferry terminals. Such augmented efforts can typically cost the operator less - and be more efficient than a separate procurement - when administered in combination with existing MTC surveying. MTC will make every reasonable effort to accommodate such requests, and to work with operators to develop the necessary inter-agency agreements (or to modify existing agreements) for funding them. Addiitonal scope of this kind will be added at the operator's sole expense.
+Federally-funded Bay Area operators not listed above will pay no cost to survey their service. MTC recognizes that operators might sometimes have surveying goals beyond satisfying baseline Title VI requirements, and that they might wish to leverage MTC's procurement to fulfill them. For example, an operator may want to implement a survey of special populations (such as attendees to sporting events) or to better understand which modes passengers use to get to/from certain rail stations, bus stops, or ferry terminals. Such augmented efforts can typically cost the operator less - and be more efficient than a separate procurement - when administered in combination with existing MTC surveying. MTC will make every reasonable effort to accommodate such requests, and to work with operators to develop the necessary inter-agency agreements (or to modify existing agreements) for funding them. Additional scope of this kind will be added at the operator's sole expense.
 
 ## Data Sharing
 
