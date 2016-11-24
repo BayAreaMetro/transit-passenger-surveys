@@ -12,7 +12,7 @@ CONTENTS
 1. [SOP Goals](#sop-goals)
 2. [Procurement and Contracting](#procurement-and-contracting)
 3. [Data Collection](#data-collection)
-4. [Data Weighting and Expansion](#data-weighting-and-expansion)
+4. [Survey Weighting](#survey-weighting)
 5. [Survey Scheduling](#survey-scheduling)
 6. [Survey Funding](#survey-funding)
 7. [Data Sharing](#data-sharing)
@@ -85,7 +85,7 @@ Due to lower response rates and incompleteness of many surveys, MTC has migrated
 
 It should be noted that, while MTC staff believe that an in-person interview utilizing a tablet computer is currently the best available survey technology, this method is more complicated and expensive to administer. MTC Staff are open to other methods of data collection and they seek the continual refinement of survey methodology.
 
-## Data Weighting and Expansion
+## Survey Weighting
 
 After data collection and editing are complete, the survey records are weighted to observed passenger counts by such variables as surveyed route, time of day, direction of travel, and stop/station boarding and alighting combination. The data are then expanded to match ridership totals. Collectively, the weighted and expanded survey records are intended to represent actual ridership for given service and time of day. In a closed system such as BART - where data exist summarizing all passenger totals by boarding and alighting station pairs - the survey data can be expanded by time of day and by station-to-station combination, a method of data expansion advocated by FTA. For transit modes where the passenger boarding/alighting combination is not known, it may be desirable to collect more ridership information in preparation for weighting the survey records. Collecting boarding-to-alighting data from a small but representative share of passengers within each time period - FTA recommends surveying 20% of riders - is often desirable to better understand the passenger travel movements by route. This is especially useful in understanding passenger movements on longer routes serving many travel markets (e.g., crosstown, to and from downtown, etc.), particularly when combined with route segmentation. For example, the San Francisco Muni K/T line travels from Balboa Park BART Station toward Downtown San Francisco and then south to Sunnydale Station. A survey of the route will find many different trip origin/destination combinations, and one would expect different rider characteristics based on what portion of the route they are riding. Segmenting the route and performing boarding-to-alighting data collection provides the framework for a more nuanced portrait of the rider population traveling within and between each segment. Additionally, this approach ensures that the proper proportion of transit riders taking short trips within each segment is surveyed representatively.  
 
