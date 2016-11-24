@@ -12,7 +12,7 @@ CONTENTS
 1. [SOP Goals](#sop-goals)
 2. [Procurement and Contracting](#procurement-and-contracting)
 3. [Data Collection](#data-collection)
-4. [Data Weighting and Expansion](#data-weighting)
+4. [Data Weighting and Expansion](#data-weighting-and-expansion)
 5. [Survey Scheduling](#survey-scheduling)
 6. [Survey Funding](#survey-funding)
 7. [Data Sharing](#data-sharing)
