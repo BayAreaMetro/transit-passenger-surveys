@@ -57,12 +57,12 @@ CONTENTS
 |                                  | Sonoma County Transit  |	                     |
 |                                  | Santa Rosa CityBus     |	                     |
 |                                  |                        |	                     |
-| 2019                             | ACE                    | Caltrain               |
+| 2019                             | ACE                    |                        |
 |                                  | Napa VINE Transit      | SamTrans               |
 |                                  |                        |	                     |
 | 2020                             | BART                   | BART (continued)       |
+|                                  |                        | Caltrain               |
 |                                  |                        |	                     |
-
 
 
 
