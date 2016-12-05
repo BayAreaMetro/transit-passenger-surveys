@@ -71,15 +71,14 @@ Access Code: 9427202
 4. Lynette Little, Civil Rights Officer, Region IX FTA   
 5. Finalize standard operating procedures  
 6. Title VI data poll   
-7. Next Meeting ideas: 
-
-	a. Results from Title VI data use poll
-	b. Survey results to data presentation (specific interests?)
-	c. Evolution of data collection (consultant?)
-	d. Alternate approaches to weighting data
-	e. Anything you or your agency would like to present?
-	f. Suggested speakers?
-	g. Other ideas?
+7. Next Meeting ideas:  
+	a. Results from Title VI data use poll  
+	b. Survey results to data presentation (specific interests?)  
+	c. Evolution of data collection (consultant?)  
+	d. Alternate approaches to weighting data  
+	e. Anything you or your agency would like to present?  
+	f. Suggested speakers?  
+	g. Other ideas?  
 	h. Meeting planned for April 27, 2017 - 10 AM
 
 
