@@ -72,14 +72,14 @@ Access Code: 9427202
 5. Finalize standard operating procedures  
 6. Title VI data poll   
 7. Next Meeting ideas:  
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a. Results from Title VI data use poll  
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b. Survey results to data presentation (specific interests?)  
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c. Evolution of data collection (consultant?)  
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d. Alternate approaches to weighting data  
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e. Anything you or your agency would like to present?  
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f. Suggested speakers?  
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g. Other ideas?  
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;h. Meeting planned for April 27, 2017 - 10 AM
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a. Results from Title VI data use poll  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b. Survey results to data presentation (specific interests?)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c. Evolution of data collection (consultant?)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d. Alternate approaches to weighting data  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e. Anything you or your agency would like to present?  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f. Suggested speakers?  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g. Other ideas?  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;h. Meeting planned for April 27, 2017 - 10 AM
 
 
 
