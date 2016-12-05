@@ -52,13 +52,13 @@ CONTENTS
 
 ## Meeting Agendas
 
-### Meeting 1 - 2016
+### Meeting 2 - 2016
 
-Wednesday, April 27, 2016  
-10:30 AM  
-Claremont Conference Room, 2nd Floor  
-101 8th Street  
-Oakland, CA 94607  
+Tuesday, December 6, 2016  
+10:00 AM  
+CR-6102 (Bay Area Conference Room), 6th Floor  
+375 Beale Street  
+San Francisco, CA 94105  
 
 Call-in Number: 888-273-3658  
 Access Code: 9427202  
@@ -67,12 +67,19 @@ Access Code: 9427202
 
 1, Introductions  
 2. New website for the group  
-3. Steering member list  
-4. Survey schedule   
-5. SOP  
-6. Data sharing  
-7. Title VI presentation by Ibraheem Fakira of VTA, Title VI discussion   
-8. Next Meeting  
+3. Gabe Murchison, Senior Research Manager, Human Rights Campaign Foundation  
+4. Lynette Little, Civil Rights Officer, Region IX FTA   
+5. Finalize standard operating procedures  
+6. Title VI data poll   
+7. Next Meeting ideas:
+	a. Results from Title VI data use poll
+	b. Survey results to data presentation (specific interests?)
+	c. Evolution of data collection (consultant?)
+	d. Alternate approaches to weighting data
+	e. Anything you or your agency would like to present?
+	f. Suggested speakers?
+	g. Other ideas?
+	h. Meeting planned for April 27, 2017 - 10 AM
 
 
 
