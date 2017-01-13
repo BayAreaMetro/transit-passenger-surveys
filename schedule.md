@@ -47,7 +47,7 @@ CONTENTS
 |                                  | VTA (continued)        | Dumbarton Express      |
 |                                  | FAST                   | Union City Transit     |
 |                                  | SolTrans               | WestCAT                |
-| 				   | Rio Vista Delta Breeze |                        |
+| 				   | Rio Vista Delta Breeze | County Connection      |
 | 				   | Vacaville City Coach   |                        |
 |                                  | Marin Transit          |	                     |
 |                                  |                        |	                     |
