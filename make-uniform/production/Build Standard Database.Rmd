@@ -58,7 +58,7 @@ F_ANCILLARY_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/
 ```{r prepare-dictionary}
 dictionary.all <- read.csv('Dictionary for Standard Database.csv', header = TRUE)
 
-# Prepare seperate dictionaries for categorical and non-categorical variables
+# Prepare separate dictionaries for categorical and non-categorical variables
 dictionary.non <- dictionary.all %>%
   filter(Generic_Response == 'NONCATEGORICAL') %>%
   select(operator, Survey_Variable, Generic_Variable)
