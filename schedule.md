@@ -53,12 +53,14 @@ CONTENTS
 |                                  |                        |	                     |
 | 2018                             | Golden Gate Ferries    | Wheels (LAVTA)         |
 |                                  | Golden Gate Transit    | WETA Ferries           |
-|                                  | Petaluma Transit       | Tri Delta Transit      |
+|                                  | Petaluma Transit       |                        |
 |                                  | Sonoma County Transit  |	                     |
 |                                  | Santa Rosa CityBus     |	                     |
+|                                  | SMART                  |                        |			
 |                                  |                        |	                     |
 | 2019                             | ACE                    | SamTrans               |
 |                                  | Napa VINE Transit      |                        |
+|                                  | Tri Delta Transit      |                        |
 |                                  |                        |	                     |
 | 2020                             | BART                   | BART (continued)       |
 |                                  |                        | Caltrain               |
