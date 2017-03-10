@@ -38,10 +38,11 @@ CONTENTS
 | Alvin Lucas                            | Santa Clara Valley Transportation Authority            |
 | George Naylor                          | Santa Clara Valley Transportation Authority            |
 | Rachel Ede                             | Santa Rosa CityBus                                     |
-| Philip Kamhi                           | Solano Transportation Authority                        |
+| Brandon Thomson                        | Solano Transportation Authority                        |
 | Michael Abegg                          | SolTrans (Solano County Transit)                       |
 | Steve Schmitz                          | Sonoma County Transit                                  |
 | Steve Ponte                            | Tri-Delta (Eastern Contra Costa Transit Authority)     |
+| Joe Chappelle                          | Tri-Delta (Eastern Contra Costa Transit Authority)     |
 | Steve Adams                            | Union City Transit                                     |
 | Brian McLean                           | Vacaville City Coach                                   |
 | Kevin Connolly                         | Water Emergency Transportation Authority               |
