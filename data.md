@@ -19,5 +19,5 @@ CONTENTS
 
 ## Available Reports
 
-You can find a repository of downloadable operator-specific reports with detailed methodology and findings [here](https://mtcdrive.box.com/onboard-survey-reports)
+You can find a repository of downloadable operator-specific reports with detailed methodology and findings [here](https://mtcdrive.box.com/v/onboard-survey-reports)
 
