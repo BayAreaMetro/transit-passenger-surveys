@@ -41,7 +41,7 @@ CONTENTS
 | Brandon Thomson                        | Solano Transportation Authority                        |
 | Michael Abegg                          | SolTrans (Solano County Transit)                       |
 | Steve Schmitz                          | Sonoma County Transit                                  |
-| Joanne Parker                          | Sonoma-Marin Area Rail Transit District                | 
+| Elizabeth (Libby) Dippel               | Sonoma-Marin Area Rail Transit District                | 
 | Steve Ponte                            | Tri-Delta (Eastern Contra Costa Transit Authority)     |
 | Joe Chappelle                          | Tri-Delta (Eastern Contra Costa Transit Authority)     |
 | Steve Adams                            | Union City Transit                                     |
