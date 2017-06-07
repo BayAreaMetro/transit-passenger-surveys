@@ -47,13 +47,13 @@ CONTENTS
 |                                  | VTA (continued)        | Dumbarton Express      |
 |                                  | FAST                   | Union City Transit     |
 |                                  | SolTrans               | WestCAT                |
-| 				   | Rio Vista Delta Breeze | County Connection      |
+| 				   | Rio Vista Delta Breeze |                        |
 | 				   | Vacaville City Coach   |                        |
 |                                  | Marin Transit          |	                     |
 |                                  |                        |	                     |
 | 2018                             | Golden Gate Ferries    | Wheels (LAVTA)         |
 |                                  | Golden Gate Transit    | WETA Ferries           |
-|                                  | Petaluma Transit       |                        |
+|                                  | Petaluma Transit       | County Connection      |
 |                                  | Sonoma County Transit  |	                     |
 |                                  | Santa Rosa CityBus     |	                     |
 |                                  | SMART                  |                        |			
