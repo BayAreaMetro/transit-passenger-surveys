@@ -47,7 +47,9 @@ F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine
 
 F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv"
 
-F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI_Data_08102016_09062016_revised_working NO POUND OR SINGLE QUOTE.csv"
+F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv"
+
+F_VTA_SURVEY = "M:/Data/OnBoard/Data and Reports/VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv"
 
 F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
 F_ANCILLARY_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.RData"
@@ -136,8 +138,8 @@ remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, dictionary.CAL, variabl
 
 ### Muni
 ```{r operator-muni}
-survey.MUN.key  <- 'SF Muni Early Tranche'
-survey.MUN.year <- 2016
+survey.MUN.key  <- 'SF Muni'
+survey.MUN.year <- 2017
 
 # Set survey tech by route if necessary in chunk `combine`
 survey.MUN.tech <- 'local bus'
@@ -150,19 +152,59 @@ variables.MUN <- as.character(factor(unique(unlist(dictionary.MUN$Survey_Variabl
 
 # Read data and select variables of interest
 survey.MUN <- read.csv(F_MUNI_SURVEY, header = TRUE)
+for (var in variables.MUN) {
+  if (var %in% colnames(survey.MUN)==FALSE) {
+    print(paste(var, var %in% colnames(survey.MUN)))
+  }
+}
 survey.MUN.select <- survey.MUN[ ,variables.MUN]
 
 # Reshape the data
-survey.MUN.melt <- melt(survey.MUN.select, id = 'ID')
-survey.MUN.melt <- select(survey.MUN.melt, ID, Survey_Variable = variable, Survey_Response = value)
+survey.MUN.melt <- melt(survey.MUN.select, id = 'id')
+survey.MUN.melt <- select(survey.MUN.melt, id, Survey_Variable = variable, Survey_Response = value)
 survey.MUN.melt <- mutate(survey.MUN.melt, operator = survey.MUN.key)
 survey.MUN.melt <- mutate(survey.MUN.melt, survey_year = survey.MUN.year)
 survey.MUN.melt <- mutate(survey.MUN.melt, survey_tech = survey.MUN.tech)
+colnames(survey.MUN.melt)[1] <- "ID"
 
 # Clean up
 remove(survey.MUN.key, survey.MUN.year, survey.MUN.tech, dictionary.MUN, variables.MUN, survey.MUN, survey.MUN.select)
 ```
 
+### VTA
+```{r operator-VTA}
+survey.VTA.key  <- 'VTA'
+survey.VTA.year <- 2017
+
+# Set survey tech by route if necessary in chunk `combine`
+survey.VTA.tech <- 'local bus'
+
+# Prepare operator-specific dictionary
+dictionary.VTA <- dictionary.all %>%
+  filter(operator == survey.VTA.key)
+
+variables.VTA <- as.character(factor(unique(unlist(dictionary.VTA$Survey_Variable, use.names = TRUE))))
+
+# Read data and select variables of interest
+survey.VTA <- read.csv(F_VTA_SURVEY, header = TRUE)
+for (var in variables.VTA) {
+  if (var %in% colnames(survey.VTA)==FALSE) {
+    print(paste(var, var %in% colnames(survey.VTA)))
+  }
+}
+survey.VTA.select <- survey.VTA[ ,variables.VTA]
+
+# Reshape the data
+survey.VTA.melt <- melt(survey.VTA.select, id = 'id')
+survey.VTA.melt <- select(survey.VTA.melt, id, Survey_Variable = variable, Survey_Response = value)
+survey.VTA.melt <- mutate(survey.VTA.melt, operator = survey.VTA.key)
+survey.VTA.melt <- mutate(survey.VTA.melt, survey_year = survey.VTA.year)
+survey.VTA.melt <- mutate(survey.VTA.melt, survey_tech = survey.VTA.tech)
+colnames(survey.VTA.melt)[1] <- "ID"
+
+# Clean up
+remove(survey.VTA.key, survey.VTA.year, survey.VTA.tech, dictionary.VTA, variables.VTA, survey.VTA, survey.VTA.select)
+```
 
 
 ### Napa Vine
@@ -196,12 +238,17 @@ remove(survey.NAP.key, survey.NAP.year, survey.NAP.tech, dictionary.NAP, variabl
 
 ## Combine across operators and flatten
 ```{r combine}
-survey.combine <- rbind(survey.BAR.melt, survey.CAL.melt, survey.MUN.melt, survey.NAP.melt)
+survey.combine <- rbind(survey.BAR.melt, survey.CAL.melt, survey.MUN.melt, survey.VTA.melt, survey.NAP.melt)
 
 # Join the dictionary and prepare the categorical variables
 survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
 survey.cat <- left_join(survey.cat, dictionary.cat, by = c("operator", "Survey_Variable", "Survey_Response"))
 survey.cat <- filter(survey.cat, !is.na(Generic_Variable))
+
+# check for multiple instances of (ID,operator,survey_year,survey_tech,Generic_Variable) -- it'll cause errors in the dcast
+ref_count       <- survey.cat %>% group_by(ID,operator,survey_year,survey_tech,Generic_Variable) %>% summarise( count=n() )
+mult_ref_count  <- ref_count[which(ref_count$count>1),]
+stopifnot(nrow(mult_ref_count)==0)
 
 # Join the dictionary and prepare the non-categorical variables
 survey.non <- left_join(survey.combine, dictionary.non, by = c("operator", "Survey_Variable"))
@@ -226,6 +273,7 @@ survey.to_flat <- survey.to_flat %>%
   select(-ID, -operator, -survey_year, -survey_tech)
 
 # NOTE: if below cast warns about missing aggregation function, likely because (a) duplicate unique ID or (b) more than three variables.
+# This warning should be considered fatal.
 
 survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
 
