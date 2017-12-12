@@ -51,8 +51,10 @@ F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI_DRAFTFINAL_20
 
 F_VTA_SURVEY = "M:/Data/OnBoard/Data and Reports/VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv"
 
-F_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
+F_OUTPUT_RDATA           = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
+F_OUTPUT_CSV             = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.csv"
 F_ANCILLARY_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.RData"
+F_ANCILLARY_OUTPUT_CSV   = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.csv"
 ```
 
 
@@ -1214,6 +1216,10 @@ survey.standard <- survey.standard[,c(which(colnames(survey.standard)!="survey_t
 
 save(survey.standard, file = F_OUTPUT_RDATA)
 save(ancillary_df, file = F_ANCILLARY_OUTPUT_RDATA)
+
+write.csv(survey.standard, file = F_OUTPUT_CSV,  row.names = FALSE)
+write.csv(ancillary_df,    file = F_ANCILLARY_OUTPUT_CSV,  row.names = FALSE)
+
 ```
 
 # DEBUG
