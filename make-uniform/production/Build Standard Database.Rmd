@@ -298,7 +298,23 @@ survey.flat <- survey.flat %>%
   mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("KT-Ing", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
   mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("L-Tar", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
   mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("M-Oce", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("N-Jud", ignore_case = TRUE)) > 0L, "light rail", survey_tech))
+  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("N-Jud", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("101", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("102", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("103", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("104", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("120", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("121", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("122", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("140", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("168", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("180", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("181", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("182", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("185", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("900", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("901", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
+  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("902", ignore_case = TRUE)) > 0L, "light rail", survey_tech))
 
 remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat, survey.adds)
 remove(survey.BAR.melt, survey.CAL.melt, survey.MUN.melt, survey.NAP.melt)
