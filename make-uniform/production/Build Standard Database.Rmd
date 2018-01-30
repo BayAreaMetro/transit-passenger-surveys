@@ -55,6 +55,8 @@ F_OUTPUT_RDATA           = "M:/Data/OnBoard/Data and Reports/_data Standardized/
 F_OUTPUT_CSV             = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.csv"
 F_ANCILLARY_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.RData"
 F_ANCILLARY_OUTPUT_CSV   = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.csv"
+F_OUTPUT_DECOM_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/decomposition/survey_decomposition.RData"
+F_OUTPUT_DECOM_CSV = "M:/Data/OnBoard/Data and Reports/_data Standardized/decomposition/survey_decomposition.csv"
 ```
 
 
@@ -1170,6 +1172,68 @@ ancillary_df <- survey.standard %>%
          at_school_prior_to_orig_purp, 
          at_work_after_dest_purp, 
          at_work_prior_to_orig_purp)
+
+# Create an ancillary data set for decomposition analysis
+survey.decomposition <- survey.standard %>%
+  mutate(weight = ifelse(is.na(weight), 0.0, weight)) %>%
+  mutate(trip_weight = ifelse(boardings > 0, weight / boardings, weight))%>%
+  select(Unique_ID,
+         access_mode,
+         dest_purp,
+         direction,
+         egress_mode,
+         first_route_after_survey_alight,
+         first_route_before_survey_board,
+         number_transfers_alight_dest,
+         number_transfers_orig_board,
+         onoff_enter_station,
+         onoff_exit_station,
+         orig_purp,
+         route,
+         second_route_after_survey_alight,
+         second_route_before_survey_board,
+         survey_alight_lat,
+         survey_alight_lon,
+         survey_board_lat,
+         survey_board_lon,
+         survey_type,
+         third_route_after_survey_alight,
+         third_route_before_survey_board,
+         weekpart,
+         weight,
+         ID,
+         operator,
+         survey_year,
+         survey_tech,
+         first_before_operator,
+         second_before_operator,
+         third_before_operator,
+         first_after_operator,
+         second_after_operator,
+         third_after_operator,
+         first_before_technology,
+         second_before_technology,
+         third_before_technology,
+         first_after_technology,
+         second_after_technology,
+         third_after_technology,
+         transfer_from,
+         transfer_to,
+         first_board_tech,
+         last_alight_tech,
+         path_access,
+         path_egress,
+         path_line_haul,
+         path_label,
+         boardings,
+         day_of_the_week,
+         field_start,
+         field_end,
+         day_part,
+         trip_weight)
+
+save(survey.decomposition, file = F_OUTPUT_DECOM_RDATA)
+write.csv(survey.decomposition, file = F_OUTPUT_DECOM_CSV,  row.names = FALSE)
 
 # Drop variables we don't want to carry forward to standard dataset
 survey.standard <- survey.standard %>%
