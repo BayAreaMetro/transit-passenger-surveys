@@ -1,0 +1,1707 @@
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* CreateUsableData.sas                                                    
+*                                                                                            
+* Purpose: Process and combine the raw consultant-delivered data set into a usable dataset.
+*          See BuildDatabases.sas for script to create SAS databases.
+*
+* Location: M:\Data\OnBoard\Data and Reports\
+*
+* Author(s): dto (2013 05 XX)
+*
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+
+* Establish the library;
+libname OnBoard 'M:\Data\OnBoard\Data and Reports\SAS data';
+run;
+
+* Set the file locations;
+%let weekday_gis_geocode_file = 'M:\Data\OnBoard\Data and Reports\AC Transit\Geocode\CATI\weekday_gis_geocode.csv';
+%let weekend_gis_geocode_file = 'M:\Data\OnBoard\Data and Reports\AC Transit\Geocode\CATI\weekend_gis_geocode.csv';
+%let output_directory         = M:\Data\OnBoard\Data and Reports\AC Transit\_working;
+run;
+
+* TODO: add the geo-coded stop sequence files when they're ready
+
+
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* Step 1: Compute tour purpose and trip purpose per Travel Model One designations;
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+
+* Weekday;
+
+* Trip purpose;
+data catiA; set OnBoard.RawAcTransitWeekdayCati;
+   orig_purp = "                         ";
+   dest_purp = "                         ";
+
+   if q1 = 1  then orig_purp = "work";
+   if q1 = 2  then orig_purp = "work";
+   if q1 = 3  then orig_purp = "home";
+   if q1 = 4  then orig_purp = "social recreation";
+   if q1 = 5  then orig_purp = "shopping";
+   if q1 = 6  then orig_purp = "high school";
+   if q1 = 6  and q405>97 then orig_purp = "grade school";
+   if q1 = 7  then orig_purp = "university";
+   if q1 = 8  then orig_purp = "other maintenance";
+   if q1 = 9  then orig_purp = "other maintenance";
+   if q1 = 10 then orig_purp = "eat out";
+   if q1 = 11 then orig_purp = "escorting";
+   if q1 = 12 then orig_purp = "other maintenance";
+
+   if q2 = 1  then dest_purp = "work";
+   if q2 = 2  then dest_purp = "work";
+   if q2 = 3  then dest_purp = "home";
+   if q2 = 4  then dest_purp = "social recreation";
+   if q2 = 5  then dest_purp = "shopping";
+   if q2 = 6  then dest_purp = "high school";
+   if q2 = 6  and q405>97 then dest_purp = "grade school";
+   if q2 = 7  then dest_purp = "university";
+   if q2 = 8  then dest_purp = "other maintenance";
+   if q2 = 9  then dest_purp = "other maintenance";
+   if q2 = 10 then dest_purp = "eat out";
+   if q2 = 11 then dest_purp = "escorting";
+   if q2 = 12 then dest_purp = "other maintenance";
+
+run;
+
+proc freq data = catiA; tables orig_purp dest_purp;
+run;
+
+* Tour purpose;
+data catiA; set catiA;
+   tour_purp = "                         ";
+
+* Start with the fairly straightforward purposes;
+data catiB; set catiA;
+
+  * workers;
+  if tour_purp = "                         " and orig_purp = "home" and dest_purp = "work" then tour_purp = "work";
+  if tour_purp = "                         " and orig_purp = "work" and dest_purp = "home" then tour_purp = "work";
+
+  * students;
+  if tour_purp = "                         " and orig_purp = "grade school" or dest_purp = "grade school" then tour_purp = "grade school";
+  if tour_purp = "                         " and orig_purp = "high school" or dest_purp = "high school" then tour_purp = "high school";
+
+  * non-working university students;
+  if tour_purp = "                         " and q382 = 2 and orig_purp = "university" or dest_purp = "university" then tour_purp = "university";
+
+  * non-workers, home-based travel (set home to home as other discretionary), could be part of a school tour, but we don't know;
+  if tour_purp = "                         " and q382 = 2 and orig_purp = "home" and dest_purp^= "home" then tour_purp = dest_purp;
+  if tour_purp = "                         " and q382 = 2 and orig_purp = "home" and dest_purp = "home" then tour_purp = "other discretionary";
+  if tour_purp = "                         " and q382 = 2 and orig_purp^= "home" and dest_purp = "home" then tour_purp = orig_purp;
+  if tour_purp = "                         " and q382 = 2 and orig_purp^= "home" and dest_purp = orig_purp then tour_purp = orig_purp;
+
+  * non-workers, non-students, non-home-based travel, assign the orig_purp the tour_purp, except escorting;
+  if tour_purp = "                         " and q382 = 2 and q385 = 2 and orig_purp^= "home" and dest_purp^= "home" and (orig_purp = "escorting" or dest_purp = "escorting") then tour_purp = "escorting";
+  if tour_purp = "                         " and q382 = 2 and q385 = 2 and orig_purp^= "home" and dest_purp^= "home" and orig_purp^= "escorting" and dest_purp^= "escorting" then tour_purp = orig_purp;
+
+run;
+
+* Use the fairly straightforward information from the work questions;
+data catiC; set catiB; 
+
+  * if work before then home, assume work tour;
+  if tour_purp = "                         " and q390 = 1 and dest_purp = "home"  then tour_purp = "work";
+
+  * if work after, and home before, assume work tour;
+  if tour_purp = "                         " and q390 = 2 and orig_purp = "home" then tour_purp = "work";
+
+  * if no work before or after, but work is a leg, assume work tour;
+  if tour_purp = "                         " and q390 = 3 and (orig_purp = "work" or dest_purp = "work") then tour_purp = "work";
+  
+  * if work before, then work, then non-work, assume work tour;
+  if tour_purp = "                         " and q390 = 1 and orig_purp = "work" then tour_purp = "work";
+
+  * if work before, then non-work to non-work, assume work tour;
+  if tour_purp = "                         " and q390 = 1 and orig_purp ^= "home" then tour_purp = "work"; 
+
+
+  * If work before leaving home, work is irrelevant;
+  if tour_purp = "                         " and q390 = 1 and orig_purp = "home" then tour_purp = dest_purp;
+
+  * If work after arriving home, work is irrelevant;
+  if tour_purp = "                         " and q390 = 2 and dest_purp = "home" then tour_purp = orig_purp;
+
+  * If no work that day, work is irrelevant;
+  if tour_purp = "                         " and q390 = 3 and orig_purp = "home" then tour_purp = dest_purp;
+  if tour_purp = "                         " and q390 = 3 and dest_purp = "home" then tour_purp = orig_purp;
+
+  * If no work and university is present at all, then university;
+  if tour_purp = "                         " and q390 = 3 and orig_purp = "university" or dest_purp = "university" then tour_purp = "university";
+
+  * If no work before or after and same orig and dest, orig is best guess;
+  if tour_purp = "                         " and q390 = 3 and orig_purp = dest_purp then tour_purp = orig_purp;
+
+  * Use the return to work for at work tours, assuming anyone going back to work but not stopping at home is making;
+  if tour_purp = "                         " and q390 = 1 and orig_purp^= "home" and dest_purp= "work"  then tour_purp = "at work";
+  if tour_purp = "                         " and q390 = 2 and orig_purp = "work" and dest_purp^= "home" then tour_purp = "at work";
+  if tour_purp = "                         " and q391 = 1 and orig_purp = "work" and dest_purp^= "home" then tour_purp = "at work";
+  if tour_purp = "                         " and q392 = 1 and orig_purp^= "home" and dest_purp = "work" then tour_purp = "at work";
+
+  * If back to work and origin is home, then work tour;
+  if tour_purp = "                         " and q391 = 1 and orig_purp = "home" then tour_purp = "work";
+
+  * If work before and destination is home, then work tour;
+  if tour_purp = "                         " and q392 = 1 and dest_purp = "home" then tour_purp = "work";
+
+  * If no back to work, but work is a party of the trip, then work;
+  if tour_purp = "                         " and q391 = 2 and orig_purp = "work" or dest_purp = "work" then tour_purp = "work";
+  if tour_purp = "                         " and q392 = 2 and orig_purp = "work" or dest_purp = "work"  then tour_purp = "work";
+
+  * If no back to work, but university if part of the trip, then university;
+  if tour_purp = "                         " and q391 = 2 and orig_purp = "university" or dest_purp = "university" then tour_purp = "university";
+  if tour_purp = "                         " and q392 = 2 and orig_purp = "university" or dest_purp = "university" then tour_purp = "university";
+
+run;
+
+proc freq data = catiC; tables tour_purp orig_purp*dest_purp;
+run;
+
+
+* Move to the ones that require more faith or have odd 390/391/392 combinations;
+data catiD; set catiC;
+   
+   * If you're still left, assume working before or after trip (which does not have a home or work end) puts you on a work tour;
+   if tour_purp = "                         " and q390 = 1 then tour_purp = "work";
+   if tour_purp = "                         " and q390 = 2 then tour_purp = "work"; 
+
+   * If you're still left, and no working before or after, assume orig_purp;
+   if tour_purp = "                         " and q390 = 3 then tour_purp = orig_purp;
+
+   * If you're still left, and went back to work before a home-based trip, then work is irrelevant;
+   if tour_purp = "                         " and q391 = 1 and dest_purp = "home" then tour_purp = orig_purp;
+   if tour_purp = "                         " and q392 = 1 and orig_purp = "home" then tour_purp = dest_purp;
+
+   * If you're still left, and one end is home, then other end is purpose;
+   if tour_purp = "                         " and orig_purp = "home" then tour_purp = dest_purp;
+   if tour_purp = "                         " and dest_purp = "home" then tour_purp = orig_purp;
+
+   * If you're still left, and non-home, then orig_purp;
+   if tour_purp = "                         " then tour_purp = orig_purp;
+
+   * Change home to other discretionary;
+   if tour_purp = "home" then tour_purp = "other discretionary";
+
+run; 
+
+* Check frequencies;
+proc freq data = catiD; tables tour_purp;
+run;
+
+* Simple data set to do checks with;
+data catiE; set catiD; keep id q382 q385 q390 q391 q392 orig_purp dest_purp tour_purp;
+run;
+
+data OnBoard.ac_wday_cati_purpose; set catiD;
+   label orig_purp = "Travel Model One Activity at origin"
+         dest_purp = "Travel Model One Activity at destination"
+         tour_purp = "Travel Model One Tour purpose (approximate)";
+
+run;
+
+data catiF; set OnBoard.ac_wday_cati_purp; keep id q382 q390 q391 q392 orig_purp dest_purp tour_purp;
+run;
+
+* Test One: Home to non-work, reponse to return work question?;
+data catiG; set catiF;
+  if orig_purp ^= 'home' then delete;
+  if dest_purp = 'work' then delete;
+  if q382 = 2 then delete;
+
+proc freq data = catiG; tables q390 q391 q392 dest_purp tour_purp*q390;
+run;
+
+* Test Two: Non-work to home, response to prior work question?;
+data catiG; set catiF;
+  if orig_purp = 'work' then delete;
+  if dest_purp ^= 'home' then delete;
+  if q382 = 2 then delete;
+
+proc freq data = catiG; tables q390 q391 q392 orig_purp tour_purp*q390;
+run;
+
+* Test Three:  Non-work to non-work, response to before and after?;
+data catiG; set catiF;
+  if orig_purp = 'home' then delete;
+  if orig_purp = 'work' then delete; 
+  if dest_purp = 'home' then delete;
+  if dest_purp = 'work' then delete;
+  if q382 = 2 then delete;
+
+proc freq data = catiG; tables q390 q391 q392 orig_purp tour_purp*q390;
+run;
+
+* Test Four:  When are q391 and q392 asked;
+data catiG; set catiF;
+   if q391 = . and q392 = . then delete;
+
+proc freq data = catiG; tables q390 q391 q392 orig_purp dest_purp tour_purp*q391 tour_purp*q392;
+run;
+
+
+
+* Weekend (do the same);
+
+
+* Trip purpose;
+data catiA; set OnBoard.RawAcTransitWeekendCati;
+   orig_purp = "                         ";
+   dest_purp = "                         ";
+
+   if q1 = 1  then orig_purp = "work";
+   if q1 = 2  then orig_purp = "work";
+   if q1 = 3  then orig_purp = "home";
+   if q1 = 4  then orig_purp = "social recreation";
+   if q1 = 5  then orig_purp = "shopping";
+   if q1 = 6  then orig_purp = "high school";
+   if q1 = 6  and q405>97 then orig_purp = "grade school";
+   if q1 = 7  then orig_purp = "university";
+   if q1 = 8  then orig_purp = "other maintenance";
+   if q1 = 9  then orig_purp = "other maintenance";
+   if q1 = 10 then orig_purp = "eat out";
+   if q1 = 11 then orig_purp = "escorting";
+   if q1 = 12 then orig_purp = "other maintenance";
+
+   if q2 = 1  then dest_purp = "work";
+   if q2 = 2  then dest_purp = "work";
+   if q2 = 3  then dest_purp = "home";
+   if q2 = 4  then dest_purp = "social recreation";
+   if q2 = 5  then dest_purp = "shopping";
+   if q2 = 6  then dest_purp = "high school";
+   if q2 = 6  and q405>97 then dest_purp = "grade school";
+   if q2 = 7  then dest_purp = "university";
+   if q2 = 8  then dest_purp = "other maintenance";
+   if q2 = 9  then dest_purp = "other maintenance";
+   if q2 = 10 then dest_purp = "eat out";
+   if q2 = 11 then dest_purp = "escorting";
+   if q2 = 12 then dest_purp = "other maintenance";
+
+run;
+
+proc freq data = catiA; tables orig_purp dest_purp;
+run;
+
+* Tour purpose;
+data catiA; set catiA;
+   tour_purp = "                         ";
+
+* Start with the fairly straightforward purposes;
+data catiB; set catiA;
+
+  * workers;
+  if tour_purp = "                         " and orig_purp = "home" and dest_purp = "work" then tour_purp = "work";
+  if tour_purp = "                         " and orig_purp = "work" and dest_purp = "home" then tour_purp = "work";
+
+  * students;
+  if tour_purp = "                         " and orig_purp = "grade school" or dest_purp = "grade school" then tour_purp = "grade school";
+  if tour_purp = "                         " and orig_purp = "high school" or dest_purp = "high school" then tour_purp = "high school";
+
+  * non-working university students;
+  if tour_purp = "                         " and q382 = 2 and orig_purp = "university" or dest_purp = "university" then tour_purp = "university";
+
+  * non-workers, home-based travel (set home to home as other discretionary), could be part of a school tour, but we don't know;
+  if tour_purp = "                         " and q382 = 2 and orig_purp = "home" and dest_purp^= "home" then tour_purp = dest_purp;
+  if tour_purp = "                         " and q382 = 2 and orig_purp = "home" and dest_purp = "home" then tour_purp = "other discretionary";
+  if tour_purp = "                         " and q382 = 2 and orig_purp^= "home" and dest_purp = "home" then tour_purp = orig_purp;
+  if tour_purp = "                         " and q382 = 2 and orig_purp^= "home" and dest_purp = orig_purp then tour_purp = orig_purp;
+
+  * non-workers, non-students, non-home-based travel, assign the orig_purp the tour_purp, except escorting;
+  if tour_purp = "                         " and q382 = 2 and q385 = 2 and orig_purp^= "home" and dest_purp^= "home" and (orig_purp = "escorting" or dest_purp = "escorting") then tour_purp = "escorting";
+  if tour_purp = "                         " and q382 = 2 and q385 = 2 and orig_purp^= "home" and dest_purp^= "home" and orig_purp^= "escorting" and dest_purp^= "escorting" then tour_purp = orig_purp;
+
+run;
+
+* Use the fairly straightforward information from the work questions;
+data catiC; set catiB; 
+
+  * if work before then home, assume work tour;
+  if tour_purp = "                         " and q390 = 1 and dest_purp = "home"  then tour_purp = "work";
+
+  * if work after, and home before, assume work tour;
+  if tour_purp = "                         " and q390 = 2 and orig_purp = "home" then tour_purp = "work";
+
+  * if no work before or after, but work is a leg, assume work tour;
+  if tour_purp = "                         " and q390 = 3 and (orig_purp = "work" or dest_purp = "work") then tour_purp = "work";
+  
+  * if work before, then work, then non-work, assume work tour;
+  if tour_purp = "                         " and q390 = 1 and orig_purp = "work" then tour_purp = "work";
+
+  * if work before, then non-work to non-work, assume work tour;
+  if tour_purp = "                         " and q390 = 1 and orig_purp ^= "home" then tour_purp = "work"; 
+
+
+  * If work before leaving home, work is irrelevant;
+  if tour_purp = "                         " and q390 = 1 and orig_purp = "home" then tour_purp = dest_purp;
+
+  * If work after arriving home, work is irrelevant;
+  if tour_purp = "                         " and q390 = 2 and dest_purp = "home" then tour_purp = orig_purp;
+
+  * If no work that day, work is irrelevant;
+  if tour_purp = "                         " and q390 = 3 and orig_purp = "home" then tour_purp = dest_purp;
+  if tour_purp = "                         " and q390 = 3 and dest_purp = "home" then tour_purp = orig_purp;
+
+  * If no work and university is present at all, then university;
+  if tour_purp = "                         " and q390 = 3 and orig_purp = "university" or dest_purp = "university" then tour_purp = "university";
+
+  * If no work before or after and same orig and dest, orig is best guess;
+  if tour_purp = "                         " and q390 = 3 and orig_purp = dest_purp then tour_purp = orig_purp;
+
+  * Use the return to work for at work tours, assuming anyone going back to work but not stopping at home is making;
+  if tour_purp = "                         " and q390 = 1 and orig_purp^= "home" and dest_purp= "work"  then tour_purp = "at work";
+  if tour_purp = "                         " and q390 = 2 and orig_purp = "work" and dest_purp^= "home" then tour_purp = "at work";
+  if tour_purp = "                         " and q391 = 1 and orig_purp = "work" and dest_purp^= "home" then tour_purp = "at work";
+  if tour_purp = "                         " and q392 = 1 and orig_purp^= "home" and dest_purp = "work" then tour_purp = "at work";
+
+  * If back to work and origin is home, then work tour;
+  if tour_purp = "                         " and q391 = 1 and orig_purp = "home" then tour_purp = "work";
+
+  * If work before and destination is home, then work tour;
+  if tour_purp = "                         " and q392 = 1 and dest_purp = "home" then tour_purp = "work";
+
+  * If no back to work, but work is a party of the trip, then work;
+  if tour_purp = "                         " and q391 = 2 and orig_purp = "work" or dest_purp = "work" then tour_purp = "work";
+  if tour_purp = "                         " and q392 = 2 and orig_purp = "work" or dest_purp = "work"  then tour_purp = "work";
+
+  * If no back to work, but university if part of the trip, then university;
+  if tour_purp = "                         " and q391 = 2 and orig_purp = "university" or dest_purp = "university" then tour_purp = "university";
+  if tour_purp = "                         " and q392 = 2 and orig_purp = "university" or dest_purp = "university" then tour_purp = "university";
+
+run;
+
+proc freq data = catiC; tables tour_purp orig_purp*dest_purp;
+run;
+
+
+* Move to the ones that require more faith or have odd 390/391/392 combinations;
+data catiD; set catiC;
+   
+   * If you're still left, assume working before or after trip (which does not have a home or work end) puts you on a work tour;
+   if tour_purp = "                         " and q390 = 1 then tour_purp = "work";
+   if tour_purp = "                         " and q390 = 2 then tour_purp = "work"; 
+
+   * If you're still left, and no working before or after, assume orig_purp;
+   if tour_purp = "                         " and q390 = 3 then tour_purp = orig_purp;
+
+   * If you're still left, and went back to work before a home-based trip, then work is irrelevant;
+   if tour_purp = "                         " and q391 = 1 and dest_purp = "home" then tour_purp = orig_purp;
+   if tour_purp = "                         " and q392 = 1 and orig_purp = "home" then tour_purp = dest_purp;
+
+   * If you're still left, and one end is home, then other end is purpose;
+   if tour_purp = "                         " and orig_purp = "home" then tour_purp = dest_purp;
+   if tour_purp = "                         " and dest_purp = "home" then tour_purp = orig_purp;
+
+   * If you're still left, and non-home, then orig_purp;
+   if tour_purp = "                         " then tour_purp = orig_purp;
+
+   * Change home to other discretionary;
+   if tour_purp = "home" then tour_purp = "other discretionary";
+
+run; 
+
+* Check frequencies;
+proc freq data = catiD; tables tour_purp;
+run;
+
+* Simple data set to do checks with;
+data catiE; set catiD; keep id q382 q385 q390 q391 q392 orig_purp dest_purp tour_purp;
+run;
+
+data OnBoard.ac_wend_cati_purp; set catiD;
+   label orig_purp = "Travel Model One Activity at origin"
+         dest_purp = "Travel Model One Activity at destination"
+         tour_purp = "Travel Model One Tour purpose (approximate)";
+
+run;
+
+
+
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* Step 2: Append TAZ geo-codes to home, work, school, origin, and destination;
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+
+* Read in CATI geo-codes (delivered by GIS staff);
+* Weekday;
+data input; infile "&weekday_gis_geocode_file." delimiter = ',' missover scanover dsd
+            lrecl = 32767 firstobs = 2;
+
+			format id best12.;
+			format q best12.;
+			format qcode $20.;
+			format taz1454 best12.;
+			format out_of_region best12.;
+
+			informat id best32.;
+			informat q best32.;
+			informat qcode $20.;
+			informat taz1454 best32.;
+			informat out_of_region best32.;
+
+			input    id  
+			         q  
+			         qcode $
+                     taz1454
+			         out_of_region;
+
+run;
+
+data OnBoard.weekdayGisGeocoded; set input;
+run;
+
+* Weekend;
+data input; infile "&weekend_gis_geocode_file." delimiter = ',' missover scanover dsd
+            lrecl = 32767 firstobs = 2;
+
+			format id best12.;
+			format q best12.;
+			format qcode $20.;
+			format taz1454 best12.;
+			format out_of_region best12.;
+
+			informat id best32.;
+			informat q best32.;
+			informat qcode $20.;
+			informat taz1454 best32.;
+			informat out_of_region best32.;
+
+			input    id  
+			         q  
+			         qcode $
+                     taz1454
+			         out_of_region;
+
+run;
+
+data OnBoard.weekendGisGeocoded; set input;
+run;
+
+* Append the TAZ geo-coding to the GIS files;
+* Weekday;
+data catiA; set OnBoard.RawAcTransitWeekdayGis;
+data geoA; set OnBoard.weekdayGisGeocoded;
+
+proc sort data = catiA threads; by id q qcode;
+proc sort data = geoA threads; by id q qcode;
+
+data geoB; merge catiA geoA; by id q qcode;
+run;
+
+proc freq data = geoB;
+   tables q;
+run;
+
+* Build a flat file with each ID on a single row;
+data geoC; set geoB;
+  homeTAZ   = .;
+  workTAZ   = .;
+  schoolTAZ = .;
+  originTAZ = .;
+  destTAZ   = .;
+
+  if q = 4 then originTAZ   = taz1454;
+  if q = 5 then destTAZ     = taz1454;
+  if q = 383 then workTAZ   = taz1454;
+  if q = 386 then schoolTAZ = taz1454;
+  if q = 388 then homeTAZ   = taz1454;
+
+proc summary data = geoC threads nway;
+  class id;
+  var homeTAZ workTAZ schoolTAZ originTAZ destTAZ;
+  output out = geoD
+  max = homeTAZ workTAZ schoolTAZ originTAZ destTAZ;
+
+data OnBoard.AC_wday_key_loc_taz; set geoD; drop _TYPE_ _FREQ_;
+run;
+
+* Weekend;
+data catiA; set OnBoard.RawAcTransitWeekendGis;
+data geoA; set OnBoard.weekendGisGeocoded;
+
+proc sort data = catiA threads; by id q qcode;
+proc sort data = geoA threads; by id q qcode;
+
+data geoB; merge catiA geoA; by id q qcode;
+run;
+
+* Build a flat file with each ID on a single row;
+data geoC; set geoB;
+  homeTAZ   = .;
+  workTAZ   = .;
+  schoolTAZ = .;
+  originTAZ = .;
+  destTAZ   = .;
+
+  if q = 4 then originTAZ   = taz1454;
+  if q = 5 then destTAZ     = taz1454;
+  if q = 383 then workTAZ   = taz1454;
+  if q = 386 then schoolTAZ = taz1454;
+  if q = 388 then homeTAZ   = taz1454;
+
+proc summary data = geoC threads nway;
+  class id;
+  var homeTAZ workTAZ schoolTAZ originTAZ destTAZ;
+  output out = geoD
+  max = homeTAZ workTAZ schoolTAZ originTAZ destTAZ;
+
+data OnBoard.AC_wend_key_loc_taz; set geoD; drop _TYPE_ _FREQ_;
+run;
+
+* Set the home and work locations if they are an origin or a destionation;
+* Weekday;
+data catiA; set OnBoard.ac_wday_cati_purpose; keep id orig_purp dest_purp;
+data gisA; set OnBoard.ac_wday_key_loc_taz;
+
+proc sort data = catiA threads; by id;
+proc sort data = gisA threads; by id;
+
+data gisB; merge catiA gisA; by id;
+run;
+
+data gisC; set gisB;
+
+   if orig_purp = 'home' then homeTAZ = originTAZ;
+   if orig_purp = 'work' then workTAZ = originTAZ;
+
+   if orig_purp = 'high school'  then schoolTAZ = originTAZ;
+   if orig_purp = 'grade school' then schoolTAZ = originTAZ;
+   if orig_purp = 'university'   then schoolTAZ = originTAZ;
+
+   if dest_purp = 'home' then homeTAZ = destTAZ;
+   if dest_purp = 'work' then workTAZ = destTAZ;
+
+   if dest_purp = 'high school'  then schoolTAZ = destTAZ;
+   if dest_purp = 'grade school' then schoolTAZ = destTAZ;
+   if dest_purp = 'university'   then schoolTAZ = destTAZ;
+
+run;
+
+proc freq data = gisC; tables homeTAZ;
+run;
+
+data OnBoard.AC_wday_key_loc_taz; set gisC; drop orig_purp dest_purp;
+run;
+
+* Weekend;
+data catiA; set OnBoard.ac_wend_cati_purpose; keep id orig_purp dest_purp;
+data gisA; set OnBoard.ac_wend_key_loc_taz;
+
+proc sort data = catiA threads; by id;
+proc sort data = gisA threads; by id;
+
+data gisB; merge catiA gisA; by id;
+run;
+
+data gisC; set gisB;
+
+   if orig_purp = 'home' then homeTAZ = originTAZ;
+   if orig_purp = 'work' then workTAZ = originTAZ;
+
+   if orig_purp = 'high school'  then schoolTAZ = originTAZ;
+   if orig_purp = 'grade school' then schoolTAZ = originTAZ;
+   if orig_purp = 'university'   then schoolTAZ = originTAZ;
+
+   if dest_purp = 'home' then homeTAZ = destTAZ;
+   if dest_purp = 'work' then workTAZ = destTAZ;
+
+   if dest_purp = 'high school'  then schoolTAZ = destTAZ;
+   if dest_purp = 'grade school' then schoolTAZ = destTAZ;
+   if dest_purp = 'university'   then schoolTAZ = destTAZ;
+
+run;
+
+proc freq data = gisC; tables homeTAZ;
+run;
+
+data OnBoard.AC_wend_key_loc_taz; set gisC;
+run;
+
+
+
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* Step 3: Automobile sufficiency;
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+
+* Weekday;
+data catiA; set OnBoard.ac_wday_cati_purpose;
+
+proc freq data = catiA; tables q403 q403_other q404 q404_other;
+run;
+
+data catiB; set catiA;
+   autoSuff = 'Missing                 ';
+
+   if q404 = 16 then autoSuff = 'Zero autos';
+
+   if q403 > q404 and q403<16 and q404<16 then autoSuff = 'Workers > autos';
+
+   if q403 <= q404 and q403<16 and q404<16 then autoSuff = 'Workers <= autos';
+
+   if q403 = 16 and q404<16 then autoSuff = 'Workers <= autos';
+
+data catiB; set catiB;
+   if autoSuff = 'Missing                 ' then autoSuff = .;
+
+proc freq data = catiB; tables autoSuff;
+run;
+
+data OnBoard.AC_wday_cati_purp_asuff; set catiB;
+   label autoSuff = "Travel Model One Automobile Sufficiency";
+run;
+
+* Weekend;
+data catiA; set OnBoard.ac_wend_cati_purpose;
+
+proc freq data = catiA; tables q403 q403_other q404 q404_other;
+run;
+
+data catiB; set catiA;
+   autoSuff = 'Missing                 ';
+
+   if q404 = 16 then autoSuff = 'Zero autos';
+
+   if q403 > q404 and q403<16 and q404<16 then autoSuff = 'Workers > autos';
+
+   if q403 <= q404 and q403<16 and q404<16 then autoSuff = 'Workers <= autos';
+
+   if q403 = 16 and q404<16 then autoSuff = 'Workers <= autos';
+
+data catiB; set catiB;
+   if autoSuff = 'Missing                 ' then autoSuff = .;
+
+proc freq data = catiB; tables autoSuff;
+run;
+
+data OnBoard.AC_wend_cati_purp_asuff; set catiB;
+   label autoSuff = "Travel Model One Automobile Sufficiency";
+run;
+
+
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* Step 4: Determine mode sequence and Travel Model One mode;
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+
+* Create a macro to compute the Travel Model One mode from the survey questions, and use
+  iteratively for the sequence questions;
+%MACRO TM_MODE(LABEL,MODE_Q,MUNI_Q,SAM_Q,VTA_Q);
+
+   * AC Transit;
+   if &MODE_Q = 1 then &LABEL = 'local bus'; 
+   * ACE;
+   if &MODE_Q = 2 then &LABEL = 'commuter rail';
+   * Amtrak; 
+   if &MODE_Q = 3 then &LABEL = 'commuter rail';
+   * Angel Island Ferry;
+   if &MODE_Q = 4 then &LABEL = 'ferry';
+   * BART;
+   if &MODE_Q = 5 then &LABEL = 'heavy rail';
+   * Blue and gold ferry;
+   if &MODE_Q = 6 then &LABEL = 'ferry';
+   * Caltrain;
+   if &MODE_Q = 7 then &LABEL = 'commuter rail';
+   * County connection;
+   if &MODE_Q = 8 then &LABEL = 'local bus';
+   * Dumbarton express;
+   if &MODE_Q = 9 then &LABEL = 'express bus';
+   * Emery-go-round;
+   if &MODE_Q = 10 then &LABEL = 'local bus';
+   * Fairfield-Suisun transit;
+   if &MODE_Q = 11 then &LABEL = 'local bus';
+   * Golden gate ferry;
+   if &MODE_Q = 12 then &LABEL = 'ferry';
+   * Golden gate transit;
+   if &MODE_Q = 13 then &LABEL = 'express bus';
+   * Marin transit;
+   if &MODE_Q = 14 then &LABEL = 'local bus';
+   * Muni;
+   if &MODE_Q = 15 and &MUNI_Q<15  then &LABEL = 'light rail';
+   if &MODE_Q = 15 and &MUNI_Q>=15 then &LABEL = 'local bus';
+   * Napa vine;
+   if &MODE_Q = 16 then &LABEL = 'local bus';
+   * Petaluma transit;
+   if &MODE_Q = 17 then &LABEL = 'local bus';
+   * SamTrans;
+   if &MODE_Q = 18 then &LABEL = 'local bus';
+   if &MODE_Q = 18 and &SAM_Q = 48 then &LABEL = 'express bus';
+   * SF Bay Ferry;
+   if &MODE_Q = 19 then &LABEL = 'ferry';
+   * VTA;
+   if &MODE_Q = 20 then &LABEL = 'local bus';
+   if &MODE_Q = 20 and &VTA_Q > 79 and &VTA_Q ^= 88 then &LABEL = 'light rail';
+   if &MODE_Q = 20 and &VTA_Q >50 and &VTA_Q < 64 then &LABEL = 'express bus';
+   * Santa Rosa City Bus;
+   if &MODE_Q = 21 then &LABEL = 'local bus';
+   * Sonoma County transit;
+   if &MODE_Q = 22 then &LABEL = 'local bus';
+   * Stanford shuttles;
+   if &MODE_Q = 23 then &LABEL = 'local bus';
+   * Tri-delta;
+   if &MODE_Q = 24 then &LABEL = 'local bus'; 
+   * Union-city;
+   if &MODE_Q = 25 then &LABEL = 'local bus'; 
+   * Vallejo ferry;
+   if &MODE_Q = 26 then &LABEL = 'ferry';
+   * Vallejo transit;
+   if &MODE_Q = 27 then &LABEL = 'local bus';
+   * Westcat;
+   if &MODE_Q = 28 then &LABEL = 'local bus';
+   * Other;
+   if &MODE_Q = 29 then &LABEL = 'local bus';
+   
+%MEND TM_MODE;
+run;
+
+* Weekday;
+
+* Set the access mode;
+data catiA; set OnBoard.AC_wday_cati_purp_asuff;
+
+   * Access mode;
+   access_mode = 'Missing                ';
+   if q15 = 1 then access_mode = 'walk';
+   if q15 = 2 then access_mode = 'bike';
+   if q15 = 3 then access_mode = 'pnr';
+   if q15 = 4 then access_mode = 'pnr';
+   if q15 = 5 then access_mode = 'knr';
+   if q15 = 6 then access_mode = 'knr';
+   if q15 = 7 then access_mode = 'pnr';
+   if access_mode = 'Missing                ' then access_mode = .;
+
+run;
+
+* Set the mode sequence;
+data catiB; set catiA;
+   
+   survey_mode = 'local bus';
+
+   * Modes prior to the survey mode;
+   first_prior_mode = 'Missing                       ';
+   %TM_MODE(first_prior_mode,q19,q43,q46,q49);
+   if first_prior_mode = 'Missing                       ' then first_prior_mode = .;
+
+   second_prior_mode = 'Missing                       ';
+   %TM_MODE(second_prior_mode,q64,q88,q91,q94);
+   if second_prior_mode = 'Missing                       ' then second_prior_mode = .;
+
+   third_prior_mode = 'Missing                       ';
+   %TM_MODE(third_prior_mode,q109,q133,q136,q139);
+   if third_prior_mode = 'Missing                       ' then third_prior_mode = .;
+
+   fourth_prior_mode = 'Missing                       ';
+   %TM_MODE(fourth_prior_mode,q154,q178,q181,q184);
+   if fourth_prior_mode = 'Missing                       ' then fourth_prior_mode = .;
+
+   * Modes after the survey mode;
+   first_after_mode = 'Missing                       ';
+   %TM_MODE(first_after_mode,q199,q223,q226,q229);
+   if first_after_mode = 'Missing                       ' then first_after_mode = .;
+
+   second_after_mode = 'Missing                       ';
+   %TM_MODE(second_after_mode,q244,q268,q271,q274);
+   if second_after_mode = 'Missing                       ' then second_after_mode = .;
+
+   third_after_mode = 'Missing                       ';
+   %TM_MODE(third_after_mode,q289,q313,q316,q319);
+   if third_after_mode = 'Missing                       ' then third_after_mode = .;
+
+   fourth_after_mode = 'Missing                       ';
+   %TM_MODE(fourth_after_mode,q334,q358,q361,q364);
+   if fourth_after_mode = 'Missing                       ' then fourth_after_mode = .;
+
+
+run;
+
+proc freq data = catiB; tables access_mode q19 first_prior_mode q64 second_prior_mode q109 third_prior_mode q154 fourth_prior_mode;
+proc freq data = catiB; tables q199 first_after_mode q244 second_after_mode q289 third_after_mode q334 fourth_after_mode;
+run;
+
+* Set the egress mode;
+data catiC; set catiB;
+
+   * Egress mode;
+   egress_mode = 'Missing                ';
+   if q378 = 1 then egress_mode = 'walk';
+   if q378 = 2 then egress_mode = 'bike';
+   if q378 = 3 then egress_mode = 'pnr';
+   if q378 = 4 then egress_mode = 'pnr';
+   if q378 = 5 then egress_mode = 'knr';
+   if q378 = 6 then egress_mode = 'knr';
+   if q378 = 7 then egress_mode = 'pnr';
+   if egress_mode = 'Missing                ' then egress_mode = .;
+
+run;
+
+proc freq data = catiC; tables q19 first_prior_mode q64 second_prior_mode q109 third_prior_mode q154 fourth_prior_mode;
+proc freq data = catiC; tables q199 first_after_mode q244 second_after_mode q289 third_after_mode q334 fourth_after_mode;
+proc freq data = catiC; tables q15 access_mode q378 egress_mode;
+run;
+
+
+* Determine the Travel Model One path and set a simplified character sequence;
+data catiD; set catiC;
+
+   * Apply the hierarchy (assume bike is more similar to drive);
+   path_access = 'D';
+   if access_mode = 'walk' then path_access = 'W';
+   * if access_mode = . then path_access = .;
+
+   path_egress = 'D';
+   if egress_mode = 'walk' then path_egress = 'W';
+   * if egress_mode = . then path_egress = .;
+
+   path_line_haul = 'XXX';
+   if first_prior_mode = 'commuter rail' or second_prior_mode = 'commuter rail' or third_prior_mode = 'commuter rail' or fourth_after_mode = 'commuter rail' or
+      first_after_mode = 'commuter rail' or second_after_mode = 'commuter rail' or third_after_mode = 'commuter rail' or fourth_after_mode = 'commuter rail' then
+	  path_line_haul = 'COM';
+
+   if path_line_haul = 'XXX' and (
+      first_prior_mode = 'heavy rail' or second_prior_mode = 'heavy rail' or third_prior_mode = 'heavy rail' or fourth_after_mode = 'heavy rail' or
+      first_after_mode = 'heavy rail' or second_after_mode = 'heavy rail' or third_after_mode = 'heavy rail' or fourth_after_mode = 'heavy rail') then
+	  path_line_haul = 'HVY';
+
+   if path_line_haul = 'XXX' and (
+      first_prior_mode = 'light rail' or second_prior_mode = 'light rail' or third_prior_mode = 'light rail' or fourth_after_mode = 'light rail' or
+      first_after_mode = 'light rail' or second_after_mode = 'light rail' or third_after_mode = 'light rail' or fourth_after_mode = 'light rail') then
+	  path_line_haul = 'LRF';
+
+   if path_line_haul = 'XXX' and (
+      first_prior_mode = 'ferry' or second_prior_mode = 'ferry' or third_prior_mode = 'ferry' or fourth_after_mode = 'ferry' or
+      first_after_mode = 'ferry' or second_after_mode = 'ferry' or third_after_mode = 'ferry' or fourth_after_mode = 'ferry') then
+	  path_line_haul = 'LRF';
+
+   if path_line_haul = 'XXX' and (
+      first_prior_mode = 'express bus' or second_prior_mode = 'express bus' or third_prior_mode = 'express bus' or fourth_after_mode = 'express bus' or
+      first_after_mode = 'express bus' or second_after_mode = 'express bus' or third_after_mode = 'express bus' or fourth_after_mode = 'express bus') then
+	  path_line_haul = 'EXP';
+
+	if path_line_haul = 'XXX' then path_line_haul = 'LOC';
+
+	path_label = cat(path_access, '-', path_line_haul, '-', path_egress);
+
+run;
+
+proc freq data = catiD; tables path_access path_egress path_line_haul path_label;
+run;
+
+* Computer number of boardings;
+data catiE; set catiD;
+
+  boardings = 1; 
+  if LENGTH(first_prior_mode)  < 30 then boardings = boardings + 1;
+  if LENGTH(second_prior_mode) < 30 then boardings = boardings + 1;
+  if LENGTH(third_prior_mode)  < 30 then boardings = boardings + 1;
+  if LENGTH(fourth_prior_mode) < 30 then boardings = boardings + 1;
+
+  if LENGTH(first_after_mode)  < 30 then boardings = boardings + 1;
+  if LENGTH(second_after_mode) < 30 then boardings = boardings + 1;
+  if LENGTH(third_after_mode)  < 30 then boardings = boardings + 1;
+  if LENGTH(fourth_after_mode) < 30 then boardings = boardings + 1;
+
+run;
+
+* Compare to Mark's trip_legs_code;
+proc freq data = catiE; tables trip_legs_code boardings boardings*trip_legs_code;
+run;
+
+data OnBoard.AC_wday_cati_purp_asuff_path; set catiE;
+   label path_label = "Travel Model One Mode Choice Path";
+   label access_mode = "Simplified Access Mode";
+   label egress_mode = "Simplified Egress Mode";
+run;
+
+* Check the light rail coding as QA/QC;
+data catiF; set catiE; keep id path_line_haul access_mode egress_mode first_prior_mode second_prior_mode third_prior_mode fourth_prior_mode 
+                            first_after_mode second_after_mode third_after_mode fourth_after_mode q19 q43 q49 q199 q223 q229;
+   if path_line_haul ^= 'LRF' then delete;
+run;
+
+
+
+  
+* Weekend;
+
+* Set the access mode;
+data catiA; set OnBoard.AC_wend_cati_purp_asuff;
+
+   * Access mode;
+   access_mode = 'Missing                ';
+   if q15 = 1 then access_mode = 'walk';
+   if q15 = 2 then access_mode = 'bike';
+   if q15 = 3 then access_mode = 'pnr';
+   if q15 = 4 then access_mode = 'pnr';
+   if q15 = 5 then access_mode = 'knr';
+   if q15 = 6 then access_mode = 'knr';
+   if q15 = 7 then access_mode = 'pnr';
+   if access_mode = 'Missing                ' then access_mode = .;
+
+run;
+
+* Set the mode sequence;
+data catiB; set catiA;
+   
+   survey_mode = 'local bus';
+
+   * Modes prior to the survey mode;
+   first_prior_mode = 'Missing                       ';
+   %TM_MODE(first_prior_mode,q19,q43,q46,q49);
+   if first_prior_mode = 'Missing                       ' then first_prior_mode = .;
+
+   second_prior_mode = 'Missing                       ';
+   %TM_MODE(second_prior_mode,q64,q88,q91,q94);
+   if second_prior_mode = 'Missing                       ' then second_prior_mode = .;
+
+   third_prior_mode = 'Missing                       ';
+   %TM_MODE(third_prior_mode,q109,q133,q136,q139);
+   if third_prior_mode = 'Missing                       ' then third_prior_mode = .;
+
+   fourth_prior_mode = 'Missing                       ';
+   %TM_MODE(fourth_prior_mode,q154,q178,q181,q184);
+   if fourth_prior_mode = 'Missing                       ' then fourth_prior_mode = .;
+
+   * Modes after the survey mode;
+   first_after_mode = 'Missing                       ';
+   %TM_MODE(first_after_mode,q199,q223,q226,q229);
+   if first_after_mode = 'Missing                       ' then first_after_mode = .;
+
+   second_after_mode = 'Missing                       ';
+   %TM_MODE(second_after_mode,q244,q268,q271,q274);
+   if second_after_mode = 'Missing                       ' then second_after_mode = .;
+
+   third_after_mode = 'Missing                       ';
+   %TM_MODE(third_after_mode,q289,q313,q316,q319);
+   if third_after_mode = 'Missing                       ' then third_after_mode = .;
+
+   fourth_after_mode = 'Missing                       ';
+   %TM_MODE(fourth_after_mode,q334,q358,q361,q364);
+   if fourth_after_mode = 'Missing                       ' then fourth_after_mode = .;
+
+
+run;
+
+proc freq data = catiB; tables access_mode q19 first_prior_mode q64 second_prior_mode q109 third_prior_mode q154 fourth_prior_mode;
+proc freq data = catiB; tables q199 first_after_mode q244 second_after_mode q289 third_after_mode q334 fourth_after_mode;
+run;
+
+* Set the egress mode;
+data catiC; set catiB;
+
+   * Egress mode;
+   egress_mode = 'Missing                ';
+   if q378 = 1 then egress_mode = 'walk';
+   if q378 = 2 then egress_mode = 'bike';
+   if q378 = 3 then egress_mode = 'pnr';
+   if q378 = 4 then egress_mode = 'pnr';
+   if q378 = 5 then egress_mode = 'knr';
+   if q378 = 6 then egress_mode = 'knr';
+   if q378 = 7 then egress_mode = 'pnr';
+   if egress_mode = 'Missing                ' then egress_mode = .;
+
+run;
+
+proc freq data = catiC; tables q19 first_prior_mode q64 second_prior_mode q109 third_prior_mode q154 fourth_prior_mode;
+proc freq data = catiC; tables q199 first_after_mode q244 second_after_mode q289 third_after_mode q334 fourth_after_mode;
+proc freq data = catiC; tables q15 access_mode q378 egress_mode;
+run;
+
+
+* Determine the Travel Model One path and set a simplified character sequence;
+data catiD; set catiC;
+
+   * Apply the hierarchy (assume bike is more similar to drive);
+   path_access = 'D';
+   if access_mode = 'walk' then path_access = 'W';
+   * if access_mode = . then path_access = .;
+
+   path_egress = 'D';
+   if egress_mode = 'walk' then path_egress = 'W';
+   * if egress_mode = . then path_egress = .;
+
+   path_line_haul = 'XXX';
+   if first_prior_mode = 'commuter rail' or second_prior_mode = 'commuter rail' or third_prior_mode = 'commuter rail' or fourth_after_mode = 'commuter rail' or
+      first_after_mode = 'commuter rail' or second_after_mode = 'commuter rail' or third_after_mode = 'commuter rail' or fourth_after_mode = 'commuter rail' then
+	  path_line_haul = 'COM';
+
+   if path_line_haul = 'XXX' and (
+      first_prior_mode = 'heavy rail' or second_prior_mode = 'heavy rail' or third_prior_mode = 'heavy rail' or fourth_after_mode = 'heavy rail' or
+      first_after_mode = 'heavy rail' or second_after_mode = 'heavy rail' or third_after_mode = 'heavy rail' or fourth_after_mode = 'heavy rail') then
+	  path_line_haul = 'HVY';
+
+   if path_line_haul = 'XXX' and (
+      first_prior_mode = 'light rail' or second_prior_mode = 'light rail' or third_prior_mode = 'light rail' or fourth_after_mode = 'light rail' or
+      first_after_mode = 'light rail' or second_after_mode = 'light rail' or third_after_mode = 'light rail' or fourth_after_mode = 'light rail') then
+	  path_line_haul = 'LRF';
+
+   if path_line_haul = 'XXX' and (
+      first_prior_mode = 'ferry' or second_prior_mode = 'ferry' or third_prior_mode = 'ferry' or fourth_after_mode = 'ferry' or
+      first_after_mode = 'ferry' or second_after_mode = 'ferry' or third_after_mode = 'ferry' or fourth_after_mode = 'ferry') then
+	  path_line_haul = 'LRF';
+
+   if path_line_haul = 'XXX' and (
+      first_prior_mode = 'express bus' or second_prior_mode = 'express bus' or third_prior_mode = 'express bus' or fourth_after_mode = 'express bus' or
+      first_after_mode = 'express bus' or second_after_mode = 'express bus' or third_after_mode = 'express bus' or fourth_after_mode = 'express bus') then
+	  path_line_haul = 'EXP';
+
+	if path_line_haul = 'XXX' then path_line_haul = 'LOC';
+
+	path_label = cat(path_access, '-', path_line_haul, '-', path_egress);
+
+run;
+
+proc freq data = catiD; tables path_access path_egress path_line_haul path_label;
+run;
+
+* Computer number of boardings;
+data catiE; set catiD;
+
+  boardings = 1; 
+  if LENGTH(first_prior_mode)  < 30 then boardings = boardings + 1;
+  if LENGTH(second_prior_mode) < 30 then boardings = boardings + 1;
+  if LENGTH(third_prior_mode)  < 30 then boardings = boardings + 1;
+  if LENGTH(fourth_prior_mode) < 30 then boardings = boardings + 1;
+
+  if LENGTH(first_after_mode)  < 30 then boardings = boardings + 1;
+  if LENGTH(second_after_mode) < 30 then boardings = boardings + 1;
+  if LENGTH(third_after_mode)  < 30 then boardings = boardings + 1;
+  if LENGTH(fourth_after_mode) < 30 then boardings = boardings + 1;
+
+run;
+
+* Compare to Mark's trip_legs_code;
+proc freq data = catiE; tables trip_legs_code boardings boardings*trip_legs_code;
+run;
+
+data OnBoard.AC_wend_cati_purp_asuff_path; set catiE;
+   label path_label = "Travel Model One Mode Choice Path";
+   label access_mode = "Simplified Access Mode";
+   label egress_mode = "Simplified Egress Mode";
+run;
+
+
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* Step 5: Prepare socio-demographic information;
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+
+* Weekday;
+data catiA; set OnBoard.AC_wday_cati_purp_asuff_path; 
+
+   work_status = 'Missing                ';
+   if q382 = 1 then work_status = 'full- or part-time';
+   if q382 = 2 then work_status = 'non-worker';
+   if orig_purp = 'work' or dest_purp = 'work' then work_status = 'full- or part-time';
+
+   student_status = 'Missing             ';
+   if q385 = 1 then student_status = 'full- or part-time';
+   if q385 = 2 then student_status = 'non-student';
+   if orig_purp = 'grade school' or dest_purp = 'grade school' then student_status = 'full- or part-time';
+   if orig_purp = 'high school'  or dest_purp = 'high school'  then student_status = 'full- or part-time';
+   if orig_purp = 'university'   or dest_purp = 'university'   then student_status = 'full- or part-time';
+
+   age = 112 - q405;
+   if q405 = 1 then age = .;
+
+   fare_medium = 'Missing                             ';
+   if q397 = 1  then fare_medium = 'cash (bills and coins)';
+   if q397 = 2  then fare_medium = 'cash (clipper)';
+   if q397 = 3  then fare_medium = 'pass (clipper)';
+   if q397 = 4  then fare_medium = 'pass (ucb id card)';
+   if q397 = 5  then fare_medium = 'pass (rtc card)';
+   if q397 = 6  then fare_medium = 'ticket (paper with mag strip)';
+   if q397 = 7  then fare_medium = 'transfer (paper with mag strip)';
+   if q397 = 8  then fare_medium = 'transfer (clipper)';
+   if q397 = 9  then fare_medium = 'transfer (bart paper + cash)';
+   if q397 = 10 then fare_medium = 'do not know';
+   if q397 = 11 then fare_medium = 'other';
+
+   fare_category = 'Missing                             ';
+   if q398 = 1 then fare_category = 'adult';
+   if q398 = 2 then fare_category = 'youth';
+   if q398 = 3 then fare_category = 'senior';
+   if q398 = 4 then fare_category = 'disabled';
+   if q398 = 5 then fare_category = 'easypass or class pass';
+   if q398 = 6 then fare_category = 'other discount';
+   if q398 = 7 then fare_category = 'do not know';
+
+   hispanic = hispanic_q406;
+   race     = race_q407;
+
+   language_at_home = language_q409;
+
+   household_income = 'Missing                             ';
+   if q410 = 1 then household_income = 'under $35,000';
+   if q410 = 2 then household_income = '$35,000 or higher';
+   if q410 = 3 then household_income = 'refused';
+
+   if q411 = 1 then household_income = 'under $10,000';
+   if q411 = 2 then household_income = '$10,000 to $25,000';
+   if q411 = 3 then household_income = '$25,000 to $35,000';
+
+   if q412 = 1 then household_income = '$35,000 to $50,000';
+   if q412 = 2 then household_income = '$50,000 to $75,000';
+   if q412 = 3 then household_income = '$75,000 to $100,000';
+   if q412 = 4 then household_income = '$100,000 to $150,000';
+   if q412 = 5 then household_income = '$150,000 or higher';
+
+   sex = 'Missing                             '; 
+   if q413 = 1 then sex = 'male';
+   if q413 = 2 then sex = 'female';
+
+   cati_language = 'Missing                             ';
+   if q414 = 1 then cati_language = 'English';
+   if q414 = 2 then cati_language = 'Spanish';
+   if q414 = 3 then cati_language = 'Cantonese Chinese';
+   if q414 = 4 then cati_language = 'Mandarin Chinese';
+ 
+
+run;
+
+proc freq data = catiA; tables work_status student_status age fare_medium fare_category hispanic race language_at_home household_income sex cati_language;
+run;
+
+data OnBoard.AC_wday_cati_purp_asuff_path_sd; set catiA;
+   label work_status     = "Employment status";
+   label student_status  = "Student status";
+   label age             = "Age";
+   label fare_medium     = "Fare media";
+   label fare_category   = "Fare category";
+   label hispanic        = "Hispanic";
+   label race            = "Racial identity";
+   label language_at_home = "Langauge spoken at home";
+   label household_income = "Household income ($2012)";
+   label sex              = "Sex";
+   label cati_language    = "Language of phone interview";
+run;
+ 
+* Weekend;
+data catiA; set OnBoard.AC_wend_cati_purp_asuff_path; 
+
+   work_status = 'Missing                ';
+   if q382 = 1 then work_status = 'full- or part-time';
+   if q382 = 2 then work_status = 'non-worker';
+   if orig_purp = 'work' or dest_purp = 'work' then work_status = 'full- or part-time';
+
+   student_status = 'Missing             ';
+   if q385 = 1 then student_status = 'full- or part-time';
+   if q385 = 2 then student_status = 'non-student';
+   if orig_purp = 'grade school' or dest_purp = 'grade school' then student_status = 'full- or part-time';
+   if orig_purp = 'high school'  or dest_purp = 'high school'  then student_status = 'full- or part-time';
+   if orig_purp = 'university'   or dest_purp = 'university'   then student_status = 'full- or part-time';
+
+   age = 112 - q405;
+   if q405 = 1 then age = .;
+
+   fare_medium = 'Missing                             ';
+   if q397 = 1  then fare_medium = 'cash (bills and coins)';
+   if q397 = 2  then fare_medium = 'cash (clipper)';
+   if q397 = 3  then fare_medium = 'pass (clipper)';
+   if q397 = 4  then fare_medium = 'pass (ucb id card)';
+   if q397 = 5  then fare_medium = 'pass (rtc card)';
+   if q397 = 6  then fare_medium = 'ticket (paper with mag strip)';
+   if q397 = 7  then fare_medium = 'transfer (paper with mag strip)';
+   if q397 = 8  then fare_medium = 'transfer (clipper)';
+   if q397 = 9  then fare_medium = 'transfer (bart paper + cash)';
+   if q397 = 10 then fare_medium = 'do not know';
+   if q397 = 11 then fare_medium = 'other';
+
+   fare_category = 'Missing                             ';
+   if q398 = 1 then fare_category = 'adult';
+   if q398 = 2 then fare_category = 'youth';
+   if q398 = 3 then fare_category = 'senior';
+   if q398 = 4 then fare_category = 'disabled';
+   if q398 = 5 then fare_category = 'easypass or class pass';
+   if q398 = 6 then fare_category = 'other discount';
+   if q398 = 7 then fare_category = 'do not know';
+
+   hispanic = hispanic_q406;
+   race     = race_q407;
+
+   language_at_home = language_q409;
+
+   household_income = 'Missing                             ';
+   if q410 = 1 then household_income = 'under $35,000';
+   if q410 = 2 then household_income = '$35,000 or higher';
+   if q410 = 3 then household_income = 'refused';
+
+   if q411 = 1 then household_income = 'under $10,000';
+   if q411 = 2 then household_income = '$10,000 to $25,000';
+   if q411 = 3 then household_income = '$25,000 to $35,000';
+
+   if q412 = 1 then household_income = '$35,000 to $50,000';
+   if q412 = 2 then household_income = '$50,000 to $75,000';
+   if q412 = 3 then household_income = '$75,000 to $100,000';
+   if q412 = 4 then household_income = '$100,000 to $150,000';
+   if q412 = 5 then household_income = '$150,000 or higher';
+
+   sex = 'Missing                             '; 
+   if q413 = 1 then sex = 'male';
+   if q413 = 2 then sex = 'female';
+
+   cati_language = 'Missing                             ';
+   if q414 = 1 then cati_language = 'English';
+   if q414 = 2 then cati_language = 'Spanish';
+   if q414 = 3 then cati_language = 'Cantonese Chinese';
+   if q414 = 4 then cati_language = 'Mandarin Chinese';
+ 
+
+run;
+
+proc freq data = catiA; tables work_status student_status age fare_medium fare_category hispanic race language_at_home household_income sex cati_language;
+run;
+
+data OnBoard.AC_wend_cati_purp_asuff_path_sd; set catiA;
+   label work_status     = "Employment status";
+   label student_status  = "Student status";
+   label age             = "Age";
+   label fare_medium     = "Fare media";
+   label fare_category   = "Fare category";
+   label hispanic        = "Hispanic";
+   label race            = "Racial identity";
+   label language_at_home = "Langauge spoken at home";
+   label household_income = "Household income ($2012)";
+   label sex              = "Sex";
+   label cati_language    = "Language of phone interview";
+run;
+ 
+
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* Step 7: Other model information;
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~; 
+
+* Weekday;
+
+data catiA; set OnBoard.AC_wday_cati_purp_asuff_path_sd;
+
+   depart_hour = .;
+   depart_hour = HOUR(q393);
+   if q393 = HMS(1,0,0) then depart_hour = .;
+   if q394 = 1 then depart_hour = depart_hour;
+   if q394 = 2 and HOUR(q393)<12 then depart_hour = depart_hour + 12;
+
+   return_hour = .;
+   return_hour = HOUR(q395);
+   if q395 = HMS(1,0,0) then return_hour = .;
+   if q396 = 1 then depart_hour = return_hour;
+   if q396 = 2 and HOUR(q395)<12 then return_hour = return_hour + 12;
+
+run;
+
+proc freq data = catiA; tables depart_hour return_hour;
+run;
+
+data catiB; set catiA; keep id weight orig_purp dest_purp tour_purp autoSuff access_mode survey_mode egress_mode
+                            path_access path_egress path_line_haul path_label boardings work_status student_status
+                            age fare_medium fare_category hispanic race language_at_home household_income sex 
+                            cati_language depart_hour return_hour;
+
+   label depart_hour = 'Home-based tour hour of departure from home';
+   label return_hour = 'Home-based tour hour of return to home';
+
+   rename weight = redhill_weight;
+
+run;
+
+data catiB; set catiB;
+   converted_cati = 1;
+
+
+data OnBoard.AC_wday_cati_ready; set catiB;
+run;
+
+* Weekend;
+
+data catiA; set OnBoard.AC_wend_cati_purp_asuff_path_sd;
+
+   depart_hour = .;
+   depart_hour = HOUR(q393);
+   if q393 = HMS(1,0,0) then depart_hour = .;
+   if q394 = 1 then depart_hour = depart_hour;
+   if q394 = 2 and HOUR(q393)<12 then depart_hour = depart_hour + 12;
+
+   return_hour = .;
+   return_hour = HOUR(q395);
+   if q395 = HMS(1,0,0) then return_hour = .;
+   if q396 = 1 then depart_hour = return_hour;
+   if q396 = 2 and HOUR(q395)<12 then return_hour = return_hour + 12;
+
+run;
+
+proc freq data = catiA; tables depart_hour return_hour;
+run;
+
+data catiB; set catiA; keep id weight orig_purp dest_purp tour_purp autoSuff access_mode survey_mode egress_mode
+                            path_access path_egress path_line_haul path_label boardings work_status student_status
+                            age fare_medium fare_category hispanic race language_at_home household_income sex 
+                            cati_language depart_hour return_hour;
+
+   label depart_hour = 'Home-based tour hour of departure from home';
+   label return_hour = 'Home-based tour hour of return to home';
+
+   rename weight = redhill_weight;
+
+run;
+
+data catiB; set catiB;
+   converted_cati = 1;
+
+
+data OnBoard.AC_wend_cati_ready; set catiB;
+run;
+
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* Step 8: Extract relevant data from the INFO and GIS data sets and build combine data set;
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+
+* Weekday;
+
+data infoA; set OnBoard.RawAcTransitWeekdayInfo;
+
+   orig_purp_field = "                         ";
+   dest_purp_field = "                         ";
+
+   if origin_type_code = 1  then orig_purp_field = "work";
+   if origin_type_code = 2  then orig_purp_field = "work";
+   if origin_type_code = 3  then orig_purp_field = "home";
+   if origin_type_code = 4  then orig_purp_field = "social recreation";
+   if origin_type_code = 5  then orig_purp_field = "shopping";
+   if origin_type_code = 6  then orig_purp_field = "grade or high school";
+   if origin_type_code = 7  then orig_purp_field = "university";
+   if origin_type_code = 8  then orig_purp_field = "other maintenance";
+   if origin_type_code = 9  then orig_purp_field = "other maintenance";
+   if origin_type_code = 10 then orig_purp_field = "missing";
+   if origin_type_code = 14 then orig_purp_field = "missing";
+
+   if dest_type_code = 1  then dest_purp_field = "work";
+   if dest_type_code = 2  then dest_purp_field = "work";
+   if dest_type_code = 3  then dest_purp_field = "home";
+   if dest_type_code = 4  then dest_purp_field = "social recreation";
+   if dest_type_code = 5  then dest_purp_field = "shopping";
+   if dest_type_code = 6  then dest_purp_field = "grade or high school";
+   if dest_type_code = 7  then dest_purp_field = "university";
+   if dest_type_code = 8  then dest_purp_field = "other maintenance";
+   if dest_type_code = 9  then dest_purp_field = "other maintenance";
+   if dest_type_code = 10 then dest_purp_field = "missing";
+   if dest_type_code = 14 then dest_purp_field = "missing";
+
+   geo_stop = 0;
+   if boarding_lat ^= 'NA' then geo_stop = 1;
+
+run;
+
+proc freq data = infoA; tables orig_purp_field dest_purp_field;
+run;
+
+
+ * TODO: Add Stella's geo-coding (i.e. stops sequence number and total route stops) when ready;
+
+data OnBoard.ac_wday_info_ready; set infoA; keep id route direction daypart field_language orig_purp_field dest_purp_field geo_stop;
+
+   label orig_purp_field = "Travel Model One Activity at origin from field"
+         dest_purp_field = "Travel Model One Activity at destination from field";
+
+
+run;
+
+
+* Weekend;
+
+data infoA; set OnBoard.RawAcTransitWeekendInfo;
+
+   orig_purp_field = "                         ";
+   dest_purp_field = "                         ";
+
+   if origin_type_code = 1  then orig_purp_field = "work";
+   if origin_type_code = 2  then orig_purp_field = "work";
+   if origin_type_code = 3  then orig_purp_field = "home";
+   if origin_type_code = 4  then orig_purp_field = "social recreation";
+   if origin_type_code = 5  then orig_purp_field = "shopping";
+   if origin_type_code = 6  then orig_purp_field = "grade or high school";
+   if origin_type_code = 7  then orig_purp_field = "university";
+   if origin_type_code = 8  then orig_purp_field = "other maintenance";
+   if origin_type_code = 9  then orig_purp_field = "other maintenance";
+   if origin_type_code = 10 then orig_purp_field = "missing";
+   if origin_type_code = 14 then orig_purp_field = "missing";
+
+   if dest_type_code = 1  then dest_purp_field = "work";
+   if dest_type_code = 2  then dest_purp_field = "work";
+   if dest_type_code = 3  then dest_purp_field = "home";
+   if dest_type_code = 4  then dest_purp_field = "social recreation";
+   if dest_type_code = 5  then dest_purp_field = "shopping";
+   if dest_type_code = 6  then dest_purp_field = "grade or high school";
+   if dest_type_code = 7  then dest_purp_field = "university";
+   if dest_type_code = 8  then dest_purp_field = "other maintenance";
+   if dest_type_code = 9  then dest_purp_field = "other maintenance";
+   if dest_type_code = 10 then dest_purp_field = "missing";
+   if dest_type_code = 14 then dest_purp_field = "missing";
+
+   geo_stop = 0;
+   if boarding_lat ^= 'NA' then geo_stop = 1;
+
+
+run;
+
+proc freq data = infoA; tables orig_purp_field dest_purp_field;
+run;
+
+
+ * TODO: Add Stella's geo-coding (i.e. stops sequence number and total route stops) when ready;
+
+data OnBoard.ac_wend_info_ready; set infoA; keep id route direction daypart field_language orig_purp_field dest_purp_field geo_stop;
+
+   label orig_purp_field = "Travel Model One Activity at origin from field"
+         dest_purp_field = "Travel Model One Activity at destination from field";
+
+
+run;
+
+
+* Merge the data sets;
+
+* Weekday; 
+
+data catiA; set OnBoard.ac_wday_cati_ready;
+data infoA; set OnBoard.ac_wday_info_ready;
+data locA;  set OnBoard.ac_wday_key_loc_taz;
+
+proc sort data = catiA threads; by id;
+proc sort data = infoA threads; by id;
+proc sort data = locA  threads; by id;
+
+data comboA; merge catiA infoA; by id;
+data comboB; merge comboA locA; by id;
+
+data comboC; set comboB;
+   if converted_cati = . then converted_cati = 0;
+run;
+
+proc freq data = comboC; tables converted_cati;
+run;
+
+data OnBoard.ac_wday_ready; set comboC;
+run;
+
+* Weekend; 
+
+data catiA; set OnBoard.ac_wend_cati_ready;
+data infoA; set OnBoard.ac_wend_info_ready;
+data locA;  set OnBoard.ac_wend_key_loc_taz;
+
+proc sort data = catiA threads; by id;
+proc sort data = infoA threads; by id;
+proc sort data = locA  threads; by id;
+
+data comboA; merge catiA infoA; by id;
+data comboB; merge comboA locA; by id;
+
+data comboC; set comboB;
+   if converted_cati = . then converted_cati = 0;
+run;
+
+proc freq data = comboC; tables converted_cati;
+run;
+
+data OnBoard.ac_wend_ready; set comboC;
+run;
+
+
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* Step 9: Explore alternate weighting schemes;
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+
+* Create a simple trip purpose classification from the field instrument question;
+data readyA; set OnBoard.ac_wday_ready;
+
+   simple_field_purp = 'Missing                 ';
+   if orig_purp_field = 'home' and dest_purp_field = 'work' then simple_field_purp = 'home-work';
+   if orig_purp_field = 'work' and dest_purp_field = 'home' then simple_field_purp = 'work-home';
+
+   if orig_purp_field = 'home' and dest_purp_field = 'university' then simple_field_purp = 'home-univ';
+   if orig_purp_field = 'university' and dest_purp_field = 'home' then simple_field_purp = 'univ-home';
+
+   if orig_purp_field = 'home' and dest_purp_field = 'grade or high school' then simple_field_purp = 'home-school';
+   if orig_purp_field = 'grade or high school' and dest_purp_field = 'home' then simple_field_purp = 'school-home';
+
+   if simple_field_purp = 'Missing                 ' and orig_purp_field = 'home' then simple_field_purp = 'home-other';
+   if simple_field_purp = 'Missing                 ' and dest_purp_field = 'home' then simple_field_purp = 'other-home';
+
+   if simple_field_purp = 'Missing                 ' then simple_field_purp = 'other-other';
+
+run;
+
+proc freq data = readyA; tables simple_field_purp simple_field_purp*converted_cati converted_cati*geo_stop;
+run;
+
+* See how stable the purpose is by route and direction;
+proc summary data = readyA threads;
+   class route direction simple_field_purp;
+   var converted_cati geo_stop;
+   output out = route_dir_purp
+   mean = converted_cati geo_stop;
+run;
+
+* Check empty cells;
+data sumA; set route_dir_purp;
+   if _TYPE_ ^= 7 then delete;
+   if converted_cati ^= 0 then delete;
+run;
+
+proc freq data = sumA; tables simple_field_purp route;
+run;
+
+* Explore alternate weights for a single route, the idea being that we may be able to refine Mark's weights
+* for routes with lots of data, and leave Mark's weights for routes with more sparse data;
+
+* Select routes with rich data;
+data sumB; set route_dir_purp;
+   if _TYPE_ ^= 7 then delete;
+   if (converted_cati * _FREQ_) < 30 then delete;
+run;
+
+* As a test focus on the 1R, use route by direction by purpose (data does not support further time of day);
+* TO DO: can we rake rather than expland?;
+
+* Compute route/dir/purp specific paper to phone weights for 1R;
+data sum1A; set route_dir_purp;
+   if _TYPE_ ^=7 then delete;
+   if route  ^= '1R' then delete;
+run;
+
+* Calculate the trip purpose weight for the 1R;
+data sum1B; set sum1A; 
+  trip_purp_weight = 1/converted_cati;
+
+data sum1C; set sum1B; drop _TYPE_ _FREQ_ converted_cati geo_stop;
+
+run;
+
+
+* Select the working sample for the 1R;
+data ready1A; set readyA;
+   if converted_cati = 0 then delete;
+   if route ^= '1R' then delete;
+run;
+
+* Append the trip purp weight;
+proc sort data = sum1C; by route direction simple_field_purp;
+proc sort data = ready1A; by route direction simple_field_purp;
+
+* Combine the redhill and trip_purp weights;
+data ready1B; merge ready1A sum1C; by route direction simple_field_purp;
+   comb_weight_sum = redhill_weight * trip_purp_weight;
+run;
+
+* Get the sum of each of the weights;
+proc summary data = ready1B;
+   class route direction simple_field_purp;
+   var redhill_weight trip_purp_weight comb_weight_sum;
+   output out = sumOfWeights1A
+   sum = redhill_weight trip_purp_weight comb_weight_sum;
+run;
+
+data sumOfWeights1B; set sumOfWeights1A;
+   if _TYPE_ ^= 2 then delete;
+
+* Compute the ration of the sum of the redhill weights (which is line boardings) by the sum of the combined weights;
+data sumOfWeights1C; set sumOfWeights1B; drop route simple_field_purp _TYPE_ _FREQ_;
+   ratio = redhill_weight / comb_weight_sum;
+
+data sumOfWeights1D; set sumOfWeights1C; drop redhill_weight comb_weight_sum trip_purp_weight;
+run;
+
+* Apply the ratio to the combined weight to correct boardings;
+data ready1C; set ready1B;
+
+proc sort data = ready1C; by direction;
+proc sort data = sumOfWeights1D; by direction;
+
+data ready1D; merge ready1C sumOfWeights1D; by direction;
+
+data ready1E; set ready1D;
+   comb_weight1 = trip_purp_weight * redhill_weight * ratio;
+run;
+
+proc summary data = ready1E;
+   class route direction simple_field_purp;
+   var redhill_weight trip_purp_weight comb_weight1;
+   output out = sumOfWeights1E
+   sum = redhill_weight trip_purp_weight comb_weight1;
+run;
+
+* Write out a big cross-classification CSV file in order to do summaries in Excel;
+proc summary data = ready1E nway;
+  class route direction daypart originTAZ destTAZ simple_field_purp tour_purp race hispanic fare_category autoSuff;
+  var redhill_weight comb_weight1;
+  output out = validA
+  mean = redhill_weight comb_weight1;
+run;
+
+proc export data = validA
+   outfile = "&output_directory.\ValidationTest.csv"
+   replace;
+run;
+
+proc freq data = ready1E; tables race hispanic race*hispanic;
+run;
+
+
+/*
+
+START HERE:
+
+1.  We will use the 1R as the test bed;
+2.  We now have two sets of weights: (a) Mark's and (b) Mark's adjusted by the trip purpose from the paper survey;
+3.  We need to assess how these to perform: O/D SD flows, trip purpose, race/ethnicity, fare category, hh income, daypart, 
+    map difference in weights by boarding & alighting location (do this with a big proc summary request to csv to excel);
+4.  After Stella provides the boarding data, see what can be done with that, the goal being to create a third weight for validation;
+5.  We could rake across weights (b) and (c) to get another set of weights, (d), for validation;
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* Step 10: Write out a clean file to disk;
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* Keep Mark's weights and mine;
+
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* Step X: Summaries are placed in another SAS script;
+* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
+* One for travel model: trips by tour purp by auto sufficiency;
+* One for general purpose;
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+* Create labels & formats;
+data catiA; set catiA;
+   label orig_purp = "Travel Model One Activity at origin"
+         dest_purp = "Travel Model One Activity at destination"
+         tour_purp = "Travel Model One Tour purpose (approximate)";
+
