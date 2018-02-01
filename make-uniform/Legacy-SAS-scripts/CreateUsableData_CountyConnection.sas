@@ -12,7 +12,7 @@
 * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;
 
 * Establish the library;
-libname OnBoard 'M:\Data\OnBoard\Data and Reports\SAS data';
+libname OnBoard 'M:\Data\OnBoard\Data and Reports\_data Legacy\SAS data';
 run;
 
 * Set the file locations;
