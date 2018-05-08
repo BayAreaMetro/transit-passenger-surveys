@@ -6,21 +6,21 @@ Transit passenger data collection and analysis. This document summarizes the dat
 
 ## Mandatory questions in every operator survey
 
-[Geocoded location data](#geocoded-location-data)<br>
-[Access/egress modes](#Access)<br>
-[Transit transfers (intra- and inter-operator transfers)](#Transfers)<br>
-[Origin/destination trip purposes](#Origin)<br>
-[Time leaving and returning home](#Leaving)<br>
-[Fare payment](#Fare)<br>
-[Half-tour questions for work and school](#Half-Tour)<br>
-[Person demographics](#Demographics)<br>
-[Household demographics](#Demographics-1)<br>
-[Survey type](#Type)<br>
-[Language survey conducted in (entered by surveyor)](#Language)<br>
-[Date survey collected (collected passively)](#Date)<br>
-[Time survey collected (collected passively)](#Time)<br>
-[Vehicle boarding time (may be continuous time or by day-part)](#Vehicle)<br>
-[Overall survey completion percentage](#Completion)<br>
+[Geocoded location data](#geocoded-location-data)  
+[Access/egress modes](#Access)  
+[Transit transfers (intra- and inter-operator transfers)](#Transfers)  
+[Origin/destination trip purposes](#Origin)  
+[Time leaving and returning home](#Leaving)  
+[Fare payment](#Fare)  
+[Half-tour questions for work and school](#Half-Tour)  
+[Person demographics](#Demographics)  
+[Household demographics](#Demographics-1)  
+[Survey type](#Type)  
+[Language survey conducted in (entered by surveyor)](#Language)  
+[Date survey collected (collected passively)](#Date)  
+[Time survey collected (collected passively)](#Time)  
+[Vehicle boarding time (may be continuous time or by day-part)](#Vehicle)  
+[Overall survey completion percentage](#Completion)  
  
 
 
