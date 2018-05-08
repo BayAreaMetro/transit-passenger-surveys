@@ -6,7 +6,7 @@ Transit passenger data collection and analysis. This document summarizes the dat
 
 ## Mandatory questions in every operator survey
 
-[Geocoded location data](#Geocoded)
+[Geocoded location data](#geocoded-location-data)
 [Access/egress modes](#Access)
 [Transit transfers (intra- and inter-operator transfers)](#Transfers)
 [Origin/destination trip purposes](#Origin)
