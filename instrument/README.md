@@ -7,16 +7,17 @@ Transit passenger data collection and analysis. This document summarizes the dat
 ## Mandatory questions in every operator survey
 
 [Geocoded location data](#geocoded-location-data)  
-[Access/egress modes](#access-egress-modes)  
+[Access and egress modes](#access-and-egress-modes)  
 [Transit transfers (intra- and inter-operator transfers)](#transit-transfers)  
-[Origin/destination trip purposes](#Origin)  
-[Time leaving and returning home](#Leaving)  
-[Fare payment](#Fare)  
-[Half-tour questions for work and school](#Half-Tour)  
-[Person demographics](#Demographics)  
-[Household demographics](#Demographics-1)  
-[Survey type](#Type)  
-[Language survey conducted in (entered by surveyor)](#Language)  
+[Origin and destination trip purposes](#origin-and-destination-trip-purposes)  
+[Time leaving and returning home](#time-leaving-and-returning-home)  
+[Fare payment](#fare-payment)  
+[Half-tour questions for work and school](#half-tour-questions-for-work-and-school)  
+[Person demographics](#person-demographics)  
+[Household demographics](#household-demographics) 
+[Data items entered by surveyor or passively collected](#data-items-entered-by-surveyor-or-passively-collected)
+[Survey type](#survey-type)  
+[Language survey conducted](#language-survey-conducted)  
 [Date survey collected (collected passively)](#Date)  
 [Time survey collected (collected passively)](#Time)  
 [Vehicle boarding time (may be continuous time or by day-part)](#Vehicle)  
@@ -36,7 +37,7 @@ Work location (if appropriate)
 School location (if appropriate)  
 
 
-### Access/egress modes
+### Access and egress modes
 
 [Access mode from trip origin to first transit boarding](access.md)
 [Egress mode from last transit alighting to trip destination](egress.md)
@@ -62,7 +63,7 @@ Time returning home after this trip, by hour
 Payment method  
 Payment category  
 
-### Half-tour questions for work and school
+### Half tour questions for work and school
 Did/will passenger go to work before/after transit trip (see logic)    
 Did/will passenger go to school before/after transit trip (see logic)  
 
@@ -86,14 +87,14 @@ Number of workers in household
 Number of household working vehicles  
 Household income  
 
-### Survey type
+### Data items entered by surveyor or passively collected
 
-Tablet  
-Computer-assisted telephone interview (CATI)  
-Paper  
-
-
-
+Survey type (tablet, two-step CATI, or paper)
+Language Survey Conducted
+Date survey collected 
+Time survey collected 
+Vehicle boarding time (may be continuous time or by day-part)]
+Overall survey completion percentage 
 
  
 
