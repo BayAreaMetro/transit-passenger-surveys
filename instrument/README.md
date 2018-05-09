@@ -20,7 +20,7 @@ Transit passenger data collection and analysis. This document summarizes the dat
 
 
 ### Geocoded location data (x,y format)
-
+```
 1. Trip origin  
 2. First transit boarding  
 3. Last transit alighting  
@@ -29,7 +29,7 @@ Transit passenger data collection and analysis. This document summarizes the dat
 6. Home location  
 7. Work location (if appropriate)  
 8. School location (if appropriate)  
-
+```
 
 ### Access and egress modes
 
