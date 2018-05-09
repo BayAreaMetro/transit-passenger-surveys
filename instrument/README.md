@@ -56,8 +56,8 @@ Payment method
 Payment category  
 
 ### Half tour questions for work and school
-Did/will passenger go to work before/after transit trip (see [logic](#work_half-tour.md))    
-Did/will passenger go to school before/after transit trip (see [logic](#school_half-tour.md))  
+Did/will passenger go to work before/after transit trip (see [logic](./work_half-tour.md))    
+Did/will passenger go to school before/after transit trip (see [logic](./school_half-tour.md))  
 
 
 ### Person demographics
