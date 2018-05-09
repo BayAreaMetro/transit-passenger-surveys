@@ -32,10 +32,10 @@ Transit passenger data collection and analysis. This document summarizes the dat
 ```
 
 ### Access and egress modes
-
+```
 [Access mode from trip origin to first transit boarding](access.md)  
 [Egress mode from last transit alighting to trip destination](egress.md)  
-
+```
 ### Transit transfers  
 Up to three intra- and inter-operator transfers to surveyed vehicle for this trip  
 Up to three intra- and inter-operator transfers from surveyed vehicle for this trip  
