@@ -21,14 +21,14 @@ Transit passenger data collection and analysis. This document summarizes the dat
 
 ### Geocoded location data (x,y format)
 
-```1. Trip origin```    
-```2. First transit boarding```    
-```3. Last transit alighting```    
-```4. Trip destination```    
-```5. Bus/rail transfer location points (if transfers exist)```    
-```6. Home location```    
-```7. Work location (if appropriate)```    
-```8. School location (if appropriate)```    
+1. Trip origin  
+2. First transit boarding  
+3. Last transit alighting  
+4. Trip destination  
+5. Bus/rail transfer location points (if transfers exist)  
+6. Home location  
+7. Work location (if appropriate)  
+8. School location (if appropriate)  
 
 
 ### Access and egress modes
@@ -56,8 +56,8 @@ Payment method
 Payment category  
 
 ### Half tour questions for work and school
-Did/will passenger go to work before/after transit trip (see logic)    
-Did/will passenger go to school before/after transit trip (see logic)  
+Did/will passenger go to work before/after transit trip (see [logic](#work_half-tour.md))    
+Did/will passenger go to school before/after transit trip (see [logic](#school_half-tour.md))  
 
 
 ### Person demographics
