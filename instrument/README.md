@@ -14,27 +14,21 @@ Transit passenger data collection and analysis. This document summarizes the dat
 [Fare payment](#fare-payment)  
 [Half-tour questions for work and school](#half-tour-questions-for-work-and-school)  
 [Person demographics](#person-demographics)  
-[Household demographics](#household-demographics) 
-[Data items entered by surveyor or passively collected](#data-items-entered-by-surveyor-or-passively-collected)
-[Survey type](#survey-type)  
-[Language survey conducted](#language-survey-conducted)  
-[Date survey collected (collected passively)](#Date)  
-[Time survey collected (collected passively)](#Time)  
-[Vehicle boarding time (may be continuous time or by day-part)](#Vehicle)  
-[Overall survey completion percentage](#Completion)  
+[Household demographics](#household-demographics)  
+[Data items entered by surveyor or passively collected](#data-items-entered-by-surveyor-or-passively-collected)  
  
 
 
 ### Geocoded location data (x,y format)
 
-Trip origin  
-First transit boarding  
-Last transit alighting  
-Trip destination  
-Bus/rail transfer location points (if transfers exist)  
-Home location  
-Work location (if appropriate)  
-School location (if appropriate)  
+1.Trip origin  
+2.First transit boarding  
+3.Last transit alighting  
+4.Trip destination  
+5.Bus/rail transfer location points (if transfers exist)  
+6.Home location  
+7.Work location (if appropriate)  
+8.School location (if appropriate)  
 
 
 ### Access and egress modes
@@ -42,15 +36,14 @@ School location (if appropriate)
 [Access mode from trip origin to first transit boarding](access.md)  
 [Egress mode from last transit alighting to trip destination](egress.md)  
 
-### Transit transfers (intra- and inter-operator transfers)
+### Transit transfers  
 Up to three intra- and inter-operator transfers to surveyed vehicle for this trip  
 Up to three intra- and inter-operator transfers from surveyed vehicle for this trip  
 
 
-### Origin/destination trip purposes
+### Origin and destination trip purposes
 Origin type  
 Destination type  
-
 
 
 ### Time leaving and returning home
@@ -88,12 +81,12 @@ Household income
 
 ### Data items entered by surveyor or passively collected
 
-Survey type (tablet, two-step CATI, or paper)
-Language Survey Conducted
-Date survey collected 
-Time survey collected 
-Vehicle boarding time (may be continuous time or by day-part)]
-Overall survey completion percentage 
+Survey type (tablet, two-step CATI, or paper)  
+Language survey conducted in  
+Date survey collected   
+Time survey collected   
+Vehicle boarding time (may be continuous time or by day-part)  
+Overall survey completion percentage  
 
  
 
