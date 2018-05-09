@@ -39,13 +39,12 @@ School location (if appropriate)
 
 ### Access and egress modes
 
-[Access mode from trip origin to first transit boarding](access.md)
-[Egress mode from last transit alighting to trip destination](egress.md)
+[Access mode from trip origin to first transit boarding](access.md)  
+[Egress mode from last transit alighting to trip destination](egress.md)  
 
 ### Transit transfers (intra- and inter-operator transfers)
-Up to three transfers to surveyed vehicle for this trip  
-Up to three transfers from surveyed vehicle for this trip  
-
+Up to three intra- and inter-operator transfers to surveyed vehicle for this trip  
+Up to three intra- and inter-operator transfers from surveyed vehicle for this trip  
 
 
 ### Origin/destination trip purposes
