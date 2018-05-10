@@ -2,12 +2,12 @@
 
 
 The below table explains cases in which we ask information about the half-tour for work We want to know if they were at work prior to their trip or intend 
-at work after their trip, according to the below coming from/going to logic.
+to be at work after their trip, according to the below coming from/going to logic.
 
 
 ## Cases
 
-| **Case** | **Coming from**        | **Going to**           | **Employed?**                  | **Ask if at work before trip** | **Ask if at work after trip**  |
+| **Case** | **Trip Origin**        | **Trip Destination**   | **Employed?**                  | **Ask if at work before trip** | **Ask if at work after trip**  |
 |:---------|:-----------------------|:-----------------------|:-------------------------------|:-------------------------------|:-------------------------------|
 | 1.       | Home                   | Work                   | Don't ask                      | Don't ask                      | Don't Ask                      |
 | 2.       | Home                   | Other                  | Ask                            | Don't ask                      | Ask (if employed = yes)        |
