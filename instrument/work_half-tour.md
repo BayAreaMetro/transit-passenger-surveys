@@ -18,24 +18,23 @@ at work after their trip, according to the below coming from/going to logic.
 | 7.       | Other                  | Other                  | Ask (if employed = yes)        | Ask (if employed = yes)        | Ask (if employed = yes)        |
 
  <br/>
- <br/>
- <br/>
+
 
 ## "Other" origin or destination; home-work-other cases
 
 ```
-1. Work-related
-2. Hotel (visitors only)
-3. Social or recreational
-4. Shopping
-5. College/university (student only)
-6. School (K-12) (student only)
-7. Airport (airline passengers only)
-8. Medical/dental
-9. Dining/coffee
-10.Escorting others (pick up/drop off)
-11.Personal business
-12.Other: (any text)    
+1.  Work-related
+2.  Hotel (visitors only)
+3.  Social or recreational
+4.  Shopping
+5.  College/university (student only)
+6.  School (K-12) (student only)
+7.  Airport (airline passengers only)
+8.  Medical/dental
+9.  Dining/coffee
+10. Escorting others (pick up/drop off)
+11. Personal business
+12. Other: (any text)    
 ```
 
 
