@@ -18,8 +18,7 @@ at work after their trip, according to the below coming from/going to logic.
 | 7.       | Other                  | Other                  | Ask (if employed = yes)        | Ask (if employed = yes)        | Ask (if employed = yes)        |
 
  <br/>
-
-
+     
 ## "Other" origin or destination; home-work-other cases
 
 ```
