@@ -1,6 +1,12 @@
 # At-Work Tour Logic
 
 
+The below table explains cases in which we ask information about the half-tour for work We want to know if they were at work prior to their trip or intend 
+at work after their trip, according to the below coming from/going to logic.
+
+
+## Cases
+
 | **Case** | **Coming from**        | **Going to**           | **Employed?**                  | **Ask if at work before trip** | **Ask if at work after trip**  |
 |:---------|:-----------------------|:-----------------------|:-------------------------------|:-------------------------------|:-------------------------------|
 | 1.       | Home                   | Work                   | Don't ask                      | Don't ask                      | Don't Ask                      |
@@ -11,7 +17,9 @@
 | 6.       | Other                  | Work                   | Don't ask                      | Ask                            | Don't ask                      |
 | 7.       | Other                  | Other                  | Ask (if employed = yes)        | Ask (if employed = yes)        | Ask (if employed = yes)        |
 
-
+ <br/>
+ <br/>
+ <br/>
 
 ## "Other" origin or destination; home-work-other cases
 
@@ -27,8 +35,7 @@
 9. Dining/coffee
 10.Escorting others (pick up/drop off)
 11.Personal business
-12.Other: (any text) 
-  
+12.Other: (any text)    
 ```
 
 
