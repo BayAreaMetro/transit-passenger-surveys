@@ -32,24 +32,27 @@ Transit passenger data collection and analysis. This document summarizes the dat
 ```
 
 ### Access and egress modes
-```
-[Access mode from trip origin to first transit boarding](access.md)  
-[Egress mode from last transit alighting to trip destination](egress.md)  
-```
-### Transit transfers  
-Up to three intra- and inter-operator transfers to surveyed vehicle for this trip  
-Up to three intra- and inter-operator transfers from surveyed vehicle for this trip  
 
+1. [Access mode from trip origin to first transit boarding](access.md)  
+2. [Egress mode from last transit alighting to trip destination](egress.md)  
+
+### Transit transfers
+```
+1. Up to three intra- and inter-operator transfers to surveyed vehicle for this trip  
+2. Up to three intra- and inter-operator transfers from surveyed vehicle for this trip  
+```
 
 ### Origin and destination trip purposes
-Origin type  
-Destination type  
+
+1. [Origin type](./origin.md)  
+2. [Destination type](./destination.md)  
 
 
 ### Time leaving and returning home
-Time leaving home prior to this trip, by hour  
-Time returning home after this trip, by hour  
-
+```
+1. Time leaving home prior to this trip, by hour  
+2. Time returning home after this trip, by hour  
+```
 
 ### Fare payment
 Payment method  
