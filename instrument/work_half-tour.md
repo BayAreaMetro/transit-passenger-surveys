@@ -1,7 +1,7 @@
-## At-Work Tour Logic
+# At-Work Tour Logic
 
 
-| **Case*  | **Coming from**        | **Going to**           | **Employed?**                  | **Ask if at work before trip** | **Ask if at work after trip**  |
+| **Case** | **Coming from**        | **Going to**           | **Employed?**                  | **Ask if at work before trip** | **Ask if at work after trip**  |
 |:---------|:-----------------------|:-----------------------|:-------------------------------|:-------------------------------|:-------------------------------|
 | 1.       | Home                   | Work                   | Don't ask                      | Don't ask                      | Don't Ask                      |
 | 2.       | Home                   | Other                  | Ask                            | Don't ask                      | Ask (if employed = yes)        |
@@ -13,16 +13,23 @@
 
 
 
+## "Other" origin or destination; home-work-other cases
 
-
-
-
-
-
-	
-
-
-
+```
+1. Work-related
+2. Hotel (visitors only)
+3. Social or recreational
+4. Shopping
+5. College/university (student only)
+6. School (K-12) (student only)
+7. Airport (airline passengers only)
+8. Medical/dental
+9. Dining/coffee
+10.Escorting others (pick up/drop off)
+11.Personal business
+12.Other: (any text) 
+  
+```
 
 
 
