@@ -6,16 +6,16 @@ Transit passenger data collection and analysis. This document summarizes the dat
 
 ## Mandatory questions in every operator survey
 
-1. [Geocoded location data](#geocoded-location-data)  
-2. [Access and egress modes](#access-and-egress-modes)  
-3. [Transit transfers (intra- and inter-operator transfers)](#transit-transfers)  
-4. [Origin and destination trip purposes](#origin-and-destination-trip-purposes)  
-5. [Time leaving and returning home](#time-leaving-and-returning-home)  
-6. [Fare payment](#fare-payment)  
-7. [Half-tour questions for work and school](#half-tour-questions-for-work-and-school)  
-8. [Person demographics](#person-demographics)  
-9. [Household demographics](#household-demographics)  
-10.[Data items entered by surveyor or passively collected](#data-items-entered-by-surveyor-or-passively-collected)  
+1.  [Geocoded location data](#geocoded-location-data)  
+2.  [Access and egress modes](#access-and-egress-modes)  
+3.  [Transit transfers (intra- and inter-operator transfers)](#transit-transfers)  
+4.  [Origin and destination trip purposes](#origin-and-destination-trip-purposes)  
+5.  [Time leaving and returning home](#time-leaving-and-returning-home)  
+6.  [Fare payment](#fare-payment)  
+7.  [Half-tour questions for work and school](#half-tour-questions-for-work-and-school)  
+8.  [Person demographics](#person-demographics)  
+9.  [Household demographics](#household-demographics)  
+10. [Data items entered by surveyor or passively collected](#data-items-entered-by-surveyor-or-passively-collected)  
  
 
 
