@@ -93,18 +93,3 @@ Overall survey completion percentage
 
  
 
-A dyno-path assignment MUST include the following files:
-
-Filename 			| Description										
-----------			| -------------										
-[`location`](/files/location.md)		| passenger paths that were chosen
-[`chosen_links.csv`](/files/links.md)		| links for chosen paths
-
-A dyno-path assignment MAY include the following files:
-
-Filename 					| Description										
-----------					| -------------		
-[`pathset_paths.csv`](/files/paths.md)		| path-based information for pathsets
-[`pathset_links.csv`](/files/links.md)		| link-based information for pathsets
-
-
