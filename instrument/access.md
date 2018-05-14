@@ -1,4 +1,4 @@
-# Access Mode [(Return to Top)](./README.md)
+# Access Mode 
 
 
 This refers to the transportation mode used to access the very first encounter with transit. For example,  
@@ -21,6 +21,6 @@ is the mode used to access AC Transit.
 7. Drove or rode with others and parked     
 ```
 
-
+[Return to Top](./README.md)
 
 
