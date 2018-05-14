@@ -35,7 +35,8 @@ to be at work after their trip, according to the below coming from/going to logi
 11. Personal business
 12. Other: (any text)    
 ```
-<br/>
+<br/>  
+
 [Return to summary](README.md/#half-tour-questions-for-work-and-school)
 
 
