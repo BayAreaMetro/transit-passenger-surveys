@@ -22,6 +22,6 @@ is the mode used to egress from BART.
     
 ```
 
-[Return to summary](./README.md)
+[Return to summary](README.md/#access-and-egress-modes)
 
 
