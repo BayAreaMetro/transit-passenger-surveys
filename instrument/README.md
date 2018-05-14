@@ -44,8 +44,8 @@ Transit passenger data collection and analysis. This document summarizes the dat
 
 ### Origin and destination trip purposes
 
-[1. Origin type](./origin.md)  
-[2. Destination type](./destination.md)  
+[1. Origin type](origin.md)  
+[2. Destination type](destination.md)  
 
 
 ### Time leaving and returning home
