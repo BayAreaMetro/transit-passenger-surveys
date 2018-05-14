@@ -21,6 +21,6 @@ is the mode used to access AC Transit.
 7. Drove or rode with others and parked     
 ```
 
-[Return to Top](./README.md)
+[Return to summary](./README.md)
 
 
