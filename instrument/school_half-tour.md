@@ -34,5 +34,5 @@ to be at school after their trip, according to the below coming from/going to lo
 10. Personal business
 11. Other: (any text)    
 ```
-
+<br/>
 [Return to summary](README.md/#half-tour-questions-for-work-and-school)
