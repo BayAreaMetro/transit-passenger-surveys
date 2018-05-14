@@ -33,8 +33,8 @@ Transit passenger data collection and analysis. This document summarizes the dat
 
 ### Access and egress modes
 
-1. [Access mode from trip origin to first transit boarding](access.md)  
-2. [Egress mode from last transit alighting to trip destination](egress.md)  
+[1. Access mode from trip origin to first transit boarding](access.md)  
+[2. Egress mode from last transit alighting to trip destination](egress.md)  
 
 ### Transit transfers
 ```
@@ -44,8 +44,8 @@ Transit passenger data collection and analysis. This document summarizes the dat
 
 ### Origin and destination trip purposes
 
-1. [Origin type](./origin.md)  
-2. [Destination type](./destination.md)  
+[1. Origin type](./origin.md)  
+[2. Destination type](./destination.md)  
 
 
 ### Time leaving and returning home
@@ -55,12 +55,12 @@ Transit passenger data collection and analysis. This document summarizes the dat
 ```
 
 ### Fare payment
-1. Payment method (see [examples)](payment_method.md)  
+1. Payment method(payment_method.md)  
 2. Payment category (see [examples)](payment_category.md)  
 
 ### Half tour questions for work and school
-1. Did/will passenger go to work before/after transit trip (see [logic](./work_half-tour.md))    
-2. Did/will passenger go to school before/after transit trip (see [logic](./school_half-tour.md))  
+[1. Did/will passenger go to work before/after transit trip](work_half-tour.md))    
+[2. Did/will passenger go to school before/after transit trip](school_half-tour.md)  
 
 
 ### Person demographics
