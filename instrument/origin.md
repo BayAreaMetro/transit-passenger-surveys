@@ -25,6 +25,6 @@ origin type would be "dining/coffee," not "home."
 14. Other (specify)
 ```
 
-[Return to summary](./README.md)
+[Return to summary](README.md)
 
 

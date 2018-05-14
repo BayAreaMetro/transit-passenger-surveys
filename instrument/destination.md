@@ -25,6 +25,6 @@ destination type would be "personal business," not "home."
 14. Other (specify)
 ```
 
-[Return to summary](./README.md)
+[Return to summary](README.md/#origin-and-destination-trip-purposes)
 
 
