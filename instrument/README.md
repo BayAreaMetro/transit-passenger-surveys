@@ -55,23 +55,23 @@ Transit passenger data collection and analysis. This document summarizes the dat
 ```
 
 ### Fare payment
-Payment method  
-Payment category  
+1. Payment method (see [examples)](payment_method.md)  
+2. Payment category (see [examples)](payment_category.md)  
 
 ### Half tour questions for work and school
-Did/will passenger go to work before/after transit trip (see [logic](./work_half-tour.md))    
-Did/will passenger go to school before/after transit trip (see [logic](./school_half-tour.md))  
+1. Did/will passenger go to work before/after transit trip (see [logic](./work_half-tour.md))    
+2. Did/will passenger go to school before/after transit trip (see [logic](./school_half-tour.md))  
 
 
 ### Person demographics
 
-Hispanic/Latino status  
-Race  
-Age  
-Gender (may be observed)  
-Worker status  
-Student status  
-Ability to speak English  
+1. Hispanic/Latino status  
+2. Race  
+3. Age  
+4. Gender (may be observed)  
+5. Worker status  
+6. Student status  
+7. Ability to speak English  
 
 
 ### Household demographics
@@ -84,12 +84,12 @@ Household income
 
 ### Data items entered by surveyor or passively collected
 
-Survey type (tablet, two-step CATI, or paper)  
-Language survey conducted in  
-Date survey collected   
-Time survey collected   
-Vehicle boarding time (may be continuous time or by day-part)  
-Overall survey completion percentage  
+1. Survey type (tablet, two-step CATI, or paper)  
+2. Language survey conducted in  
+3. Date survey collected   
+4. Time survey collected   
+5. Vehicle boarding time (may be continuous time or by day-part)  
+6. Overall survey completion percentage  
 
  
 
