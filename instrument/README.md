@@ -76,20 +76,20 @@ Transit passenger data collection and analysis. This document summarizes the dat
 
 ### Household demographics
 
-Language spoken at home other than English  
-Number of persons in household  
-Number of workers in household  
-Number of household working vehicles  
-Household income  
+1. Language spoken at home other than English  
+2. Number of persons in household  
+3. Number of workers in household  
+4. Number of household working vehicles  
+5. Household income  
 
 ### Data items entered by surveyor or passively collected
-
+```
 1. Survey type (tablet, two-step CATI, or paper)  
 2. Language survey conducted in  
 3. Date survey collected   
 4. Time survey collected   
 5. Vehicle boarding time (may be continuous time or by day-part)  
 6. Overall survey completion percentage  
-
+```
  
 
