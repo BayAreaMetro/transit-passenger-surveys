@@ -70,4 +70,4 @@ The below tables summarize the household demographic data collected in the trans
 
 <br/>  
 
-[Return to summary](README.md/#person-demographics)
+[Return to summary](README.md/#household-demographics)
