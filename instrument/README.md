@@ -65,13 +65,13 @@ Transit passenger data collection and analysis. This document summarizes the dat
 
 ### Person demographics
 
-1. Hispanic/Latino status  
-2. Race  
-3. Age  
-4. Gender (may be observed)  
-5. Worker status  
-6. Student status  
-7. Ability to speak English  
+[1. Hispanic/Latino status](person.md)    
+[2. Race](person.md)    
+[3. Age](person.md)    
+[4. Gender (may be observed)](person.md)    
+[5. Worker status](person.md)    
+[6. Student status](person.md)    
+[7. Ability to speak English](person.md)    
 
 
 ### Household demographics
