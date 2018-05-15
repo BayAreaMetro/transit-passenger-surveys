@@ -55,8 +55,8 @@ Transit passenger data collection and analysis. This document summarizes the dat
 ```
 
 ### Fare payment
-[1. Payment method](payment_method.md)  
-[2. Payment category](payment_category.md)  
+[1. Payment method](fare.md)  
+[2. Payment category](fare.md)  
 
 ### Half tour questions for work and school
 [1. Did/will passenger go to work before/after transit trip](work_half-tour.md))    
