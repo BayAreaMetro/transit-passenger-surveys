@@ -59,7 +59,7 @@ Transit passenger data collection and analysis. This document summarizes the dat
 [2. Payment category](fare.md)  
 
 ### Half tour questions for work and school
-[1. Did/will passenger go to work before/after transit trip](work_half-tour.md))    
+[1. Did/will passenger go to work before/after transit trip](work_half-tour.md)   
 [2. Did/will passenger go to school before/after transit trip](school_half-tour.md)  
 
 
