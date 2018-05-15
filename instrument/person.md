@@ -35,7 +35,7 @@ responses are provided, the racial category will be indicated as "multi-racial."
 
 | **Responses**                      |
 |:-----------------------------------|
-| 1. Continuous (year born is asked  |
+| 1. Continuous (year born is asked) |
 
 
 ## Gender
