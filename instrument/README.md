@@ -76,11 +76,11 @@ Transit passenger data collection and analysis. This document summarizes the dat
 
 ### Household demographics
 
-1. Language spoken at home other than English  
-2. Number of persons in household  
-3. Number of workers in household  
-4. Number of household working vehicles  
-5. Household income  
+[1. Language spoken at home other than English](household.md)  
+[2. Number of persons in household](household.md)    
+[3. Number of workers in household](household.md)    
+[4. Number of household working vehicles](household.md)    
+[5. Household income](household.md)    
 
 ### Data items entered by surveyor or passively collected
 ```
