@@ -1,3 +1,12 @@
+
+# Variable Dictionary
+
+Below is an example variable dictionary used to convert survey variables as delivered from vendors into the standard MTC format. The "Generic_Variable"  
+and "Generic_Response" fields are the standard MTC survey field. This example is taken from the San Francisco MUNI survey conducted by ETC Institute. 
+
+
+
+
 | Survey_Variable              | Survey_Response                                                | Generic_Variable                 | Generic_Response                         |
 |:-----------------------------|:---------------------------------------------------------------|:---------------------------------|:-----------------------------------------|
 | final_change_to_access_mode  | Walk all the way                                               | access_mode                      | walk                                     |
@@ -248,3 +257,7 @@
 | number_transfers_alight_dest | 2                                                              | number_transfers_alight_dest     | 2                                        |
 | number_transfers_alight_dest | 3                                                              | number_transfers_alight_dest     | 3                                        |
 | number_transfers_alight_dest | 4                                                              | number_transfers_alight_dest     | 4                                        |
+
+<br/>  
+
+[Return to summary](README.md)
