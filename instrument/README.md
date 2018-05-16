@@ -1,7 +1,7 @@
 
 ## Onboard-Surveys
 
-Transit passenger data collection and analysis. This document summarizes the data collected in the transit passenger survey.
+Transit passenger data collection and analysis. This document summarizes the data collected in the transit passenger survey. A data dictionary of survey variables found in MTC's public release data can be found [here](data_dictionary.md).An example equivalency file that converts vendor survey records to MTC's standard output variables can be found [here](variable_dictionary.md).
 
 
 ## Mandatory questions in every operator survey

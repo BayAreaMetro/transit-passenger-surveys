@@ -31,7 +31,7 @@ customized for each operator.
 | 5. Disabled                          |
 | 6. Senior or disabled                |
 | 7. Low income (Lifeline)             |
-| 8. Free (seniors, youth, disability  |
+| 8. Free (seniors, youth, disability) |
 
 
 <br/>  
