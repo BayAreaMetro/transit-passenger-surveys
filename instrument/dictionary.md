@@ -1,7 +1,7 @@
 
 # Variable Dictionary
 
-Below is an example variable dictionary used to convert survey variables and responses as delivered from vendors (in this case "Survey_Variables" and "Survey Response") into the standard MTC format. The "Generic_Variable" and "Generic_Response" fields are the standard MTC survey fields. This example is taken from the San Francisco MUNI survey conducted by ETC Institute. 
+Below is an example variable dictionary used to convert survey variables and responses as delivered from vendors ("Survey_Variable" and "Survey Response") into the standard MTC format. The "Generic_Variable" and "Generic_Response" fields are the standard MTC survey fields. This example is taken from the San Francisco MUNI survey conducted by ETC Institute. 
 
 
 <br/>
