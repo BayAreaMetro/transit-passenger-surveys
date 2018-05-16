@@ -41,7 +41,7 @@ responses are provided, the racial category will be indicated as "multi-racial."
 ## Gender
 
 
-| **Responses**                      |
+| **Responses (may be observed**     |
 |:-----------------------------------|
 | 1. Male                            |
 | 2. Female                          |

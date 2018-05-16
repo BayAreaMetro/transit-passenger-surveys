@@ -55,8 +55,8 @@ Transit passenger data collection and analysis. This document summarizes the dat
 ```
 
 ### Fare payment
-[1. Payment method](fare.md)  
-[2. Payment category](fare.md)  
+[1. Payment method](fare.md/#payment-method)  
+[2. Payment category](fare.md/#payment-category)  
 
 ### Half tour questions for work and school
 [1. Did/will passenger go to work before/after transit trip](work_half-tour.md)   
@@ -66,20 +66,20 @@ Transit passenger data collection and analysis. This document summarizes the dat
 ### Person demographics
 
 [1. Hispanic/Latino status](person.md)    
-[2. Race](person.md)    
-[3. Age](person.md)    
-[4. Gender (may be observed)](person.md)    
-[5. Worker status](person.md)    
-[6. Student status](person.md)    
-[7. Ability to speak English](person.md)    
+[2. Race](person.md/#race)    
+[3. Age](person.md/#age)    
+[4. Gender (may be observed)](person.md/#gender)    
+[5. Worker status](person.md/#worker-status)    
+[6. Student status](person.md/#student-status)    
+[7. Ability to speak English](person.md/#ability-to-speak-english)    
 
 
 ### Household demographics
 
-[1. Language spoken at home other than English](household.md)  
-[2. Number of persons in household](household.md)    
-[3. Number of workers in household](household.md)    
-[4. Number of household working vehicles](household.md)    
+[1. Language spoken at home other than English](household.md/#language-spoken-at-home)  
+[2. Number of persons in household](household.md/#number-of-persons-in-household)    
+[3. Number of workers in household](household.md/#number-of-workers-in-household)    
+[4. Number of household working vehicles](household.md/#number-of-household-working-vehicles)    
 [5. Household income](household.md/#household-income)    
 
 ### Data items entered by surveyor or passively collected
