@@ -80,7 +80,7 @@ Transit passenger data collection and analysis. This document summarizes the dat
 [2. Number of persons in household](household.md)    
 [3. Number of workers in household](household.md)    
 [4. Number of household working vehicles](household.md)    
-[5. Household income](household.md)    
+[5. Household income](household.md/#household-income)    
 
 ### Data items entered by surveyor or passively collected
 ```
