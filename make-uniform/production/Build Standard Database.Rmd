@@ -10,53 +10,77 @@ output:
 ## Administration
 
 #### Purpose
-Procedure to translate any number of on-board survey data sets into a single dataset with common variables and common responses.  This is a work-in-progress production version of the procedures.  See ``../mini-example`` and ``../small-example`` for working proto-types.  In this script, we put in place procedures to process surveys into a standard database.  See ``Extract Variables from Legacy Surveys.Rmd`` for procedures to extract variables from legacy surveys (i.e., those with SAS summary scripts). 
+Procedure to translate any number of on-board survey data sets into a single 
+dataset with common variables and common responses.  This is a work-in-progress 
+production version of the procedures.  See ``../mini-example`` and 
+``../small-example`` for working proto-types.  In this script, we put in place 
+procedures to process surveys into a standard database.  See 
+``Extract Variables from Legacy Surveys.Rmd`` for procedures to extract 
+variables from legacy surveys (i.e., those with SAS summary scripts). 
 
 #### _ISSUES_
 1.  Work carefully through first few datasets, as the code is a bit coarse in places
 
 #### _TODO_
+1. New users should add their username and relative file path to 
+"user_lookup.csv" in this folder.
 
 ## Overhead
 
 #### Libraries
 ```{r overhead}
-library(knitr)
-library(reshape2)
-suppressMessages(library(dplyr))
-library(stringr)
+list.of.packages <- c(
+  "tidyverse",
+  "knitr"
+  )
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+
+if(length(new.packages)) install.packages(new.packages)
+
+for (p in list.of.packages){
+  library(p, character.only = TRUE)
+}
 ```
 
 #### Knitr config
 ```{r config, include=FALSE}
-knitr::opts_chunk$set(cache=TRUE)
+knitr::opts_chunk$set(cache=TRUE, error = TRUE)
+suppressMessages(library(tidyverse))
+options(stringsAsFactors = FALSE)
 ```
 
 #### Remote file names
 ```{r file-names}
-F_SPATIAL_TO_BE_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/spatial_places_to_be_geocoded.csv"
-F_BOARD_TO_BE_GEOCODED   = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/boarding_places_to_be_geocoded.csv"
-F_ALIGHT_TO_BE_GEOCODED  = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/alighting_places_to_be_geocoded.csv"
+user_list <- read.csv("user_lookup.csv")
+me <- Sys.getenv("USERNAME")
+dir_path <- user_list %>%
+  filter(user == me) %>%
+  .$path_switch
 
-F_SPATIAL_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/spatial_places_geocoded.csv"
-F_TRANSIT_GEOCODED = "M:/Data/OnBoard/Data and Reports/_geocoding Standardized/boarding_alighting_places_geocoded.csv"
+f_spatial_to_be_geocoded_path = paste0(dir_path, "Data and Reports/_geocoding Standardized/spatial_places_to_be_geocoded.csv")
+f_board_to_be_geocoded_path = paste0(dir_path, "Data and Reports/_geocoding Standardized/boarding_places_to_be_geocoded.csv")
+f_alight_to_be_geocoded_path = paste0(dir_path, "Data and Reports/_geocoding Standardized/alighting_places_to_be_geocoded.csv")
 
-F_CALTRAIN_SURVEY = "M:/Data/OnBoard/Data and Reports/Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv"
+f_spatial_geocoded_path = paste0(dir_path, "Data and Reports/_geocoding Standardized/spatial_places_geocoded.csv")
+f_transit_geocoded_path = paste0(dir_path, "Data and Reports/_geocoding Standardized/boarding_alighting_places_geocoded.csv")
 
-F_NAPA_SURVEY     = "M:/Data/OnBoard/Data and Reports/Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv"
+f_caltrain_survey_path = paste0(dir_path, "Data and Reports/Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
 
-F_BART_SURVEY = "M:/Data/OnBoard/Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv"
+f_napa_survey_path = paste0(dir_path, "Data and Reports/Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
 
-F_MUNI_SURVEY = "M:/Data/OnBoard/Data and Reports/Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv"
+f_bart_survey_path = paste0(dir_path, "Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
 
-F_VTA_SURVEY = "M:/Data/OnBoard/Data and Reports/VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv"
+f_muni_survey_path = paste0(dir_path, "Data and Reports/Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 
-F_OUTPUT_RDATA           = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.RData"
-F_OUTPUT_CSV             = "M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard.csv"
-F_ANCILLARY_OUTPUT_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.RData"
-F_ANCILLARY_OUTPUT_CSV   = "M:/Data/OnBoard/Data and Reports/_data Standardized/ancillary_variables.csv"
-F_OUTPUT_DECOM_RDATA = "M:/Data/OnBoard/Data and Reports/_data Standardized/decomposition/survey_decomposition.RData"
-F_OUTPUT_DECOM_CSV = "M:/Data/OnBoard/Data and Reports/_data Standardized/decomposition/survey_decomposition.csv"
+f_vta_survey_path = paste0(dir_path, "Data and Reports/VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
+
+f_output_rdata_path = paste0(dir_path, "Data and Reports/_data Standardized/survey_standard.RData")
+f_output_csv_path = paste0(dir_path, "Data and Reports/_data Standardized/survey_standard.csv")
+f_ancillary_output_rdata_path = paste0(dir_path, "Data and Reports/_data Standardized/ancillary_variables.RData")
+f_ancillary_output_csv_path = paste0(dir_path, "Data and Reports/_data Standardized/ancillary_variables.csv")
+f_output_decom_rdata_path = paste0(dir_path, "Data and Reports/_data Standardized/decomposition/survey_decomposition.RData")
+f_output_decom_csv_path = paste0(dir_path, "Data and Reports/_data Standardized/decomposition/survey_decomposition.csv")
 ```
 
 
