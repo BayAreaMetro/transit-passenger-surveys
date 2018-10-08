@@ -11,34 +11,34 @@ output:
 
 #### Purpose
 Procedure to translate any number of on-board survey data sets into a single 
-dataset with common variables and common responses.  This is a work-in-progress 
-production version of the procedures.  See ``../mini-example`` and 
-``../small-example`` for working proto-types.  In this script, we put in place 
-procedures to process surveys into a standard database.  See 
-``Extract Variables from Legacy Surveys.Rmd`` for procedures to extract 
-variables from legacy surveys (i.e., those with SAS summary scripts). 
+dataset with common variables and common responses_  This is a work-in-progress 
+production version of the procedures_  See ``__/mini-example`` and 
+``__/small-example`` for working proto-types_  In this script, we put in place 
+procedures to process surveys into a standard database_  See 
+``Extract Variables from Legacy Surveys_Rmd`` for procedures to extract 
+variables from legacy surveys (i_e_, those with SAS summary scripts)_ 
 
 #### _ISSUES_
-1.  Work carefully through first few datasets, as the code is a bit coarse in places
+1_  Work carefully through first few datasets, as the code is a bit coarse in places
 
 #### _TODO_
-1. New users should add their username and relative file path to 
-"user_lookup.csv" in this folder.
+1_ New users should add their username and relative file path to 
+"user_lookup.csv" in this folder_
 
 ## Overhead
 
 #### Libraries
 ```{r overhead}
-list.of.packages <- c(
+list_of_packages <- c(
   "tidyverse",
   "knitr"
   )
 
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+new_packages <- list_of_packages[!(list_of_packages %in% installed.packages()[,"Package"])]
 
-if(length(new.packages)) install.packages(new.packages)
+if(length(new_packages)) install.packages(new_packages)
 
-for (p in list.of.packages){
+for (p in list_of_packages){
   library(p, character.only = TRUE)
 }
 ```
@@ -58,44 +58,63 @@ dir_path <- user_list %>%
   filter(user == me) %>%
   .$path_switch
 
-f_spatial_to_be_geocoded_path = paste0(dir_path, "Data and Reports/_geocoding Standardized/spatial_places_to_be_geocoded.csv")
-f_board_to_be_geocoded_path = paste0(dir_path, "Data and Reports/_geocoding Standardized/boarding_places_to_be_geocoded.csv")
-f_alight_to_be_geocoded_path = paste0(dir_path, "Data and Reports/_geocoding Standardized/alighting_places_to_be_geocoded.csv")
+f_spatial_to_be_geocoded_path <- paste0(dir_path, 
+  "Data and Reports/_geocoding Standardized/spatial_places_to_be_geocoded.csv")
+f_board_to_be_geocoded_path <- paste0(dir_path, 
+  "Data and Reports/_geocoding Standardized/boarding_places_to_be_geocoded.csv")
+f_alight_to_be_geocoded_path <- paste0(dir_path, 
+  "Data and Reports/_geocoding Standardized/alighting_places_to_be_geocoded.csv")
 
-f_spatial_geocoded_path = paste0(dir_path, "Data and Reports/_geocoding Standardized/spatial_places_geocoded.csv")
-f_transit_geocoded_path = paste0(dir_path, "Data and Reports/_geocoding Standardized/boarding_alighting_places_geocoded.csv")
+f_spatial_geocoded_path <- paste0(dir_path, 
+  "Data and Reports/_geocoding Standardized/spatial_places_geocoded.csv")
+f_transit_geocoded_path <- paste0(dir_path, 
+  "Data and Reports/_geocoding Standardized/boarding_alighting_places_geocoded.csv")
 
-f_caltrain_survey_path = paste0(dir_path, "Data and Reports/Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
+f_caltrain_survey_path <- paste0(dir_path, 
+  "Data and Reports/Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
 
-f_napa_survey_path = paste0(dir_path, "Data and Reports/Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
+f_napa_survey_path <- paste0(dir_path, 
+  "Data and Reports/Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
 
-f_bart_survey_path = paste0(dir_path, "Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
+f_bart_survey_path <- paste0(dir_path, 
+  "Data and Reports/BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
 
-f_muni_survey_path = paste0(dir_path, "Data and Reports/Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
+f_muni_survey_path <- paste0(dir_path, 
+  "Data and Reports/Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 
-f_vta_survey_path = paste0(dir_path, "Data and Reports/VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
+f_vta_survey_path <- paste0(dir_path, 
+  "Data and Reports/VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 
-f_output_rdata_path = paste0(dir_path, "Data and Reports/_data Standardized/survey_standard.RData")
-f_output_csv_path = paste0(dir_path, "Data and Reports/_data Standardized/survey_standard.csv")
-f_ancillary_output_rdata_path = paste0(dir_path, "Data and Reports/_data Standardized/ancillary_variables.RData")
-f_ancillary_output_csv_path = paste0(dir_path, "Data and Reports/_data Standardized/ancillary_variables.csv")
-f_output_decom_rdata_path = paste0(dir_path, "Data and Reports/_data Standardized/decomposition/survey_decomposition.RData")
-f_output_decom_csv_path = paste0(dir_path, "Data and Reports/_data Standardized/decomposition/survey_decomposition.csv")
+f_output_rdata_path <- paste0(dir_path, 
+  "Data and Reports/_data Standardized/survey_standard.RData")
+f_output_csv_path <- paste0(dir_path, 
+  "Data and Reports/_data Standardized/survey_standard.csv")
+f_ancillary_output_rdata_path <- paste0(dir_path, 
+  "Data and Reports/_data Standardized/ancillary_variables.RData")
+f_ancillary_output_csv_path <- paste0(dir_path, 
+  "Data and Reports/_data Standardized/ancillary_variables.csv")
+f_output_decom_rdata_path <- paste0(dir_path, 
+  "Data and Reports/_data Standardized/decomposition/survey_decomposition.RData")
+f_output_decom_csv_path <- paste0(dir_path, 
+  "Data and Reports/_data Standardized/decomposition/survey_decomposition.csv")
 ```
 
 
 ## Prepare Dictionaries
 ```{r prepare-dictionary}
-dictionary.all <- read.csv('Dictionary for Standard Database.csv', header = TRUE)
+dictionary_all <- read.csv('Dictionary for Standard Database.csv', 
+                           header = TRUE
+                           )
+colnames(dictionary_all) <- tolower(colnames(dictionary_all))
 
 # Prepare separate dictionaries for categorical and non-categorical variables
-dictionary.non <- dictionary.all %>%
-  filter(Generic_Response == 'NONCATEGORICAL') %>%
-  select(operator, Survey_Variable, Generic_Variable)
+dictionary_non <- dictionary_all %>%
+  filter(generic_response == 'NONCATEGORICAL') %>%
+  select(operator, survey_variable, generic_variable)
 
-dictionary.cat <- dictionary.all %>%
-  filter(Generic_Response != 'NONCATEGORICAL') %>%
-  mutate(Survey_Response = as.character(Survey_Response))
+dictionary_cat <- dictionary_all %>%
+  filter(generic_response != 'NONCATEGORICAL') %>%
+  mutate(survey_response = as.character(survey_response))
 
 ```
 
@@ -103,220 +122,272 @@ dictionary.cat <- dictionary.all %>%
 
 ### BART
 ```{r operator-bart}
-survey.BAR.key  <- 'BART'
-survey.BAR.year <- 2015
+survey_BAR_key  <- 'BART'
+survey_BAR_year <- 2015
 
 # Set survey tech by route if necessary in chunk `combine`
-survey.BAR.tech <- 'heavy rail'
+survey_BAR_tech <- 'heavy rail'
 
 # Prepare operator-specific dictionary
-dictionary.BAR <- dictionary.all %>%
-  filter(operator == survey.BAR.key)
+dictionary_BAR <- dictionary_all %>%
+  filter(operator == survey_BAR_key)
 
-variables.BAR <- as.character(factor(unique(unlist(dictionary.BAR$Survey_Variable, use.names = TRUE))))
+variables_BAR <- dictionary_BAR$survey_variable %>% 
+  unique()
 
 # Read data and select variables of interest
-survey.BAR <- read.csv(F_BART_SURVEY, header = TRUE)
-survey.BAR.select <- survey.BAR[ ,variables.BAR]
+survey_BAR <- read.csv(f_bart_survey_path, header = TRUE)
+survey_BAR_select <- survey_BAR %>%
+  select(one_of(variables_BAR))
 
 # Reshape the data
-survey.BAR.melt <- melt(survey.BAR.select, id = 'ID')
-survey.BAR.melt <- select(survey.BAR.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.BAR.melt <- mutate(survey.BAR.melt, operator = survey.BAR.key)
-survey.BAR.melt <- mutate(survey.BAR.melt, survey_year = survey.BAR.year)
-survey.BAR.melt <- mutate(survey.BAR.melt, survey_tech = survey.BAR.tech)
+survey_BAR_gather <- survey_BAR_select %>%
+  gather(survey_variable, survey_response, -ID) %>%
+  mutate(ID = as.character(ID),
+         operator = survey_BAR_key,
+         survey_year = survey_BAR_year,
+         survey_tech = survey_BAR_tech
+         ) 
 
 # Clean up
-remove(survey.BAR.key, survey.BAR.year, survey.BAR.tech, dictionary.BAR, variables.BAR, survey.BAR, survey.BAR.select)
+remove(survey_BAR_key, 
+       survey_BAR_year, 
+       survey_BAR_tech, 
+       dictionary_BAR, 
+       variables_BAR, 
+       survey_BAR, 
+       survey_BAR_select)
 ```
 
 
 ### Caltrain
 ```{r operator-caltrain}
-survey.CAL.key  <- 'Caltrain'
-survey.CAL.year <- 2014
+survey_CAL_key  <- 'Caltrain'
+survey_CAL_year <- 2014
 
 # Set survey tech by route if necessary in chunk `combine`
-survey.CAL.tech <- 'commuter rail'
+survey_CAL_tech <- 'commuter rail'
 
 # Prepare operator-specific dictionary
-dictionary.CAL <- dictionary.all %>%
-  filter(operator == survey.CAL.key)
+dictionary_CAL <- dictionary_all %>%
+  filter(operator == survey_CAL_key)
 
-variables.CAL <- as.character(factor(unique(unlist(dictionary.CAL$Survey_Variable, use.names = TRUE))))
+variables_CAL <- dictionary_CAL$survey_variable %>% 
+  unique()
 
 # Read data and select variables of interest
-survey.CAL <- read.csv(F_CALTRAIN_SURVEY, header = TRUE)
-survey.CAL.select <- survey.CAL[ ,variables.CAL]
+survey_CAL <- read.csv(f_caltrain_survey_path, header = TRUE)
+survey_CAL_select <- survey_CAL %>%
+  select(one_of(variables_CAL))
 
 # Reshape the data
-survey.CAL.melt <- melt(survey.CAL.select, id = 'ID')
-survey.CAL.melt <- select(survey.CAL.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.CAL.melt <- mutate(survey.CAL.melt, operator = survey.CAL.key)
-survey.CAL.melt <- mutate(survey.CAL.melt, survey_year = survey.CAL.year)
-survey.CAL.melt <- mutate(survey.CAL.melt, survey_tech = survey.CAL.tech)
-
-# Cast Factor ID to inte
-survey.CAL.melt <- mutate(survey.CAL.melt, ID = as.numeric(ID))
+survey_CAL_gather <- survey_CAL_select %>%
+  gather(survey_variable, survey_response, -ID) %>%
+  mutate(operator = survey_CAL_key,
+         survey_year = survey_CAL_year,
+         survey_tech = survey_CAL_tech
+         ) 
 
 # Clean up
-remove(survey.CAL.key, survey.CAL.year, survey.CAL.tech, dictionary.CAL, variables.CAL, survey.CAL, survey.CAL.select)
+remove(survey_CAL_key, 
+       survey_CAL_year, 
+       survey_CAL_tech, 
+       dictionary_CAL, 
+       variables_CAL, 
+       survey_CAL, 
+       survey_CAL_select)
 ```
 
 
 ### Muni
 ```{r operator-muni}
-survey.MUN.key  <- 'SF Muni'
-survey.MUN.year <- 2017
+survey_MUN_key  <- 'SF Muni'
+survey_MUN_year <- 2017
 
 # Set survey tech by route if necessary in chunk `combine`
-survey.MUN.tech <- 'local bus'
+survey_MUN_tech <- 'local bus'
 
 # Prepare operator-specific dictionary
-dictionary.MUN <- dictionary.all %>%
-  filter(operator == survey.MUN.key)
+dictionary_MUN <- dictionary_all %>%
+  filter(operator == survey_MUN_key)
 
-variables.MUN <- as.character(factor(unique(unlist(dictionary.MUN$Survey_Variable, use.names = TRUE))))
+variables_MUN <- dictionary_MUN$survey_variable %>%
+  unique()
 
 # Read data and select variables of interest
-survey.MUN <- read.csv(F_MUNI_SURVEY, header = TRUE)
-for (var in variables.MUN) {
-  if (var %in% colnames(survey.MUN)==FALSE) {
-    print(paste(var, var %in% colnames(survey.MUN)))
-  }
-}
-survey.MUN.select <- survey.MUN[ ,variables.MUN]
+survey_MUN <- read.csv(f_muni_survey_path, header = TRUE)
+
+# JWH: I don't understand why this code is needed_
+# for (var in variables_MUN) {
+#   if (var %in% colnames(survey_MUN)==FALSE) {
+#     print(paste(var, var %in% colnames(survey_MUN)))
+#   }
+# }
+
+survey_MUN_select <- survey_MUN %>%
+  select(one_of(variables_MUN))
 
 # Reshape the data
-survey.MUN.melt <- melt(survey.MUN.select, id = 'id')
-survey.MUN.melt <- select(survey.MUN.melt, id, Survey_Variable = variable, Survey_Response = value)
-survey.MUN.melt <- mutate(survey.MUN.melt, operator = survey.MUN.key)
-survey.MUN.melt <- mutate(survey.MUN.melt, survey_year = survey.MUN.year)
-survey.MUN.melt <- mutate(survey.MUN.melt, survey_tech = survey.MUN.tech)
-colnames(survey.MUN.melt)[1] <- "ID"
+survey_MUN_gather <- survey_MUN_select %>%
+  gather(survey_variable, survey_response, -id) %>%
+  rename(ID = id) %>%
+  mutate(# ID = as.numeric(ID),
+         operator = survey_MUN_key,
+         survey_year = survey_MUN_year,
+         survey_tech = survey_MUN_tech
+         ) 
 
 # Clean up
-remove(survey.MUN.key, survey.MUN.year, survey.MUN.tech, dictionary.MUN, variables.MUN, survey.MUN, survey.MUN.select)
+remove(survey_MUN_key, survey_MUN_year, survey_MUN_tech, dictionary_MUN, variables_MUN, survey_MUN, survey_MUN_select)
 ```
 
 ### VTA
 ```{r operator-VTA}
-survey.VTA.key  <- 'VTA'
-survey.VTA.year <- 2017
+survey_VTA_key  <- 'VTA'
+survey_VTA_year <- 2017
 
 # Set survey tech by route if necessary in chunk `combine`
-survey.VTA.tech <- 'local bus'
+survey_VTA_tech <- 'local bus'
 
 # Prepare operator-specific dictionary
-dictionary.VTA <- dictionary.all %>%
-  filter(operator == survey.VTA.key)
+dictionary_VTA <- dictionary_all %>%
+  filter(operator == survey_VTA_key)
 
-variables.VTA <- as.character(factor(unique(unlist(dictionary.VTA$Survey_Variable, use.names = TRUE))))
+variables_VTA <- dictionary_VTA$survey_variable %>%
+  unique()
 
 # Read data and select variables of interest
-survey.VTA <- read.csv(F_VTA_SURVEY, header = TRUE)
-for (var in variables.VTA) {
-  if (var %in% colnames(survey.VTA)==FALSE) {
-    print(paste(var, var %in% colnames(survey.VTA)))
-  }
-}
-survey.VTA.select <- survey.VTA[ ,variables.VTA]
+survey_VTA <- read.csv(f_vta_survey_path, header = TRUE)
+
+# # JWH: I don't understand why this code is needed_
+# for (var in variables_VTA) {
+#   if (var %in% colnames(survey_VTA)==FALSE) {
+#     print(paste(var, var %in% colnames(survey_VTA)))
+#   }
+# }
+
+survey_VTA_select <- survey_VTA %>%
+  select(one_of(variables_VTA))
 
 # Reshape the data
-survey.VTA.melt <- melt(survey.VTA.select, id = 'id')
-survey.VTA.melt <- select(survey.VTA.melt, id, Survey_Variable = variable, Survey_Response = value)
-survey.VTA.melt <- mutate(survey.VTA.melt, operator = survey.VTA.key)
-survey.VTA.melt <- mutate(survey.VTA.melt, survey_year = survey.VTA.year)
-survey.VTA.melt <- mutate(survey.VTA.melt, survey_tech = survey.VTA.tech)
-colnames(survey.VTA.melt)[1] <- "ID"
+survey_VTA_gather <- survey_VTA_select %>%
+  gather(survey_variable, survey_response, -id) %>%
+  rename(ID = id) %>%
+  mutate(ID = as.character(ID),
+         operator = survey_VTA_key,
+         survey_year = survey_VTA_year,
+         survey_tech = survey_VTA_tech
+         ) 
 
 # Clean up
-remove(survey.VTA.key, survey.VTA.year, survey.VTA.tech, dictionary.VTA, variables.VTA, survey.VTA, survey.VTA.select)
+remove(survey_VTA_key, survey_VTA_year, survey_VTA_tech, dictionary_VTA, variables_VTA, survey_VTA, survey_VTA_select)
 ```
 
 
 ### Napa Vine
 ```{r operator-napa}
-survey.NAP.key  <- 'Napa Vine'
-survey.NAP.year <- 2014
+survey_NAP_key  <- 'Napa Vine'
+survey_NAP_year <- 2014
 
 # Set survey tech by route if necessary in chunk `combine`
-survey.NAP.tech <- 'local bus'
+survey_NAP_tech <- 'local bus'
 
 # Prepare operator-specific dictionary
-dictionary.NAP <- dictionary.all %>%
-  filter(operator == survey.NAP.key)
+dictionary_NAP <- dictionary_all %>%
+  filter(operator == survey_NAP_key)
 
-variables.NAP <- as.character(factor(unique(unlist(dictionary.NAP$Survey_Variable, use.names = TRUE))))
-
+variables_NAP <- dictionary_NAP$survey_variable %>%
+  unique()
+  
 # Read data and select variables of interest
-survey.NAP <- read.csv(F_NAPA_SURVEY, header = TRUE)
-survey.NAP.select <- survey.NAP[ ,variables.NAP]
+survey_NAP <- read.csv(f_napa_survey_path, header = TRUE)
+survey_NAP_select <- survey_NAP %>%
+  select(one_of(variables_NAP))
 
 # Reshape the data
-survey.NAP.melt <- melt(survey.NAP.select, id = 'ID')
-survey.NAP.melt <- select(survey.NAP.melt, ID, Survey_Variable = variable, Survey_Response = value)
-survey.NAP.melt <- mutate(survey.NAP.melt, operator = survey.NAP.key)
-survey.NAP.melt <- mutate(survey.NAP.melt, survey_year = survey.NAP.year)
-survey.NAP.melt <- mutate(survey.NAP.melt, survey_tech = survey.NAP.tech)
+survey_NAP_gather <- survey_NAP_select %>%
+  gather(survey_variable, survey_response, -ID) %>%
+  mutate(ID = as.character(ID),
+         operator = survey_NAP_key,
+         survey_year = survey_NAP_year,
+         survey_tech = survey_NAP_tech
+         ) 
 
 # Clean up
-remove(survey.NAP.key, survey.NAP.year, survey.NAP.tech, dictionary.NAP, variables.NAP, survey.NAP, survey.NAP.select)
+remove(survey_NAP_key, survey_NAP_year, survey_NAP_tech, dictionary_NAP, variables_NAP, survey_NAP, survey_NAP_select)
 ```
 
 ## Combine across operators and flatten
 ```{r combine}
-survey.combine <- rbind(survey.BAR.melt, survey.CAL.melt, survey.MUN.melt, survey.VTA.melt, survey.NAP.melt)
+survey_combine <- survey_BAR_gather %>%
+  bind_rows(survey_CAL_gather,
+            survey_MUN_gather,
+            survey_VTA_gather, 
+            survey_NAP_gather
+            )
 
 # Join the dictionary and prepare the categorical variables
-survey.cat <- mutate(survey.combine, Survey_Response = as.character(Survey_Response))
-survey.cat <- left_join(survey.cat, dictionary.cat, by = c("operator", "Survey_Variable", "Survey_Response"))
-survey.cat <- filter(survey.cat, !is.na(Generic_Variable))
-
+survey_cat <- survey_combine %>%
+  left_join(dictionary_cat, 
+            by = c("operator", "survey_variable", "survey_response")
+            ) %>%
+  filter(!is.na(generic_variable))
+  
 # check for multiple instances of (ID,operator,survey_year,survey_tech,Generic_Variable) -- it'll cause errors in the dcast
-ref_count       <- survey.cat %>% group_by(ID,operator,survey_year,survey_tech,Generic_Variable) %>% summarise( count=n() )
-mult_ref_count  <- ref_count[which(ref_count$count>1),]
-stopifnot(nrow(mult_ref_count)==0)
+ref_count <- survey_cat %>% 
+  group_by(ID, operator, survey_year, survey_tech, generic_variable) %>% 
+  summarise(count = n())
+
+mult_ref_count  <- ref_count %>%
+  filter(count > 1)
+stopifnot(nrow(mult_ref_count) == 0)
 
 # Join the dictionary and prepare the non-categorical variables
-survey.non <- left_join(survey.combine, dictionary.non, by = c("operator", "Survey_Variable"))
-survey.non <- survey.non %>%
-  filter(!is.na(Generic_Variable)) %>%
-  mutate(Generic_Response = Survey_Response)
-
+survey_non <- survey_combine %>% 
+  left_join(dictionary_non, by = c("operator", "survey_variable")) %>%
+  filter(!is.na(generic_variable)) %>%
+  mutate(generic_response = survey_response)
+  
 # Combine the categorical and non-categorical survey data and prepare to flatten
-survey.cat.to_flat <- survey.cat %>%
-  select(-Survey_Variable, -Survey_Response) %>%
-  mutate(Generic_Response = as.factor(Generic_Response))
 
-survey.non.to_flat <- survey.non %>%
-  select(-Survey_Variable, -Survey_Response) %>%
-  mutate(Generic_Response = as.factor(Generic_Response))
+# JWH: What is the purpose of the factors? They get moved back in bind_rows
 
-survey.to_flat <- rbind(survey.cat.to_flat, survey.non.to_flat)
+survey_cat_to_flat <- survey_cat %>%
+  select(-survey_variable, -survey_response) %>%
+  mutate(generic_response = as.factor(generic_response))
+
+survey_non_to_flat <- survey_non %>%
+  select(-survey_variable, -survey_response) %>%
+  mutate(generic_response = as.factor(generic_response))
+
+survey_to_flat <- survey_cat_to_flat %>%
+  bind_rows(survey_non_to_flat)
 
 # Put together and then take apart a unique ID when flattening
-survey.to_flat <- survey.to_flat %>%
+survey_to_flat <- survey_to_flat %>%
   mutate(Unique_ID = paste(ID, operator, survey_year, sep = "---")) %>%
   select(-ID, -operator, -survey_year, -survey_tech)
 
-# NOTE: if below cast warns about missing aggregation function, likely because (a) duplicate unique ID or (b) more than three variables.
+# NOTE: if below cast warns about missing aggregation function, likely because 
+# (a) duplicate unique ID or (b) more than three variables.
 # This warning should be considered fatal.
 
-survey.flat <- dcast(survey.to_flat, Unique_ID ~ Generic_Variable, value.var = 'Generic_Response')
-
-survey.flat <- cbind(survey.flat, colsplit(survey.flat$Unique_ID, "---", c("ID", "operator", "survey_year")))
-
+survey_flat <- survey_to_flat %>%
+  spread(generic_variable, generic_response) %>%
+  separate(Unique_ID, c("ID", "operator", "survey_year"), sep = "---")
+  
 # Add in survey-subject rolling stock technology
-survey.adds <- survey.combine %>%
+survey_adds <- survey_combine %>%
+  mutate(survey_year = as.character(survey_year)) %>%
   group_by(ID, operator, survey_year, survey_tech) %>%
-  summarise(Count = n()) %>%
-  select(-Count)
+  summarise(count = n()) %>%
+  select(-count)
 
-survey.flat <- left_join(survey.flat, survey.adds, by = c("ID", "operator", "survey_year"))
+survey_flat <- survey_flat %>%
+  left_join(survey_adds, by = c("ID", "operator", "survey_year"))
 
 # Bespoke survey technology
-survey.flat <- survey.flat %>%
+survey_flat <- survey_flat %>%
   mutate(survey_tech = ifelse(operator == "Napa Vine" & (route == 21 | route == 25 | route == 29), "express bus", survey_tech)) %>%
   mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("E-Emb", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
   mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("F-Mar", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
@@ -342,18 +413,29 @@ survey.flat <- survey.flat %>%
   mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("901", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
   mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("902", ignore_case = TRUE)) > 0L, "light rail", survey_tech))
 
-remove(dictionary.cat, dictionary.non, survey.cat, survey.non, survey.cat.to_flat, survey.non.to_flat, survey.to_flat, survey.adds)
-remove(survey.BAR.melt, survey.CAL.melt, survey.MUN.melt, survey.NAP.melt)
+remove(dictionary_cat, 
+       dictionary_non, 
+       survey_cat, 
+       survey_non, 
+       survey_cat_to_flat, 
+       survey_non_to_flat, 
+       survey_to_flat, 
+       survey_adds)
+
+remove(survey_BAR_gather, 
+       survey_CAL_gather, 
+       survey_MUN_gather, 
+       survey_NAP_gather)
 
 ```
 
 ## Method Library for Standardization
 ```{r methods}
 # Set Operator Name
-Set_Operator_Name <- function(input_vector){
+set_operator_name <- function(input_vector){
   
-  input_df <- as.data.frame(input_vector)
-  colnames(input_df) <- c("input_field")
+  input_df <- as.data.frame(input_vector) %>%
+    rename(input_field = input_vector)
   
   output_df <- input_df %>%
     mutate(output_field = ifelse(!is.na(input_field), "None", input_field)) %>%
@@ -474,12 +556,12 @@ Set_Base_Technology <- function(input_vector){
                  "local bus",     "local bus", "local bus", "local bus",     "local bus",     
                  "ferry")
   
-  tech_df <- data.frame(operator, technology)
+  tech_df <- data_frame(operator, technology)
   tech_df <- tech_df %>%
     mutate(operator = as.character(operator)) %>%
     mutate(technology = as.character(technology))
   
-  input_df <- as.data.frame(input_vector)
+  input_df <- as_data_frame(input_vector)
   colnames(input_df) <- c("operator")
   input_df <- mutate(input_df, operator = as.character(operator))
   
@@ -491,7 +573,7 @@ Set_Base_Technology <- function(input_vector){
 # Update Technology
 Update_Technology <- function(input_vector){
   
-  input_df <- as.data.frame(input_vector)
+  input_df <- as_data_frame(input_vector)
   colnames(input_df) <- c("input_field")
   
   output_df <- input_df %>%
@@ -515,31 +597,31 @@ Update_Technology <- function(input_vector){
 # -------------------------------------------------------------------------------------
 
 # Standardize year born
-survey.standard <- survey.flat %>%
+survey_standard <- survey_flat %>%
   mutate(year_born = as.numeric(year_born_four_digit)) %>%
   select(-year_born_four_digit)
 
 # Manual fixes to year born
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(year_born = ifelse(year_born == 1900, 2000, year_born)) %>%
   mutate(year_born = ifelse(year_born == 1901, 2001, year_born)) %>%
   mutate(year_born = ifelse(year_born == 3884, 1984, year_born)) %>%
   mutate(year_born = ifelse(year_born == 2014, NA, year_born)) %>%
   mutate(year_born = ifelse(year_born == 1899, NA, year_born))
 
-table(survey.standard$year_born)
+table(survey_standard$year_born)
 
 # Compute approximate respondent age 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(approximate_age = survey_year - year_born)
 
-table(survey.standard$approximate_age)
+table(survey_standard$approximate_age)
 
 # Step 2:  Trip- and tour-purpose-related transformations
 # -------------------------------------------------------------------------------------
 
 # Recode key variables from NA to 'missing'
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(orig_purp       = ifelse(is.na(orig_purp), 'missing', orig_purp)) %>%
   mutate(dest_purp       = ifelse(is.na(dest_purp), 'missing', dest_purp)) %>%
   mutate(work_status     = ifelse(is.na(work_status), 'missing', work_status)) %>%
@@ -551,12 +633,12 @@ survey.standard <- survey.standard %>%
   mutate(at_school_after_dest_purp = ifelse(is.na(at_school_after_dest_purp), 'not relevant', at_school_after_dest_purp))
 
 # Refine school purpose
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(orig_purp = ifelse(orig_purp == "school", "high school", orig_purp)) %>%
   mutate(orig_purp = ifelse(orig_purp == "school" & approximate_age < 14, "grade_school", orig_purp))
 
 # (Approximate) Tour purpose
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(tour_purp = 'missing') %>%
   
   # workers -- simple
@@ -616,13 +698,13 @@ survey.standard <- survey.standard %>%
   # if still left, pick the orig_purp
   mutate(tour_purp = ifelse(tour_purp == 'missing', orig_purp, tour_purp))
            
-table(survey.standard$tour_purp)
+table(survey_standard$tour_purp)
 
 # Step 3:  Update Key locations and Status Flags
 # -------------------------------------------------------------------------------------
 
 # Home
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(home_lat = ifelse(orig_purp == 'home' & is.na(home_lat), orig_lat, home_lat)) %>%
   mutate(home_lon = ifelse(orig_purp == 'home' & is.na(home_lon), orig_lon, home_lon)) %>%
   mutate(home_lat = ifelse(dest_purp == 'home' & is.na(home_lat), dest_lat, home_lat)) %>%
@@ -641,7 +723,7 @@ survey.standard <- survey.standard %>%
   mutate(school_lon = ifelse((dest_purp == 'grade school' | dest_purp == 'high school' | dest_purp == 'college') & is.na(school_lon), dest_lon, school_lon)) 
   
 # Work and Student status
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(work_status = ifelse(orig_purp == 'work' | dest_purp == 'work', 'full- or part-time', work_status)) %>%
   mutate(student_status = ifelse(orig_purp == 'grade school' | dest_purp == 'grade school', 'full- or part-time', student_status)) %>%
   mutate(student_status = ifelse(orig_purp == 'high school'  | dest_purp == 'high school',  'full- or part-time', student_status)) %>%
@@ -651,28 +733,28 @@ survey.standard <- survey.standard %>%
 # -------------------------------------------------------------------------------------
 
 # Transform vehicles and workers to standard scale
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(vehicles = ifelse(vehicles == 'other', vehicles_additional_info, vehicles)) %>%
   mutate(workers  = ifelse(workers  == 'other', workers_additional_info,  workers ))
 
-table(survey.standard$vehicles)
-table(survey.standard$workers)
+table(survey_standard$vehicles)
+table(survey_standard$workers)
 
-vehicles.dictionary <- data.frame(vehicles = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more'), vehicle_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
+vehicles_dictionary <- data_frame(vehicles = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more'), vehicle_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
 
-workers.dictionary <- data.frame(workers = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'six or more'), worker_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
+workers_dictionary <- data_frame(workers = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'six or more'), worker_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
 
-survey.standard <- left_join(survey.standard, vehicles.dictionary, by = c("vehicles"))
-survey.standard <- left_join(survey.standard, workers.dictionary, by = c("workers"))
+survey_standard <- left_join(survey_standard, vehicles_dictionary, by = c("vehicles"))
+survey_standard <- left_join(survey_standard, workers_dictionary, by = c("workers"))
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(auto_suff = ifelse(vehicle_numeric_cat == 0, 'zero autos', 'missing')) %>%
   mutate(auto_suff = ifelse(vehicle_numeric_cat > 0 & worker_numeric_cat > 0  & worker_numeric_cat >  vehicle_numeric_cat, 'auto negotiating', auto_suff)) %>%
   mutate(auto_suff = ifelse(vehicle_numeric_cat > 0 & worker_numeric_cat >= 0 & worker_numeric_cat <= vehicle_numeric_cat, 'auto sufficient', auto_suff))
 
-table(survey.standard$auto_suff)
+table(survey_standard$auto_suff)
 
-remove(vehicles.dictionary, workers.dictionary)
+remove(vehicles_dictionary, workers_dictionary)
 
 
 # Step 5:  Operator and Technology sequence
@@ -681,7 +763,7 @@ remove(vehicles.dictionary, workers.dictionary)
 # Set operator for each of six legs (three before, three after)
 # - remove BART 'Missing - Dummy Record' before starting
 # - remove Muni 'None' before starting
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(first_route_before_survey_board = 
            ifelse(first_route_before_survey_board == "Missing - Dummy Record", "", first_route_before_survey_board)) %>%
   mutate(second_route_before_survey_board = 
@@ -689,7 +771,7 @@ survey.standard <- survey.standard %>%
   mutate(third_route_before_survey_board = 
            ifelse(third_route_before_survey_board == "Missing - Dummy Record", "", third_route_before_survey_board))
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(first_route_after_survey_alight = 
            ifelse(first_route_after_survey_alight == "Missing - Dummy Record", "", first_route_after_survey_alight)) %>%
   mutate(second_route_after_survey_alight = 
@@ -697,71 +779,71 @@ survey.standard <- survey.standard %>%
   mutate(third_route_after_survey_alight = 
            ifelse(third_route_after_survey_alight == "Missing - Dummy Record", "", third_route_after_survey_alight)) 
 
-first_before <- as.data.frame(Set_Operator_Name(survey.standard$first_route_before_survey_board))
+first_before <- as_data_frame(Set_Operator_Name(survey_standard$first_route_before_survey_board))
 colnames(first_before) <- c("first_before_operator")
 
-second_before <- as.data.frame(Set_Operator_Name(survey.standard$second_route_before_survey_board))
+second_before <- as_data_frame(Set_Operator_Name(survey_standard$second_route_before_survey_board))
 colnames(second_before) <- c("second_before_operator")
 
-third_before <- as.data.frame(Set_Operator_Name(survey.standard$third_route_before_survey_board))
+third_before <- as_data_frame(Set_Operator_Name(survey_standard$third_route_before_survey_board))
 colnames(third_before) <- c("third_before_operator")
 
-first_after <- as.data.frame(Set_Operator_Name(survey.standard$first_route_after_survey_alight))
+first_after <- as_data_frame(Set_Operator_Name(survey_standard$first_route_after_survey_alight))
 colnames(first_after) <- c("first_after_operator")
 
-second_after <- as.data.frame(Set_Operator_Name(survey.standard$second_route_after_survey_alight))
+second_after <- as_data_frame(Set_Operator_Name(survey_standard$second_route_after_survey_alight))
 colnames(second_after) <- c("second_after_operator")
 
-third_after <- as.data.frame(Set_Operator_Name(survey.standard$third_route_after_survey_alight))
+third_after <- as_data_frame(Set_Operator_Name(survey_standard$third_route_after_survey_alight))
 colnames(third_after) <- c("third_after_operator")
 
-survey.standard <- cbind(survey.standard, first_before, second_before, third_before, first_after, second_after, third_after)
+survey_standard <- cbind(survey_standard, first_before, second_before, third_before, first_after, second_after, third_after)
 
 # Set the technology for each of the six legs
-first_before <- as.data.frame(Set_Base_Technology(survey.standard$first_before_operator))
+first_before <- as_data_frame(Set_Base_Technology(survey_standard$first_before_operator))
 colnames(first_before) <- c("first_before_technology")
 
-second_before <- as.data.frame(Set_Base_Technology(survey.standard$second_before_operator))
+second_before <- as_data_frame(Set_Base_Technology(survey_standard$second_before_operator))
 colnames(second_before) <- c("second_before_technology")
 
-third_before <- as.data.frame(Set_Base_Technology(survey.standard$third_before_operator))
+third_before <- as_data_frame(Set_Base_Technology(survey_standard$third_before_operator))
 colnames(third_before) <- c("third_before_technology")
 
-first_after <- as.data.frame(Set_Base_Technology(survey.standard$first_after_operator))
+first_after <- as_data_frame(Set_Base_Technology(survey_standard$first_after_operator))
 colnames(first_after) <- c("first_after_technology")
 
-second_after <- as.data.frame(Set_Base_Technology(survey.standard$second_after_operator))
+second_after <- as_data_frame(Set_Base_Technology(survey_standard$second_after_operator))
 colnames(second_after) <- c("second_after_technology")
 
-third_after <- as.data.frame(Set_Base_Technology(survey.standard$third_after_operator))
+third_after <- as_data_frame(Set_Base_Technology(survey_standard$third_after_operator))
 colnames(third_after) <- c("third_after_technology")
 
-survey.standard <- cbind(survey.standard, first_before, second_before, third_before, first_after, second_after, third_after)
+survey_standard <- cbind(survey_standard, first_before, second_before, third_before, first_after, second_after, third_after)
 
 # Update the technology
-first_before <- as.data.frame(Update_Technology(survey.standard$first_route_before_survey_board))
+first_before <- as_data_frame(Update_Technology(survey_standard$first_route_before_survey_board))
 colnames(first_before) <- c("first_before_update_tech")
 
-second_before <- as.data.frame(Update_Technology(survey.standard$second_route_before_survey_board))
+second_before <- as_data_frame(Update_Technology(survey_standard$second_route_before_survey_board))
 colnames(second_before) <- c("second_before_update_tech")
 
-third_before <- as.data.frame(Update_Technology(survey.standard$third_route_before_survey_board))
+third_before <- as_data_frame(Update_Technology(survey_standard$third_route_before_survey_board))
 colnames(third_before) <- c("third_before_update_tech")
 
-first_after <- as.data.frame(Update_Technology(survey.standard$first_route_after_survey_alight))
+first_after <- as_data_frame(Update_Technology(survey_standard$first_route_after_survey_alight))
 colnames(first_after) <- c("first_after_update_tech")
 
-second_after <- as.data.frame(Update_Technology(survey.standard$second_route_after_survey_alight))
+second_after <- as_data_frame(Update_Technology(survey_standard$second_route_after_survey_alight))
 colnames(second_after) <- c("second_after_update_tech")
 
-third_after <- as.data.frame(Update_Technology(survey.standard$third_route_after_survey_alight))
+third_after <- as_data_frame(Update_Technology(survey_standard$third_route_after_survey_alight))
 colnames(third_after) <- c("third_after_update_tech")
 
-survey.standard <- cbind(survey.standard, first_before, second_before, third_before, first_after, second_after, third_after)
+survey_standard <- cbind(survey_standard, first_before, second_before, third_before, first_after, second_after, third_after)
   
-table(survey.standard$first_before_technology)
+table(survey_standard$first_before_technology)
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(first_before_technology  = ifelse(first_before_update_tech  != "No Update", as.character(first_before_update_tech),  as.character(first_before_technology))) %>%
   mutate(second_before_technology = ifelse(second_before_update_tech != "No Update", as.character(second_before_update_tech), as.character(second_before_technology))) %>%
   mutate(third_before_technology  = ifelse(third_before_update_tech  != "No Update", as.character(third_before_update_tech),  as.character(third_before_technology))) %>%
@@ -769,11 +851,11 @@ survey.standard <- survey.standard %>%
   mutate(second_after_technology  = ifelse(second_after_update_tech  != "No Update", as.character(second_after_update_tech),  as.character(second_after_technology))) %>%
   mutate(third_after_technology   = ifelse(third_after_update_tech   != "No Update", as.character(third_after_update_tech),   as.character(third_after_technology)))
 
-table(survey.standard$first_before_technology)
+table(survey_standard$first_before_technology)
 
 # Clean up
 remove(first_before, second_before, third_before, first_after, second_after, third_after)
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   select(-first_before_update_tech, -second_before_update_tech, -third_before_update_tech, -first_after_update_tech, -second_after_update_tech, -third_after_update_tech)
 
 
@@ -781,14 +863,14 @@ survey.standard <- survey.standard %>%
 # -------------------------------------------------------------------------------------
 
 # Transfer to and from
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(transfer_from = as.character(first_before_operator)) %>%
   mutate(transfer_from = ifelse(second_before_operator != 'None', as.character(second_before_operator), transfer_from)) %>%
   mutate(transfer_from = ifelse(third_before_operator  != 'None', as.character(third_before_operator),  transfer_from)) %>%
   mutate(transfer_to = as.character(first_after_operator))
 
 # First boarding and last alighting technology
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(first_board_tech = as.character(survey_tech)) %>%
   mutate(first_board_tech = ifelse(!is.na(first_before_technology), first_before_technology, first_board_tech)) %>%
   mutate(last_alight_tech  = as.character(survey_tech)) %>%
@@ -796,15 +878,15 @@ survey.standard <- survey.standard %>%
   mutate(last_alight_tech = ifelse(!is.na(second_after_technology), second_after_technology, last_alight_tech)) %>%
   mutate(last_alight_tech = ifelse(!is.na(third_after_technology),  third_after_technology,  last_alight_tech))
 
-table(survey.standard$transfer_from)
-table(survey.standard$transfer_to)
-table(survey.standard$survey_tech)
-table(survey.standard$first_board_tech)
-table(survey.standard$last_alight_tech)
+table(survey_standard$transfer_from)
+table(survey_standard$transfer_to)
+table(survey_standard$survey_tech)
+table(survey_standard$first_board_tech)
+table(survey_standard$last_alight_tech)
 
 # Travel Model One path (re-write to acknowledge NA explicitly)
 # -- Access
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(path_access = "X") %>%
   mutate(path_access = ifelse(access_mode == "walk", "W", path_access)) %>%
   mutate(path_access = ifelse(access_mode == "pnr" , "D", path_access)) %>%
@@ -812,10 +894,10 @@ survey.standard <- survey.standard %>%
   mutate(path_access = ifelse(access_mode == "bike", "D", path_access)) %>%
   mutate(path_access = ifelse(is.na(access_mode), "X", path_access))
 
-table(survey.standard$path_access)
+table(survey_standard$path_access)
 
 # -- Egress
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(path_egress = "X") %>%
   mutate(path_egress = ifelse(egress_mode == "walk", "W", path_egress)) %>%
   mutate(path_egress = ifelse(egress_mode == "pnr" , "D", path_egress)) %>%
@@ -823,11 +905,11 @@ survey.standard <- survey.standard %>%
   mutate(path_egress = ifelse(egress_mode == "bike", "D", path_egress)) %>%
   mutate(path_egress = ifelse(is.na(egress_mode), "X", path_egress))
 
-table(survey.standard$path_egress)
+table(survey_standard$path_egress)
 
 # -- Line haul
 # --- Technology present calculations
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(first_before_technology  = ifelse(is.na(first_before_technology),  "Missing", first_before_technology)) %>%
   mutate(second_before_technology = ifelse(is.na(second_before_technology), "Missing", second_before_technology)) %>%
   mutate(third_before_technology  = ifelse(is.na(third_before_technology),  "Missing", third_before_technology)) %>%
@@ -835,7 +917,7 @@ survey.standard <- survey.standard %>%
   mutate(second_after_technology  = ifelse(is.na(second_after_technology),  "Missing", second_after_technology)) %>%
   mutate(third_after_technology   = ifelse(is.na(third_after_technology),   "Missing", third_after_technology))
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(commuter_rail_present = FALSE) %>%
   mutate(commuter_rail_present = ifelse(first_before_technology  == "commuter rail", TRUE, commuter_rail_present)) %>%
   mutate(commuter_rail_present = ifelse(second_before_technology == "commuter rail", TRUE, commuter_rail_present)) %>%
@@ -845,9 +927,9 @@ survey.standard <- survey.standard %>%
   mutate(commuter_rail_present = ifelse(second_after_technology  == "commuter rail", TRUE, commuter_rail_present)) %>%
   mutate(commuter_rail_present = ifelse(third_after_technology   == "commuter rail", TRUE, commuter_rail_present))
 
-table(survey.standard$commuter_rail_present)
+table(survey_standard$commuter_rail_present)
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(heavy_rail_present = FALSE) %>%
   mutate(heavy_rail_present = ifelse(first_before_technology  == "heavy rail", TRUE, heavy_rail_present)) %>%
   mutate(heavy_rail_present = ifelse(second_before_technology == "heavy rail", TRUE, heavy_rail_present)) %>%
@@ -857,9 +939,9 @@ survey.standard <- survey.standard %>%
   mutate(heavy_rail_present = ifelse(second_after_technology  == "heavy rail", TRUE, heavy_rail_present)) %>%
   mutate(heavy_rail_present = ifelse(third_after_technology   == "heavy rail", TRUE, heavy_rail_present))
 
-table(survey.standard$heavy_rail_present)
+table(survey_standard$heavy_rail_present)
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(express_bus_present = FALSE) %>%
   mutate(express_bus_present = ifelse(first_before_technology  == "express bus", TRUE, express_bus_present)) %>%
   mutate(express_bus_present = ifelse(second_before_technology == "express bus", TRUE, express_bus_present)) %>%
@@ -869,9 +951,9 @@ survey.standard <- survey.standard %>%
   mutate(express_bus_present = ifelse(second_after_technology  == "express bus", TRUE, express_bus_present)) %>%
   mutate(express_bus_present = ifelse(third_after_technology   == "express bus", TRUE, express_bus_present))
 
-table(survey.standard$express_bus_present)
+table(survey_standard$express_bus_present)
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(ferry_present = FALSE) %>%
   mutate(ferry_present = ifelse(first_before_technology  == "ferry", TRUE, ferry_present)) %>%
   mutate(ferry_present = ifelse(second_before_technology == "ferry", TRUE, ferry_present)) %>%
@@ -881,9 +963,9 @@ survey.standard <- survey.standard %>%
   mutate(ferry_present = ifelse(second_after_technology  == "ferry", TRUE, ferry_present)) %>%
   mutate(ferry_present = ifelse(third_after_technology   == "ferry", TRUE, ferry_present))
 
-table(survey.standard$ferry_present)
+table(survey_standard$ferry_present)
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(light_rail_present = FALSE) %>%
   mutate(light_rail_present = ifelse(first_before_technology  == "light rail", TRUE, light_rail_present)) %>%
   mutate(light_rail_present = ifelse(second_before_technology == "light rail", TRUE, light_rail_present)) %>%
@@ -893,9 +975,9 @@ survey.standard <- survey.standard %>%
   mutate(light_rail_present = ifelse(second_after_technology  == "light rail", TRUE, light_rail_present)) %>%
   mutate(light_rail_present = ifelse(third_after_technology   == "light rail", TRUE, light_rail_present))
 
-table(survey.standard$light_rail_present)
+table(survey_standard$light_rail_present)
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(path_line_haul = "LOC") %>%
   mutate(path_line_haul = ifelse(light_rail_present,    "LRF", path_line_haul)) %>%
   mutate(path_line_haul = ifelse(ferry_present,         "LRF", path_line_haul)) %>%
@@ -904,10 +986,10 @@ survey.standard <- survey.standard %>%
   mutate(path_line_haul = ifelse(commuter_rail_present, "COM", path_line_haul)) %>%
   mutate(path_label = paste(path_access, path_line_haul, path_egress, sep = "-"))
 
-table(survey.standard$path_label)
+table(survey_standard$path_label)
            
 # Boardings
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(boardings = 1L) %>%
   mutate(boardings = ifelse(!(first_before_technology  == "Missing"), boardings + 1, boardings)) %>%
   mutate(boardings = ifelse(!(second_before_technology == "Missing"), boardings + 1, boardings)) %>%
@@ -916,10 +998,10 @@ survey.standard <- survey.standard %>%
   mutate(boardings = ifelse(!(second_after_technology  == "Missing"), boardings + 1, boardings)) %>%
   mutate(boardings = ifelse(!(third_after_technology   == "Missing"), boardings + 1, boardings))
 
-table(survey.standard$boardings)
+table(survey_standard$boardings)
 
 # If missing, compute number_transfers_orig_board and number_transfers_alight_dest
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(first  = ifelse(str_length(first_route_before_survey_board)  == 0L, 0, 1)) %>%
   mutate(second = ifelse(str_length(second_route_before_survey_board) == 0L, 0, 1)) %>%
   mutate(third  = ifelse(str_length(third_route_before_survey_board)  == 0L, 0, 1)) %>%
@@ -932,16 +1014,16 @@ survey.standard <- survey.standard %>%
          first + second + third, number_transfers_alight_dest)) %>%
   select(-first, -second, -third)
 
-table(survey.standard$number_transfers_orig_board)
-table(survey.standard$number_transfers_alight_dest)
+table(survey_standard$number_transfers_orig_board)
+table(survey_standard$number_transfers_alight_dest)
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(survey_boardings = 1L + as.numeric(number_transfers_orig_board) + as.numeric(number_transfers_alight_dest))
 
-table(survey.standard$boardings, survey.standard$survey_boardings)
+table(survey_standard$boardings, survey_standard$survey_boardings)
 
 # Build debug data frame to find odds and ends
-debug.transfers <- survey.standard %>%
+debug_transfers <- survey_standard %>%
   filter(!(boardings == survey_boardings)) %>%
   select(ID, operator, route, direction,
          boardings, survey_boardings,
@@ -952,7 +1034,7 @@ debug.transfers <- survey.standard %>%
          second_route_after_survey_alight, second_after_operator, second_after_technology,
          third_route_after_survey_alight,  third_after_operator,  third_after_technology)
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   select(-survey_boardings, -commuter_rail_present, -heavy_rail_present, -ferry_present, 
          -light_rail_present, -express_bus_present)
 
@@ -962,7 +1044,7 @@ survey.standard <- survey.standard %>%
 ``` {r standard-variables-part2}
 # Step 7:  Standardize Demographics
 # -------------------------------------------------------------------------------------
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   
   # Race
   mutate(race_dmy_ind = as.numeric(race_dmy_ind)) %>%
@@ -987,50 +1069,50 @@ survey.standard <- survey.standard %>%
   select(-language_at_home_binary, -language_at_home_detail, -race_dmy_ind, -race_dmy_asn, -race_dmy_blk, -race_dmy_hwi, -race_dmy_wht, -race_dmy_oth, -race_dmy_sum, -race_other_string)
 
 # Update fare medium for surveys with clipper detail
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(fare_medium = ifelse(is.na(clipper_detail), fare_medium, clipper_detail)) %>%
   select(-clipper_detail)
 
-table(survey.standard$work_status)
-table(survey.standard$student_status)
-table(survey.standard$fare_medium)
-table(survey.standard$fare_category)
-table(survey.standard$hispanic)
-table(survey.standard$race)
-table(survey.standard$language_at_home)
-table(survey.standard$household_income)
-table(survey.standard$eng_proficient)
+table(survey_standard$work_status)
+table(survey_standard$student_status)
+table(survey_standard$fare_medium)
+table(survey_standard$fare_category)
+table(survey_standard$hispanic)
+table(survey_standard$race)
+table(survey_standard$language_at_home)
+table(survey_standard$household_income)
+table(survey_standard$eng_proficient)
   
 # Step 8:  Create route if needed, set dates and times
 # -------------------------------------------------------------------------------------
 
 # Build route from entry and exit station, as needed
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(route = ifelse(!is.na(onoff_enter_station), paste(onoff_enter_station, onoff_exit_station, sep = " "), route))
 
 # Deal with date and time
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(date_string = ifelse(str_length(date_string) == 0, NA, date_string)) %>%
   mutate(time_string = ifelse(str_length(time_string) == 0, NA, time_string))
 
 # Deal with BART's missing (currently only have weekday data, update when we add in weekend)
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(date_string = ifelse(date_string == "Missing - Dummy Record", NA, date_string)) %>%
   mutate(date_string = ifelse(date_string == "Missing - Question Not Asked", NA, date_string)) %>%
   mutate(weekpart = ifelse(is.na(date_string), "WEEKDAY", weekpart))
 
-#table(survey.standard$date_string)
-#table(survey.standard$time_string)
+#table(survey_standard$date_string)
+#table(survey_standard$time_string)
 
 # Get day of the week from date
-survey.standard <- survey.standard %>%
-  mutate(date = as.Date(date_string, format = "%m/%d/%Y")) %>%
+survey_standard <- survey_standard %>%
+  mutate(date = as_Date(date_string, format = "%m/%d/%Y")) %>%
   mutate(day_of_the_week = toupper(weekdays(date)))
 
-table(survey.standard$operator, survey.standard$day_of_the_week)
+table(survey_standard$operator, survey_standard$day_of_the_week)
 
 # Fill in missing weekpart
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "SUNDAY",   "WEEKEND", weekpart)) %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "MONDAY",   "WEEKDAY", weekpart)) %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "TUESDAY",  "WEEKDAY", weekpart)) %>%
@@ -1039,26 +1121,26 @@ survey.standard <- survey.standard %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "FRIDAY",   "WEEKDAY", weekpart)) %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "SATURDAY", "WEEKEND", weekpart))
 
-table(survey.standard$operator,survey.standard$weekpart)
+table(survey_standard$operator,survey_standard$weekpart)
 
 # Get field dates from date
-field.dates <- survey.standard %>%
+field_dates <- survey_standard %>%
   group_by(operator, survey_year) %>%
   filter(!is.na(date)) %>%
   summarise(field_start = min(date), field_end = max(date))
 
-survey.standard <- left_join(survey.standard, field.dates, by = c("operator", "survey_year"))
+survey_standard <- left_join(survey_standard, field_dates, by = c("operator", "survey_year"))
 
 # Deal with time
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(time_string = ifelse(time_string == "Missing - Dummy Record", NA, time_string)) %>%
   mutate(time_string = ifelse(time_string == "Missing - Question Not Asked", NA, time_string)) %>%
   # interpret the time string
-  mutate(time1 = as.POSIXct(strptime(time_string, format="%l:%M:%S %p"))) %>%
-  mutate(time2 = as.POSIXct(strptime(time_string, format="%l:%M %p"))) %>%
-  mutate(time3 = as.POSIXct(strptime(time_string, format="%H:%M:%S"))) %>%
-  mutate(time4 = as.POSIXct(strptime(time_string, format="%H:%M"))) %>%
-  mutate(survey_time_posix = as.POSIXct(ifelse(!is.na(time1), time1, 
+  mutate(time1 = as_POSIXct(strptime(time_string, format="%l:%M:%S %p"))) %>%
+  mutate(time2 = as_POSIXct(strptime(time_string, format="%l:%M %p"))) %>%
+  mutate(time3 = as_POSIXct(strptime(time_string, format="%H:%M:%S"))) %>%
+  mutate(time4 = as_POSIXct(strptime(time_string, format="%H:%M"))) %>%
+  mutate(survey_time_posix = as_POSIXct(ifelse(!is.na(time1), time1, 
                                   ifelse(!is.na(time2), time2,
                                   ifelse(!is.na(time3), time3, time4))), origin="1970-01-01")) %>%
   # create a time_start (in hours) for day_part
@@ -1071,45 +1153,45 @@ survey.standard <- survey.standard %>%
   # keep survey_time to output
   mutate(survey_time=format(survey_time_posix, format="%H:%M:%S"))
 
-table(survey.standard$field_start)
-table(survey.standard$field_end)
-table(survey.standard$time_start)
-table(survey.standard$day_part)
-table(survey.standard$day_of_the_week)
+table(survey_standard$field_start)
+table(survey_standard$field_end)
+table(survey_standard$time_start)
+table(survey_standard$day_part)
+table(survey_standard$day_of_the_week)
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   select(-date_string, -time_string, -time1, -time2, -time3, -time4, -survey_time_posix)
 
 ```
 
 ### Geocode XY to Travel Model Geographies 
-(see `../geocode-engine` for tools)
+(see `__/geocode-engine` for tools)
 ```{r geocode-doit}
 # Prepare and write locations that need to be geo-coded to disk
-temp_lat <- survey.standard %>%
+temp_lat <- survey_standard %>%
   select(Unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat, school = school_lat, workplace = workplace_lat)
 
-temp_lon <- survey.standard %>%
+temp_lon <- survey_standard %>%
   select(Unique_ID, dest = dest_lon, home = home_lon, orig = orig_lon, school = school_lon, workplace = workplace_lon)
 
-temp_lat.melt <- melt(temp_lat, id = 'Unique_ID')
-temp_lon.melt <- melt(temp_lon, id = 'Unique_ID')
+temp_lat_melt <- melt(temp_lat, id = 'Unique_ID')
+temp_lon_melt <- melt(temp_lon, id = 'Unique_ID')
 
-temp_lat.melt <- temp_lat.melt %>%
+temp_lat_melt <- temp_lat_melt %>%
   select(Unique_ID, variable, y_coord = value)
 
-temp_lon.melt <- temp_lon.melt %>%
+temp_lon_melt <- temp_lon_melt %>%
   select(Unique_ID, variable, x_coord = value)
 
-write.places <- left_join(temp_lat.melt, temp_lon.melt, by = c("Unique_ID", "variable"))
+write_places <- left_join(temp_lat_melt, temp_lon_melt, by = c("Unique_ID", "variable"))
 
-write.places <- write.places %>%
+write_places <- write_places %>%
   mutate(x_coord = as.numeric(x_coord)) %>%
   mutate(y_coord = as.numeric(y_coord)) %>%
   filter(!is.na(x_coord)) %>%
   filter(!is.na(y_coord))
 
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(first_board_lat  = ifelse(number_transfers_orig_board == 0,  survey_board_lat,  first_board_lat)) %>%
   mutate(first_board_lon  = ifelse(number_transfers_orig_board == 0,  survey_board_lon,  first_board_lon)) %>%
   mutate(first_board_tech = ifelse(number_transfers_orig_board == 0,  survey_tech,       first_board_tech)) %>%
@@ -1117,25 +1199,25 @@ survey.standard <- survey.standard %>%
   mutate(last_alight_lon  = ifelse(number_transfers_alight_dest == 0, survey_alight_lon, last_alight_lon)) %>%
   mutate(last_alight_tech = ifelse(number_transfers_alight_dest == 0, survey_tech,       last_alight_tech))
 
-write.board <- survey.standard %>%
+write_board <- survey_standard %>%
   select(Unique_ID, first_board_lat, first_board_lon, first_board_tech) %>%
   mutate(first_board_lat = as.numeric(first_board_lat)) %>%
   mutate(first_board_lon = as.numeric(first_board_lon)) %>%
   filter(!is.na(first_board_lat)) %>%
   filter(!is.na(first_board_lon))
 
-write.alight <- survey.standard %>%
+write_alight <- survey_standard %>%
   select(Unique_ID, last_alight_lat, last_alight_lon, last_alight_tech) %>%
   mutate(last_alight_lat = as.numeric(last_alight_lat)) %>%
   mutate(last_alight_lon = as.numeric(last_alight_lon)) %>%
   filter(!is.na(last_alight_lat)) %>%
   filter(!is.na(last_alight_lon))
 
-write.csv(write.places, file = F_SPATIAL_TO_BE_GEOCODED,  row.names = FALSE, quote = F)
-write.csv(write.board,  file = F_BOARD_TO_BE_GEOCODED,    row.names = FALSE, quote = F)
-write.csv(write.alight, file = F_ALIGHT_TO_BE_GEOCODED,   row.names = FALSE, quote = F)
+write.csv(write_places, file = F_SPATIAL_TO_BE_GEOCODED,  row_names = FALSE, quote = F)
+write.csv(write_board,  file = F_BOARD_TO_BE_GEOCODED,    row_names = FALSE, quote = F)
+write.csv(write_alight, file = F_ALIGHT_TO_BE_GEOCODED,   row_names = FALSE, quote = F)
 
-remove(temp_lat, temp_lon, temp_lat.melt, temp_lon.melt, write.places, write.board, write.alight)
+remove(temp_lat, temp_lon, temp_lat_melt, temp_lon_melt, write_places, write_board, write_alight)
 
 ```
 
@@ -1145,12 +1227,12 @@ geocoded_spatial_places <- read.csv(F_SPATIAL_GEOCODED, header = TRUE)
 geocoded_transit_places <- read.csv(F_TRANSIT_GEOCODED, header = TRUE)
 
 geocoded_spatial_places <- select(geocoded_spatial_places, -x_coord, -y_coord)
-geo_spatial_maz <- dcast(geocoded_spatial_places, Unique_ID ~ variable, value.var = "MAZ_ORIGINAL")
+geo_spatial_maz <- dcast(geocoded_spatial_places, Unique_ID ~ variable, value_var = "MAZ_ORIGINAL")
 geo_spatial_maz <- geo_spatial_maz %>%
   select(Unique_ID, dest_maz = dest, home_maz = home, orig_maz = orig, school_maz = school, workplace_maz = workplace) %>%
   mutate(Unique_ID = as.character(Unique_ID))
 
-geo_spatial_taz <- dcast(geocoded_spatial_places, Unique_ID ~ variable, value.var = "TAZ1454")
+geo_spatial_taz <- dcast(geocoded_spatial_places, Unique_ID ~ variable, value_var = "TAZ1454")
 geo_spatial_taz <- geo_spatial_taz %>%
   select(Unique_ID, dest_taz = dest, home_taz = home, orig_taz = orig, school_taz = school, workplace_taz = workplace) %>%
   mutate(Unique_ID = as.character(Unique_ID))
@@ -1160,9 +1242,9 @@ geo_transit_tap <- geocoded_transit_places %>%
   mutate(Unique_ID = as.character(Unique_ID))
 
 # Joins
-survey.standard <- left_join(survey.standard, geo_spatial_maz, by = c("Unique_ID"))
-survey.standard <- left_join(survey.standard, geo_spatial_taz, by = c("Unique_ID"))
-survey.standard <- left_join(survey.standard, geo_transit_tap, by = c("Unique_ID"))
+survey_standard <- left_join(survey_standard, geo_spatial_maz, by = c("Unique_ID"))
+survey_standard <- left_join(survey_standard, geo_spatial_taz, by = c("Unique_ID"))
+survey_standard <- left_join(survey_standard, geo_transit_tap, by = c("Unique_ID"))
 
 remove(geocoded_spatial_places, geocoded_transit_places, geo_spatial_maz, geo_spatial_taz, geo_transit_tap)
 ```
@@ -1170,7 +1252,7 @@ remove(geocoded_spatial_places, geocoded_transit_places, geo_spatial_maz, geo_sp
 ### Clean up data types
 ```{r data-types}
 # Cast all factors to numeric or string
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   mutate(first_before_operator  = as.character(first_before_operator)) %>%
   mutate(second_before_operator = as.character(second_before_operator)) %>%
   mutate(third_before_operator  = as.character(third_before_operator)) %>%
@@ -1190,7 +1272,7 @@ survey.standard <- survey.standard %>%
   mutate(weight                 = as.numeric(weight))
 
 # Create an ancillary data set for requested variables
-ancillary_df <- survey.standard %>%
+ancillary_df <- survey_standard %>%
   select(Unique_ID, 
          at_school_after_dest_purp, 
          at_school_prior_to_orig_purp, 
@@ -1198,8 +1280,8 @@ ancillary_df <- survey.standard %>%
          at_work_prior_to_orig_purp)
 
 # Create an ancillary data set for decomposition analysis
-survey.decomposition <- survey.standard %>%
-  mutate(weight = ifelse(is.na(weight), 0.0, weight)) %>%
+survey_decomposition <- survey_standard %>%
+  mutate(weight = ifelse(is.na(weight), 0_0, weight)) %>%
   mutate(trip_weight = ifelse(boardings > 0, weight / boardings, weight))%>%
   select(Unique_ID,
          access_mode,
@@ -1256,11 +1338,11 @@ survey.decomposition <- survey.standard %>%
          day_part,
          trip_weight)
 
-save(survey.decomposition, file = F_OUTPUT_DECOM_RDATA)
-write.csv(survey.decomposition, file = F_OUTPUT_DECOM_CSV,  row.names = FALSE)
+save(survey_decomposition, file = F_OUTPUT_DECOM_RDATA)
+write.csv(survey_decomposition, file = F_OUTPUT_DECOM.csv,  row_names = FALSE)
 
 # Drop variables we don't want to carry forward to standard dataset
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   select(-at_school_after_dest_purp, 
          -at_school_prior_to_orig_purp, 
          -at_work_after_dest_purp, 
@@ -1292,7 +1374,7 @@ survey.standard <- survey.standard %>%
          -third_after_technology)
 
 # Drop lat/lon for locations
-survey.standard <- survey.standard %>%
+survey_standard <- survey_standard %>%
   select(-dest_lat,
          -dest_lon,
          -home_lat,
@@ -1309,30 +1391,30 @@ survey.standard <- survey.standard %>%
 ## Write RData to Disk
 ```{r disk-write}
 # Compute trip weight, replace missing weights with zero, and set field language to interview language
-survey.standard <- survey.standard %>%
-  mutate(weight = ifelse(is.na(weight), 0.0, weight)) %>%
+survey_standard <- survey_standard %>%
+  mutate(weight = ifelse(is.na(weight), 0_0, weight)) %>%
   mutate(trip_weight = ifelse(boardings > 0, weight / boardings, weight)) %>%
   mutate(field_language = interview_language)
 
 # put new column, survey_time, at the end
-survey.standard <- survey.standard[,c(which(colnames(survey.standard)!="survey_time"),
-                                      which(colnames(survey.standard)=="survey_time"))]
+survey_standard <- survey_standard[,c(which(colnames(survey_standard)!="survey_time"),
+                                      which(colnames(survey_standard)=="survey_time"))]
 
-save(survey.standard, file = F_OUTPUT_RDATA)
+save(survey_standard, file = F_OUTPUT_RDATA)
 save(ancillary_df, file = F_ANCILLARY_OUTPUT_RDATA)
 
-write.csv(survey.standard, file = F_OUTPUT_CSV,  row.names = FALSE)
-write.csv(ancillary_df,    file = F_ANCILLARY_OUTPUT_CSV,  row.names = FALSE)
+write.csv(survey_standard, file = F_OUTPUT.csv,  row_names = FALSE)
+write.csv(ancillary_df,    file = F_ANCILLARY_OUTPUT.csv,  row_names = FALSE)
 
 ```
 
 # DEBUG
 ```{r debug}
-# variables.MUN
-# colnames(survey.MUN)
+# variables_MUN
+# colnames(survey_MUN)
 # 
-# for(variable in variables.MUN){
-#   if(variable %in% colnames(survey.MUN)){
+# for(variable in variables_MUN){
+#   if(variable %in% colnames(survey_MUN)){
 #     print(variable)
 #   }
 #   else{
@@ -1340,8 +1422,8 @@ write.csv(ancillary_df,    file = F_ANCILLARY_OUTPUT_CSV,  row.names = FALSE)
 #   }
 # }
 # 
-# for(variable in colnames(survey.MUN.melt)){
-#   if(!(variable %in% colnames(survey.NAP.melt))){
+# for(variable in colnames(survey_MUN_melt)){
+#   if(!(variable %in% colnames(survey_NAP_melt))){
 #     print(variable)
 #   }
 # }
