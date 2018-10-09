@@ -11,15 +11,15 @@ output:
 
 #### Purpose
 Procedure to translate any number of on-board survey data sets into a single 
-dataset with common variables and common responses_  This is a work-in-progress 
-production version of the procedures_  See ``__/mini-example`` and 
-``__/small-example`` for working proto-types_  In this script, we put in place 
-procedures to process surveys into a standard database_  See 
-``Extract Variables from Legacy Surveys_Rmd`` for procedures to extract 
-variables from legacy surveys (i_e_, those with SAS summary scripts)_ 
+dataset with common variables and common responses.  This is a work-in-progress 
+production version of the procedures.  See ``../mini-example`` and 
+``../small-example`` for working proto-types.  In this script, we put in place 
+procedures to process surveys into a standard database.  See 
+``Extract Variables from Legacy Surveys.Rmd`` for procedures to extract 
+variables from legacy surveys (i.e., those with SAS summary scripts)/
 
 #### _ISSUES_
-1_  Work carefully through first few datasets, as the code is a bit coarse in places
+1.  Work carefully through first few datasets, as the code is a bit coarse in places
 
 #### _TODO_
 1_ New users should add their username and relative file path to 
@@ -389,7 +389,8 @@ survey_flat <- survey_flat %>%
 # Bespoke survey technology
 # There was a flag in the original conversion text for VTA route 185, but no 
 # records had a route 185, so it has been dropped from the csv.
-survey_tech_update <- read.csv("bespoke_survey_tech_replacement.csv")
+survey_tech_update <- read.csv("bespoke_survey_tech_replacement.csv", 
+                               colClasses = "character")
 
 survey_flat <- survey_flat %>% 
   left_join(survey_tech_update, by = c("operator", "route")) %>% 
@@ -407,7 +408,8 @@ remove(dictionary_cat,
        survey_cat_to_flat, 
        survey_non_to_flat, 
        survey_to_flat, 
-       survey_adds)
+       survey_adds,
+       survey_tech_update)
 
 remove(survey_BAR_gather, 
        survey_CAL_gather, 
@@ -425,132 +427,137 @@ set_operator_name <- function(input_vector){
     rename(input_field = input_vector)
   
   output_df <- input_df %>%
-    mutate(output_field = ifelse(!is.na(input_field), "None", input_field)) %>%
+    mutate(output_field = "None") %>%
     
     # BART, AMTRAK, and Caltrain may be named in route names, so do first, then overwrite
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Amtrak", ignore_case = TRUE)) > 0L, "AMTRAK", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("BART", ignore_case = TRUE)) > 0L, "BART", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Caltrain", ignore_case = TRUE)) > 0L, "CALTRAIN", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Amtrak", ignore_case = TRUE)), "AMTRAK", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("BART", ignore_case = TRUE)), "BART", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Caltrain", ignore_case = TRUE)), "CALTRAIN", output_field)) %>%
     
     # Transit Agencies
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AC ", ignore_case = TRUE)) > 0L, "AC TRANSIT", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("ACE", ignore_case = TRUE)) > 0L, "ACE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AC Transit", ignore_case = TRUE)) > 0L, "AC TRANSIT", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AirBART", ignore_case = TRUE)) > 0L, "AC TRANSIT", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AirTrain", ignore_case = TRUE)) > 0L, "BART", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Capitol Corridor", ignore_case = TRUE)) > 0L, "AMTRAK", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("County Connection", ignore_case = TRUE)) > 0L,"COUNTY CONNECTION", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Fairfield and", ignore_case = TRUE)) > 0L,"FAIRFIELD-SUISUN",output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Golden Gate ", ignore_case = TRUE)) > 0L, "GOLDEN GATE TRANSIT", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Golden Gate Tran", ignore_case = TRUE)) > 0L, "GOLDEN GATE TRANSIT", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Golden Gate Ferry", ignore_case = TRUE)) > 0L, "GOLDEN GATE FERRY", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Marin Transit", ignore_case = TRUE)) > 0L, "MARIN TRANSIT", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Muni", ignore_case = TRUE)) > 0L, "MUNI", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Rio Vista Delta Breeze", ignore_case = TRUE)) > 0L, "RIO-VISTA", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("SamTrans", ignore_case = TRUE)) > 0L, "SAMTRANS",  output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Sam Trans", ignore_case = TRUE)) > 0L, "SAMTRANS",  output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Santa Rosa CityBus", ignore_case = TRUE)) > 0L, "SANTA ROSA CITYBUS", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("SF Bay Ferry", ignore_case = TRUE)) > 0L, "SF BAY FERRY", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Soltrans", ignore_case = TRUE)) > 0L, "SOLTRANS", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Tri Delta", ignore_case = TRUE)) > 0L, "TRI-DELTA",  output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Union City", ignore_case = TRUE)) > 0L, "UNION CITY",  output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("WestCAT", ignore_case = TRUE)) > 0L, "WESTCAT",  output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("VINE", ignore_case = TRUE)) > 0L, "NAPA VINE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("VTA", ignore_case = TRUE)) > 0L, "VTA", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("DASH Downtown Area Shuttle", ignore_case = TRUE)) > 0L, "VTA", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Tiburon FERRY Tiburon To Angel Island State Park", ignore_case = TRUE)) > 0L, "BLUE GOLD FERRY", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("AC ", ignore_case = TRUE)), "AC TRANSIT", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("ACE", ignore_case = TRUE)), "ACE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("AC Transit", ignore_case = TRUE)), "AC TRANSIT", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("AirBART", ignore_case = TRUE)), "AC TRANSIT", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("AirTrain", ignore_case = TRUE)), "BART", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Capitol Corridor", ignore_case = TRUE)), "AMTRAK", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("County Connection", ignore_case = TRUE)),"COUNTY CONNECTION", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Fairfield and", ignore_case = TRUE)),"FAIRFIELD-SUISUN",output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Golden Gate ", ignore_case = TRUE)), "GOLDEN GATE TRANSIT", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Golden Gate Tran", ignore_case = TRUE)), "GOLDEN GATE TRANSIT", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Golden Gate Ferry", ignore_case = TRUE)), "GOLDEN GATE FERRY", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Marin Transit", ignore_case = TRUE)), "MARIN TRANSIT", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Muni", ignore_case = TRUE)), "MUNI", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Rio Vista Delta Breeze", ignore_case = TRUE)), "RIO-VISTA", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("SamTrans", ignore_case = TRUE)), "SAMTRANS", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Sam Trans", ignore_case = TRUE)), "SAMTRANS", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Santa Rosa CityBus", ignore_case = TRUE)), "SANTA ROSA CITYBUS", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("SF Bay Ferry", ignore_case = TRUE)), "SF BAY FERRY", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Soltrans", ignore_case = TRUE)), "SOLTRANS", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Tri Delta", ignore_case = TRUE)), "TRI-DELTA", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Union City", ignore_case = TRUE)), "UNION CITY", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("WestCAT", ignore_case = TRUE)), "WESTCAT", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("VINE", ignore_case = TRUE)), "NAPA VINE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("VTA", ignore_case = TRUE)), "VTA", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("DASH Downtown Area Shuttle", ignore_case = TRUE)), "VTA", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Tiburon FERRY Tiburon To Angel Island State Park", ignore_case = TRUE)), "BLUE GOLD FERRY", output_field)) %>%
     
     # Correct AC route with 'union city' in the name
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("AC 200 Union City BART", ignore_case = TRUE)) > 0L, "AC TRANSIT", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("AC 200 Union City BART", ignore_case = TRUE)), "AC TRANSIT", output_field)) %>%
     
     # PRIVATE SHUTTLE
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Stanford", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Commuter shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Corinthian lines shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Caltrain- Shuttles Genentech", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Kaiser shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("San Jose airport shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("American Canyon Safeway", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Shuttles Broadway - Millbrae", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Genentech Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Sierra Point/Brisbane Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("San Francisco General Hospital (SFGH) Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Seton Medical Center Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("UCSF Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("CPMC Hospital Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("West Berkeley Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Highland Hospital Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("San Francisco General Hospital (SFGH) Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Seton Medical Center Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Oyster Point Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Utah Grand Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Childrens Hospital Oakland", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Apple Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Facebook Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Alta Bates Shuttles", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Harbor Bay Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Alameda County employee shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("San Leandro LINKS", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("North Burlingame shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Fairmont Hospital / Juvenile Justice Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Yahoo Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Bayhill Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Bishop Ranch Shuttle", ignore_case = TRUE)) > 0L,  "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Stanford", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Commuter shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Corinthian lines shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Caltrain- Shuttles Genentech", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Kaiser shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("San Jose airport shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("American Canyon Safeway", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Shuttles Broadway - Millbrae", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Genentech Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Sierra Point/Brisbane Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("San Francisco General Hospital (SFGH) Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Seton Medical Center Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("UCSF Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("CPMC Hospital Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("West Berkeley Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Highland Hospital Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("San Francisco General Hospital (SFGH) Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Seton Medical Center Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Oyster Point Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Utah Grand Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Childrens Hospital Oakland", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Apple Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Facebook Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Alta Bates Shuttles", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Harbor Bay Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Alameda County employee shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("San Leandro LINKS", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("North Burlingame shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Fairmont Hospital / Juvenile Justice Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Yahoo Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Bayhill Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Bishop Ranch Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
     
     # OTHER
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Calistoga Handy Van", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Lake Transit", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Saint Helena Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Burlingame Trolley Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("SCMTD Highway 17", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Santa Cruz Metro", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Menlo Park Shuttle Midday Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Palo Alto E Embarcadero Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("CSU East Bay Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("UC Berkeley Campus Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Shuttle - other or unspecified", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Unknown", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("LBL / Lawrence Berkeley Lab Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Agency provided, but route not spec", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("San Francisco State (SFSU) Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("PresidiGO", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Emery Go-Round", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("B on Broadway", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Estuary Crossing - College of Alameda Shuttle", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Other", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Monterey-Salinas Transit", ignore_case = TRUE)) > 0L,  "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Calistoga Handy Van", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Lake Transit", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Saint Helena Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Burlingame Trolley Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("SCMTD Highway 17", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Santa Cruz Metro", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Menlo Park Shuttle Midday Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Palo Alto E Embarcadero Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("CSU East Bay Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("UC Berkeley Campus Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Shuttle - other or unspecified", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Unknown", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("LBL / Lawrence Berkeley Lab Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Agency provided, but route not spec", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("San Francisco State (SFSU) Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("PresidiGO", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Emery Go-Round", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("B on Broadway", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Estuary Crossing - College of Alameda Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Other", ignore_case = TRUE)), "OTHER", output_field)) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Monterey-Salinas Transit", ignore_case = TRUE)), "OTHER", output_field)) %>%
     
     # Vague 'Ferry'
-    mutate(output_field = ifelse(!is.na(input_field) & str_count(input_field, pattern = fixed("Ferry", ignore_case = TRUE)) > 0L,  "SF BAY FERRY", output_field)) 
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Ferry", ignore_case = TRUE)), "SF BAY FERRY", output_field)) %>%
+    mutate(output_field = ifelse(is.na(input_field), NA, output_field))
   
   return(output_df$output_field)
 }
 
 # Set Technology
-Set_Base_Technology <- function(input_vector){
+set_base_technology <- function(input_vector){
   
-  operator = c("ACE",               "AC TRANSIT",        "AIR BART",         "AMTRAK",              "BART",             
-               "CALTRAIN",          "COUNTY CONNECTION", "FAIRFIELD-SUISUN", "GOLDEN GATE TRANSIT", "GOLDEN GATE FERRY", 
-               "MARIN TRANSIT",     "MUNI",              "NAPA VINE",        "RIO-VISTA",           "SAMTRANS",
-               "SANTA ROSA CITYBUS","SF BAY FERRY",      "SOLTRANS",          "TRI-DELTA",          "UNION CITY",          
-               "WESTCAT",           "VTA",               "OTHER",             "PRIVATE SHUTTLE",  "OTHER AGENCY",        
-               "BLUE GOLD FERRY")
+  operator = c("ACE",                "AC TRANSIT",        "AIR BART",         
+               "AMTRAK",             "BART",              "CALTRAIN",
+               "COUNTY CONNECTION",  "FAIRFIELD-SUISUN",  "GOLDEN GATE TRANSIT", 
+               "GOLDEN GATE FERRY",  "MARIN TRANSIT",     "MUNI",              
+               "NAPA VINE",          "RIO-VISTA",         "SAMTRANS",
+               "SANTA ROSA CITYBUS", "SF BAY FERRY",      "SOLTRANS",
+               "TRI-DELTA",          "UNION CITY",        "WESTCAT",
+               "VTA",                "OTHER",             "PRIVATE SHUTTLE",  
+               "OTHER AGENCY",      "BLUE GOLD FERRY"
+               )
   
-  technology = c("commuter rail", "local bus", "local bus", "commuter rail", "heavy rail", 
-                 "commuter rail", "local bus", "local bus", "express bus",   "ferry",      
-                 "local bus",     "local bus", "local bus", "local bus",     "local bus",
-                 "local bus",     "ferry",     "local bus", "local bus",     "local bus",     
-                 "local bus",     "local bus", "local bus", "local bus",     "local bus",     
-                 "ferry")
+  technology = c("commuter rail", "local bus",     "local bus", 
+                 "commuter rail", "heavy rail",    "commuter rail", 
+                 "local bus",     "local bus",     "express bus",   
+                 "ferry",         "local bus",     "local bus", 
+                 "local bus",     "local bus",     "local bus",
+                 "local bus",     "ferry",         "local bus", 
+                 "local bus",     "local bus",     "local bus",     
+                 "local bus",     "local bus",     "local bus",
+                 "local bus",     "ferry"
+                 )
   
-  tech_df <- data_frame(operator, technology)
-  tech_df <- tech_df %>%
-    mutate(operator = as.character(operator)) %>%
-    mutate(technology = as.character(technology))
+  tech_df <- data.frame(operator, technology)
   
-  input_df <- as_data_frame(input_vector)
-  colnames(input_df) <- c("operator")
-  input_df <- mutate(input_df, operator = as.character(operator))
+  input_df <- as.data.frame(input_vector) %>% 
+    rename(operator = input_vector)
   
   output_df <- left_join(input_df, tech_df, by = c("operator"))
   
@@ -558,19 +565,26 @@ Set_Base_Technology <- function(input_vector){
 }
 
 # Update Technology
-Update_Technology <- function(input_vector){
+update_technology <- function(input_vector){
   
-  input_df <- as_data_frame(input_vector)
-  colnames(input_df) <- c("input_field")
+  input_df <- as.data.frame(input_vector) %>%
+    rename(input_field = input_vector)
   
   output_df <- input_df %>%
-    mutate(output_field = ifelse(!is.na(input_field), "No Update", input_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & 
-                                   str_count(input_field, pattern = fixed("Muni", ignore_case = TRUE)) > 0L &
-                                   str_count(input_field, pattern = fixed("Light Rail", ignore_case = TRUE)) > 0L, "light rail", output_field)) %>%
-    mutate(output_field = ifelse(!is.na(input_field) & 
-                                   str_count(input_field, pattern = fixed("VTA", ignore_case = TRUE)) > 0L &
-                                   str_count(input_field, pattern = fixed("Light Rail", ignore_case = TRUE)) > 0L, "light rail", output_field))
+    mutate(output_field = "No Update") %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Muni", ignore_case = TRUE)) &
+                                 str_detect(input_field, fixed("Light Rail", ignore_case = TRUE)),
+                                 "light rail", 
+                                 output_field
+                                 )
+           ) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("VTA", ignore_case = TRUE)) &
+                                 str_detect(input_field, fixed("Light Rail", ignore_case = TRUE)), 
+                                 "light rail", 
+                                 output_field
+                                 )
+           ) %>%
+    mutate(output_field = ifelse(is.na(input_field), NA, output_field))
   
   return(output_df$output_field)
 }
@@ -585,22 +599,29 @@ Update_Technology <- function(input_vector){
 
 # Standardize year born
 survey_standard <- survey_flat %>%
-  mutate(year_born = as.numeric(year_born_four_digit)) %>%
+  mutate(year_born = ifelse(is.na(year_born_four_digit) | 
+                              str_detect(year_born_four_digit, "Missing"), 
+                            -999,
+                            as.numeric(year_born_four_digit)
+                            )
+         ) %>%
   select(-year_born_four_digit)
 
 # Manual fixes to year born
 survey_standard <- survey_standard %>%
+  mutate(survey_year = as.numeric(survey_year)) %>%
   mutate(year_born = ifelse(year_born == 1900, 2000, year_born)) %>%
   mutate(year_born = ifelse(year_born == 1901, 2001, year_born)) %>%
   mutate(year_born = ifelse(year_born == 3884, 1984, year_born)) %>%
-  mutate(year_born = ifelse(year_born == 2014, NA, year_born)) %>%
-  mutate(year_born = ifelse(year_born == 1899, NA, year_born))
+  mutate(year_born = ifelse(year_born == 2014, -999, year_born)) %>%
+  mutate(year_born = ifelse(year_born == 1899, -999, year_born))
 
 table(survey_standard$year_born)
 
 # Compute approximate respondent age 
 survey_standard <- survey_standard %>%
-  mutate(approximate_age = survey_year - year_born)
+  mutate(approximate_age = ifelse(year_born > 0, survey_year - year_born, NA)) %>%
+  mutate(year_born = ifelse(year_born < 0, NA, year_born))
 
 table(survey_standard$approximate_age)
 
@@ -609,10 +630,10 @@ table(survey_standard$approximate_age)
 
 # Recode key variables from NA to 'missing'
 survey_standard <- survey_standard %>%
-  mutate(orig_purp       = ifelse(is.na(orig_purp), 'missing', orig_purp)) %>%
-  mutate(dest_purp       = ifelse(is.na(dest_purp), 'missing', dest_purp)) %>%
-  mutate(work_status     = ifelse(is.na(work_status), 'missing', work_status)) %>%
-  mutate(student_status  = ifelse(is.na(student_status), 'missing', student_status)) %>%
+  mutate(orig_purp = ifelse(is.na(orig_purp), 'missing', orig_purp)) %>%
+  mutate(dest_purp = ifelse(is.na(dest_purp), 'missing', dest_purp)) %>%
+  mutate(work_status = ifelse(is.na(work_status), 'missing', work_status)) %>%
+  mutate(student_status = ifelse(is.na(student_status), 'missing', student_status)) %>%
   mutate(approximate_age = ifelse(is.na(approximate_age), 'missing', approximate_age)) %>%
   mutate(at_work_prior_to_orig_purp = ifelse(is.na(at_work_prior_to_orig_purp), 'not relevant', at_work_prior_to_orig_purp)) %>%
   mutate(at_work_after_dest_purp = ifelse(is.na(at_work_after_dest_purp), 'not relevant', at_work_after_dest_purp)) %>%
@@ -622,65 +643,186 @@ survey_standard <- survey_standard %>%
 # Refine school purpose
 survey_standard <- survey_standard %>%
   mutate(orig_purp = ifelse(orig_purp == "school", "high school", orig_purp)) %>%
-  mutate(orig_purp = ifelse(orig_purp == "school" & approximate_age < 14, "grade_school", orig_purp))
+  mutate(orig_purp = ifelse(orig_purp == "school" & approximate_age < 14, 
+                            "grade_school", orig_purp))
 
 # (Approximate) Tour purpose
 survey_standard <- survey_standard %>%
   mutate(tour_purp = 'missing') %>%
   
   # workers -- simple
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & orig_purp == 'home' & dest_purp == 'work', 'work', tour_purp)) %>%
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & orig_purp == 'work' & dest_purp == 'home', 'work', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              orig_purp == 'home' & 
+                              dest_purp == 'work', 
+                            'work', 
+                            tour_purp)
+         ) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              orig_purp == 'work' & 
+                              dest_purp == 'home', 
+                            'work', 
+                            tour_purp)
+         ) %>%
   
   # students -- simple
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & (orig_purp == 'grade school' | dest_purp == 'grade school'), 'grade school', tour_purp)) %>%
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & (orig_purp == 'high school'  | dest_purp == 'high school'),  'high school', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              (orig_purp == 'grade school' | dest_purp == 'grade school'), 
+                            'grade school', 
+                            tour_purp)
+         ) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              (orig_purp == 'high school' | dest_purp == 'high school'),  
+                            'high school', tour_purp)
+         ) %>%
   
   # non-working university students
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & work_status == 'non-worker' & (orig_purp == 'college'  | dest_purp == 'college'),  'university', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              work_status == 'non-worker' & 
+                              (orig_purp == 'college'  | dest_purp == 'college'),  
+                            'university', 
+                            tour_purp)
+         ) %>%
   
   # non-workers, non-students, home-based travel
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & work_status == 'non-worker' & student_status == 'non-student' & orig_purp == 'home', dest_purp, tour_purp)) %>%
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & work_status == 'non-worker' & student_status == 'non-student' & dest_purp == 'home', orig_purp, tour_purp)) %>%
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & work_status == 'non-worker' & student_status == 'non-student' & orig_purp == dest_purp, orig_purp, tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              work_status == 'non-worker' & 
+                              student_status == 'non-student' & 
+                              orig_purp == 'home', 
+                            dest_purp, tour_purp)
+         ) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              work_status == 'non-worker' & 
+                              student_status == 'non-student' & 
+                              dest_purp == 'home', 
+                            orig_purp, 
+                            tour_purp)
+         ) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              work_status == 'non-worker' & 
+                              student_status == 'non-student' & 
+                              orig_purp == dest_purp, 
+                            orig_purp, 
+                            tour_purp)
+         ) %>%
   
   # non-workers, non-students, non-home-based (which we know from above implementation) escorting travel
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & work_status == 'non-worker' & student_status == 'non-student' & (orig_purp == 'escorting' | dest_purp == 'escorting'), 'escorting', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              work_status == 'non-worker' & 
+                              student_status == 'non-student' & 
+                              (orig_purp == 'escorting' | dest_purp == 'escorting'), 
+                            'escorting', 
+                            tour_purp)
+         ) %>%
   
   # university is present, but work is not, then university
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & at_work_prior_to_orig_purp == 'not at work before surveyed trip' & at_work_after_dest_purp == 'not at work after surveyed trip' & (orig_purp == 'college' | dest_purp == 'college'), 'university', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' 
+                            & at_work_prior_to_orig_purp == 'not at work before surveyed trip' 
+                            & at_work_after_dest_purp == 'not at work after surveyed trip' & 
+                              (orig_purp == 'college' | dest_purp == 'college'), 
+                            'university', 
+                            tour_purp)
+         ) %>%
   
   # if work before trip and home after, assume work tour
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & at_work_prior_to_orig_purp == 'at work before surveyed trip' & dest_purp == 'home', 'work', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              at_work_prior_to_orig_purp == 'at work before surveyed trip' & 
+                              dest_purp == 'home', 
+                            'work', 
+                            tour_purp)
+         ) %>%
   
   # if work after trip and home before, assume work tour
-   mutate(tour_purp = ifelse(tour_purp == 'missing' & at_work_after_dest_purp == 'at work after surveyed trip' & orig_purp == 'home', 'work', tour_purp)) %>%
+   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                               at_work_after_dest_purp == 'at work after surveyed trip' & 
+                               orig_purp == 'home', 
+                             'work', 
+                             tour_purp)
+          ) %>%
   
   # if non-worker, school before trip and home after, over 18, university tour
-   mutate(tour_purp = ifelse(tour_purp == 'missing' & work_status == 'non-worker' & at_school_prior_to_orig_purp == 'at school before surveyed trip' & approximate_age > 18 & dest_purp == 'home', 'university', tour_purp)) %>%
+   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                               work_status == 'non-worker' & 
+                               at_school_prior_to_orig_purp == 'at school before surveyed trip' & 
+                               approximate_age > 18 & 
+                               dest_purp == 'home', 
+                             'university', 
+                             tour_purp)
+          ) %>%
   
   # if non-worker, school after trip and home before, over 18, university tour
-   mutate(tour_purp = ifelse(tour_purp == 'missing' & work_status == 'non-worker' & at_school_after_dest_purp == 'at school after surveyed trip' & approximate_age > 18 & orig_purp == 'home', 'college', tour_purp)) %>%
+   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                               work_status == 'non-worker' & 
+                               at_school_after_dest_purp == 'at school after surveyed trip' & 
+                               approximate_age > 18 & 
+                               orig_purp == 'home', 
+                             'college', 
+                             tour_purp)
+          ) %>%
   
     # if non-worker, school before trip and home after, 14 to 18, high school tour
-   mutate(tour_purp = ifelse(tour_purp == 'missing' & work_status == 'non-worker' & at_school_prior_to_orig_purp == 'at school before surveyed trip' & approximate_age <= 18 & approximate_age >= 14 & dest_purp == 'home', 'high school', tour_purp)) %>%
+   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                               work_status == 'non-worker' & 
+                               at_school_prior_to_orig_purp == 'at school before surveyed trip' & 
+                               approximate_age <= 18 & 
+                               approximate_age >= 14 & 
+                               dest_purp == 'home', 
+                             'high school', 
+                             tour_purp)
+          ) %>%
   
   # if non-worker, school after trip and home before, 14 to 18, high school tour
-   mutate(tour_purp = ifelse(tour_purp == 'missing' & work_status == 'non-worker' & at_school_after_dest_purp == 'at school after surveyed trip' & approximate_age <= 18 & approximate_age >= 14 & orig_purp == 'home', 'high school', tour_purp)) %>%
+   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                               work_status == 'non-worker' & 
+                               at_school_after_dest_purp == 'at school after surveyed trip' & 
+                               approximate_age <= 18 & 
+                               approximate_age >= 14 & 
+                               orig_purp == 'home', 
+                             'high school', 
+                             tour_purp)
+          ) %>%
   
   # if no work before or after, but work is a leg, assume a work tour
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & at_work_prior_to_orig_purp == 'not at work before surveyed trip' & at_work_after_dest_purp == 'not at work after surveyed trip' & (orig_purp == 'work' | dest_purp == 'work'), 'work', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              at_work_prior_to_orig_purp == 'not at work before surveyed trip' & 
+                              at_work_after_dest_purp == 'not at work after surveyed trip' & 
+                              (orig_purp == 'work' | dest_purp == 'work'), 
+                            'work', 
+                            tour_purp)
+         ) %>%
   
   # at work tours
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & at_work_prior_to_orig_purp == 'at work before surveyed trip' & dest_purp == 'work', 'at work', tour_purp)) %>%
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & at_work_after_dest_purp == 'at work after surveyed trip' & orig_purp == 'work', 'at work', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              at_work_prior_to_orig_purp == 'at work before surveyed trip' & 
+                              dest_purp == 'work', 
+                            'at work', 
+                            tour_purp)
+         ) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              at_work_after_dest_purp == 'at work after surveyed trip' & 
+                              orig_purp == 'work', 
+                            'at work', 
+                            tour_purp)
+         ) %>%
   
   # if still left and work before or after the trip, assume work tour
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & at_work_after_dest_purp == 'at work after surveyed trip' & at_work_prior_to_orig_purp == 'at work before surveyed trip', 'work', tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              at_work_after_dest_purp == 'at work after surveyed trip' & 
+                              at_work_prior_to_orig_purp == 'at work before surveyed trip', 
+                            'work', 
+                            tour_purp)
+         ) %>%
   
   # if still left and home is one end, chose the other as the purpose
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & orig_purp == 'home', dest_purp, tour_purp)) %>%
-  mutate(tour_purp = ifelse(tour_purp == 'missing' & dest_purp == 'home', orig_purp, tour_purp)) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              orig_purp == 'home', 
+                            dest_purp, 
+                            tour_purp)
+         ) %>%
+  mutate(tour_purp = ifelse(tour_purp == 'missing' & 
+                              dest_purp == 'home', 
+                            orig_purp, 
+                            tour_purp)
+         ) %>%
   
   # if still left, pick the orig_purp
   mutate(tour_purp = ifelse(tour_purp == 'missing', orig_purp, tour_purp))
@@ -692,29 +834,84 @@ table(survey_standard$tour_purp)
 
 # Home
 survey_standard <- survey_standard %>%
-  mutate(home_lat = ifelse(orig_purp == 'home' & is.na(home_lat), orig_lat, home_lat)) %>%
-  mutate(home_lon = ifelse(orig_purp == 'home' & is.na(home_lon), orig_lon, home_lon)) %>%
-  mutate(home_lat = ifelse(dest_purp == 'home' & is.na(home_lat), dest_lat, home_lat)) %>%
-  mutate(home_lon = ifelse(dest_purp == 'home' & is.na(home_lon), dest_lon, home_lon)) %>%
+  mutate(home_lat = ifelse(orig_purp == 'home' & is.na(home_lat), 
+                           orig_lat, 
+                           home_lat)
+         ) %>%
+  mutate(home_lon = ifelse(orig_purp == 'home' & is.na(home_lon), 
+                           orig_lon, 
+                           home_lon)
+         ) %>%
+  mutate(home_lat = ifelse(dest_purp == 'home' & is.na(home_lat), 
+                           dest_lat, 
+                           home_lat)
+         ) %>%
+  mutate(home_lon = ifelse(dest_purp == 'home' & is.na(home_lon), 
+                           dest_lon, 
+                           home_lon)
+         ) %>%
   
 # Work
-  mutate(workplace_lat = ifelse(orig_purp == 'work' & is.na(workplace_lat), orig_lat, workplace_lat)) %>%
-  mutate(workplace_lon = ifelse(orig_purp == 'work' & is.na(workplace_lon), orig_lon, workplace_lon)) %>%
-  mutate(workplace_lat = ifelse(dest_purp == 'work' & is.na(workplace_lat), dest_lat, workplace_lat)) %>%
-  mutate(workplace_lon = ifelse(dest_purp == 'work' & is.na(workplace_lon), dest_lon, workplace_lon)) %>%
+  mutate(workplace_lat = ifelse(orig_purp == 'work' & is.na(workplace_lat), 
+                                orig_lat, 
+                                workplace_lat)
+         ) %>%
+  mutate(workplace_lon = ifelse(orig_purp == 'work' & is.na(workplace_lon), 
+                                orig_lon, 
+                                workplace_lon)
+         ) %>%
+  mutate(workplace_lat = ifelse(dest_purp == 'work' & is.na(workplace_lat), 
+                                dest_lat, 
+                                workplace_lat)
+         ) %>%
+  mutate(workplace_lon = ifelse(dest_purp == 'work' & is.na(workplace_lon), 
+                                dest_lon, 
+                                workplace_lon)
+         ) %>%
   
 # School
-  mutate(school_lat = ifelse((orig_purp == 'grade school' | orig_purp == 'high school' | orig_purp == 'college') & is.na(school_lat), orig_lat, school_lat)) %>%
-  mutate(school_lon = ifelse((orig_purp == 'grade school' | orig_purp == 'high school' | orig_purp == 'college') & is.na(school_lon), orig_lon, school_lon)) %>%
-  mutate(school_lat = ifelse((dest_purp == 'grade school' | dest_purp == 'high school' | dest_purp == 'college') & is.na(school_lat), dest_lat, school_lat)) %>%
-  mutate(school_lon = ifelse((dest_purp == 'grade school' | dest_purp == 'high school' | dest_purp == 'college') & is.na(school_lon), dest_lon, school_lon)) 
+  mutate(school_lat = ifelse(orig_purp %in% c('grade school', 'high school', 'college') & 
+                               is.na(school_lat), 
+                             orig_lat, 
+                             school_lat)
+         ) %>%
+  mutate(school_lon = ifelse(orig_purp %in% c('grade school', 'high school', 'college') & 
+                               is.na(school_lon), 
+                             orig_lon, 
+                             school_lon)
+         ) %>%
+  mutate(school_lat = ifelse(dest_purp %in% c('grade school', 'high school', 'college') & 
+                               is.na(school_lat), 
+                             dest_lat, 
+                             school_lat)
+         ) %>%
+  mutate(school_lon = ifelse(orig_purp %in% c('grade school', 'high school', 'college') & 
+                               is.na(school_lon), 
+                             dest_lon, 
+                             school_lon)
+         ) 
   
 # Work and Student status
 survey_standard <- survey_standard %>%
-  mutate(work_status = ifelse(orig_purp == 'work' | dest_purp == 'work', 'full- or part-time', work_status)) %>%
-  mutate(student_status = ifelse(orig_purp == 'grade school' | dest_purp == 'grade school', 'full- or part-time', student_status)) %>%
-  mutate(student_status = ifelse(orig_purp == 'high school'  | dest_purp == 'high school',  'full- or part-time', student_status)) %>%
-  mutate(student_status = ifelse(orig_purp == 'college'      | dest_purp == 'college',      'full- or part-time', student_status))
+  mutate(work_status = ifelse(orig_purp == 'work' | dest_purp == 'work', 
+                              'full- or part-time', 
+                              work_status)
+         ) %>%
+  mutate(student_status = ifelse(orig_purp == 'grade school' | 
+                                   dest_purp == 'grade school', 
+                                 'full- or part-time', 
+                                 student_status)
+         ) %>%
+  mutate(student_status = ifelse(orig_purp == 'high school' | 
+                                   dest_purp == 'high school', 
+                                 'full- or part-time', 
+                                 student_status)
+         ) %>%
+  mutate(student_status = ifelse(orig_purp == 'college' | 
+                                   dest_purp == 'college',
+                                 'full- or part-time', 
+                                 student_status)
+         )
 
 # Step 4:  Automobile Sufficiency
 # -------------------------------------------------------------------------------------
@@ -722,26 +919,47 @@ survey_standard <- survey_standard %>%
 # Transform vehicles and workers to standard scale
 survey_standard <- survey_standard %>%
   mutate(vehicles = ifelse(vehicles == 'other', vehicles_additional_info, vehicles)) %>%
-  mutate(workers  = ifelse(workers  == 'other', workers_additional_info,  workers ))
+  mutate(workers = ifelse(workers == 'other', workers_additional_info,  workers))
 
 table(survey_standard$vehicles)
 table(survey_standard$workers)
 
-vehicles_dictionary <- data_frame(vehicles = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more'), vehicle_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
+vehicles_dictionary <- data.frame(
+  vehicles = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 
+               'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more'), 
+  vehicle_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4)
+  )
 
-workers_dictionary <- data_frame(workers = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'six or more'), worker_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
+workers_dictionary <- data.frame(
+  workers = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 
+              'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 
+              'fifteen', 'six or more'), 
+  worker_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4)
+  )
 
 survey_standard <- left_join(survey_standard, vehicles_dictionary, by = c("vehicles"))
 survey_standard <- left_join(survey_standard, workers_dictionary, by = c("workers"))
 
 survey_standard <- survey_standard %>%
   mutate(auto_suff = ifelse(vehicle_numeric_cat == 0, 'zero autos', 'missing')) %>%
-  mutate(auto_suff = ifelse(vehicle_numeric_cat > 0 & worker_numeric_cat > 0  & worker_numeric_cat >  vehicle_numeric_cat, 'auto negotiating', auto_suff)) %>%
-  mutate(auto_suff = ifelse(vehicle_numeric_cat > 0 & worker_numeric_cat >= 0 & worker_numeric_cat <= vehicle_numeric_cat, 'auto sufficient', auto_suff))
+  mutate(auto_suff = ifelse(vehicle_numeric_cat > 0 & 
+                              worker_numeric_cat > 0  & 
+                              worker_numeric_cat >  vehicle_numeric_cat, 
+                            'auto negotiating', 
+                            auto_suff)
+         ) %>%
+  mutate(auto_suff = ifelse(vehicle_numeric_cat > 0 & 
+                              worker_numeric_cat >= 0 & 
+                              worker_numeric_cat <= vehicle_numeric_cat, 
+                            'auto sufficient', 
+                            auto_suff)
+         )
 
 table(survey_standard$auto_suff)
 
-remove(vehicles_dictionary, workers_dictionary)
+remove(vehicles_dictionary, 
+       workers_dictionary
+       )
 
 
 # Step 5:  Operator and Technology sequence
@@ -751,79 +969,87 @@ remove(vehicles_dictionary, workers_dictionary)
 # - remove BART 'Missing - Dummy Record' before starting
 # - remove Muni 'None' before starting
 survey_standard <- survey_standard %>%
-  mutate(first_route_before_survey_board = 
-           ifelse(first_route_before_survey_board == "Missing - Dummy Record", "", first_route_before_survey_board)) %>%
-  mutate(second_route_before_survey_board = 
-           ifelse(second_route_before_survey_board == "Missing - Dummy Record", "", second_route_before_survey_board)) %>%
-  mutate(third_route_before_survey_board = 
-           ifelse(third_route_before_survey_board == "Missing - Dummy Record", "", third_route_before_survey_board))
+  mutate(first_route_before_survey_board = ifelse(first_route_before_survey_board == "Missing - Dummy Record", 
+                                                  "", 
+                                                  first_route_before_survey_board)
+         ) %>%
+  mutate(second_route_before_survey_board = ifelse(second_route_before_survey_board == "Missing - Dummy Record", 
+                                                   "", 
+                                                   second_route_before_survey_board)
+         ) %>%
+  mutate(third_route_before_survey_board = ifelse(third_route_before_survey_board == "Missing - Dummy Record", 
+                                                  "", 
+                                                  third_route_before_survey_board)
+         )
 
 survey_standard <- survey_standard %>%
-  mutate(first_route_after_survey_alight = 
-           ifelse(first_route_after_survey_alight == "Missing - Dummy Record", "", first_route_after_survey_alight)) %>%
+  mutate(first_route_after_survey_alight = ifelse(first_route_after_survey_alight == "Missing - Dummy Record", 
+                                                  "", 
+                                                  first_route_after_survey_alight)
+         ) %>%
   mutate(second_route_after_survey_alight = 
            ifelse(second_route_after_survey_alight == "Missing - Dummy Record", "", second_route_after_survey_alight)) %>%
   mutate(third_route_after_survey_alight = 
            ifelse(third_route_after_survey_alight == "Missing - Dummy Record", "", third_route_after_survey_alight)) 
 
-first_before <- as_data_frame(Set_Operator_Name(survey_standard$first_route_before_survey_board))
+first_before <- as.data.frame(Set_Operator_Name(survey_standard$first_route_before_survey_board))
 colnames(first_before) <- c("first_before_operator")
 
-second_before <- as_data_frame(Set_Operator_Name(survey_standard$second_route_before_survey_board))
+second_before <- as.data.frame(Set_Operator_Name(survey_standard$second_route_before_survey_board))
 colnames(second_before) <- c("second_before_operator")
 
-third_before <- as_data_frame(Set_Operator_Name(survey_standard$third_route_before_survey_board))
+third_before <- as.data.frame(Set_Operator_Name(survey_standard$third_route_before_survey_board))
 colnames(third_before) <- c("third_before_operator")
 
-first_after <- as_data_frame(Set_Operator_Name(survey_standard$first_route_after_survey_alight))
+first_after <- as.data.frame(Set_Operator_Name(survey_standard$first_route_after_survey_alight))
 colnames(first_after) <- c("first_after_operator")
 
-second_after <- as_data_frame(Set_Operator_Name(survey_standard$second_route_after_survey_alight))
+second_after <- as.data.frame(Set_Operator_Name(survey_standard$second_route_after_survey_alight))
 colnames(second_after) <- c("second_after_operator")
 
-third_after <- as_data_frame(Set_Operator_Name(survey_standard$third_route_after_survey_alight))
+third_after <- as.data.frame(Set_Operator_Name(survey_standard$third_route_after_survey_alight))
 colnames(third_after) <- c("third_after_operator")
 
 survey_standard <- cbind(survey_standard, first_before, second_before, third_before, first_after, second_after, third_after)
 
 # Set the technology for each of the six legs
-first_before <- as_data_frame(Set_Base_Technology(survey_standard$first_before_operator))
+first_before <- as.data.frame(Set_Base_Technology(survey_standard$first_before_operator))
 colnames(first_before) <- c("first_before_technology")
 
-second_before <- as_data_frame(Set_Base_Technology(survey_standard$second_before_operator))
+second_before <- as.data.frame(Set_Base_Technology(survey_standard$second_before_operator))
 colnames(second_before) <- c("second_before_technology")
 
-third_before <- as_data_frame(Set_Base_Technology(survey_standard$third_before_operator))
+third_before <- as.data.frame(Set_Base_Technology(survey_standard$third_before_operator))
 colnames(third_before) <- c("third_before_technology")
 
-first_after <- as_data_frame(Set_Base_Technology(survey_standard$first_after_operator))
+first_after <- as.data.frame(Set_Base_Technology(survey_standard$first_after_operator))
 colnames(first_after) <- c("first_after_technology")
 
-second_after <- as_data_frame(Set_Base_Technology(survey_standard$second_after_operator))
+second_after <- as.data.frame(Set_Base_Technology(survey_standard$second_after_operator))
 colnames(second_after) <- c("second_after_technology")
 
-third_after <- as_data_frame(Set_Base_Technology(survey_standard$third_after_operator))
+third_after <- as.data.frame(Set_Base_Technology(survey_standard$third_after_operator))
 colnames(third_after) <- c("third_after_technology")
 
 survey_standard <- cbind(survey_standard, first_before, second_before, third_before, first_after, second_after, third_after)
 
 # Update the technology
-first_before <- as_data_frame(Update_Technology(survey_standard$first_route_before_survey_board))
+first_before <- as.data.frame(Update_Technology(survey_standard$first_route_before_survey_board))
 colnames(first_before) <- c("first_before_update_tech")
 
-second_before <- as_data_frame(Update_Technology(survey_standard$second_route_before_survey_board))
+second_before <- as.data.frame(Update_Technology(survey_standard$second_route_before_survey_board))
 colnames(second_before) <- c("second_before_update_tech")
 
-third_before <- as_data_frame(Update_Technology(survey_standard$third_route_before_survey_board))
+third_before <- as.data.frame(Update_Technology(survey_standard$third_route_before_survey_board))
 colnames(third_before) <- c("third_before_update_tech")
 
-first_after <- as_data_frame(Update_Technology(survey_standard$first_route_after_survey_alight))
+first_after <- as.data.frame(Update_Technology(survey_standard$first_route_after_survey_alight))
 colnames(first_after) <- c("first_after_update_tech")
 
-second_after <- as_data_frame(Update_Technology(survey_standard$second_route_after_survey_alight))
+second_after <- as.data.frame(Update_Technology(survey_standard$second_route_after_survey_alight))
 colnames(second_after) <- c("second_after_update_tech")
 
-third_after <- as_data_frame(Update_Technology(survey_standard$third_route_after_survey_alight))
+third_after <- as.data.frame(Update_Technology(survey_standard$third_route_after_survey_alight))
 colnames(third_after) <- c("third_after_update_tech")
 
 survey_standard <- cbind(survey_standard, first_before, second_before, third_before, first_after, second_after, third_after)
@@ -1268,7 +1494,7 @@ ancillary_df <- survey_standard %>%
 
 # Create an ancillary data set for decomposition analysis
 survey_decomposition <- survey_standard %>%
-  mutate(weight = ifelse(is.na(weight), 0_0, weight)) %>%
+  mutate(weight = ifelse(is.na(weight), 0.0, weight)) %>%
   mutate(trip_weight = ifelse(boardings > 0, weight / boardings, weight))%>%
   select(Unique_ID,
          access_mode,
@@ -1379,7 +1605,7 @@ survey_standard <- survey_standard %>%
 ```{r disk-write}
 # Compute trip weight, replace missing weights with zero, and set field language to interview language
 survey_standard <- survey_standard %>%
-  mutate(weight = ifelse(is.na(weight), 0_0, weight)) %>%
+  mutate(weight = ifelse(is.na(weight), 0.0, weight)) %>%
   mutate(trip_weight = ifelse(boardings > 0, weight / boardings, weight)) %>%
   mutate(field_language = interview_language)
 
@@ -1416,4 +1642,3 @@ write.csv(ancillary_df,    file = F_ANCILLARY_OUTPUT.csv,  row_names = FALSE)
 # }
 
 ```
-
