@@ -387,31 +387,18 @@ survey_flat <- survey_flat %>%
   left_join(survey_adds, by = c("ID", "operator", "survey_year"))
 
 # Bespoke survey technology
-survey_flat <- survey_flat %>%
-  mutate(survey_tech = ifelse(operator == "Napa Vine" & (route == 21 | route == 25 | route == 29), "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("E-Emb", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("F-Mar", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("J-Chu", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("KT-Ing", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("L-Tar", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("M-Oce", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "SF Muni" & str_count(route, pattern = fixed("N-Jud", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("101", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("102", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("103", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("104", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("120", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("121", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("122", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("140", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("168", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("180", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("181", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("182", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("185", ignore_case = TRUE)) > 0L, "express bus", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("900", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("901", ignore_case = TRUE)) > 0L, "light rail", survey_tech)) %>%
-  mutate(survey_tech = ifelse(operator == "VTA" & str_count(route, pattern = fixed("902", ignore_case = TRUE)) > 0L, "light rail", survey_tech))
+# There was a flag in the original conversion text for VTA route 185, but no 
+# records had a route 185, so it has been dropped from the csv.
+survey_tech_update <- read.csv("bespoke_survey_tech_replacement.csv")
+
+survey_flat <- survey_flat %>% 
+  left_join(survey_tech_update, by = c("operator", "route")) %>% 
+  mutate(survey_tech = ifelse(!is.na(new_survey_tech), 
+                              new_survey_tech, 
+                              survey_tech
+                              )
+         ) %>%
+  select(-new_survey_tech)
 
 remove(dictionary_cat, 
        dictionary_non, 
