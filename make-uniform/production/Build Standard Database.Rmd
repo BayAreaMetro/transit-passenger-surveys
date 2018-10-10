@@ -53,12 +53,20 @@ options(stringsAsFactors = FALSE)
 ```
 
 #### Remote file names
+```{r user_lookup, echo = FALSE}
+# New Users will need to add themselves to this lookup.
+user_list <- data.frame(
+  user = c("helseljw"), 
+  path = c("../../")
+)
+```
+
+
 ```{r file-names}
-user_list <- read.csv("user_lookup.csv")
 me <- Sys.getenv("USERNAME")
 dir_path <- user_list %>%
   filter(user == me) %>%
-  .$path_switch
+  .$path
 
 f_spatial_to_be_geocoded_path <- paste0(dir_path, 
   "Data and Reports/_geocoding Standardized/spatial_places_to_be_geocoded.csv")
