@@ -593,7 +593,7 @@ update_technology <- function(input_vector){
 
 
 ## Build Standard variables
-```{r standard-variables-part1}
+```{rs tandard-variables-part1}
 # Step 1:  Age-related transformations
 # -------------------------------------------------------------------------------------
 
@@ -987,89 +987,144 @@ survey_standard <- survey_standard %>%
                                                   "", 
                                                   first_route_after_survey_alight)
          ) %>%
-  mutate(second_route_after_survey_alight = 
-           ifelse(second_route_after_survey_alight == "Missing - Dummy Record", "", second_route_after_survey_alight)) %>%
-  mutate(third_route_after_survey_alight = 
-           ifelse(third_route_after_survey_alight == "Missing - Dummy Record", "", third_route_after_survey_alight)) 
+  mutate(second_route_after_survey_alight = ifelse(second_route_after_survey_alight == "Missing - Dummy Record", 
+                                                   "", 
+                                                   second_route_after_survey_alight)
+         ) %>%
+  mutate(third_route_after_survey_alight = ifelse(third_route_after_survey_alight == "Missing - Dummy Record", 
+                                                  "", 
+                                                  third_route_after_survey_alight)
+         ) 
 
-first_before <- as.data.frame(Set_Operator_Name(survey_standard$first_route_before_survey_board))
+first_before <- as.data.frame(set_operator_name(survey_standard$first_route_before_survey_board))
 colnames(first_before) <- c("first_before_operator")
 
-second_before <- as.data.frame(Set_Operator_Name(survey_standard$second_route_before_survey_board))
+second_before <- as.data.frame(set_operator_name(survey_standard$second_route_before_survey_board))
 colnames(second_before) <- c("second_before_operator")
 
-third_before <- as.data.frame(Set_Operator_Name(survey_standard$third_route_before_survey_board))
+third_before <- as.data.frame(set_operator_name(survey_standard$third_route_before_survey_board))
 colnames(third_before) <- c("third_before_operator")
 
-first_after <- as.data.frame(Set_Operator_Name(survey_standard$first_route_after_survey_alight))
+first_after <- as.data.frame(set_operator_name(survey_standard$first_route_after_survey_alight))
 colnames(first_after) <- c("first_after_operator")
 
-second_after <- as.data.frame(Set_Operator_Name(survey_standard$second_route_after_survey_alight))
+second_after <- as.data.frame(set_operator_name(survey_standard$second_route_after_survey_alight))
 colnames(second_after) <- c("second_after_operator")
 
-third_after <- as.data.frame(Set_Operator_Name(survey_standard$third_route_after_survey_alight))
+third_after <- as.data.frame(set_operator_name(survey_standard$third_route_after_survey_alight))
 colnames(third_after) <- c("third_after_operator")
 
-survey_standard <- cbind(survey_standard, first_before, second_before, third_before, first_after, second_after, third_after)
+survey_standard <- survey_standard %>%
+  bind_cols(first_before, 
+            second_before, 
+            third_before, 
+            first_after, 
+            second_after, 
+            third_after
+            )
 
 # Set the technology for each of the six legs
-first_before <- as.data.frame(Set_Base_Technology(survey_standard$first_before_operator))
+first_before <- as.data.frame(set_base_technology(survey_standard$first_before_operator))
 colnames(first_before) <- c("first_before_technology")
 
-second_before <- as.data.frame(Set_Base_Technology(survey_standard$second_before_operator))
+second_before <- as.data.frame(set_base_technology(survey_standard$second_before_operator))
 colnames(second_before) <- c("second_before_technology")
 
-third_before <- as.data.frame(Set_Base_Technology(survey_standard$third_before_operator))
+third_before <- as.data.frame(set_base_technology(survey_standard$third_before_operator))
 colnames(third_before) <- c("third_before_technology")
 
-first_after <- as.data.frame(Set_Base_Technology(survey_standard$first_after_operator))
+first_after <- as.data.frame(set_base_technology(survey_standard$first_after_operator))
 colnames(first_after) <- c("first_after_technology")
 
-second_after <- as.data.frame(Set_Base_Technology(survey_standard$second_after_operator))
+second_after <- as.data.frame(set_base_technology(survey_standard$second_after_operator))
 colnames(second_after) <- c("second_after_technology")
 
-third_after <- as.data.frame(Set_Base_Technology(survey_standard$third_after_operator))
+third_after <- as.data.frame(set_base_technology(survey_standard$third_after_operator))
 colnames(third_after) <- c("third_after_technology")
 
-survey_standard <- cbind(survey_standard, first_before, second_before, third_before, first_after, second_after, third_after)
+survey_standard <- survey_standard %>%
+  bind_cols(first_before, 
+            second_before, 
+            third_before, 
+            first_after, 
+            second_after, 
+            third_after
+            )
 
 # Update the technology
-first_before <- as.data.frame(Update_Technology(survey_standard$first_route_before_survey_board))
+first_before <- as.data.frame(update_technology(survey_standard$first_route_before_survey_board))
 colnames(first_before) <- c("first_before_update_tech")
 
-second_before <- as.data.frame(Update_Technology(survey_standard$second_route_before_survey_board))
+second_before <- as.data.frame(update_technology(survey_standard$second_route_before_survey_board))
 colnames(second_before) <- c("second_before_update_tech")
 
-third_before <- as.data.frame(Update_Technology(survey_standard$third_route_before_survey_board))
+third_before <- as.data.frame(update_technology(survey_standard$third_route_before_survey_board))
 colnames(third_before) <- c("third_before_update_tech")
 
-first_after <- as.data.frame(Update_Technology(survey_standard$first_route_after_survey_alight))
+first_after <- as.data.frame(update_technology(survey_standard$first_route_after_survey_alight))
 colnames(first_after) <- c("first_after_update_tech")
 
-second_after <- as.data.frame(Update_Technology(survey_standard$second_route_after_survey_alight))
+second_after <- as.data.frame(update_technology(survey_standard$second_route_after_survey_alight))
 colnames(second_after) <- c("second_after_update_tech")
 
-third_after <- as.data.frame(Update_Technology(survey_standard$third_route_after_survey_alight))
+third_after <- as.data.frame(update_technology(survey_standard$third_route_after_survey_alight))
 colnames(third_after) <- c("third_after_update_tech")
 
-survey_standard <- cbind(survey_standard, first_before, second_before, third_before, first_after, second_after, third_after)
-  
+survey_standard <- survey_standard %>%
+  bind_cols(first_before, 
+            second_before, 
+            third_before, 
+            first_after, 
+            second_after, 
+            third_after
+            )  
+
 table(survey_standard$first_before_technology)
 
 survey_standard <- survey_standard %>%
-  mutate(first_before_technology  = ifelse(first_before_update_tech  != "No Update", as.character(first_before_update_tech),  as.character(first_before_technology))) %>%
-  mutate(second_before_technology = ifelse(second_before_update_tech != "No Update", as.character(second_before_update_tech), as.character(second_before_technology))) %>%
-  mutate(third_before_technology  = ifelse(third_before_update_tech  != "No Update", as.character(third_before_update_tech),  as.character(third_before_technology))) %>%
-  mutate(first_after_technology   = ifelse(first_after_update_tech   != "No Update", as.character(first_after_update_tech),  as.character(first_after_technology))) %>%
-  mutate(second_after_technology  = ifelse(second_after_update_tech  != "No Update", as.character(second_after_update_tech),  as.character(second_after_technology))) %>%
-  mutate(third_after_technology   = ifelse(third_after_update_tech   != "No Update", as.character(third_after_update_tech),   as.character(third_after_technology)))
+  mutate(first_before_technology = ifelse(first_before_update_tech != "No Update", 
+                                          as.character(first_before_update_tech),  
+                                          as.character(first_before_technology))
+         ) %>%
+  mutate(second_before_technology = ifelse(second_before_update_tech != "No Update", 
+                                           as.character(second_before_update_tech), 
+                                           as.character(second_before_technology))
+         ) %>%
+  mutate(third_before_technology = ifelse(third_before_update_tech != "No Update", 
+                                           as.character(third_before_update_tech),  
+                                           as.character(third_before_technology))
+         ) %>%
+  mutate(first_after_technology = ifelse(first_after_update_tech != "No Update", 
+                                         as.character(first_after_update_tech),  
+                                         as.character(first_after_technology))
+         ) %>%
+  mutate(second_after_technology = ifelse(second_after_update_tech != "No Update", 
+                                          as.character(second_after_update_tech),  
+                                          as.character(second_after_technology))
+         ) %>%
+  mutate(third_after_technology = ifelse(third_after_update_tech != "No Update", 
+                                         as.character(third_after_update_tech),
+                                         as.character(third_after_technology))
+         )
 
 table(survey_standard$first_before_technology)
 
 # Clean up
-remove(first_before, second_before, third_before, first_after, second_after, third_after)
+remove(first_before, 
+       second_before, 
+       third_before, 
+       first_after, 
+       second_after, 
+       third_after)
+
 survey_standard <- survey_standard %>%
-  select(-first_before_update_tech, -second_before_update_tech, -third_before_update_tech, -first_after_update_tech, -second_after_update_tech, -third_after_update_tech)
+  select(-first_before_update_tech, 
+         -second_before_update_tech, 
+         -third_before_update_tech, 
+         -first_after_update_tech, 
+         -second_after_update_tech, 
+         -third_after_update_tech
+         )
 
 
 # Step 6:  Travel Model One path details
@@ -1078,18 +1133,36 @@ survey_standard <- survey_standard %>%
 # Transfer to and from
 survey_standard <- survey_standard %>%
   mutate(transfer_from = as.character(first_before_operator)) %>%
-  mutate(transfer_from = ifelse(second_before_operator != 'None', as.character(second_before_operator), transfer_from)) %>%
-  mutate(transfer_from = ifelse(third_before_operator  != 'None', as.character(third_before_operator),  transfer_from)) %>%
+  mutate(transfer_from = ifelse(second_before_operator != 'None', 
+                                as.character(second_before_operator), 
+                                transfer_from)
+         ) %>%
+  mutate(transfer_from = ifelse(third_before_operator  != 'None', 
+                                as.character(third_before_operator),
+                                transfer_from)
+         ) %>%
   mutate(transfer_to = as.character(first_after_operator))
 
 # First boarding and last alighting technology
 survey_standard <- survey_standard %>%
   mutate(first_board_tech = as.character(survey_tech)) %>%
-  mutate(first_board_tech = ifelse(!is.na(first_before_technology), first_before_technology, first_board_tech)) %>%
-  mutate(last_alight_tech  = as.character(survey_tech)) %>%
-  mutate(last_alight_tech = ifelse(!is.na(first_after_technology),  first_after_technology,  last_alight_tech)) %>%
-  mutate(last_alight_tech = ifelse(!is.na(second_after_technology), second_after_technology, last_alight_tech)) %>%
-  mutate(last_alight_tech = ifelse(!is.na(third_after_technology),  third_after_technology,  last_alight_tech))
+  mutate(first_board_tech = ifelse(!is.na(first_before_technology), 
+                                   first_before_technology, 
+                                   first_board_tech)
+         ) %>%
+  mutate(last_alight_tech = as.character(survey_tech)) %>%
+  mutate(last_alight_tech = ifelse(!is.na(first_after_technology),
+                                   first_after_technology,
+                                   last_alight_tech)
+         ) %>%
+  mutate(last_alight_tech = ifelse(!is.na(second_after_technology), 
+                                   second_after_technology, 
+                                   last_alight_tech)
+         ) %>%
+  mutate(last_alight_tech = ifelse(!is.na(third_after_technology),
+                                   third_after_technology,
+                                   last_alight_tech)
+         )
 
 table(survey_standard$transfer_from)
 table(survey_standard$transfer_to)
@@ -1123,46 +1196,127 @@ table(survey_standard$path_egress)
 # -- Line haul
 # --- Technology present calculations
 survey_standard <- survey_standard %>%
-  mutate(first_before_technology  = ifelse(is.na(first_before_technology),  "Missing", first_before_technology)) %>%
-  mutate(second_before_technology = ifelse(is.na(second_before_technology), "Missing", second_before_technology)) %>%
-  mutate(third_before_technology  = ifelse(is.na(third_before_technology),  "Missing", third_before_technology)) %>%
-  mutate(first_after_technology   = ifelse(is.na(first_after_technology),   "Missing", first_after_technology)) %>%
-  mutate(second_after_technology  = ifelse(is.na(second_after_technology),  "Missing", second_after_technology)) %>%
-  mutate(third_after_technology   = ifelse(is.na(third_after_technology),   "Missing", third_after_technology))
+  mutate(first_before_technology = ifelse(is.na(first_before_technology),  
+                                           "Missing", 
+                                           first_before_technology)
+         ) %>%
+  mutate(second_before_technology = ifelse(is.na(second_before_technology), 
+                                           "Missing", 
+                                           second_before_technology)
+         ) %>%
+  mutate(third_before_technology = ifelse(is.na(third_before_technology), 
+                                          "Missing", 
+                                          third_before_technology)
+         ) %>%
+  mutate(first_after_technology = ifelse(is.na(first_after_technology),
+                                         "Missing",
+                                         first_after_technology)
+         ) %>%
+  mutate(second_after_technology = ifelse(is.na(second_after_technology),
+                                          "Missing",
+                                          second_after_technology)
+         ) %>%
+  mutate(third_after_technology = ifelse(is.na(third_after_technology),
+                                         "Missing",
+                                         third_after_technology)
+         )
 
 survey_standard <- survey_standard %>%
   mutate(commuter_rail_present = FALSE) %>%
-  mutate(commuter_rail_present = ifelse(first_before_technology  == "commuter rail", TRUE, commuter_rail_present)) %>%
-  mutate(commuter_rail_present = ifelse(second_before_technology == "commuter rail", TRUE, commuter_rail_present)) %>%
-  mutate(commuter_rail_present = ifelse(third_before_technology  == "commuter rail", TRUE, commuter_rail_present)) %>%
-  mutate(commuter_rail_present = ifelse(survey_tech              == "commuter rail", TRUE, commuter_rail_present)) %>%
-  mutate(commuter_rail_present = ifelse(first_after_technology   == "commuter rail", TRUE, commuter_rail_present)) %>%
-  mutate(commuter_rail_present = ifelse(second_after_technology  == "commuter rail", TRUE, commuter_rail_present)) %>%
-  mutate(commuter_rail_present = ifelse(third_after_technology   == "commuter rail", TRUE, commuter_rail_present))
+  mutate(commuter_rail_present = ifelse(first_before_technology == "commuter rail", 
+                                        TRUE, 
+                                        commuter_rail_present)
+         ) %>%
+  mutate(commuter_rail_present = ifelse(second_before_technology == "commuter rail", 
+                                        TRUE, 
+                                        commuter_rail_present)
+         ) %>%
+  mutate(commuter_rail_present = ifelse(third_before_technology == "commuter rail", 
+                                        TRUE, 
+                                        commuter_rail_present)
+         ) %>%
+  mutate(commuter_rail_present = ifelse(survey_tech == "commuter rail", 
+                                        TRUE, 
+                                        commuter_rail_present)
+         ) %>%
+  mutate(commuter_rail_present = ifelse(first_after_technology == "commuter rail", 
+                                        TRUE, 
+                                        commuter_rail_present)
+         ) %>%
+  mutate(commuter_rail_present = ifelse(second_after_technology == "commuter rail", 
+                                        TRUE, 
+                                        commuter_rail_present)
+         ) %>%
+  mutate(commuter_rail_present = ifelse(third_after_technology == "commuter rail",
+                                        TRUE, 
+                                        commuter_rail_present)
+         )
 
 table(survey_standard$commuter_rail_present)
 
 survey_standard <- survey_standard %>%
   mutate(heavy_rail_present = FALSE) %>%
-  mutate(heavy_rail_present = ifelse(first_before_technology  == "heavy rail", TRUE, heavy_rail_present)) %>%
-  mutate(heavy_rail_present = ifelse(second_before_technology == "heavy rail", TRUE, heavy_rail_present)) %>%
-  mutate(heavy_rail_present = ifelse(third_before_technology  == "heavy rail", TRUE, heavy_rail_present)) %>%
-  mutate(heavy_rail_present = ifelse(survey_tech              == "heavy rail", TRUE, heavy_rail_present)) %>%
-  mutate(heavy_rail_present = ifelse(first_after_technology   == "heavy rail", TRUE, heavy_rail_present)) %>%
-  mutate(heavy_rail_present = ifelse(second_after_technology  == "heavy rail", TRUE, heavy_rail_present)) %>%
-  mutate(heavy_rail_present = ifelse(third_after_technology   == "heavy rail", TRUE, heavy_rail_present))
+  mutate(heavy_rail_present = ifelse(first_before_technology == "heavy rail", 
+                                     TRUE, 
+                                     heavy_rail_present)
+         ) %>%
+  mutate(heavy_rail_present = ifelse(second_before_technology == "heavy rail", 
+                                     TRUE, 
+                                     heavy_rail_present)
+         ) %>%
+  mutate(heavy_rail_present = ifelse(third_before_technology == "heavy rail", 
+                                     TRUE, 
+                                     heavy_rail_present)
+         ) %>%
+  mutate(heavy_rail_present = ifelse(survey_tech == "heavy rail", 
+                                     TRUE, 
+                                     heavy_rail_present)
+         ) %>%
+  mutate(heavy_rail_present = ifelse(first_after_technology == "heavy rail", 
+                                     TRUE, 
+                                     heavy_rail_present)
+         ) %>%
+  mutate(heavy_rail_present = ifelse(second_after_technology == "heavy rail", 
+                                     TRUE, 
+                                     heavy_rail_present)
+         ) %>%
+  mutate(heavy_rail_present = ifelse(third_after_technology == "heavy rail", 
+                                     TRUE, 
+                                     heavy_rail_present)
+         )
 
 table(survey_standard$heavy_rail_present)
 
 survey_standard <- survey_standard %>%
   mutate(express_bus_present = FALSE) %>%
-  mutate(express_bus_present = ifelse(first_before_technology  == "express bus", TRUE, express_bus_present)) %>%
-  mutate(express_bus_present = ifelse(second_before_technology == "express bus", TRUE, express_bus_present)) %>%
-  mutate(express_bus_present = ifelse(third_before_technology  == "express bus", TRUE, express_bus_present)) %>%
-  mutate(express_bus_present = ifelse(survey_tech              == "express bus", TRUE, express_bus_present)) %>%
-  mutate(express_bus_present = ifelse(first_after_technology   == "express bus", TRUE, express_bus_present)) %>%
-  mutate(express_bus_present = ifelse(second_after_technology  == "express bus", TRUE, express_bus_present)) %>%
-  mutate(express_bus_present = ifelse(third_after_technology   == "express bus", TRUE, express_bus_present))
+  mutate(express_bus_present = ifelse(first_before_technology == "express bus", 
+                                      TRUE, 
+                                      express_bus_present)
+         ) %>%
+  mutate(express_bus_present = ifelse(second_before_technology == "express bus", 
+                                      TRUE, 
+                                      express_bus_present)
+         ) %>%
+  mutate(express_bus_present = ifelse(third_before_technology == "express bus", 
+                                      TRUE, 
+                                      express_bus_present)
+         ) %>%
+  mutate(express_bus_present = ifelse(survey_tech == "express bus", 
+                                      TRUE, 
+                                      express_bus_present)
+         ) %>%
+  mutate(express_bus_present = ifelse(first_after_technology == "express bus", 
+                                      TRUE,
+                                      express_bus_present)
+         ) %>%
+  mutate(express_bus_present = ifelse(second_after_technology == "express bus", 
+                                      TRUE, 
+                                      express_bus_present)
+         ) %>%
+  mutate(express_bus_present = ifelse(third_after_technology == "express bus", 
+                                      TRUE, 
+                                      express_bus_present)
+         )
 
 table(survey_standard$express_bus_present)
 
@@ -1180,22 +1334,55 @@ table(survey_standard$ferry_present)
 
 survey_standard <- survey_standard %>%
   mutate(light_rail_present = FALSE) %>%
-  mutate(light_rail_present = ifelse(first_before_technology  == "light rail", TRUE, light_rail_present)) %>%
-  mutate(light_rail_present = ifelse(second_before_technology == "light rail", TRUE, light_rail_present)) %>%
-  mutate(light_rail_present = ifelse(third_before_technology  == "light rail", TRUE, light_rail_present)) %>%
-  mutate(light_rail_present = ifelse(survey_tech              == "light rail", TRUE, light_rail_present)) %>%
-  mutate(light_rail_present = ifelse(first_after_technology   == "light rail", TRUE, light_rail_present)) %>%
-  mutate(light_rail_present = ifelse(second_after_technology  == "light rail", TRUE, light_rail_present)) %>%
-  mutate(light_rail_present = ifelse(third_after_technology   == "light rail", TRUE, light_rail_present))
+  mutate(light_rail_present = ifelse(first_before_technology == "light rail", 
+                                     TRUE, 
+                                     light_rail_present)
+         ) %>%
+  mutate(light_rail_present = ifelse(second_before_technology == "light rail", 
+                                     TRUE, 
+                                     light_rail_present)
+         ) %>%
+  mutate(light_rail_present = ifelse(third_before_technology == "light rail", 
+                                     TRUE, 
+                                     light_rail_present) 
+         ) %>%
+  mutate(light_rail_present = ifelse(survey_tech == "light rail", 
+                                     TRUE, 
+                                     light_rail_present)
+         ) %>%
+  mutate(light_rail_present = ifelse(first_after_technology == "light rail", 
+                                     TRUE, 
+                                     light_rail_present)
+         ) %>%
+  mutate(light_rail_present = ifelse(second_after_technology == "light rail", 
+                                     TRUE, 
+                                     light_rail_present)
+         ) %>%
+  mutate(light_rail_present = ifelse(third_after_technology   == "light rail", 
+                                     TRUE, 
+                                     light_rail_present)
+         )
 
 table(survey_standard$light_rail_present)
 
 survey_standard <- survey_standard %>%
   mutate(path_line_haul = "LOC") %>%
-  mutate(path_line_haul = ifelse(light_rail_present,    "LRF", path_line_haul)) %>%
-  mutate(path_line_haul = ifelse(ferry_present,         "LRF", path_line_haul)) %>%
-  mutate(path_line_haul = ifelse(express_bus_present,   "EXP", path_line_haul)) %>%
-  mutate(path_line_haul = ifelse(heavy_rail_present,    "HVY", path_line_haul)) %>%
+  mutate(path_line_haul = ifelse(light_rail_present,    
+                                 "LRF", 
+                                 path_line_haul)
+         ) %>%
+  mutate(path_line_haul = ifelse(ferry_present,         
+                                 "LRF", 
+                                 path_line_haul)
+         ) %>%
+  mutate(path_line_haul = ifelse(express_bus_present,   
+                                 "EXP",
+                                 path_line_haul)
+         ) %>%
+  mutate(path_line_haul = ifelse(heavy_rail_present,    
+                                 "HVY", 
+                                 path_line_haul)
+         ) %>%
   mutate(path_line_haul = ifelse(commuter_rail_present, "COM", path_line_haul)) %>%
   mutate(path_label = paste(path_access, path_line_haul, path_egress, sep = "-"))
 
@@ -1231,7 +1418,10 @@ table(survey_standard$number_transfers_orig_board)
 table(survey_standard$number_transfers_alight_dest)
 
 survey_standard <- survey_standard %>%
-  mutate(survey_boardings = 1L + as.numeric(number_transfers_orig_board) + as.numeric(number_transfers_alight_dest))
+  mutate(survey_boardings = 1L + 
+           as.numeric(number_transfers_orig_board) + 
+           as.numeric(number_transfers_alight_dest)
+         )
 
 table(survey_standard$boardings, survey_standard$survey_boardings)
 
@@ -1248,8 +1438,8 @@ debug_transfers <- survey_standard %>%
          third_route_after_survey_alight,  third_after_operator,  third_after_technology)
 
 survey_standard <- survey_standard %>%
-  select(-survey_boardings, -commuter_rail_present, -heavy_rail_present, -ferry_present, 
-         -light_rail_present, -express_bus_present)
+  select(-survey_boardings, -commuter_rail_present, -heavy_rail_present, 
+         -ferry_present, -light_rail_present, -express_bus_present)
 
 ```
 
