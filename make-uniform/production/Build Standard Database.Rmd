@@ -5,6 +5,8 @@ output:
   html_document:
     theme: cosmo
     toc: yes
+editor_options: 
+  chunk_output_type: console
 ---
 
 ## Administration
@@ -45,7 +47,7 @@ for (p in list_of_packages){
 
 #### Knitr config
 ```{r config, include=FALSE}
-knitr::opts_chunk$set(cache=TRUE, error = TRUE)
+knitr::opts_chunk$set(cache = FALSE, error = TRUE)
 suppressMessages(library(tidyverse))
 options(stringsAsFactors = FALSE)
 ```
@@ -365,7 +367,7 @@ survey_to_flat <- survey_cat_to_flat %>%
 
 # Put together and then take apart a unique ID when flattening
 survey_to_flat <- survey_to_flat %>%
-  mutate(Unique_ID = paste(ID, operator, survey_year, sep = "---")) %>%
+  mutate(unique_ID = paste(ID, operator, survey_year, sep = "---")) %>%
   select(-ID, -operator, -survey_year, -survey_tech)
 
 # NOTE: if below cast warns about missing aggregation function, likely because 
@@ -374,7 +376,7 @@ survey_to_flat <- survey_to_flat %>%
 
 survey_flat <- survey_to_flat %>%
   spread(generic_variable, generic_response) %>%
-  separate(Unique_ID, c("ID", "operator", "survey_year"), sep = "---")
+  separate(unique_ID, c("ID", "operator", "survey_year"), sep = "---")
   
 # Add in survey-subject rolling stock technology
 survey_adds <- survey_combine %>%
@@ -593,7 +595,7 @@ update_technology <- function(input_vector){
 
 
 ## Build Standard variables
-```{rs tandard-variables-part1}
+```{r standard-variables-part1}
 # Step 1:  Age-related transformations
 # -------------------------------------------------------------------------------------
 
@@ -1444,7 +1446,7 @@ survey_standard <- survey_standard %>%
 ```
 
 
-``` {r standard-variables-part2}
+```{r standard-variables-part2}
 # Step 7:  Standardize Demographics
 # -------------------------------------------------------------------------------------
 survey_standard <- survey_standard %>%
@@ -1468,8 +1470,14 @@ survey_standard <- survey_standard %>%
   mutate(race = ifelse(race_dmy_sum == 1 & race_dmy_oth == 1, 'OTHER', race)) %>%
   
   # Language at home
-  mutate(language_at_home = ifelse(as.character(language_at_home_binary) == 'OTHER', as.character(language_at_home_detail), as.character(language_at_home_binary))) %>%
-  select(-language_at_home_binary, -language_at_home_detail, -race_dmy_ind, -race_dmy_asn, -race_dmy_blk, -race_dmy_hwi, -race_dmy_wht, -race_dmy_oth, -race_dmy_sum, -race_other_string)
+  mutate(language_at_home = ifelse(as.character(language_at_home_binary) == 'OTHER', 
+                                   as.character(language_at_home_detail), 
+                                   as.character(language_at_home_binary))
+         ) %>%
+  select(-language_at_home_binary, -language_at_home_detail, -race_dmy_ind, 
+         -race_dmy_asn, -race_dmy_blk, -race_dmy_hwi, -race_dmy_wht, 
+         -race_dmy_oth, -race_dmy_sum, -race_other_string
+         )
 
 # Update fare medium for surveys with clipper detail
 survey_standard <- survey_standard %>%
@@ -1491,7 +1499,10 @@ table(survey_standard$eng_proficient)
 
 # Build route from entry and exit station, as needed
 survey_standard <- survey_standard %>%
-  mutate(route = ifelse(!is.na(onoff_enter_station), paste(onoff_enter_station, onoff_exit_station, sep = " "), route))
+  mutate(route = ifelse(!is.na(onoff_enter_station), 
+                        paste(onoff_enter_station, onoff_exit_station, sep = " "), 
+                        route)
+         )
 
 # Deal with date and time
 survey_standard <- survey_standard %>%
@@ -1509,7 +1520,7 @@ survey_standard <- survey_standard %>%
 
 # Get day of the week from date
 survey_standard <- survey_standard %>%
-  mutate(date = as_Date(date_string, format = "%m/%d/%Y")) %>%
+  mutate(date = as.Date(date_string, format = "%m/%d/%Y")) %>%
   mutate(day_of_the_week = toupper(weekdays(date)))
 
 table(survey_standard$operator, survey_standard$day_of_the_week)
@@ -1532,20 +1543,26 @@ field_dates <- survey_standard %>%
   filter(!is.na(date)) %>%
   summarise(field_start = min(date), field_end = max(date))
 
-survey_standard <- left_join(survey_standard, field_dates, by = c("operator", "survey_year"))
+survey_standard <- survey_standard %>% 
+  left_join(field_dates, by = c("operator", "survey_year"))
 
 # Deal with time
 survey_standard <- survey_standard %>%
   mutate(time_string = ifelse(time_string == "Missing - Dummy Record", NA, time_string)) %>%
   mutate(time_string = ifelse(time_string == "Missing - Question Not Asked", NA, time_string)) %>%
   # interpret the time string
-  mutate(time1 = as_POSIXct(strptime(time_string, format="%l:%M:%S %p"))) %>%
-  mutate(time2 = as_POSIXct(strptime(time_string, format="%l:%M %p"))) %>%
-  mutate(time3 = as_POSIXct(strptime(time_string, format="%H:%M:%S"))) %>%
-  mutate(time4 = as_POSIXct(strptime(time_string, format="%H:%M"))) %>%
-  mutate(survey_time_posix = as_POSIXct(ifelse(!is.na(time1), time1, 
-                                  ifelse(!is.na(time2), time2,
-                                  ifelse(!is.na(time3), time3, time4))), origin="1970-01-01")) %>%
+  mutate(time1 = as.POSIXct(strptime(time_string, format = "%l:%M:%S %p"))) %>%
+  mutate(time2 = as.POSIXct(strptime(time_string, format = "%l:%M %p"))) %>%
+  mutate(time3 = as.POSIXct(strptime(time_string, format = "%H:%M:%S"))) %>%
+  mutate(time4 = as.POSIXct(strptime(time_string, format = "%H:%M"))) %>%
+  mutate(survey_time_posix = as.POSIXct(ifelse(!is.na(time1), time1,
+                                               ifelse(!is.na(time2), 
+                                                      time2,
+                                                      ifelse(!is.na(time3), 
+                                                             time3, 
+                                                             time4))), 
+                                        origin="1970-01-01")
+         ) %>%
   # create a time_start (in hours) for day_part
   mutate(time_start = as.numeric(format(survey_time_posix,"%H"))) %>%
   mutate(day_part = 'EVENING') %>%
@@ -1563,7 +1580,8 @@ table(survey_standard$day_part)
 table(survey_standard$day_of_the_week)
 
 survey_standard <- survey_standard %>%
-  select(-date_string, -time_string, -time1, -time2, -time3, -time4, -survey_time_posix)
+  select(-date_string, -time_string, -time1, -time2, 
+         -time3, -time4, -survey_time_posix)
 
 ```
 
@@ -1571,22 +1589,25 @@ survey_standard <- survey_standard %>%
 (see `__/geocode-engine` for tools)
 ```{r geocode-doit}
 # Prepare and write locations that need to be geo-coded to disk
+survey_standard <- survey_standard %>%
+  mutate(unique_ID = paste(ID, operator, survey_year, sep = "---"))
+
 temp_lat <- survey_standard %>%
-  select(Unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat, school = school_lat, workplace = workplace_lat)
+  select(unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat, 
+         school = school_lat, workplace = workplace_lat)
 
 temp_lon <- survey_standard %>%
-  select(Unique_ID, dest = dest_lon, home = home_lon, orig = orig_lon, school = school_lon, workplace = workplace_lon)
+  select(unique_ID, dest = dest_lon, home = home_lon, orig = orig_lon, 
+         school = school_lon, workplace = workplace_lon)
 
-temp_lat_melt <- melt(temp_lat, id = 'Unique_ID')
-temp_lon_melt <- melt(temp_lon, id = 'Unique_ID')
+temp_lat_gather <- temp_lat %>%
+  gather(variable, y_coord, -unique_ID)
 
-temp_lat_melt <- temp_lat_melt %>%
-  select(Unique_ID, variable, y_coord = value)
+temp_lon_gather <- temp_lon %>%
+  gather(variable, x_coord, -unique_ID)
 
-temp_lon_melt <- temp_lon_melt %>%
-  select(Unique_ID, variable, x_coord = value)
-
-write_places <- left_join(temp_lat_melt, temp_lon_melt, by = c("Unique_ID", "variable"))
+write_places <- temp_lat_gather %>%
+  left_join(temp_lon_gather, by = c("unique_ID", "variable"))
 
 write_places <- write_places %>%
   mutate(x_coord = as.numeric(x_coord)) %>%
@@ -1603,53 +1624,63 @@ survey_standard <- survey_standard %>%
   mutate(last_alight_tech = ifelse(number_transfers_alight_dest == 0, survey_tech,       last_alight_tech))
 
 write_board <- survey_standard %>%
-  select(Unique_ID, first_board_lat, first_board_lon, first_board_tech) %>%
+  select(unique_ID, first_board_lat, first_board_lon, first_board_tech) %>%
   mutate(first_board_lat = as.numeric(first_board_lat)) %>%
   mutate(first_board_lon = as.numeric(first_board_lon)) %>%
   filter(!is.na(first_board_lat)) %>%
   filter(!is.na(first_board_lon))
 
 write_alight <- survey_standard %>%
-  select(Unique_ID, last_alight_lat, last_alight_lon, last_alight_tech) %>%
+  select(unique_ID, last_alight_lat, last_alight_lon, last_alight_tech) %>%
   mutate(last_alight_lat = as.numeric(last_alight_lat)) %>%
   mutate(last_alight_lon = as.numeric(last_alight_lon)) %>%
   filter(!is.na(last_alight_lat)) %>%
   filter(!is.na(last_alight_lon))
 
-write.csv(write_places, file = F_SPATIAL_TO_BE_GEOCODED,  row_names = FALSE, quote = F)
-write.csv(write_board,  file = F_BOARD_TO_BE_GEOCODED,    row_names = FALSE, quote = F)
-write.csv(write_alight, file = F_ALIGHT_TO_BE_GEOCODED,   row_names = FALSE, quote = F)
+write.csv(write_places, file = f_spatial_to_be_geocoded_path, row.names = FALSE, quote = F)
+write.csv(write_board,  file = f_board_to_be_geocoded_path, row.names = FALSE, quote = F)
+write.csv(write_alight, file = f_alight_to_be_geocoded_path, row.names = FALSE, quote = F)
 
-remove(temp_lat, temp_lon, temp_lat_melt, temp_lon_melt, write_places, write_board, write_alight)
+remove(temp_lat, temp_lon, temp_lat_gather, temp_lon_gather, write_places, write_board, write_alight)
 
 ```
 
 ```{r geocode-addit}
 # Bring in the geocoding results
-geocoded_spatial_places <- read.csv(F_SPATIAL_GEOCODED, header = TRUE)
-geocoded_transit_places <- read.csv(F_TRANSIT_GEOCODED, header = TRUE)
+geocoded_spatial_places <- read.csv(f_spatial_geocoded_path, header = TRUE)
+geocoded_transit_places <- read.csv(f_transit_geocoded_path, header = TRUE)
 
-geocoded_spatial_places <- select(geocoded_spatial_places, -x_coord, -y_coord)
-geo_spatial_maz <- dcast(geocoded_spatial_places, Unique_ID ~ variable, value_var = "MAZ_ORIGINAL")
-geo_spatial_maz <- geo_spatial_maz %>%
-  select(Unique_ID, dest_maz = dest, home_maz = home, orig_maz = orig, school_maz = school, workplace_maz = workplace) %>%
-  mutate(Unique_ID = as.character(Unique_ID))
+geocoded_spatial_places <- geocoded_spatial_places %>% 
+  rename(unique_ID = Unique_ID) %>%
+  select(-x_coord, -y_coord)
 
-geo_spatial_taz <- dcast(geocoded_spatial_places, Unique_ID ~ variable, value_var = "TAZ1454")
-geo_spatial_taz <- geo_spatial_taz %>%
-  select(Unique_ID, dest_taz = dest, home_taz = home, orig_taz = orig, school_taz = school, workplace_taz = workplace) %>%
-  mutate(Unique_ID = as.character(Unique_ID))
+geo_spatial_maz <- geocoded_spatial_places %>%
+  select(-TAZ1454) %>%
+  spread(variable, MAZ_ORIGINAL) %>%
+  select(unique_ID, dest_maz = dest, home_maz = home, orig_maz = orig, 
+         school_maz = school, workplace_maz = workplace)
+
+geo_spatial_taz <- geocoded_spatial_places %>%
+  select(-MAZ_ORIGINAL) %>%
+  spread(variable, TAZ1454) %>%
+  select(unique_ID, dest_taz = dest, home_taz = home, orig_taz = orig, 
+         school_taz = school, workplace_taz = workplace) 
 
 geo_transit_tap <- geocoded_transit_places %>%
-  select(Unique_ID, first_board_tap = board_tap, last_alight_tap = alight_tap) %>%
-  mutate(Unique_ID = as.character(Unique_ID))
+  select(unique_ID = Unique_ID, first_board_tap = board_tap, 
+         last_alight_tap = alight_tap)
 
 # Joins
-survey_standard <- left_join(survey_standard, geo_spatial_maz, by = c("Unique_ID"))
-survey_standard <- left_join(survey_standard, geo_spatial_taz, by = c("Unique_ID"))
-survey_standard <- left_join(survey_standard, geo_transit_tap, by = c("Unique_ID"))
+survey_standard <- survey_standard %>% 
+  left_join(geo_spatial_maz, by = c("unique_ID")) %>%
+  left_join(geo_spatial_taz, by = c("unique_ID")) %>%
+  left_join(geo_transit_tap, by = c("unique_ID"))
 
-remove(geocoded_spatial_places, geocoded_transit_places, geo_spatial_maz, geo_spatial_taz, geo_transit_tap)
+remove(geocoded_spatial_places, 
+       geocoded_transit_places, 
+       geo_spatial_maz, 
+       geo_spatial_taz, 
+       geo_transit_tap)
 ```
 
 ### Clean up data types
@@ -1676,7 +1707,7 @@ survey_standard <- survey_standard %>%
 
 # Create an ancillary data set for requested variables
 ancillary_df <- survey_standard %>%
-  select(Unique_ID, 
+  select(unique_ID, 
          at_school_after_dest_purp, 
          at_school_prior_to_orig_purp, 
          at_work_after_dest_purp, 
@@ -1686,7 +1717,7 @@ ancillary_df <- survey_standard %>%
 survey_decomposition <- survey_standard %>%
   mutate(weight = ifelse(is.na(weight), 0.0, weight)) %>%
   mutate(trip_weight = ifelse(boardings > 0, weight / boardings, weight))%>%
-  select(Unique_ID,
+  select(unique_ID,
          access_mode,
          dest_purp,
          direction,
@@ -1741,8 +1772,8 @@ survey_decomposition <- survey_standard %>%
          day_part,
          trip_weight)
 
-save(survey_decomposition, file = F_OUTPUT_DECOM_RDATA)
-write.csv(survey_decomposition, file = F_OUTPUT_DECOM.csv,  row_names = FALSE)
+save(survey_decomposition, file = f_output_decom_rdata_path)
+write.csv(survey_decomposition, file = f_output_decom_csv_path,  row.names = FALSE)
 
 # Drop variables we don't want to carry forward to standard dataset
 survey_standard <- survey_standard %>%
@@ -1800,14 +1831,17 @@ survey_standard <- survey_standard %>%
   mutate(field_language = interview_language)
 
 # put new column, survey_time, at the end
-survey_standard <- survey_standard[,c(which(colnames(survey_standard)!="survey_time"),
-                                      which(colnames(survey_standard)=="survey_time"))]
+survey_standard_cols <- survey_standard %>% 
+  select(-survey_time) %>% 
+  colnames()
+survey_standard <- survey_standard %>%
+  select(survey_standard_cols, survey_time)
 
-save(survey_standard, file = F_OUTPUT_RDATA)
-save(ancillary_df, file = F_ANCILLARY_OUTPUT_RDATA)
+save(survey_standard, file = f_output_rdata_path)
+save(ancillary_df, file = f_ancillary_output_rdata_path)
 
-write.csv(survey_standard, file = F_OUTPUT.csv,  row_names = FALSE)
-write.csv(ancillary_df,    file = F_ANCILLARY_OUTPUT.csv,  row_names = FALSE)
+write.csv(survey_standard, file = f_output_csv_path, row.names = FALSE)
+write.csv(ancillary_df, file = f_ancillary_output_csv_path, row.names = FALSE)
 
 ```
 
