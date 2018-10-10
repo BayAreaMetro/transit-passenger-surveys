@@ -1,6 +1,7 @@
 ##################################################################################################
 ### Script to implement decomposition analysis on MTC survey data
 ### Author: Shimon Israel, February 2018, based on Binny M Paul, binny.paul@rsginc.com, April 2016
+### Updated: John Helsel, October 2018
 ##################################################################################################
 
 suppressMessages(library(dplyr))
