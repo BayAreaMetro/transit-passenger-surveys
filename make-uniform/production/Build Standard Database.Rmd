@@ -166,7 +166,7 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
     .$survey_variable %>%
     unique()
   
-  df <- read.csv(file_path, header = TRUE, comment.char = "",quote = "\"") %>%
+  df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") %>%
     select(one_of(variables_vector)) %>%
     rename_at(vars(contains('id')), funs(sub('id', 'ID', .))) %>%
     gather(survey_variable, survey_response, -ID) %>%
@@ -254,7 +254,7 @@ survey_non <- survey_combine %>%
 survey_flat <- bind_rows(survey_cat, survey_non) %>%
   select(-survey_variable, -survey_response) %>%
   spread(generic_variable, generic_response) %>%
-  arrange(operator, survey_year, ID)
+  arrange(operator, survey_year, ID) 
 
 remove(survey_cat, 
        survey_non)
@@ -1500,7 +1500,7 @@ survey_decomposition <- survey_standard %>%
          day_part,
          trip_weight)
 
-save(survey_decomposition, file = f_output_decom_rdata_path)
+saveRDS(survey_decomposition, file = f_output_decom_rdata_path)
 write.csv(survey_decomposition, file = f_output_decom_csv_path,  row.names = FALSE)
 
 # Drop variables we don't want to carry forward to standard dataset
@@ -1550,7 +1550,7 @@ survey_standard <- survey_standard %>%
 
 ```
 
-## Write RData to Disk
+## Write RDS to Disk
 ```{r disk-write}
 # Compute trip weight, replace missing weights with zero, and set field language to interview language
 survey_standard <- survey_standard %>%
@@ -1565,8 +1565,8 @@ survey_standard_cols <- survey_standard %>%
 survey_standard <- survey_standard %>%
   select(survey_standard_cols, survey_time)
 
-save(survey_standard, file = f_output_rdata_path)
-save(ancillary_df, file = f_ancillary_output_rdata_path)
+saveRDS(survey_standard, file = f_output_rdata_path)
+saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
 
 write.csv(survey_standard, file = f_output_csv_path, row.names = FALSE)
 write.csv(ancillary_df, file = f_ancillary_output_csv_path, row.names = FALSE)
