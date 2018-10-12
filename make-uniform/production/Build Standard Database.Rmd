@@ -137,8 +137,8 @@ dictionary *should* explicate the expected task.
 ```{r prepare-dictionary}
 dictionary_all <- read.csv('Dictionary for Standard Database.csv', 
                            header = TRUE
-                           )
-colnames(dictionary_all) <- tolower(colnames(dictionary_all))
+                           ) %>%
+  rename_all(tolower)
 
 # Prepare separate dictionaries for categorical and non-categorical variables
 dictionary_non <- dictionary_all %>%
@@ -153,6 +153,44 @@ dictionary_cat <- dictionary_all %>%
 
 ## Add Surveys
 ```{r operator-read-function}
+
+check_dropped_variables <- function(operator_variables_df, external_variables_df) {
+  
+  # Ensure that all variable levels in the operator specific survey have a generic 
+  # equivalent in dictionary_all
+  # operator_variables_df <- df_variable_levels
+  # external_variables_df <- external_variable_levels
+  
+  external_levels <- external_variables_df %>% 
+    group_by(survey_variable, survey_response) %>%
+    summarise(count = n()) %>%
+    select(-count) %>% 
+    ungroup()
+  
+  missing_variables <- operator_variables_df %>% 
+    filter(survey_variable %in% external_levels$survey_variable) %>% 
+    filter(!survey_response %in% external_levels$survey_response) %>%
+    nrow()
+  
+  stopifnot(missing_variables == 0)
+  
+}
+
+check_duplicate_variables <- function(df_duplicates) {
+  
+  # Check for duplicate rows in dataframe
+  ref_count <- df_duplicates %>% 
+    group_by(ID, operator, survey_year, survey_tech, survey_variable) %>% 
+    summarise(count = n())
+
+  mult_ref_count  <- ref_count %>%
+    filter(count > 1) %>%
+    nrow()
+
+  stopifnot(mult_ref_count == 0)
+
+}
+  
 read_operator <- function(name, year, default_tech, file_path, variable_dictionary) {
   
   # name <- 'BART'
@@ -166,7 +204,22 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
     .$survey_variable %>%
     unique()
   
-  df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") %>%
+  df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") 
+  
+  df_variable_levels <- df %>%
+    gather(survey_variable, survey_response) %>%
+    group_by(survey_variable, survey_response) %>%
+    summarise(count = n()) %>%
+    select(-count) %>% 
+    ungroup()
+    
+  external_variable_levels <- variable_dictionary %>%
+    filter(operator == name & generic_response != "NONCATEGORICAL")
+  
+  check_dropped_variables(df_variable_levels, 
+                          external_variable_levels)
+  
+  df <- df %>%
     select(one_of(variables_vector)) %>%
     rename_at(vars(contains('id')), funs(sub('id', 'ID', .))) %>%
     gather(survey_variable, survey_response, -ID) %>%
@@ -174,6 +227,8 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
          operator = name,
          survey_year = year,
          survey_tech = default_tech)
+  
+  check_duplicate_variables(df)
   
   return(df)
   
@@ -226,6 +281,7 @@ remove(bart_df, caltrain_df, muni_df, vta_df, napa_vine_df)
 
 ```
 
+
 ## Combine across operators and flatten
 ```{r combine}
 
@@ -234,16 +290,6 @@ survey_cat <- survey_combine %>%
   left_join(dictionary_cat, by = c("operator", "survey_variable", "survey_response")) %>%
   filter(!is.na(generic_variable))
   
-# check for multiple instances of (ID,operator,survey_year,survey_tech,Generic_Variable) -- it'll cause errors in the dcast
-ref_count <- survey_cat %>% 
-  group_by(ID, operator, survey_year, survey_tech, survey_variable) %>% 
-  summarise(count = n())
-
-mult_ref_count  <- ref_count %>%
-  filter(count > 1)
-
-stopifnot(nrow(mult_ref_count) == 0)
-
 # Join the dictionary and prepare the non-categorical variables
 survey_non <- survey_combine %>% 
   left_join(dictionary_non, by = c("operator", "survey_variable")) %>%
