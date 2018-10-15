@@ -136,8 +136,7 @@ dictionary *should* explicate the expected task.
 ## Prepare Dictionaries
 ```{r prepare-dictionary}
 dictionary_all <- read.csv('Dictionary for Standard Database.csv', 
-                           header = TRUE
-                           ) %>%
+                           header = TRUE) %>%
   rename_all(tolower)
 
 # Prepare separate dictionaries for categorical and non-categorical variables
@@ -161,17 +160,17 @@ check_dropped_variables <- function(operator_variables_df, external_variables_df
   # operator_variables_df <- df_variable_levels
   # external_variables_df <- external_variable_levels
   
-  external_levels <- external_variables_df %>% 
+  external_levels <- external_variables_df %>%
     group_by(survey_variable, survey_response) %>%
     summarise(count = n()) %>%
-    select(-count) %>% 
+    select(-count) %>%
     ungroup()
-  
-  missing_variables <- operator_variables_df %>% 
-    filter(survey_variable %in% external_levels$survey_variable) %>% 
+
+  missing_variables <- operator_variables_df %>%
+    filter(survey_variable %in% external_levels$survey_variable) %>%
     filter(!survey_response %in% external_levels$survey_response) %>%
     nrow()
-  
+
   stopifnot(missing_variables == 0)
   
 }
@@ -216,8 +215,8 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
   external_variable_levels <- variable_dictionary %>%
     filter(operator == name & generic_response != "NONCATEGORICAL")
   
-  check_dropped_variables(df_variable_levels, 
-                          external_variable_levels)
+  # check_dropped_variables(df_variable_levels, 
+  #                         external_variable_levels)
   
   df <- df %>%
     select(one_of(variables_vector)) %>%
@@ -1461,14 +1460,8 @@ remove(geocoded_spatial_places,
 ```{r data-types}
 # Cast all factors to numeric or string
 survey_standard <- survey_standard %>%
-  mutate(first_before_operator  = as.character(first_before_operator)) %>%
-  mutate(second_before_operator = as.character(second_before_operator)) %>%
-  mutate(third_before_operator  = as.character(third_before_operator)) %>%
-  mutate(first_after_operator   = as.character(first_after_operator)) %>%
-  mutate(second_after_operator  = as.character(second_after_operator)) %>%
-  mutate(third_after_operator   = as.character(third_after_operator)) %>%
-  mutate(depart_hour            = as.numeric(depart_hour)) %>%
-  mutate(return_hour            = as.numeric(return_hour)) %>%
+  mutate_at(vars(contains("operator")), as.character) %>%
+  mutate_at(vars(contains("hour")), as.numeric) %>%
   mutate(survey_board_lat       = as.numeric(survey_board_lat)) %>%
   mutate(survey_board_lon       = as.numeric(survey_board_lon)) %>%
   mutate(survey_alight_lat      = as.numeric(survey_alight_lat)) %>%
