@@ -72,9 +72,8 @@ user_list <- data.frame(
 When adding a new operator, the user must: add the path to the survey data in 
 the code block below, e.g., `f_bart_survey_path`
 ```{r file-names}
-me <- Sys.getenv("USERNAME")
 dir_path <- user_list %>%
-  filter(user == me) %>%
+  filter(user == Sys.getenv("USERNAME")) %>%
   .$path
 
 f_spatial_to_be_geocoded_path <- paste0(dir_path, 
@@ -108,19 +107,19 @@ f_vta_survey_path <- paste0(dir_path,
   "VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 
 f_output_rdata_path <- paste0(dir_path, 
-  "_data Standardized/survey_standard.RData")
+  "_data Standardized/survey_standard.RDS")
 
 f_output_csv_path <- paste0(dir_path, 
   "_data Standardized/survey_standard.csv")
 
 f_ancillary_output_rdata_path <- paste0(dir_path, 
-  "_data Standardized/ancillary_variables.RData")
+  "_data Standardized/ancillary_variables.RDS")
 
 f_ancillary_output_csv_path <- paste0(dir_path, 
   "_data Standardized/ancillary_variables.csv")
 
 f_output_decom_rdata_path <- paste0(dir_path, 
-  "_data Standardized/decomposition/survey_decomposition.RData")
+  "_data Standardized/decomposition/survey_decomposition.RDS")
 
 f_output_decom_csv_path <- paste0(dir_path, 
   "_data Standardized/decomposition/survey_decomposition.csv")

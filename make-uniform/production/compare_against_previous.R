@@ -4,8 +4,7 @@ load("~/GitHub/onboard-surveys/Data and Reports/_data Standardized/survey_standa
 previous_df <- survey.standard %>%
   rename(unique_ID = Unique_ID)
 
-load("~/GitHub/onboard-surveys/Data and Reports/_data Standardized/survey_standard.Rdata")
-current_df <- survey_standard
+current_df <- readRDS("~/GitHub/onboard-surveys/Data and Reports/_data Standardized/survey_standard.Rdata")
 
 find_differences <- function(anti_outcomes_df, diffed_df) {
   
@@ -47,11 +46,26 @@ find_differences <- function(anti_outcomes_df, diffed_df) {
   
 }
 
-anti_df <- anti_join(previous_df, current_df, by = c("unique_ID"))
-diff_df <- find_differences(anti_df, current_df)
+# do both ways
+anti_previous_df <- anti_join(previous_df, current_df, by = c("unique_ID"))
+diff_previous_df <- find_differences(anti_df, current_df)
 
-relevant_df <- diff_df %>%
-  filter(!(previous_outcome == "missing" & current_outcome == "NA"))
+anti_current_df <- anti_join(current_df, previous_df, by = c("unique_ID"))
+diff_current_df <- find_differences(anti_current_df, previous_df)
 
-table(thin_df$var_name)
+# update the Caltrain IDs and do again
+update_current_df <- current_df %>%
+  mutate(ID = ifelse(str_detect(ID, "S"), str_replace(ID, "S", ""), ID)) %>%
+  mutate(unique_ID = paste(ID, operator, survey_year, sep = "---"))
+
+anti_previous_df <- anti_join(previous_df, update_current_df, by = c("unique_ID"))
+diff_previous_df <- find_differences(anti_df, current_df)
+
+anti_current_df <- anti_join(update_current_df, previous_df, by = c("unique_ID"))
+diff_current_df <- find_differences(anti_current_df, previous_df)
+
+# okay they now match
+
+
+  
 
