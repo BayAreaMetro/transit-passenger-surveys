@@ -1,12 +1,15 @@
 library(tidyverse)
+library(rjson)
 library(httr)
 library(jsonlite)
 library(sf)
+library(geojson)
+library(geojsonio)
 options(stringsAsFactors = FALSE)
 
 tl_base <- "https://transit.land/"
 # operator_endpoint <- paste0(tl_base, "api/v1/operators?per_page=1000")
-route_endpoint <- paste0(tl_base, "/api/v1/routes?served_by=o-9q9-BART?per_page=100")
+route_endpoint <- paste0(tl_base, "/api/v1/routes?served_by=o-9q9-BART")
 
 # # 
 # # test <- GET(operator_endpoint)
@@ -46,3 +49,18 @@ while (!is.na(route_endpoint) & max_limit < 10) {
   max_limit <- max_limit + 1
 }
 
+
+sfmta_routes <- fromJSON(file = "sfmta_routes.json")
+bart_routes <- fromJSON(file = "bart_routes.json")
+sf_10 <- fromJSON(file = "sf_10.json")
+sf_100 <- fromJSON(file = "sf_100.json")
+sf_1000 <- fromJSON(file = "sf_1000.json")
+sf_offset <- fromJSON(file = "sf_offset_100.json")
+
+
+sf_muni <- read.csv("../../Data and Reports/Muni/As CSV/MUNI_Data_08102016_09062016_revised_working NO POUND OR SINGLE QUOTE.csv") %>%
+  rename_all(tolower)
+
+  muni_routes <- sf_muni %>%
+    select_at(vars(contains("transfer"))) %>%
+  gather(id, value)
