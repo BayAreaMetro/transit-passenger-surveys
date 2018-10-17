@@ -1,0 +1,194 @@
+---
+title: "Route Level Analysis"
+output:
+  html_document:
+    theme: cosmo
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+## Administration
+
+#### Purpose
+Decomposition at the route level. TODO: add more
+Current thinking: build CSV database, read and analyze in Tableau
+
+#### Issues
+Everything, early days
+
+## Overhead
+
+#### Libraries
+```{r overhead}
+list_of_packages <- c(
+  "tidyverse",
+  "knitr"
+  )
+
+new_packages <- list_of_packages[!(list_of_packages %in% installed.packages()[,"Package"])]
+
+if(length(new_packages)) install.packages(new_packages)
+
+for (p in list_of_packages){
+  library(p, character.only = TRUE)
+}
+```
+
+#### Knitr and global config
+```{r config, include=FALSE}
+knitr::opts_chunk$set(cache = FALSE, error = TRUE)
+
+options(stringsAsFactors = FALSE)
+```
+
+#### Remote IO
+```{r user_lookup, echo = FALSE}
+user_list <- data.frame(user = c("helseljw", "USDO225024"), 
+  path = c("../../Data and Reports/", 
+           "~/GitHub/onboard-surveys/Data and Reports/"))
+
+dir_path <- user_list %>%
+  filter(user == Sys.getenv("USERNAME")) %>%
+  .$path
+
+f_decomposition_file_name <- paste0(
+  dir_path, "_data Standardized/decomposition/survey_decomposition.RDS")
+
+f_canonical_route_names_file_name <- paste0(
+  dir_path, "_data Standardized/canonical_route_names.csv"
+)
+
+f_output_file_name <- paste0(
+  dir_path,"_data Standardized/decomposition/route_level_analysis.csv")
+
+remove(user_list)
+
+```
+
+#### Data Reads
+```{r data-reads}
+input_df <- readRDS(f_decomposition_file_name)
+
+# TODO: add legacy surveys when we get there
+# TODO: add canonical route names database when we get there
+
+```
+
+#### Analysis
+```{r analysis}
+get_sequence <- function(data_df, operator_string, route_string, label_string) {
+  
+  # data_df <- working_df 
+  # operator_string <- "intercept_operator"
+  # route_string <- "intercept_route"
+  # label_string <- "intercept"
+  
+  vars <- c(operator = operator_string, route = route_string)
+  
+  if (operator_string == "intercept_operator") {
+    
+    return_df <- working_df %>%
+      select(vars, survey_year, weekpart, weight, trip_weight) %>%
+      group_by(survey_year, weekpart, operator, route) %>%
+      summarise(boardings = sum(weight), trips = sum(trip_weight)) %>%
+      ungroup() %>%
+      mutate(label = label_string,
+             intercept_operator = operator) 
+    
+    
+  } else {
+    
+    return_df <- working_df %>%
+      select(vars, intercept_operator, survey_year, weekpart, weight, trip_weight) %>%
+      group_by(intercept_operator, survey_year, weekpart, operator, route) %>%
+      summarise(boardings = sum(weight), trips = sum(trip_weight)) %>%
+      ungroup() %>%
+      mutate(label = label_string)
+    
+  }
+  
+  return(return_df)
+  
+}
+
+
+working_df <- input_df %>%
+  rename(intercept_operator = operator, intercept_route = route)
+
+running_df <- get_sequence(working_df, 
+                           "intercept_operator",
+                           "intercept_route",
+                           "intercept")
+
+running_df <- bind_rows(running_df,
+                        get_sequence(working_df,
+                                     "first_before_operator",
+                                     "first_route_before_survey_board",
+                                     "first before"))
+
+running_df <- bind_rows(running_df,
+                        get_sequence(working_df,
+                                     "second_before_operator",
+                                     "second_route_before_survey_board",
+                                     "second before"))
+
+running_df <- bind_rows(running_df,
+                        get_sequence(working_df,
+                                     "third_before_operator",
+                                     "third_route_before_survey_board",
+                                     "third before"))
+running_df <- bind_rows(running_df,
+                        get_sequence(working_df,
+                                     "first_after_operator",
+                                     "first_route_after_survey_alight",
+                                     "first after"))
+
+running_df <- bind_rows(running_df,
+                        get_sequence(working_df,
+                                     "second_after_operator",
+                                     "second_route_after_survey_alight",
+                                     "second after"))
+
+running_df <- bind_rows(running_df,
+                        get_sequence(working_df,
+                                     "third_after_operator",
+                                     "third_route_after_survey_alight",
+                                     "third after"))
+
+running_df <- running_df %>%
+  mutate(tofrom_label = label) %>%
+  mutate(tofrom_label = ifelse(str_detect(label, "before"), "from", tofrom_label)) %>%
+  mutate(tofrom_label = ifelse(str_detect(label, "after"), "to", tofrom_label)) %>%
+  select(survey_operator = operator,
+         survey_route = route,
+         survey_name = intercept_operator,
+         survey_year,
+         weekpart,
+         survey_boardings = boardings,
+         survey_trips = trips,
+         survey_label = tofrom_label,
+         survey_detail_label = label)
+
+# TODO join canonical database here
+
+# In lieu of canonical database, experiment with just muni (clean up to do so)
+output_df <- running_df %>%
+  mutate(survey_operator = ifelse(survey_operator == "MUNI", "SF Muni", survey_operator)) %>%
+  filter(survey_name == "SF Muni" & survey_operator == "SF Muni") %>% 
+  mutate(survey_route = str_replace(survey_route, "MUNI ", "")) %>%
+  mutate(survey_route = str_replace(survey_route, " \\[ INBOUND \\]", "")) %>%
+  mutate(survey_route = str_replace(survey_route, " \\[ OUTBOUND \\]", "")) %>%
+  rename(operator = survey_operator,
+         route = survey_route) %>%
+  mutate(route_full = route)
+
+# TODO reshape data to match XLS format
+
+```
+
+#### Write to Disk
+```{r write}
+write.csv(output_df, file = f_output_file_name, row.names = FALSE, quote = TRUE)
+```
+
