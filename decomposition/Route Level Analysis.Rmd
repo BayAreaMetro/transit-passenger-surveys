@@ -173,18 +173,34 @@ running_df <- running_df %>%
 # TODO join canonical database here
 
 # In lieu of canonical database, experiment with just muni (clean up to do so)
-output_df <- running_df %>%
+working_df <- running_df %>%
   mutate(survey_operator = ifelse(survey_operator == "MUNI", "SF Muni", survey_operator)) %>%
   filter(survey_name == "SF Muni" & survey_operator == "SF Muni") %>% 
   mutate(survey_route = str_replace(survey_route, "MUNI ", "")) %>%
   mutate(survey_route = str_replace(survey_route, " \\[ INBOUND \\]", "")) %>%
   mutate(survey_route = str_replace(survey_route, " \\[ OUTBOUND \\]", "")) %>%
+  group_by(survey_operator, survey_route, survey_name, survey_year, weekpart, survey_label, survey_detail_label) %>%
+  summarise(survey_boardings = sum(survey_boardings), survey_trips = sum(survey_trips)) %>%
+  ungroup() %>%
   rename(operator = survey_operator,
          route = survey_route) %>%
-  mutate(route_full = route)
+  mutate(route_full = route) %>%
+  filter(survey_boardings > 0 & survey_trips > 0)
 
-# TODO reshape data to match XLS format
+boardings_df <- working_df %>%
+  select(-survey_trips, -survey_label) %>%
+  spread(key = survey_detail_label, value = survey_boardings, fill = 0.0)
 
+trips_df <- working_df %>%
+  filter(survey_label == "intercept") %>%
+  select(operator, route, route_full, weekpart, survey_name, survey_year, survey_trips)
+
+output_df <- left_join(boardings_df, 
+                       trips_df, 
+                       by = c("operator", "route", "route_full", 
+                              "weekpart", "survey_name", "survey_year"))
+  
+remove(working_df, boardings_df, trips_df, running_df)
 ```
 
 #### Write to Disk
