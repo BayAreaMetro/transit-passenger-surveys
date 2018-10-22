@@ -59,8 +59,7 @@ f_canonical_route_names_file_name <- paste0(
   dir_path, "_data Standardized/canonical_route_names.csv"
 )
 
-f_output_file_name <- paste0(
-  dir_path,"_data Standardized/decomposition/route_level_analysis.csv")
+f_output_file_name <- paste0("route_level_analysis.csv")
 
 remove(user_list)
 
@@ -192,18 +191,17 @@ working_df <- running_df %>%
   filter(survey_boardings > 0 & survey_trips > 0)
   
 # TODO check why third_after goes away
-boardings_df <- working_df %>%
-  select(-survey_trips, -survey_label) %>%
-  spread(key = survey_detail_label, value = survey_boardings, fill = 0.0) %>%
-  mutate(third_after = 0)
-
 trips_df <- working_df %>%
-  filter(survey_label == "intercept") %>%
-  mutate(survey_trips = ifelse(is.na(survey_trips), 0, survey_trips)) %>%
-  select(operator, route, route_full, weekpart, survey_name, survey_year, survey_trips)
+  select(-survey_boardings, -survey_label) %>%
+  spread(key = survey_detail_label, value = survey_trips, fill = 0.0)
 
-output_df <- left_join(boardings_df, 
-                       trips_df, 
+boardings_df <- working_df %>%
+  filter(survey_label == "intercept") %>%
+  mutate(survey_boardings = ifelse(is.na(survey_boardings), 0, survey_boardings)) %>%
+  select(operator, route, route_full, weekpart, survey_name, survey_year, survey_boardings)
+
+output_df <- left_join(trips_df, 
+                       boardings_df, 
                        by = c("operator", "route", "route_full", 
                               "weekpart", "survey_name", "survey_year"))
   
