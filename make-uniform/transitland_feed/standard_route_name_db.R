@@ -1,7 +1,14 @@
+##################################################################################################
+### Script to create a database of canonical route and station names
+### Author: John Helsel, October 2018
+##################################################################################################
 
+# Libraries and optins
 library(tidyverse)
+library(sf)
 options(stringsAsFactors = FALSE)
 
+# User check to assign proper paths for input data and writes
 user_list <- data.frame(
   user = c("helseljw"), 
   path = c("../../Data and Reports/")
@@ -12,24 +19,36 @@ dir_path <- user_list %>%
   filter(user == me) %>%
   .$path
 
+# Input data paths
 sf_muni_path <- paste0(dir_path, 
   "Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 
 bart_path <- paste0(dir_path,
   "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
 
+caltrain_path <- paste0(dir_path, 
+  "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
+
+canonical_station_path <- paste0(dir_path,
+  "Geography Files/Passenger_Railway_Stations_2018.shp")
+
 standard_route_path <- "standard_route_crosswalk.csv"
 canonical_route_path <- "canonical_route_names.csv"
 
-sf_muni <- read.csv(sf_muni_path) %>%
+# Read raw survey files
+sf_muni_raw <- read.csv(sf_muni_path) %>%
   rename_all(tolower)
 
-bart <- read.csv(bart_path) %>%
+bart_raw <- read.csv(bart_path) %>%
   rename_all(tolower)
 
-# sf_cols <- colnames(sf_muni %>% select_at(vars(contains("transfer"))))
-# sf_cols <- c(sf_cols, colnames(sf_muni %>% select_at(vars(contains("route")))))
-sf_muni_routes <- sf_muni %>%
+caltrain_raw <- read.csv(caltrain_path) %>%
+  rename_all(tolower)
+
+canonical_station <- st_read(canonical_station_path)
+
+# Adjust route names within Muni survey
+sf_muni_routes <- sf_muni_raw %>%
   select_at(vars(contains("route"))) %>%
   select_at(vars(-contains("lat"))) %>%
   select_at(vars(-contains("lon"))) %>%
@@ -164,13 +183,13 @@ sf_muni_routes <- sf_muni_routes %>%
   unique() %>%
   arrange(canonical_operator, canonical_name)
 
-# BART
-transfer_names <- bart %>%
+# Adjust route names within BART survey
+transfer_names <- bart_raw %>%
   select_at(vars(contains("trnsfr"))) %>%
   select_at(vars(-contains("agency"))) %>%
   colnames()
 
-bart_routes <- bart %>% 
+bart_routes <- bart_raw %>% 
   select(one_of(transfer_names)) %>%
   gather(variable, value = survey_name) %>%
   filter(survey_name != "") %>%
@@ -382,7 +401,82 @@ bart_routes <- bart_routes %>%
   select(survey, year, survey_name, canonical_name, canonical_operator, -variable) %>%
   unique()
 
-# Review of error_check shows that the only records not in reconciled in BOTH
+# Adjust route names within Caltrain survey
+caltrain_routes <- caltrain_raw %>% 
+  select_at(vars(contains("transfer_"))) %>%
+  select_at(vars(-contains("loc"))) %>%
+  gather(variable, value = survey_name) %>%
+  filter(survey_name != "") %>%
+  unique() %>% 
+  mutate(canonical_name = survey_name) %>%
+  mutate(canonical_operator = "") %>%
+  
+  mutate(canonical_name = str_replace_all(canonical_name, "  ", " ")) %>%
+  mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
+  
+  mutate(canonical_name = str_replace_all(canonical_name, "AC Transit Route ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "AC Transit"), "AC Transit", canonical_operator)) %>%
+
+  mutate(canonical_name = str_replace_all(canonical_name, "^ACE.*", "Shuttle")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^ACE"), "ACE", canonical_operator)) %>%
+
+  mutate(canonical_name = str_replace_all(canonical_name, "^Amtrak", "Shuttle")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Amtrak"), "Amtrak", canonical_operator)) %>%
+
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^AirTrain"), "AirTrain", canonical_operator)) %>%
+
+  mutate(canonical_name = str_replace_all(canonical_name, "Angel Island.* ", "Angel Island-Tiburon Ferry")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Angel Island"), "Angel Island-Tiburon Ferry", canonical_operator)) %>%
+
+  mutate(canonical_name = str_replace_all(canonical_name, "^ BART -.*", "Shuttle")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "^ BART ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^BART"), "BART", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace_all(canonical_name, "^Bayview.*", "Shuttle")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Bayview"), "Bayview", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace_all(canonical_name, "^Burlingame.*", "Shuttle")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Burlingame"), "Burlingame", canonical_operator)) %>%
+
+  mutate(canonical_name = str_replace_all(canonical_name, "^Caltrain.*", "Shuttle")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Caltrain"), "Caltrain", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace_all(canonical_name, "^County Connection Route ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^County Connection"), "County Connection", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace_all(canonical_name, "^Dumbarton Express Route ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Dumbarton Express"), "Dumbarton Express", canonical_operator)) %>%
+
+  mutate(canonical_name = str_replace_all(canonical_name, "^Golden Gate Ferry ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Golden Gate Ferry"), "Golden Gate Ferry", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace_all(canonical_name, "^Golden Gate Transit Route ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Golden Gate Transit"), "Golden Gate Transit", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace_all(canonical_name, "^Menlo Park.*", "Shuttle")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Menlo Park"), "Menlo Park", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace_all(canonical_name, "^County Connection Route*", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^County Connection"), "County Connection", canonical_operator)) %>%
+  
+  
+  
+
+
+
+# Create canonical list of station names/locations
+coords <- canonical_station %>%
+  st_coordinates()
+
+canonical_station <- canonical_station %>% 
+  mutate(lat = coords[,1]) %>%
+  mutate(long = coords[,2])
+
+st_geometry(canonical_station) <- NULL
+
+
+
+# Review of error_check shows that the only records not in reconciled in ALL
 # survey standardizations are records in ONLY one of them.
 error_check <- left_join(sf_muni_routes,bart_routes, by = c("canonical_name", "canonical_operator")) %>%
   bind_rows(right_join(sf_muni_routes,bart_routes, by = c("canonical_name", "canonical_operator"))) %>%
