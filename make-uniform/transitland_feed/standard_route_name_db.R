@@ -377,7 +377,8 @@ bart_routes <- bart_raw %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^VTA Route 902", "902 Light Rail")) %>%
   mutate(canonical_name = str_replace(canonical_name, "(?<=^VTA.{0,20}):.*", "")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "^VTA (Route )+", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^VTA Route ", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^VTA ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "VTA"), "VTA", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "West Berkeley.*", "Shuttle")) %>%
