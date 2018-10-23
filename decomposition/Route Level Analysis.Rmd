@@ -197,13 +197,13 @@ trips_df <- working_df %>%
 
 boardings_df <- working_df %>%
   filter(survey_label == "intercept") %>%
-  mutate(survey_boardings = ifelse(is.na(survey_boardings), 0, survey_boardings)) %>%
   select(operator, route, route_full, weekpart, survey_name, survey_year, survey_boardings)
 
 output_df <- left_join(trips_df, 
                        boardings_df, 
                        by = c("operator", "route", "route_full", 
-                              "weekpart", "survey_name", "survey_year"))
+                              "weekpart", "survey_name", "survey_year")) %>%
+  mutate(survey_boardings = ifelse(is.na(survey_boardings), 0.0, survey_boardings))
   
 # remove(working_df, boardings_df, trips_df, running_df)
 ```
