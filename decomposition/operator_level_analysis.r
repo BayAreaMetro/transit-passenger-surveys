@@ -16,7 +16,7 @@ options(stringsAsFactors = FALSE)
 user_list <- data.frame(
   user = c("helseljw", 
            "USDO225024"), 
-  path = c("../../Data and Reports/", 
+  path = c("../Data and Reports/", 
            "~/GitHub/onboard-surveys/Data and Reports/")
 )
 
@@ -27,10 +27,10 @@ dir_path <- user_list %>%
 # File Paths -------------------------------------------------------------------
 obs_data_path <- paste0(dir_path, "_data Standardized/decomposition/survey_decomposition.RDS")
 legacy_data_path <- paste0(dir_path, "_data Standardized/survey_legacy.Rdata")
-output_path <- paste0(dir_path, "_data Standardized/decomposition/operator_level_analysis.csv")
+decom_output_path <- paste0(dir_path, "_data Standardized/decomposition/operator_level_analysis.csv")
 
 # Read Files -------------------------------------------------------------------
-load(legacy_data_path)
+# load(legacy_data_path)
 survey_decomposition <- readRDS(obs_data_path)
 
 # Align Operator Names ---------------------------------------------------------
@@ -67,10 +67,10 @@ decom_df <- decom_df %>%
 
 add_sequence <- function(observed_df, running_df, sequence_name_string, weight_name_string) {
   
-  # observed_df <- obs_df
-  # running_df <- decom_df
-  # sequence_name_string <- 'first_before_operator'
-  # weight_name_string <- 'f1'
+  observed_df <- obs_df
+  running_df <- decom_df
+  sequence_name_string <- 'first_before_operator'
+  weight_name_string <- 'f1'
   
   vars <- c(operator = sequence_name_string)
   
@@ -101,27 +101,28 @@ decom_df <- add_sequence(obs_df, decom_df, 'second_after_operator',  't3')
 
 # START HERE 
 
-decom_df[is.na(da_table)] <- 0
+decom_df[is.na(decom_df)] <- 0
 
-da_table <- da_table %>%
+decom_df <- decom_df %>%
   mutate(trnsf_from_resp = f1 + f2 + f3 + f4,
          trnsf_to_resp = t1 + t2 + t3 + t4
          )
 
-da_table <- da_table %>%
+decom_df <- decom_df %>%
   select(operator, surveyed_resp, trnsf_from_resp, trnsf_to_resp)
 
 # Process unlinked boardings
 
-boardings <- obs %>%
+observed_boardings <- obs_df %>%
   group_by(operator) %>%
   summarise(weight = sum(weight))
 
-da_table <- da_table %>%
-  left_join(boardings, by = "operator") %>%
+decom_df <- decom_df %>%
+  left_join(observed_boardings, by = "operator") %>%
   rename(observed = weight)
 
-da_table <- da_table %>%
+decom_df <- decom_df %>%
   arrange(operator)
 
-write.csv(da_table, decom_output_path, row.names = FALSE)
+write.csv(decom_df, decom_output_path, row.names = FALSE)
+
