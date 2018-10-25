@@ -21,14 +21,17 @@ dir_path <- user_list %>%
   .$path
 
 # Input data paths
-sf_muni_path <- paste0(dir_path, 
-  "Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
+ac_transit_path <- paste0(dir_path,
+  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv")
 
 bart_path <- paste0(dir_path,
   "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
 
 caltrain_path <- paste0(dir_path, 
   "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
+
+sf_muni_path <- paste0(dir_path, 
+  "Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 
 canonical_station_path <- paste0(dir_path,
   "Geography Files/Passenger_Railway_Stations_2018.shp")
@@ -37,7 +40,7 @@ standard_route_path <- "standard_route_crosswalk.csv"
 canonical_route_path <- "canonical_route_names.csv"
 
 # Read raw survey files
-sf_muni_raw <- read.csv(sf_muni_path) %>%
+ac_transit_raw <- read.csv(ac_transit_path) %>% 
   rename_all(tolower)
 
 bart_raw <- read.csv(bart_path) %>%
@@ -46,137 +49,14 @@ bart_raw <- read.csv(bart_path) %>%
 caltrain_raw <- read.csv(caltrain_path) %>%
   rename_all(tolower)
 
+sf_muni_raw <- read.csv(sf_muni_path) %>%
+  rename_all(tolower)
+
 canonical_station <- st_read(canonical_station_path)
 
-# Adjust route names within Muni survey
-sf_muni_routes <- sf_muni_raw %>%
-  select_at(vars(contains("route"))) %>%
-  select_at(vars(-contains("lat"))) %>%
-  select_at(vars(-contains("lon"))) %>%
-  select_at(vars(-contains("code"))) %>%
-  gather(variable, survey_name) %>%
-  # select(survey_name) %>%
-  unique() %>% 
-  filter(survey_name != "") %>%
-  mutate(canonical_name = survey_name) %>%
-  mutate(canonical_operator = "") %>%
+# Adjust route names within AC Transit survey
 
-  mutate(canonical_name = str_replace(canonical_name, "  ", " ")) %>%
-  mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, fixed("missing", ignore_case = TRUE)), "Missing", canonical_operator)) %>%
-  mutate(canonical_operator = ifelse(survey_name == "-", "Missing", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^[0-9]"), "SF Muni", canonical_operator)) %>% 
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^[A-Z]+-"), "SF Muni", canonical_operator)) %>% 
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^MUNI "), "SF Muni", canonical_operator)) %>%
-  mutate(canonical_operator = ifelse(str_detect(canonical_name, "Cable Car"), "SF Muni", canonical_operator)) %>%
-  mutate(canonical_name = str_replace(canonical_name, "^MUNI ", "")) %>%
-  mutate(canonical_name = str_replace(canonical_name, " \\[ INBOUND \\]", "")) %>%
-  mutate(canonical_name = str_replace(canonical_name, " \\[ OUTBOUND \\]", "")) %>%  
-  mutate(canonical_name = ifelse(canonical_name == "California-", "California Cable Car", canonical_name)) %>%
-  mutate(canonical_name = ifelse(canonical_name == "Powell-Hyde", "Powell Hyde Cable Car", canonical_name)) %>%
-  mutate(canonical_name = ifelse(canonical_operator == "SF Muni", str_replace_all(canonical_name, "[-/]", " "), canonical_name)) %>%
 
-  
-  mutate(canonical_name = str_replace(canonical_name, "^AC ", "")) %>%
-  mutate(canonical_operator  = ifelse(str_detect(survey_name, "^AC "), "AC Transit", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^Alcatraz ", "")) %>%
-  mutate(canonical_operator  = ifelse(str_detect(survey_name, "^Alcatraz "), "Alcatraz", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^Altamont Commuter Express \\(ACE\\) Westbound ", "")) %>%
-  mutate(canonical_operator  = ifelse(str_detect(survey_name, "^Altamont Commuter Express \\(ACE\\)"), "ACE", canonical_operator)) %>%
-
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Angel Island"), canonical_name, canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "Apple bus", "Apple Shuttle")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "Apple"), "Apple", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(str_detect(survey_name, fixed("BART", ignore_case = TRUE)), "BART", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^Blue & Gold ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Blue & Gold "), "Blue & Gold", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "Burlingame"), "Caltrain", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "CALTRAIN", "Caltrain")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, fixed("Caltrain", ignore_case = TRUE)), "Caltrain", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^Capitol Corridor.*", "Sacramento/San Jose")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Capitol Corridor "), "Capitol Corridor", canonical_operator)) %>%
-
-  mutate(canonical_name = str_replace(canonical_name, "^County Connection ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^County Connection "), "County Connection", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^Emery ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Emery "), "Emeryville MTA", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "Facebook"), "Facebook", canonical_operator)) %>%  
-  
-  mutate(canonical_name = str_replace(canonical_name, "^Fairfield and Suisun Transit \\(FAST\\) ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "FAST"), "FAST", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "Genentech"), "Caltrain", canonical_operator)) %>%
-    
-  mutate(canonical_name = str_replace(canonical_name, "^Golden Gate ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Golden Gate "), "Golden Gate Transit", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "Harbor Bay"), "Harbor Bay", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "LBL"), "LBL", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^Livermore Amadore ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Livermore Amadore "), "Livermore Amadore Transit", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^Marin[ ]*", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Marin[ ]*"), "Marin Transit", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "PresidiGo Shuttles"), "PresidiGo", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^SamTrans ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^SamTrans "), "SamTrans", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^San Francisco Bay Ferry ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^San Francisco Bay Ferry "), "San Francisco Bay Ferry", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "SFSU"), "SFSU", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Stanford "), "Stanford", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^SolTrans ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^SolTrans "), "SolTrans", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^Tri Delta ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Tri Delta "), "Tri Delta", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^UCSF "), "UCSF", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^Union City ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Union City "), "Union City", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^VINE 29 ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^VINE "), "Napa Vine", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^VTA ", "")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "DASH Downtown Area Shuttle", "DOWNTOWN AREA SHUTTLE (DASH)")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^VTA "), "VTA", canonical_operator)) %>%
-  
-  mutate(canonical_name = str_replace(canonical_name, "^WestCAT ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^WestCAT "), "WestCAT", canonical_operator)) %>%
-  mutate(canonical_operator = ifelse(survey_name == "Lynx", "WestCAT", canonical_operator)) %>%
-  
-  mutate(canonical_operator = ifelse(canonical_operator == "", "BAD REFERENCE", canonical_operator))
-
-bad_references <- sf_muni_routes %>% 
-  filter(canonical_operator == "BAD REFERENCE")
-
-sf_muni_routes <- sf_muni_routes %>%
-  filter(canonical_operator != "BAD REFERENCE") %>%
-  mutate(survey = "SFMTA",
-         survey_year = 2014) %>%
-  select(survey, survey_year, survey_name, canonical_name, canonical_operator, -variable) %>%
-  unique() %>%
-  arrange(canonical_operator, canonical_name)
 
 # Adjust route names within BART survey
 transfer_names <- bart_raw %>%
@@ -440,6 +320,134 @@ caltrain_routes <- caltrain_raw %>%
   mutate(canonical_name = str_replace(canonical_name, "^Santa Cruz Metro", "Unknown")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "(SCMTD|^Santa Cruz)"), "Santa Cruz Metro", canonical_operator))
   
+# Adjust route names within Muni survey
+sf_muni_routes <- sf_muni_raw %>%
+  select_at(vars(contains("route"))) %>%
+  select_at(vars(-contains("lat"))) %>%
+  select_at(vars(-contains("lon"))) %>%
+  select_at(vars(-contains("code"))) %>%
+  gather(variable, survey_name) %>%
+  # select(survey_name) %>%
+  unique() %>% 
+  filter(survey_name != "") %>%
+  mutate(canonical_name = survey_name) %>%
+  mutate(canonical_operator = "") %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "  ", " ")) %>%
+  mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, fixed("missing", ignore_case = TRUE)), "Missing", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(survey_name == "-", "Missing", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^[0-9]"), "SF Muni", canonical_operator)) %>% 
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^[A-Z]+-"), "SF Muni", canonical_operator)) %>% 
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^MUNI "), "SF Muni", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(canonical_name, "Cable Car"), "SF Muni", canonical_operator)) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^MUNI ", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, " \\[ INBOUND \\]", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, " \\[ OUTBOUND \\]", "")) %>%  
+  mutate(canonical_name = ifelse(canonical_name == "California-", "California Cable Car", canonical_name)) %>%
+  mutate(canonical_name = ifelse(canonical_name == "Powell-Hyde", "Powell Hyde Cable Car", canonical_name)) %>%
+  mutate(canonical_name = ifelse(canonical_operator == "SF Muni", str_replace_all(canonical_name, "[-/]", " "), canonical_name)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^AC ", "")) %>%
+  mutate(canonical_operator  = ifelse(str_detect(survey_name, "^AC "), "AC Transit", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^Alcatraz ", "")) %>%
+  mutate(canonical_operator  = ifelse(str_detect(survey_name, "^Alcatraz "), "Alcatraz", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^Altamont Commuter Express \\(ACE\\) Westbound ", "")) %>%
+  mutate(canonical_operator  = ifelse(str_detect(survey_name, "^Altamont Commuter Express \\(ACE\\)"), "ACE", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Angel Island"), canonical_name, canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "Apple bus", "Apple Shuttle")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "Apple"), "Apple", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, fixed("BART", ignore_case = TRUE)), "BART", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^Blue & Gold ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Blue & Gold "), "Blue & Gold", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "Burlingame"), "Caltrain", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "CALTRAIN", "Caltrain")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, fixed("Caltrain", ignore_case = TRUE)), "Caltrain", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^Capitol Corridor.*", "Sacramento/San Jose")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Capitol Corridor "), "Capitol Corridor", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^County Connection ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^County Connection "), "County Connection", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^Emery ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Emery "), "Emeryville MTA", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "Facebook"), "Facebook", canonical_operator)) %>%  
+  
+  mutate(canonical_name = str_replace(canonical_name, "^Fairfield and Suisun Transit \\(FAST\\) ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "FAST"), "FAST", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "Genentech"), "Caltrain", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^Golden Gate ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Golden Gate "), "Golden Gate Transit", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "Harbor Bay"), "Harbor Bay", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "LBL"), "LBL", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^Livermore Amadore ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Livermore Amadore "), "Livermore Amadore Transit", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^Marin[ ]*", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Marin[ ]*"), "Marin Transit", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "PresidiGo Shuttles"), "PresidiGo", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^SamTrans ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^SamTrans "), "SamTrans", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^San Francisco Bay Ferry ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^San Francisco Bay Ferry "), "San Francisco Bay Ferry", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "SFSU"), "SFSU", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Stanford "), "Stanford", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^SolTrans ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^SolTrans "), "SolTrans", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^Tri Delta ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Tri Delta "), "Tri Delta", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^UCSF "), "UCSF", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^Union City ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Union City "), "Union City", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^VINE 29 ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^VINE "), "Napa Vine", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^VTA ", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "DASH Downtown Area Shuttle", "DOWNTOWN AREA SHUTTLE (DASH)")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^VTA "), "VTA", canonical_operator)) %>%
+  
+  mutate(canonical_name = str_replace(canonical_name, "^WestCAT ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^WestCAT "), "WestCAT", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(survey_name == "Lynx", "WestCAT", canonical_operator)) %>%
+  
+  mutate(canonical_operator = ifelse(canonical_operator == "", "BAD REFERENCE", canonical_operator))
+
+bad_references <- sf_muni_routes %>% 
+  filter(canonical_operator == "BAD REFERENCE")
+
+sf_muni_routes <- sf_muni_routes %>%
+  filter(canonical_operator != "BAD REFERENCE") %>%
+  mutate(survey = "SFMTA",
+         survey_year = 2014) %>%
+  select(survey, survey_year, survey_name, canonical_name, canonical_operator, -variable) %>%
+  unique() %>%
+  arrange(canonical_operator, canonical_name)
 
 # Create canonical list of station names/locations
 canonical_station <- st_read(canonical_station_path)
