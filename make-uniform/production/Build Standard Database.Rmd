@@ -106,6 +106,7 @@ f_muni_survey_path <- paste0(dir_path,
 f_vta_survey_path <- paste0(dir_path, 
   "VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 
+<<<<<<< HEAD
 f_actransit_survey_path <- paste0(dir_path,
   "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv")
 
@@ -135,6 +136,34 @@ the Excel file `Dictionary for Standard Database.xlsx`. The Excel file needs to
 be exported to `csv`; the code reads in the CSV file. The existing entries in the
 dictionary *should* explicate the expected task. 
 
+=======
+f_output_rdata_path <- paste0(dir_path, 
+  "_data Standardized/survey_standard.RDS")
+
+f_output_csv_path <- paste0(dir_path, 
+  "_data Standardized/survey_standard.csv")
+
+f_ancillary_output_rdata_path <- paste0(dir_path, 
+  "_data Standardized/ancillary_variables.RDS")
+
+f_ancillary_output_csv_path <- paste0(dir_path, 
+  "_data Standardized/ancillary_variables.csv")
+
+f_output_decom_rdata_path <- paste0(dir_path, 
+  "_data Standardized/decomposition/survey_decomposition.RDS")
+
+f_output_decom_csv_path <- paste0(dir_path, 
+  "_data Standardized/decomposition/survey_decomposition.csv")
+```
+
+# _User Intervention #03_
+When adding a new operator, the user must update the dictionary files that translate
+the survey coding to the standard coding. Edits to the dictionary can be made in
+the Excel file `Dictionary for Standard Database.xlsx`. The Excel file needs to 
+be exported to `csv`; the code reads in the CSV file. The existing entries in the
+dictionary *should* explicate the expected task. 
+
+>>>>>>> refactor_survey
 ## Prepare Dictionaries
 ```{r prepare-dictionary}
 dictionary_all <- read.csv('Dictionary for Standard Database.csv', 
@@ -154,6 +183,7 @@ dictionary_cat <- dictionary_all %>%
 
 ## Add Surveys
 ```{r operator-read-function}
+<<<<<<< HEAD
 
 check_dropped_variables <- function(operator_variables_df, external_variables_df) {
   
@@ -177,6 +207,31 @@ check_dropped_variables <- function(operator_variables_df, external_variables_df
   
 }
 
+=======
+
+check_dropped_variables <- function(operator_variables_df, external_variables_df) {
+  
+  # Ensure that all variable levels in the operator specific survey have a generic 
+  # equivalent in dictionary_all
+  # operator_variables_df <- df_variable_levels
+  # external_variables_df <- external_variable_levels
+  
+  external_levels <- external_variables_df %>%
+    group_by(survey_variable, survey_response) %>%
+    summarise(count = n()) %>%
+    select(-count) %>%
+    ungroup()
+
+  missing_variables <- operator_variables_df %>%
+    filter(survey_variable %in% external_levels$survey_variable) %>%
+    filter(!survey_response %in% external_levels$survey_response) %>%
+    nrow()
+
+  stopifnot(missing_variables == 0)
+  
+}
+
+>>>>>>> refactor_survey
 check_duplicate_variables <- function(df_duplicates) {
   
   # Check for duplicate rows in dataframe
@@ -194,10 +249,17 @@ check_duplicate_variables <- function(df_duplicates) {
   
 read_operator <- function(name, year, default_tech, file_path, variable_dictionary) {
   
+<<<<<<< HEAD
   # name <- 'AC Transit'
   # year <- 2018
   # default_tech <- 'local bus'
   # file_path <- f_actransit_survey_path
+=======
+  # name <- 'BART'
+  # year <- 2015
+  # default_tech <- 'heavy rail'
+  # file_path <- f_bart_survey_path
+>>>>>>> refactor_survey
   # variable_dictionary <- dictionary_all
   
   variables_vector <- variable_dictionary %>%
@@ -205,9 +267,15 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
     .$survey_variable %>%
     unique()
   
+<<<<<<< HEAD
   input_df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") 
   
   df_variable_levels <- input_df %>%
+=======
+  df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") 
+  
+  df_variable_levels <- df %>%
+>>>>>>> refactor_survey
     gather(survey_variable, survey_response) %>%
     group_by(survey_variable, survey_response) %>%
     summarise(count = n()) %>%
@@ -220,7 +288,11 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
   # check_dropped_variables(df_variable_levels, 
   #                         external_variable_levels)
   
+<<<<<<< HEAD
   return_df <- input_df %>%
+=======
+  df <- df %>%
+>>>>>>> refactor_survey
     select(one_of(variables_vector)) %>%
     rename_at(vars(contains('id')), funs(sub('id', 'ID', .))) %>%
     gather(survey_variable, survey_response, -ID) %>%
@@ -229,9 +301,15 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
          survey_year = year,
          survey_tech = default_tech)
   
+<<<<<<< HEAD
   check_duplicate_variables(return_df)
   
   return(return_df)
+=======
+  check_duplicate_variables(df)
+  
+  return(df)
+>>>>>>> refactor_survey
   
 }
 
@@ -272,26 +350,40 @@ napa_vine_df <- read_operator('Napa Vine',
                               f_napa_survey_path,
                               dictionary_all)
 
+<<<<<<< HEAD
 ac_transit_df <- read_operator('AC Transit',
                                2018,
                                'local bus',
                                f_actransit_survey_path,
                                dictionary_all)
 
+=======
+>>>>>>> refactor_survey
 survey_combine <- bind_rows(bart_df,
                             caltrain_df,
                             muni_df,
                             vta_df,
+<<<<<<< HEAD
                             napa_vine_df,
                             ac_transit_df)
 
 remove(bart_df, caltrain_df, muni_df, vta_df, napa_vine_df, ac_transit_df)
+=======
+                            napa_vine_df)
+
+remove(bart_df, caltrain_df, muni_df, vta_df, napa_vine_df)
+>>>>>>> refactor_survey
 
 ```
 
 
+<<<<<<< HEAD
 ## Flatten
 ```{r flatten}
+=======
+## Combine across operators and flatten
+```{r combine}
+>>>>>>> refactor_survey
 
 # Join the dictionary and prepare the categorical variables
 survey_cat <- survey_combine %>%
@@ -316,6 +408,7 @@ remove(survey_cat,
 ```
 
 ## Update Survey Technology
+<<<<<<< HEAD
 
 # _User Intervention #05_
 When the operator data is read in, it assumes every route in the system uses
@@ -328,6 +421,20 @@ which have to be crafted manually.
 survey_tech_update <- read.csv("bespoke_survey_tech_replacement.csv", 
                                colClasses = "character")
 
+=======
+
+# _User Intervention #05_
+When the operator data is read in, it assumes every route in the system uses
+the same technology (e.g., all Muni routes are local bus). This is not correct,
+as some operators operate multiple technologies. These bespoke technologies are
+added here. See the `bespoke_survey_tech_replacement.csv` database for the changes,
+which have to be crafted manually.
+
+```{r update-tech}
+survey_tech_update <- read.csv("bespoke_survey_tech_replacement.csv", 
+                               colClasses = "character")
+
+>>>>>>> refactor_survey
 survey_flat <- survey_flat %>% 
   left_join(survey_tech_update, by = c("operator", "route")) %>% 
   mutate(survey_tech = ifelse(!is.na(new_survey_tech), 
@@ -953,9 +1060,15 @@ survey_standard <- survey_standard %>%
             first_after, 
             second_after, 
             third_after)  
+<<<<<<< HEAD
 
 table(survey_standard$first_before_technology)
 
+=======
+
+table(survey_standard$first_before_technology)
+
+>>>>>>> refactor_survey
 survey_standard <- survey_standard %>%
   mutate(first_before_technology = ifelse(first_before_update_tech != "No Update", 
                                           as.character(first_before_update_tech),  
@@ -1144,10 +1257,17 @@ survey_standard <- survey_standard %>%
            first_after_technology == helper_relevant_tech |
            second_after_technology == helper_relevant_tech |
            third_after_technology == helper_relevant_tech)
+<<<<<<< HEAD
 
 table(survey_standard$light_rail_present)
 
 
+=======
+
+table(survey_standard$light_rail_present)
+
+
+>>>>>>> refactor_survey
 survey_standard <- survey_standard %>%
   mutate(path_line_haul = "LOC") %>%
   mutate(path_line_haul = ifelse(light_rail_present,    
@@ -1431,6 +1551,7 @@ files are ready.
 # Bring in the geocoding results
 geocoded_spatial_places <- read.csv(f_spatial_geocoded_path, header = TRUE)
 geocoded_transit_places <- read.csv(f_transit_geocoded_path, header = TRUE)
+<<<<<<< HEAD
 
 geocoded_spatial_places <- geocoded_spatial_places %>% 
   rename(unique_ID = Unique_ID) %>%
@@ -1442,6 +1563,19 @@ geo_spatial_maz <- geocoded_spatial_places %>%
   select(unique_ID, dest_maz = dest, home_maz = home, orig_maz = orig, 
          school_maz = school, workplace_maz = workplace)
 
+=======
+
+geocoded_spatial_places <- geocoded_spatial_places %>% 
+  rename(unique_ID = Unique_ID) %>%
+  select(-x_coord, -y_coord)
+
+geo_spatial_maz <- geocoded_spatial_places %>%
+  select(-TAZ1454) %>%
+  spread(variable, MAZ_ORIGINAL) %>%
+  select(unique_ID, dest_maz = dest, home_maz = home, orig_maz = orig, 
+         school_maz = school, workplace_maz = workplace)
+
+>>>>>>> refactor_survey
 geo_spatial_taz <- geocoded_spatial_places %>%
   select(-MAZ_ORIGINAL) %>%
   spread(variable, TAZ1454) %>%
