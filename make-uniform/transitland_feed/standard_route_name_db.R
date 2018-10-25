@@ -6,6 +6,7 @@
 # Libraries and optins
 library(tidyverse)
 library(sf)
+library(cluster)
 options(stringsAsFactors = FALSE)
 
 # User check to assign proper paths for input data and writes
@@ -441,16 +442,78 @@ caltrain_routes <- caltrain_raw %>%
   
 
 # Create canonical list of station names/locations
-coords <- canonical_station %>%
-  st_coordinates()
+canonical_station <- st_read(canonical_station_path)
 
-canonical_station <- canonical_station %>% 
-  mutate(lat  = coords[ , 1]) %>%
-  mutate(long = coords[ , 2])
+canonical_coordinates <- as.data.frame(st_coordinates(canonical_station)) %>%
+  rename(lat = Y,
+         lon = X)
+
+canonical_station <- bind_cols(canonical_station, canonical_coordinates)
 
 st_geometry(canonical_station) <- NULL
 
+sf_muni_lat <- sf_muni_raw %>% 
+  select(id) %>% 
+  bind_cols(sf_muni_raw %>% 
+              select_at(vars(contains("lat"))) %>% 
+              select(-hisp_lat_spa_code)) 
+sf_muni_lat <- sf_muni_lat %>%
+  gather(variable, value = "lat", -id) %>%
+  rename(var_name = variable) %>%
+  mutate(var_name = str_replace(var_name, "_lat", ""))
 
+sf_muni_lon <- sf_muni_raw %>% 
+  select(id) %>% 
+  bind_cols(sf_muni_raw %>% 
+              select_at(vars(contains("lon")))) 
+sf_muni_lon <- sf_muni_lon %>%
+  gather(variable, value = "lon", -id) %>%
+  rename(var_name = variable) %>%
+  mutate(var_name = str_replace(var_name, "_lon", ""))
+
+sf_muni_coords <- sf_muni_lat %>% 
+  left_join(sf_muni_lon, by = c("id", "var_name")) %>%
+  filter(str_detect(var_name, "final")) %>%
+  mutate(lat = as.numeric(lat),
+         lon = as.numeric(lon)) %>%
+  filter(!is.na(lat) & !is.na(lon)) %>% 
+  #Correct one bad record with sign reversed
+  mutate(lon = ifelse(lon > 0, lon * -1, lon)) %>%
+  select(lat, lon) %>% 
+  unique()
+
+# Create primary key of id, trip route name, and give lat/long at each end
+# Join trip route name to standard_routes for route/operator
+# Filter on rail operators
+# Use the resulting lat/long to feed the cluster approach
+
+
+
+
+
+
+
+
+
+set.seed(123)
+# stat_locations <- clara(sf_muni_coords,
+#                         k = 673, 
+#                         metric = "euclidean",
+#                         rngR = TRUE,
+#                         pamLike = TRUE)
+
+round_stations <- data.frame(stat_locations$medoids) %>%
+  mutate(lat = round(lat, 4),
+         lon = round(lon, 4)) %>%
+  mutate(station = 1:nrow(stat_locations$medoids))
+
+# write.csv(round_stations, "clara_station_locations.csv")
+
+canonical_station %>%
+  mutate(lat = round(lat, 4),
+         lon = round(lon, 4)) %>%
+  left_join(round_stations, by = c("lat", "lon")) %>% 
+  filter(!is.na(station))
 
 # Review of error_check shows that the only records not in reconciled in ALL
 # survey standardizations are records in ONLY one of them.
