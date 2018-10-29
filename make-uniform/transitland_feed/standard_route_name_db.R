@@ -10,9 +10,13 @@ library(cluster)
 options(stringsAsFactors = FALSE)
 
 # User check to assign proper paths for input data and writes
+
 user_list <- data.frame(
-  user = c("helseljw"), 
-  path = c("../../Data and Reports/")
+  
+  user = c("helseljw", 
+           "USDO225024"), 
+  path = c("../../Data and Reports/", 
+           "~/GitHub/onboard-surveys/Data and Reports/")
 )
 
 me <- Sys.getenv("USERNAME")
@@ -495,6 +499,82 @@ sf_muni_coords <- sf_muni_lat %>%
 # Filter on rail operators
 # Use the resulting lat/long to feed the cluster approach
 
+# dave pass start --------------------------------------------------------------
+get_some_lat_lngs <- function(raw_df, var_route, var_lat, var_lng, portion_string) {
+  
+  vars <- c(route = var_route, 
+            lat = var_lat,
+            lng = var_lng)
+  
+  return_df <- raw_df %>%
+    select(id, vars) %>%
+    mutate(portion = portion_string) %>%
+    filter(route %in% c("BART","CALTRAIN"))
+  
+  return(return_df)
+  
+  
+}
+
+
+working_df <- get_some_lat_lngs(sf_muni_raw,
+                                "final_trip_to_first_route",
+                                "final_transfer_to_first_alighting_lat",
+                                "final_transfer_to_first_alighting_lon",
+                                "to_first_alighting") %>%
+  bind_rows(get_some_lat_lngs(sf_muni_raw,
+                              "final_trip_to_second_route",
+                              "final_transfer_to_second_alighting_lat",
+                              "final_transfer_to_second_alighting_lon",
+                              "to_second_alighting")) %>%
+  bind_rows(get_some_lat_lngs(sf_muni_raw,
+                              "final_trip_to_third_route",
+                              "final_transfer_to_third_alighting_lat",
+                              "final_transfer_to_third_alighting_lon",
+                              "to_third_alighting")) %>%
+  bind_rows(get_some_lat_lngs(sf_muni_raw,
+                              "final_trip_first_route",
+                              "final_transfer_from_first_boarding_lat",
+                              "final_transfer_from_first_boarding_lon",
+                              "from_first_boarding")) %>%
+  bind_rows(get_some_lat_lngs(sf_muni_raw,
+                              "final_trip_second_route",
+                              "final_transfer_from_second_boarding_lat",
+                              "final_transfer_from_second_boarding_lon",
+                              "from_second_boarding")) %>%
+  bind_rows(get_some_lat_lngs(sf_muni_raw,
+                              "final_trip_third_route",
+                              "final_transfer_from_third_boarding_lat",
+                              "final_transfer_from_third_boarding_lon",
+                              "from_third_boarding"))
+
+  
+
+table(working_df$portion)
+table(working_df$route)
+
+# pair each with station
+set.seed(123)
+for_clara_df <- working_df %>%
+  mutate(lat = as.numeric(lat),
+         lon = as.numeric(lng)) %>%
+  select(lat, lon)
+
+clara_results <- clara(for_clara_df,
+                       k = 79,
+                       metric = "euclidean",
+                       rngR = TRUE,
+                       pamLike = TRUE)
+
+results_df <- bind_cols(working_df, data.frame(cluster = clara_results$clustering))
+
+# next:
+# join medoids by cluster number
+# plot points and medoids and station locations
+# join names
+# how to build routes? start with just the boarding location?
+  
+# dave pass end ----------------------------------------------------------------
 
 
 
