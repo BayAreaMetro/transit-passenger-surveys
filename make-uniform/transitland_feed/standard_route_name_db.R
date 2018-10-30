@@ -63,6 +63,77 @@ canonical_station <- st_read(canonical_station_path)
 
 
 # Adjust route names within BART survey
+
+# dave noodle start ------------------------------------------------------------
+
+make_replacements <- function(routes_df, replace_df) {
+  
+  # start with for loop, iterate to make better(full join?)
+  regex_vector <- replace_df$route_name_regex
+  operator_vector <- replace_df$operator_name
+  prefix_vector <- replace_df$operator_prefix
+  
+  return_df <- routes_df %>%
+    mutate(canonical_name = survey_name,
+           canonical_operator = "")
+  
+  for(index in 1:length(regex_vector)) {
+    
+    regex_item <- replace_df$route_name_regex[index]
+    operator_item <- replace_df$operator_name[index]
+    prefix_item <- replace_df$operator_prefix[index]
+    
+    if (prefix_item) {
+      
+      return_df <- return_df %>%
+        mutate(canonical_name = str_replace(canonical_name, regex_item, "")) %>%
+        mutate(canonical_operator = ifelse(str_detect(survey_name, regex_item), operator_item, canonical_operator))
+      
+    } else {
+      
+      return_df <- return_df %>%
+        mutate(canonical_operator = ifelse(str_detect(survey_name, operator_item), operator_item, canonical_operator))
+        
+    }
+  
+    
+  }
+  
+  return(return_df)
+  
+}
+
+key_var_list <- bart_raw %>%
+  select_at(vars(contains("trnsfr"))) %>%
+  select_at(vars(-contains("agency"))) %>%
+  colnames()
+
+bart_routes_df <- bart_raw %>% 
+  select(one_of(key_var_list)) %>%
+  gather(variable, value = survey_name) %>%
+  filter(survey_name != "") %>%
+  unique() 
+
+replacement_df <- data.frame(
+  route_name_regex = c("^AC Transit Route ", 
+                       "^ACE ",
+                       NA),
+  
+  operator_name = c("AC Transit", 
+                    "ACE",
+                    "AirTrain"),
+  
+  operator_prefix = c(TRUE,
+                      TRUE,
+                      FALSE)
+)
+
+test_df <- make_replacements(bart_routes_df, replacement_df)
+
+table(test_df$canonical_operator)
+
+# dave noodle end --------------------------------------------------------------
+
 transfer_names <- bart_raw %>%
   select_at(vars(contains("trnsfr"))) %>%
   select_at(vars(-contains("agency"))) %>%
@@ -509,7 +580,7 @@ get_some_lat_lngs <- function(raw_df, var_route, var_lat, var_lng, portion_strin
   return_df <- raw_df %>%
     select(id, vars) %>%
     mutate(portion = portion_string) %>%
-    filter(route %in% c("BART","CALTRAIN"))
+    filter(route %in% c("BART"))
   
   return(return_df)
   
@@ -555,23 +626,40 @@ table(working_df$route)
 
 # pair each with station
 set.seed(123)
-for_clara_df <- working_df %>%
+
+working_df <- working_df %>%
   mutate(lat = as.numeric(lat),
-         lon = as.numeric(lng)) %>%
-  select(lat, lon)
+         lng = as.numeric(lng))
+
+for_clara_df <- working_df %>%
+  select(lat, lon = lng)
 
 clara_results <- clara(for_clara_df,
-                       k = 79,
+                       k = nrow(filter(canonical_station, agencyname == "BART")),
                        metric = "euclidean",
                        rngR = TRUE,
                        pamLike = TRUE)
 
-results_df <- bind_cols(working_df, data.frame(cluster = clara_results$clustering))
+medoids_df <- as.data.frame(clara_results$medoids) %>%
+  bind_cols(., as.data.frame(clara_results$clusinfo)) %>%
+  bind_cols(., data.frame(cluster = seq(1:nrow(medoids_df)))) %>%
+  select(cluster, 
+         cluster_lat = lat, 
+         cluster_lng = lon,
+         cluster_size = size,
+         max_diss,
+         av_diss,
+         isolation)
+
+results_df <- bind_cols(working_df, data.frame(cluster = clara_results$clustering)) %>%
+  left_join(., medoids_df, by = c("cluster")) %>%
+  mutate(error = sqrt((lat - cluster_lat)**2 + (lng - cluster_lng)**2))
+
+write.csv(results_df, file = "have_a_look.csv", row.names = FALSE)
+
+
 
 # next:
-# join medoids by cluster number
-# plot points and medoids and station locations
-# join names
 # how to build routes? start with just the boarding location?
   
 # dave pass end ----------------------------------------------------------------
