@@ -106,6 +106,9 @@ f_muni_survey_path <- paste0(dir_path,
 f_vta_survey_path <- paste0(dir_path, 
   "VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 
+f_actransit_survey_path <- paste0(dir_path,
+  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv")
+
 f_output_rdata_path <- paste0(dir_path, 
   "_data Standardized/survey_standard.RDS")
 
@@ -191,10 +194,10 @@ check_duplicate_variables <- function(df_duplicates) {
   
 read_operator <- function(name, year, default_tech, file_path, variable_dictionary) {
   
-  # name <- 'BART'
-  # year <- 2015
-  # default_tech <- 'heavy rail'
-  # file_path <- f_bart_survey_path
+  # name <- 'AC Transit'
+  # year <- 2018
+  # default_tech <- 'local bus'
+  # file_path <- f_actransit_survey_path
   # variable_dictionary <- dictionary_all
   
   variables_vector <- variable_dictionary %>%
@@ -202,9 +205,9 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
     .$survey_variable %>%
     unique()
   
-  df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") 
+  input_df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") 
   
-  df_variable_levels <- df %>%
+  df_variable_levels <- input_df %>%
     gather(survey_variable, survey_response) %>%
     group_by(survey_variable, survey_response) %>%
     summarise(count = n()) %>%
@@ -217,7 +220,7 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
   # check_dropped_variables(df_variable_levels, 
   #                         external_variable_levels)
   
-  df <- df %>%
+  return_df <- input_df %>%
     select(one_of(variables_vector)) %>%
     rename_at(vars(contains('id')), funs(sub('id', 'ID', .))) %>%
     gather(survey_variable, survey_response, -ID) %>%
@@ -226,9 +229,9 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
          survey_year = year,
          survey_tech = default_tech)
   
-  check_duplicate_variables(df)
+  check_duplicate_variables(return_df)
   
-  return(df)
+  return(return_df)
   
 }
 
@@ -269,19 +272,26 @@ napa_vine_df <- read_operator('Napa Vine',
                               f_napa_survey_path,
                               dictionary_all)
 
+ac_transit_df <- read_operator('AC Transit',
+                               2018,
+                               'local bus',
+                               f_actransit_survey_path,
+                               dictionary_all)
+
 survey_combine <- bind_rows(bart_df,
                             caltrain_df,
                             muni_df,
                             vta_df,
-                            napa_vine_df)
+                            napa_vine_df,
+                            ac_transit_df)
 
-remove(bart_df, caltrain_df, muni_df, vta_df, napa_vine_df)
+remove(bart_df, caltrain_df, muni_df, vta_df, napa_vine_df, ac_transit_df)
 
 ```
 
 
-## Combine across operators and flatten
-```{r combine}
+## Flatten
+```{r flatten}
 
 # Join the dictionary and prepare the categorical variables
 survey_cat <- survey_combine %>%
