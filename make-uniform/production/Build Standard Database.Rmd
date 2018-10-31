@@ -91,25 +91,26 @@ f_spatial_geocoded_path <- paste0(dir_path,
 f_transit_geocoded_path <- paste0(dir_path, 
   "_geocoding Standardized/boarding_alighting_places_geocoded.csv")
 
-f_caltrain_survey_path <- paste0(dir_path, 
-  "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
-
-f_napa_survey_path <- paste0(dir_path, 
-  "Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
+f_actransit_survey_path <- paste0(dir_path,
+  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv")
 
 f_bart_survey_path <- paste0(dir_path, 
   "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
 
+f_caltrain_survey_path <- paste0(dir_path, 
+  "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
+
 f_muni_survey_path <- paste0(dir_path, 
   "Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
+
+f_napa_survey_path <- paste0(dir_path, 
+  "Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
 
 f_vta_survey_path <- paste0(dir_path, 
   "VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 
-f_actransit_survey_path <- paste0(dir_path,
-  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv")
 
-f_output_rdata_path <- paste0(dir_path, 
+f_output_rds_path <- paste0(dir_path, 
   "_data Standardized/survey_standard.RDS")
 
 f_output_csv_path <- paste0(dir_path, 
@@ -242,6 +243,12 @@ When adding a new operator, create a `read_operator` call and add the resulting
 dataframe to `survey_combine` in the last step.
 
 ```{r add-surveys}
+ac_transit_df <- read_operator('AC Transit',
+                               2018,
+                               'local bus',
+                               f_actransit_survey_path,
+                               dictionary_all)
+
 bart_df <- read_operator('BART', 
                          2015, 
                          'heavy rail', 
@@ -260,32 +267,26 @@ muni_df <- read_operator('SF Muni',
                          f_muni_survey_path,
                          dictionary_all)
 
-vta_df <- read_operator('VTA',
-                        2017,
-                        'local bus',
-                        f_vta_survey_path,
-                        dictionary_all)
-
 napa_vine_df <- read_operator('Napa Vine',
                               2014,
                               'local bus',
                               f_napa_survey_path,
                               dictionary_all)
 
-ac_transit_df <- read_operator('AC Transit',
-                               2018,
-                               'local bus',
-                               f_actransit_survey_path,
-                               dictionary_all)
+vta_df <- read_operator('VTA',
+                        2017,
+                        'local bus',
+                        f_vta_survey_path,
+                        dictionary_all)
 
-survey_combine <- bind_rows(bart_df,
+survey_combine <- bind_rows(ac_transit_df,
+                            bart_df,
                             caltrain_df,
                             muni_df,
-                            vta_df,
                             napa_vine_df,
-                            ac_transit_df)
+                            vta_df)
 
-remove(bart_df, caltrain_df, muni_df, vta_df, napa_vine_df, ac_transit_df)
+remove(ac_transit_df, bart_df, caltrain_df, muni_df, napa_vine_df, vta_df)
 
 ```
 
