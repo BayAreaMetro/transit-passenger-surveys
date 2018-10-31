@@ -58,12 +58,6 @@ sf_muni_raw <- read.csv(sf_muni_path) %>%
 
 canonical_station <- st_read(canonical_station_path)
 
-# Adjust route names within AC Transit survey
-
-
-
-# Adjust route names within BART survey
-
 # dave noodle start ------------------------------------------------------------
 
 make_replacements <- function(routes_df, replace_df) {
@@ -74,6 +68,7 @@ make_replacements <- function(routes_df, replace_df) {
   prefix_vector <- replace_df$operator_prefix
   
   return_df <- routes_df %>%
+    #survey_name?
     mutate(canonical_name = survey_name,
            canonical_operator = "")
   
@@ -134,6 +129,11 @@ table(test_df$canonical_operator)
 
 # dave noodle end --------------------------------------------------------------
 
+# Adjust route names within AC Transit survey
+
+
+
+# Adjust route names within BART survey
 transfer_names <- bart_raw %>%
   select_at(vars(contains("trnsfr"))) %>%
   select_at(vars(-contains("agency"))) %>%
