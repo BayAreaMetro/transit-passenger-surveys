@@ -249,42 +249,43 @@ ac_transit_df <- read_operator('AC Transit',
                                f_actransit_survey_path,
                                dictionary_all)
 
-bart_df <- read_operator('BART', 
-                         2015, 
-                         'heavy rail', 
-                         f_bart_survey_path, 
-                         dictionary_all)
+# bart_df <- read_operator('BART', 
+#                          2015, 
+#                          'heavy rail', 
+#                          f_bart_survey_path, 
+#                          dictionary_all)
+# 
+# caltrain_df <- read_operator('Caltrain',
+#                              2014,
+#                              'commuter rail',
+#                              f_caltrain_survey_path,
+#                              dictionary_all)
+# 
+# muni_df <- read_operator('SF Muni',
+#                          2017,
+#                          'local bus',
+#                          f_muni_survey_path,
+#                          dictionary_all)
+# 
+# napa_vine_df <- read_operator('Napa Vine',
+#                               2014,
+#                               'local bus',
+#                               f_napa_survey_path,
+#                               dictionary_all)
+# 
+# vta_df <- read_operator('VTA',
+#                         2017,
+#                         'local bus',
+#                         f_vta_survey_path,
+#                         dictionary_all)
 
-caltrain_df <- read_operator('Caltrain',
-                             2014,
-                             'commuter rail',
-                             f_caltrain_survey_path,
-                             dictionary_all)
-
-muni_df <- read_operator('SF Muni',
-                         2017,
-                         'local bus',
-                         f_muni_survey_path,
-                         dictionary_all)
-
-napa_vine_df <- read_operator('Napa Vine',
-                              2014,
-                              'local bus',
-                              f_napa_survey_path,
-                              dictionary_all)
-
-vta_df <- read_operator('VTA',
-                        2017,
-                        'local bus',
-                        f_vta_survey_path,
-                        dictionary_all)
-
-survey_combine <- bind_rows(ac_transit_df,
-                            bart_df,
-                            caltrain_df,
-                            muni_df,
-                            napa_vine_df,
-                            vta_df)
+survey_combine <- bind_rows(ac_transit_df #,
+                            # bart_df,
+                            # caltrain_df,
+                            # muni_df,
+                            # napa_vine_df,
+                            # vta_df
+                            )
 
 remove(ac_transit_df, bart_df, caltrain_df, muni_df, napa_vine_df, vta_df)
 
