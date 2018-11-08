@@ -5,7 +5,9 @@
 
 # Libraries and optins
 library(tidyverse)
+library(rlang)
 library(sf)
+library(geosphere)
 # library(cluster)
 options(stringsAsFactors = FALSE)
 
@@ -44,100 +46,122 @@ standard_route_path <- "standard_route_crosswalk.csv"
 canonical_route_path <- "canonical_route_names.csv"
 
 # Read raw survey files
-ac_transit_raw <- read.csv(ac_transit_path) %>% 
+ac_transit_raw_df <- read.csv(ac_transit_path) %>% 
   rename_all(tolower)
 
-bart_raw <- read.csv(bart_path) %>%
+bart_raw_df <- read.csv(bart_path) %>%
   rename_all(tolower)
 
-caltrain_raw <- read.csv(caltrain_path) %>%
+caltrain_raw_df <- read.csv(caltrain_path) %>%
   rename_all(tolower)
 
-sf_muni_raw <- read.csv(sf_muni_path) %>%
+sf_muni_raw_df <- read.csv(sf_muni_path) %>%
   rename_all(tolower)
 
-canonical_station <- st_read(canonical_station_path)
+canonical_station_shp <- st_read(canonical_station_path)
 
 
 # Rename rail trips to be station to station
 # Functions
-# JWH: Should the filter for rail operator line become a parameter?
-get_nearest_station <- function(station_names, survey_records, 
-                                route_name, lat_name, lon_name) {
-
-  # station_names <- station_names
-  # survey_records <- survey_records
-  # route_name <- "final_trip_first_route"
-  # lat_name <- board_lat
-  # lon_name <- board_lon
-  
-  list_of_cols <- c("id", route_name, lat_name, lon_name)
-  list_of_col_names <- c("id", "route_name", "lat", "lon")
-  
-  route_df <- survey_records %>%
-    select(one_of(list_of_cols))
-  colnames(route_df) <- list_of_col_names
-  route_df <- route_df %>%
-    filter(route_name != "" & !str_detect(route_name, "Missing"))
-  
-  route_df <- st_as_sf(x = route_df,
-                         coords = c("lon", "lat"),
-                         crs = "+proj=longlat +datum=WGS84") %>%
-    filter(route_name %in% c("BART"))
-  
-  closest_neighbor <-  data.frame(index = 0) 
-  closest_neighbor <- closest_neighbor %>% 
-    filter(index !=0) 
-  distances <- route_df %>% 
-    st_distance(station_names)
-  
-  for (i in 1:nrow(distances)) { 
-    temp_index = which.min(distances[i,])
-    temp_df <- data.frame(index = temp_index)
-    closest_neighbor <- bind_rows(closest_neighbor, 
-                              temp_df)}
-  
-  st_geometry(route_df) <- NULL 
-  route_df <- route_df %>%
-    bind_cols(closest_neighbor) %>%
-    left_join(station_names, by = "index") %>%
-    select(id, station = station_na)
-  
-  return(route_df)
+sfc_as_cols <- function(x, geometry, names = c("x", "y")) {
+  if (missing(geometry)) {
+    geometry <- st_geometry(x)
+  } else {
+    geometry <- eval_tidy(enquo(geometry), x)
+  }
+  stopifnot(inherits(x, "sf") && inherits(geometry, "sfc_POINT"))
+  ret <- st_coordinates(geometry)
+  ret <- as_tibble(ret)
+  stopifnot(length(names) == ncol(ret))
+  x <- x[ , !names(x) %in% names]
+  ret <- setNames(ret,names)
+  bind_cols(x, ret)
 }
 
+# JWH: Should the filter for rail operator line become a parameter?
+get_nearest_station <- function(station_names_df, survey_records_df, operator_key_string,
+                                route_name_string, lat_name_string, lon_name_string) {
 
-get_rail_names <- function(station_names, survey_records, route_name, 
+  # # testing names
+  # station_names_df <- station_names
+  # survey_records_df <- survey_records
+  # route_name_string <- "final_trip_to_first_route"
+  # lat_name_string <- "final_transfer_to_first_boarding_lat"
+  # lon_name_string <- "final_transfer_to_first_boarding_lon"
+  # 
+  # operator_key_string <- "CALTRAIN"
+  temp_tech_key_string <- "Rapid Rail"
+  
+  vars <- c(route = route_name_string,
+            lat = lat_name_string,
+            lng = lon_name_string)
+  
+  relevant_records_df <- survey_records_df %>%
+    select(id, vars) %>%
+    filter(route == operator_key_string) %>%
+    mutate(lat = as.numeric(lat),
+           lng = as.numeric(lng))
+  
+  relevant_stations_df <- station_names_df %>%
+    filter(agencyname == operator_key_string) %>%
+    sfc_as_cols(st_geometry(.), c("sta_lon", "sta_lat")) %>%
+    select(index, sta_lon, sta_lat)
+  
+  st_geometry(station_names_df) <- NULL
+  st_geometry(relevant_stations_df) <- NULL
+
+  working_df <- merge(relevant_records_df, relevant_stations_df) %>%
+    mutate(distance_meters = mapply(function(r_lng, r_lat, s_lng, s_lat)
+      distm(c(r_lng, r_lat), c(s_lng, s_lat), fun = distHaversine), lng, lat, sta_lon, sta_lat))
+
+  return_df <- working_df %>%
+    group_by(id) %>%
+    mutate(min_distance = min(distance_meters)) %>%
+    ungroup() 
+  
+    stopifnot(return_df$min_distance %>% max() < 500)
+    
+  return_df <- return_df %>% 
+    filter(distance_meters == min_distance) %>%
+    left_join(., station_names_df, by = c("index")) %>%
+    select(id, station_na)
+  
+  return(return_df)
+}
+
+get_rail_names <- function(station_names, survey_records, operator, route_name,
                            board_lat, board_lon, alight_lat, alight_lon) {
 
-  station_names <- canonical_station
-  survey_records <- sf_muni_raw %>%
-    select(id,
-            "final_trip_to_third_route",
-            "final_transfer_to_third_boarding_lat",
-            "final_transfer_to_third_boarding_lon",
-            "final_transfer_to_third_alighting_lat",
-            "final_transfer_to_third_alighting_lon")
-  route_name <- "final_trip_first_route"
-  board_lat <- "final_transfer_to_third_boarding_lat"
-  board_lon <- "final_transfer_to_third_boarding_lon"
-  alight_lat <- "final_transfer_to_third_alighting_lat"
-  alight_lon <- "final_transfer_to_third_alighting_lon"
+  # station_names <- canonical_station_shp
+  # survey_records <- sf_muni_raw_df #%>%
+  # # select(id,
+  # #         "final_trip_first_route",
+  # #         "final_transfer_from_first_boarding_lat",
+  # #         "final_transfer_from_first_boarding_lon",
+  # #         "final_transfer_from_first_alighting_lat",
+  # #         "final_transfer_from_first_alighting_lon")
+  # operator <- "BART"
+  # route_name <- "final_trip_first_route"
+  # board_lat <- "final_transfer_from_first_boarding_lat"
+  # board_lon <- "final_transfer_from_first_boarding_lon"
+  # alight_lat <- "final_transfer_from_first_alighting_lat"
+  # alight_lon <- "final_transfer_from_first_alighting_lon"
+
+  filter_check <- paste0(route_name, " == '", operator, "'")
   
-  if(survey_records %>% filter(!!route_name == "BART") %>% nrow() > 0) {
-  board_names <- get_nearest_station(station_names, survey_records, route_name,
-                                     board_lat, board_lon)  
+  if(survey_records %>% filter_(filter_check) %>% nrow() > 0) {
+  board_names <- get_nearest_station(station_names, survey_records, operator, 
+                                     route_name, board_lat, board_lon)  
   
-  alight_names <- get_nearest_station(station_names, survey_records, route_name,
-                                     alight_lat, alight_lon)  
+  alight_names <- get_nearest_station(station_names, survey_records, operator,
+                                      route_name, alight_lat, alight_lon)  
   
   combined_names <- board_names %>% 
     left_join(alight_names, by = "id") %>% 
-    mutate(full_name = paste("BART", station.x, station.y, sep = "---")) %>%
+    mutate(full_name = paste(operator, station_na.x, station_na.y, sep = "---")) %>%
     select(id, full_name)
   
-  # survey_records <- survey_records %>%
-  mutate_exp <- paste0("ifelse(", route_name, " == 'BART', full_name, ", route_name, ")")
+  mutate_exp <- paste0("ifelse(", route_name, " == '", operator, "', full_name, ", route_name, ")")
 
   temp <- survey_records %>%
     left_join(combined_names, by = "id") %>%
@@ -154,33 +178,36 @@ get_rail_names <- function(station_names, survey_records, route_name,
   }
 
 # Create index of stations
-canonical_station <- canonical_station %>%
-  select(station_na, mode) %>%
-  mutate(index = 1:nrow(canonical_station))
+canonical_station_shp <- canonical_station_shp %>%
+  select(station_na, agencyname, mode) %>%
+  mutate(index = 1:nrow(canonical_station_shp))
 
 # Create 
-# sf_muni_rail <- sf_muni_raw %>%
+# sf_muni_rail <- sf_muni_raw_df %>%
 #   select_at(vars(matches("(^id$)|(transfer_(from|to))|(final_trip)"))) %>%
 #   select(-matches("(code)|(wait)")) 
 
-sf_muni_raw <- get_rail_names(canonical_station, 
-                       sf_muni_raw, 
+sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
+                       sf_muni_raw_df, 
+                       "BART",
                        "final_trip_first_route",
                        "final_transfer_from_first_boarding_lat",
                        "final_transfer_from_first_boarding_lon",
                        "final_transfer_from_first_alighting_lat",
                        "final_transfer_from_first_alighting_lon")
 
-sf_muni_raw <- get_rail_names(canonical_station, 
-                       sf_muni_raw, 
+sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
+                       sf_muni_raw_df, 
+                       "BART",
                        "final_trip_second_route",
                        "final_transfer_from_second_boarding_lat",
                        "final_transfer_from_second_boarding_lon",
                        "final_transfer_from_second_alighting_lat",
                        "final_transfer_from_second_alighting_lon")
 
-sf_muni_raw <- get_rail_names(canonical_station, 
-                       sf_muni_raw, 
+sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
+                       sf_muni_raw_df, 
+                       "BART",
                        "final_trip_third_route",
                        "final_transfer_from_third_boarding_lat",
                        "final_transfer_from_third_boarding_lon",
@@ -189,128 +216,61 @@ sf_muni_raw <- get_rail_names(canonical_station,
 
 # !!! JWH: I think there should be a column "final_trip_fourth_route", but it 
 # !!!      doesn't seem to exist.
-# sf_muni_raw <- get_rail_names(canonical_station, 
-#                        sf_muni_raw, 
+# sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
+#                        sf_muni_raw_df, 
 #                        "final_trip_fourth_route",
 #                        "final_transfer_from_fourth_boarding_lat",
 #                        "final_transfer_from_fourth_boarding_lon",
 #                        "final_transfer_from_fourth_alighting_lat",
 #                        "final_transfer_from_fourth_alighting_lon")
 
-sf_muni_raw <- get_rail_names(canonical_station, 
-                       sf_muni_raw, 
+sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
+                       sf_muni_raw_df,  
+                       "BART",
                        "final_trip_to_first_route",
                        "final_transfer_to_first_boarding_lat",
                        "final_transfer_to_first_boarding_lon",
                        "final_transfer_to_first_alighting_lat",
                        "final_transfer_to_first_alighting_lon")
 
-sf_muni_raw <- get_rail_names(canonical_station, 
-                       sf_muni_raw, 
+sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
+                       sf_muni_raw_df,  
+                       "BART",
                        "final_trip_to_second_route",
                        "final_transfer_to_second_boarding_lat",
                        "final_transfer_to_second_boarding_lon",
                        "final_transfer_to_second_alighting_lat",
                        "final_transfer_to_second_alighting_lon")
 
-sf_muni_raw <- get_rail_names(canonical_station, 
-                       sf_muni_raw, 
+sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
+                       sf_muni_raw_df,  
+                       "BART",
                        "final_trip_to_third_route",
                        "final_transfer_to_third_boarding_lat",
                        "final_transfer_to_third_boarding_lon",
                        "final_transfer_to_third_alighting_lat",
                        "final_transfer_to_third_alighting_lon")
 
-sf_muni_raw <- get_rail_names(canonical_station, 
-                       sf_muni_raw, 
+sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
+                       sf_muni_raw_df,  
+                       "BART",
                        "final_trip_to_fourth_route",
                        "final_transfer_to_fourth_boarding_lat",
                        "final_transfer_to_fourth_boarding_lon",
                        "final_transfer_to_fourth_alighting_lat",
                        "final_transfer_to_fourth_alighting_lon")
 
-# dave noodle start ------------------------------------------------------------
-
-# make_replacements <- function(routes_df, replace_df) {
-#   
-#   # start with for loop, iterate to make better(full join?)
-#   regex_vector <- replace_df$route_name_regex
-#   operator_vector <- replace_df$operator_name
-#   prefix_vector <- replace_df$operator_prefix
-#   
-#   return_df <- routes_df %>%
-#     #survey_name?
-#     mutate(canonical_name = survey_name,
-#            canonical_operator = "")
-#   
-#   for(index in 1:length(regex_vector)) {
-#     
-#     regex_item <- replace_df$route_name_regex[index]
-#     operator_item <- replace_df$operator_name[index]
-#     prefix_item <- replace_df$operator_prefix[index]
-#     
-#     if (prefix_item) {
-#       
-#       return_df <- return_df %>%
-#         mutate(canonical_name = str_replace(canonical_name, regex_item, "")) %>%
-#         mutate(canonical_operator = ifelse(str_detect(survey_name, regex_item), operator_item, canonical_operator))
-#       
-#     } else {
-#       
-#       return_df <- return_df %>%
-#         mutate(canonical_operator = ifelse(str_detect(survey_name, operator_item), operator_item, canonical_operator))
-#         
-#     }
-#   
-#     
-#   }
-#   
-#   return(return_df)
-#   
-# }
-# 
-# key_var_list <- bart_raw %>%
-#   select_at(vars(contains("trnsfr"))) %>%
-#   select_at(vars(-contains("agency"))) %>%
-#   colnames()
-# 
-# bart_routes_df <- bart_raw %>% 
-#   select(one_of(key_var_list)) %>%
-#   gather(variable, value = survey_name) %>%
-#   filter(survey_name != "") %>%
-#   unique() 
-# 
-# replacement_df <- data.frame(
-#   route_name_regex = c("^AC Transit Route ", 
-#                        "^ACE ",
-#                        NA),
-#   
-#   operator_name = c("AC Transit", 
-#                     "ACE",
-#                     "AirTrain"),
-#   
-#   operator_prefix = c(TRUE,
-#                       TRUE,
-#                       FALSE)
-# )
-# 
-# test_df <- make_replacements(bart_routes_df, replacement_df)
-# 
-# table(test_df$canonical_operator)
-
-# dave noodle end --------------------------------------------------------------
-
 # Adjust route names within AC Transit survey
 
 
 
 # Adjust route names within BART survey
-transfer_names <- bart_raw %>%
+transfer_names <- bart_raw_df %>%
   select_at(vars(contains("trnsfr"))) %>%
   select_at(vars(-contains("agency"))) %>%
   colnames()
 
-bart_routes <- bart_raw %>% 
+bart_routes <- bart_raw_df %>% 
   select(one_of(transfer_names)) %>%
   gather(variable, value = survey_name) %>%
   filter(survey_name != "") %>%
@@ -490,7 +450,7 @@ bart_routes <- bart_routes %>%
   unique()
 
 # Adjust route names within Caltrain survey
-caltrain_routes <- caltrain_raw %>% 
+caltrain_routes <- caltrain_raw_df %>% 
   select_at(vars(contains("transfer_"))) %>%
   select_at(vars(-contains("loc"))) %>%
   gather(variable, value = survey_name) %>%
@@ -576,7 +536,7 @@ caltrain_routes <- caltrain_routes %>%
   unique()
   
 # Adjust route names within Muni survey
-sf_muni_routes <- sf_muni_raw %>%
+sf_muni_routes <- sf_muni_raw_df %>%
   select_at(vars(contains("route"))) %>%
   select_at(vars(-contains("lat"))) %>%
   select_at(vars(-contains("lon"))) %>%
@@ -740,32 +700,32 @@ canonical_routes <- standard_routes %>%
 #   
 # }
 
-# working_df <- get_some_lat_lngs(sf_muni_raw,
+# working_df <- get_some_lat_lngs(sf_muni_raw_df,
 #                                 "final_trip_to_first_route",
 #                                 "final_transfer_to_first_alighting_lat",
 #                                 "final_transfer_to_first_alighting_lon",
 #                                 "to_first_alighting") %>%
-#   bind_rows(get_some_lat_lngs(sf_muni_raw,
+#   bind_rows(get_some_lat_lngs(sf_muni_raw_df,
 #                               "final_trip_to_second_route",
 #                               "final_transfer_to_second_alighting_lat",
 #                               "final_transfer_to_second_alighting_lon",
 #                               "to_second_alighting")) %>%
-#   bind_rows(get_some_lat_lngs(sf_muni_raw,
+#   bind_rows(get_some_lat_lngs(sf_muni_raw_df,
 #                               "final_trip_to_third_route",
 #                               "final_transfer_to_third_alighting_lat",
 #                               "final_transfer_to_third_alighting_lon",
 #                               "to_third_alighting")) %>%
-#   bind_rows(get_some_lat_lngs(sf_muni_raw,
+#   bind_rows(get_some_lat_lngs(sf_muni_raw_df,
 #                               "final_trip_first_route",
 #                               "final_transfer_from_first_boarding_lat",
 #                               "final_transfer_from_first_boarding_lon",
 #                               "from_first_boarding")) %>%
-#   bind_rows(get_some_lat_lngs(sf_muni_raw,
+#   bind_rows(get_some_lat_lngs(sf_muni_raw_df,
 #                               "final_trip_second_route",
 #                               "final_transfer_from_second_boarding_lat",
 #                               "final_transfer_from_second_boarding_lon",
 #                               "from_second_boarding")) %>%
-#   bind_rows(get_some_lat_lngs(sf_muni_raw,
+#   bind_rows(get_some_lat_lngs(sf_muni_raw_df,
 #                               "final_trip_third_route",
 #                               "final_transfer_from_third_boarding_lat",
 #                               "final_transfer_from_third_boarding_lon",
@@ -777,19 +737,19 @@ canonical_routes <- standard_routes %>%
 # table(working_df$route)
 
 # Create canonical list of station names/locations
-# canonical_station <- st_read(canonical_station_path)
+# canonical_station_shp <- st_read(canonical_station_shp_path)
 # 
-# canonical_coordinates <- as.data.frame(st_coordinates(canonical_station)) %>%
+# canonical_coordinates <- as.data.frame(st_coordinates(canonical_station_shp)) %>%
 #   rename(lat = Y,
 #          lon = X)
 # 
-# canonical_station <- bind_cols(canonical_station, canonical_coordinates)
+# canonical_station_shp <- bind_cols(canonical_station_shp, canonical_coordinates)
 # 
-# st_geometry(canonical_station) <- NULL
+# st_geometry(canonical_station_shp) <- NULL
 # 
-# sf_muni_lat <- sf_muni_raw %>% 
+# sf_muni_lat <- sf_muni_raw_df %>% 
 #   select(id) %>% 
-#   bind_cols(sf_muni_raw %>% 
+#   bind_cols(sf_muni_raw_df %>% 
 #               select_at(vars(contains("lat"))) %>% 
 #               select(-hisp_lat_spa_code)) 
 # sf_muni_lat <- sf_muni_lat %>%
@@ -797,9 +757,9 @@ canonical_routes <- standard_routes %>%
 #   rename(var_name = variable) %>%
 #   mutate(var_name = str_replace(var_name, "_lat", ""))
 # 
-# sf_muni_lon <- sf_muni_raw %>% 
+# sf_muni_lon <- sf_muni_raw_df %>% 
 #   select(id) %>% 
-#   bind_cols(sf_muni_raw %>% 
+#   bind_cols(sf_muni_raw_df %>% 
 #               select_at(vars(contains("lon")))) 
 # sf_muni_lon <- sf_muni_lon %>%
 #   gather(variable, value = "lon", -id) %>%
@@ -836,7 +796,7 @@ canonical_routes <- standard_routes %>%
 #   select(lat, lon = lng)
 # 
 # clara_results <- clara(for_clara_df,
-#                        k = nrow(filter(canonical_station, agencyname == "BART")),
+#                        k = nrow(filter(canonical_station_shp, agencyname == "BART")),
 #                        metric = "euclidean",
 #                        rngR = TRUE,
 #                        pamLike = TRUE)
@@ -865,35 +825,6 @@ canonical_routes <- standard_routes %>%
   
 # dave pass end ----------------------------------------------------------------
 
-
-
-
-
-
-
-
-set.seed(123)
-# stat_locations <- clara(sf_muni_coords,
-#                         k = 673, 
-#                         metric = "euclidean",
-#                         rngR = TRUE,
-#                         pamLike = TRUE)
-
-round_stations <- data.frame(stat_locations$medoids) %>%
-  mutate(lat = round(lat, 4),
-         lon = round(lon, 4)) %>%
-  mutate(station = 1:nrow(stat_locations$medoids))
-
-# write.csv(round_stations, "clara_station_locations.csv")
-
-canonical_station %>%
-  mutate(lat = round(lat, 4),
-         lon = round(lon, 4)) %>%
-  left_join(round_stations, by = c("lat", "lon")) %>% 
-  filter(!is.na(station))
-
-
-  
 write.csv(standard_routes, standard_route_path)
 write.csv(canonical_routes, canonical_route_path)  
   
