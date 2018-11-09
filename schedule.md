@@ -13,7 +13,7 @@ CONTENTS
 2. [Tentative Future Schedule](#tentative-future-schedule)
 
 
-## Operators Completed to Date
+## Operators Completed to Date and Currently in the Field
 
 | **Survey Year**                  | **Spring**             | **Fall**               |
 |:---------------------------------|:-----------------------|:-----------------------|
@@ -32,14 +32,6 @@ CONTENTS
 |                                  |                        |	                     |
 | 2015                             | BART                   |                        |
 |                                  |                        |                        |
- 
-<br/>
-
-## Tentative Future Schedule
-
-
-| **Survey Year**                  | **Spring**             | **Fall**               |
-|:---------------------------------|:-----------------------|:-----------------------|
 | 2016                             |                        | Muni                   |
 |                                  |                        | VTA                    |
 |                                  |                        |                        |
@@ -56,8 +48,17 @@ CONTENTS
 |                                  | Petaluma Transit       |                        |
 |                                  | Sonoma County Transit  |	                     |
 |                                  | Santa Rosa CityBus     |	                     |
-|                                  | SMART                  |                        |			
+|                                  | SMART                  |                        |	
 |                                  |                        |	                     |
+
+
+<br/>
+
+## Tentative Future Schedule
+
+
+| **Survey Year**                  | **Spring**             | **Fall**               |
+|:---------------------------------|:-----------------------|:-----------------------|
 | 2019                             | ACE                    | SamTrans               |
 |                                  | Napa VINE Transit      | County Connection      |
 |                                  | Tri Delta Transit      |                        |
