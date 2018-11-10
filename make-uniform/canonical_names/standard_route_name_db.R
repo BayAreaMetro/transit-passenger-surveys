@@ -26,6 +26,10 @@ dir_path <- user_list %>%
   filter(user == me) %>%
   .$path
 
+# Crosswalk Paths
+
+get_rail_names_inputs_path <- "get_rail_names_inputs.csv"
+
 # Input data paths
 ac_transit_path <- paste0(dir_path,
   "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv")
@@ -44,6 +48,10 @@ canonical_station_path <- paste0(dir_path,
 
 standard_route_path <- "standard_route_crosswalk.csv"
 canonical_route_path <- "canonical_route_names.csv"
+
+# Read crosswalk files
+
+get_rail_names_inputs <- read.csv(get_rail_names_inputs_path)
 
 # Read raw survey files
 ac_transit_raw_df <- read.csv(ac_transit_path) %>% 
@@ -89,7 +97,7 @@ get_nearest_station <- function(station_names_df, survey_records_df, operator_ke
   # lat_name_string <- "final_transfer_to_first_boarding_lat"
   # lon_name_string <- "final_transfer_to_first_boarding_lon"
   # 
-  # operator_key_string <- "CALTRAIN"
+  # operator_key_string <- "BART"
   temp_tech_key_string <- "Rapid Rail"
   
   vars <- c(route = route_name_string,
@@ -119,7 +127,8 @@ get_nearest_station <- function(station_names_df, survey_records_df, operator_ke
     mutate(min_distance = min(distance_meters)) %>%
     ungroup() 
   
-    stopifnot(return_df$min_distance %>% max() < 1000)
+  # Stop function if minimum distance exceeds threshold
+  # stopifnot(return_df$min_distance %>% max() < 1000)
     
   return_df <- return_df %>% 
     filter(distance_meters == min_distance) %>%
@@ -133,7 +142,7 @@ get_rail_names <- function(station_names, survey_records, operator, route_name,
                            board_lat, board_lon, alight_lat, alight_lon) {
 
   # station_names <- canonical_station_shp
-  # survey_records <- sf_muni_raw_df #%>%
+  # survey_records <- ac_transit_raw_df #%>%
   # # select(id,
   # #         "final_trip_first_route",
   # #         "final_transfer_from_first_boarding_lat",
@@ -175,100 +184,46 @@ get_rail_names <- function(station_names, survey_records, operator, route_name,
   }
   
   return(survey_records)
-  }
+}
 
 # Create index of stations
 canonical_station_shp <- canonical_station_shp %>%
   select(station_na, agencyname, mode) %>%
   mutate(index = 1:nrow(canonical_station_shp))
 
-# Create 
-# sf_muni_rail <- sf_muni_raw_df %>%
-#   select_at(vars(matches("(^id$)|(transfer_(from|to))|(final_trip)"))) %>%
-#   select(-matches("(code)|(wait)")) 
+# AC Transit Route Name Replacements
+inputs <- get_rail_names_inputs %>% 
+  filter(survey_name_df == "ac_transit")
 
-sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
-                       sf_muni_raw_df, 
-                       "BART",
-                       "final_trip_first_route",
-                       "final_transfer_from_first_boarding_lat",
-                       "final_transfer_from_first_boarding_lon",
-                       "final_transfer_from_first_alighting_lat",
-                       "final_transfer_from_first_alighting_lon")
+for (i in 1:nrow(get_rail_names_inputs %>% filter(survey_name_df == "ac_transit"))) {
+  
+  ac_transit_raw_df <- get_rail_names(canonical_station_shp, 
+                                      ac_transit_raw_df,
+                                      inputs$operator_string[[i]],
+                                      inputs$route_string[[i]],
+                                      inputs$board_lat[[i]],
+                                      inputs$board_lon[[i]],
+                                      inputs$alight_lat[[i]],
+                                      inputs$alight_lon[[i]])
+}
 
-sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
-                       sf_muni_raw_df, 
-                       "BART",
-                       "final_trip_second_route",
-                       "final_transfer_from_second_boarding_lat",
-                       "final_transfer_from_second_boarding_lon",
-                       "final_transfer_from_second_alighting_lat",
-                       "final_transfer_from_second_alighting_lon")
+# SF Muni Route Name Replacements
+# Not sure why there's no final_trip_fourth_route.
+# For now, it is removed from the list of columns to check
+inputs <- get_rail_names_inputs %>% 
+  filter(survey_name_df == "sf_muni")
 
-sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
-                       sf_muni_raw_df, 
-                       "BART",
-                       "final_trip_third_route",
-                       "final_transfer_from_third_boarding_lat",
-                       "final_transfer_from_third_boarding_lon",
-                       "final_transfer_from_third_alighting_lat",
-                       "final_transfer_from_third_alighting_lon")
-
-# !!! JWH: I think there should be a column "final_trip_fourth_route", but it 
-# !!!      doesn't seem to exist.
-# sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
-#                        sf_muni_raw_df, 
-#                        "final_trip_fourth_route",
-#                        "final_transfer_from_fourth_boarding_lat",
-#                        "final_transfer_from_fourth_boarding_lon",
-#                        "final_transfer_from_fourth_alighting_lat",
-#                        "final_transfer_from_fourth_alighting_lon")
-
-sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
-                       sf_muni_raw_df,  
-                       "BART",
-                       "final_trip_to_first_route",
-                       "final_transfer_to_first_boarding_lat",
-                       "final_transfer_to_first_boarding_lon",
-                       "final_transfer_to_first_alighting_lat",
-                       "final_transfer_to_first_alighting_lon")
-
-sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
-                       sf_muni_raw_df,  
-                       "BART",
-                       "final_trip_to_second_route",
-                       "final_transfer_to_second_boarding_lat",
-                       "final_transfer_to_second_boarding_lon",
-                       "final_transfer_to_second_alighting_lat",
-                       "final_transfer_to_second_alighting_lon")
-
-sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
-                       sf_muni_raw_df,  
-                       "BART",
-                       "final_trip_to_third_route",
-                       "final_transfer_to_third_boarding_lat",
-                       "final_transfer_to_third_boarding_lon",
-                       "final_transfer_to_third_alighting_lat",
-                       "final_transfer_to_third_alighting_lon")
-
-sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
-                       sf_muni_raw_df,  
-                       "BART",
-                       "final_trip_to_fourth_route",
-                       "final_transfer_to_fourth_boarding_lat",
-                       "final_transfer_to_fourth_boarding_lon",
-                       "final_transfer_to_fourth_alighting_lat",
-                       "final_transfer_to_fourth_alighting_lon")
-
-# AC Transit does not seem to match BART stations closely enough
-ac_transit_raw_df <- get_rail_names(canonical_station_shp,
-                                    ac_transit_raw_df,
-                                    "BART",
-                                    "final_trip_first_route",
-                                    "final_transfer_from_first_boarding_lat",
-                                    "final_transfer_from_first_boarding_lon",
-                                    "final_transfer_from_first_alighting_lat",
-                                    "final_transfer_from_first_alighting_lon")
+for (i in 1:nrow(inputs)) {
+  
+  sf_muni_raw_df <- get_rail_names(canonical_station_shp, 
+                                      sf_muni_raw_df,
+                                      inputs$operator_string[[i]],
+                                      inputs$route_string[[i]],
+                                      inputs$board_lat[[i]],
+                                      inputs$board_lon[[i]],
+                                      inputs$alight_lat[[i]],
+                                      inputs$alight_lon[[i]])
+}
 
 # Adjust route names within AC Transit survey
 
@@ -297,9 +252,10 @@ ac_transit_routes <- ac_transit_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Apple"), "Apple", canonical_operator)) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Broadway"), "AC Transit", canonical_operator)) %>%
   
+  mutate(canonical_name = str_replace(canonical_name, "^BART---", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^BART"), "BART", canonical_operator)) %>%
   
-  mutate(canonical_name = str_replace(canonical_name, "CALTRAIN", "Caltrain")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^CALTRAIN---", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^CALTRAIN"), "Caltrain", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "County Connection Route ", "")) %>%
@@ -376,7 +332,7 @@ ac_transit_routes <- ac_transit_raw_df %>%
 ac_transit_routes <- ac_transit_routes %>%
   filter(canonical_operator != "BAD REFERENCE") %>%
   mutate(survey = "AC Transit",
-         survey_year = 2018) %>%
+         survey_year = 2013) %>%
   select(survey, survey_year, survey_name, canonical_name, canonical_operator, -variable) %>%
   unique()
   
@@ -694,15 +650,16 @@ sf_muni_routes <- sf_muni_raw_df %>%
   mutate(canonical_name = str_replace(canonical_name, "Apple bus", "Apple Shuttle")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Apple"), "Apple", canonical_operator)) %>%
   
-  mutate(canonical_operator = ifelse(str_detect(survey_name, fixed("^BART", ignore_case = TRUE)), "BART", canonical_operator)) %>%
+  mutate(canonical_name = str_replace(survey_name, "BART---", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "BART---"), "BART", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Blue & Gold ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Blue & Gold "), "Blue & Gold", canonical_operator)) %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Burlingame"), "Caltrain", canonical_operator)) %>%
   
-  mutate(canonical_name = str_replace(canonical_name, "CALTRAIN", "Caltrain")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, fixed("Caltrain", ignore_case = TRUE)), "Caltrain", canonical_operator)) %>%
+  mutate(canonical_name = str_replace(canonical_name, "CALTRAIN---", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "(^CALTRAIN---)|(^Caltrain)"), "Caltrain", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Capitol Corridor.*", "Sacramento/San Jose")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Capitol Corridor "), "Capitol Corridor", canonical_operator)) %>%
