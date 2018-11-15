@@ -32,8 +32,11 @@ interventions.
 #### Libraries
 ```{r overhead}
 list_of_packages <- c(
-  "tidyverse",
-  "knitr"
+  "geosphere",
+  "knitr",
+  "rlang",
+  "sf",
+  "tidyverse"
   )
 
 new_packages <- list_of_packages[!(list_of_packages %in% installed.packages()[,"Package"])]
@@ -42,6 +45,15 @@ if(length(new_packages)) install.packages(new_packages)
 
 for (p in list_of_packages){
   library(p, character.only = TRUE)
+}
+
+list_of_functions <- c(
+  "geocode_functions.R",
+  "rename_route_functions.R"
+)
+
+for (f in list_of_functions){
+  source(f)
 }
 ```
 
@@ -91,6 +103,13 @@ f_spatial_geocoded_path <- paste0(dir_path,
 f_transit_geocoded_path <- paste0(dir_path, 
   "_geocoding Standardized/boarding_alighting_places_geocoded.csv")
 
+f_canonical_station_path <- paste0(dir_path,
+  "Geography Files/Passenger_Railway_Stations_2018.shp")
+
+f_get_rail_names_inputs_path <- "get_rail_names_inputs.csv"
+
+f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
+
 f_actransit_survey_path <- paste0(dir_path,
   "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv")
 
@@ -100,6 +119,9 @@ f_bart_survey_path <- paste0(dir_path,
 f_caltrain_survey_path <- paste0(dir_path, 
   "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
 
+# f_marin_survey_path <- paste0(dir_path,
+#   "Marin Transit/Final Data/marin transit_data file_finalreweighted043018.csv")
+  
 f_muni_survey_path <- paste0(dir_path, 
   "Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 
@@ -151,6 +173,17 @@ dictionary_cat <- dictionary_all %>%
   filter(generic_response != 'NONCATEGORICAL') %>%
   mutate(survey_response = as.character(survey_response))
 
+```
+
+## Add Canonical Station Locations and Crosswalk for Recode
+```{r}
+get_rail_names_inputs <- read.csv(f_get_rail_names_inputs_path)
+canonical_station_shp <- st_read(f_canonical_station_path)
+
+# Create index of stations
+canonical_station_shp <- canonical_station_shp %>%
+  select(station_na, agencyname, mode) %>%
+  mutate(index = 1:nrow(canonical_station_shp))
 ```
 
 ## Add Surveys
@@ -207,6 +240,21 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
     unique()
   
   input_df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") 
+  
+  if (name %in% get_rail_names_inputs$survey_name) {
+    inputs <- get_rail_names_inputs %>% 
+      filter(survey_name_df == name)
+    
+    for (i in 1:nrow(get_rail_names_inputs %>% filter(survey_name_df == name))) {
+      
+      input_df <- get_rail_names(canonical_station_shp, 
+                                 input_df,
+                                 inputs$operator_string[[i]],
+                                 inputs$route_string[[i]],
+                                 inputs$board_lat[[i]],
+                                 inputs$board_lon[[i]],
+                                 inputs$alight_lat[[i]],
+                                 inputs$alight_lon[[i]])}}
   
   df_variable_levels <- input_df %>%
     gather(survey_variable, survey_response) %>%
@@ -280,17 +328,15 @@ vta_df <- read_operator('VTA',
                         dictionary_all)
 
 survey_combine <- bind_rows(ac_transit_df,
-bart_df,
-caltrain_df,
-muni_df,
-napa_vine_df,
-vta_df
-)
+  bart_df,
+  caltrain_df,
+  muni_df,
+  napa_vine_df,
+  vta_df)
 
 remove(ac_transit_df, bart_df, caltrain_df, muni_df, napa_vine_df, vta_df)
 
 ```
-
 
 ## Flatten
 ```{r flatten}
@@ -520,13 +566,22 @@ In addition, the `debug_transfers` frame should be empty. If it's not, the code
 has failed to identify an operator or technology for a route that is being
 transferred to or from. 
 
+## Recode Rail routes as Station to Station Pairs
+```{r station-to-station-recode}
+
+
+
+```
+
+
+
 ## Build Standard variables
 ```{r standard-variables-part1}
 # Step 1:  Age-related transformations
 # -------------------------------------------------------------------------------------
 
 # Standardize year born
-survey_standard <- survey_flat %>%
+survey_standard <- survey_standard %>%
   mutate(year_born = ifelse(str_detect(year_born_four_digit, "Missing"), 
                             NA, 
                             year_born_four_digit)) %>%
