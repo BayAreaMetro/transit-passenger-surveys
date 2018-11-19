@@ -72,7 +72,7 @@ input_df <- readRDS(f_decomposition_file_name)
 # TODO fix muni hacks
 crosswalk_df <- read.csv(f_standard_crosswalk_file_name, header = TRUE, colClasses = c("NULL", rep("character", 5))) %>%
   mutate(survey = ifelse(survey == "SFMTA", "SF Muni", survey)) %>%
-  mutate(year = ifelse(survey == "SF Muni", "2017", year))
+  mutate(survey_year = ifelse(survey == "SF Muni", "2017", survey_year))
 
 # TODO: add legacy surveys when we get there
 
@@ -176,7 +176,7 @@ running_df <- running_df %>%
 
 
 join_df <- crosswalk_df %>%
-  rename(survey_name = survey, survey_year = year, survey_route = survey_name) %>%
+  rename(survey_name = survey, survey_year, survey_route = survey_name) %>%
   mutate(survey_year = as.integer(survey_year))
 
 # TODO remove BART hack when crosswalk fixed
