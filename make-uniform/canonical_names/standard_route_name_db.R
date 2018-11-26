@@ -51,7 +51,7 @@ sf_muni_path <- paste0(dir_path,
 canonical_station_path <- paste0(dir_path,
   "Geography Files/Passenger_Railway_Stations_2018.shp")
 
-standard_route_path <- "../production/standard_route_crosswalk.csv"
+canonical_route_path <- "../production/canonical_route_crosswalk.csv"
 
 # Read crosswalk files
 op_delim <- "---"
@@ -709,10 +709,10 @@ error_check <- left_join(bind_rows(bart_routes, caltrain_routes, sf_muni_routes)
                        by = c("canonical_name", "canonical_operator"))) %>%
   filter(is.na(survey_name.x) | is.na(survey_name.y))
 
-standard_routes <- ac_transit_routes %>% 
+canonical_routes <- ac_transit_routes %>% 
   bind_rows(bart_routes, caltrain_routes, sf_muni_routes) %>%
   mutate(canonical_name = paste(canonical_operator, canonical_name, sep = op_delim)) %>%
   select(-canonical_operator)
 
-write.csv(standard_routes, standard_route_path)
+write.csv(canonical_routes, canonical_route_path)
   
