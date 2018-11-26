@@ -714,5 +714,5 @@ canonical_routes <- ac_transit_routes %>%
   mutate(canonical_name = paste(canonical_operator, canonical_name, sep = op_delim)) %>%
   select(-canonical_operator)
 
-write.csv(canonical_routes, canonical_route_path)
+write.csv(canonical_routes, canonical_route_path, row.names = FALSE)
   
