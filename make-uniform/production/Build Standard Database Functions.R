@@ -1,3 +1,4 @@
+# Geocode Functions
 sfc_as_cols <- function(x, geometry, names = c("x", "y")) {
   if (missing(geometry)) {
     geometry <- st_geometry(x)
@@ -112,4 +113,100 @@ get_rail_names <- function(station_names, survey_records, operator, route_name,
   }
   
   return(survey_records)
+}
+
+# Read Survey Functions
+check_dropped_variables <- function(operator_variables_df, external_variables_df) {
+  
+  # Ensure that all variable levels in the operator specific survey have a generic 
+  # equivalent in dictionary_all
+  # operator_variables_df <- df_variable_levels
+  # external_variables_df <- external_variable_levels
+  
+  external_levels <- external_variables_df %>%
+    group_by(survey_variable, survey_response) %>%
+    summarise(count = n()) %>%
+    select(-count) %>%
+    ungroup()
+  
+  missing_variables <- operator_variables_df %>%
+    filter(survey_variable %in% external_levels$survey_variable) %>%
+    filter(!survey_response %in% external_levels$survey_response) %>%
+    nrow()
+  
+  stopifnot(missing_variables == 0)
+  
+}
+
+check_duplicate_variables <- function(df_duplicates) {
+  
+  # Check for duplicate rows in dataframe
+  ref_count <- df_duplicates %>% 
+    group_by(ID, operator, survey_year, survey_tech, survey_variable) %>% 
+    summarise(count = n())
+  
+  mult_ref_count  <- ref_count %>%
+    filter(count > 1) %>%
+    nrow()
+  
+  stopifnot(mult_ref_count == 0)
+  
+}
+
+read_operator <- function(name, year, default_tech, file_path, variable_dictionary) {
+  
+  # name <- 'AC Transit'
+  # year <- 2018
+  # default_tech <- 'local bus'
+  # file_path <- f_actransit_survey_path
+  # variable_dictionary <- dictionary_all
+  
+  variables_vector <- variable_dictionary %>%
+    filter(operator == name) %>%
+    .$survey_variable %>%
+    unique()
+  
+  input_df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") 
+  
+  if (name %in% rail_names_inputs$survey_name) {
+    inputs <- rail_names_inputs %>% 
+      filter(survey_name_df == name)
+    
+    for (i in 1:nrow(rail_names_inputs %>% filter(survey_name_df == name))) {
+      
+      input_df <- get_rail_names(canonical_station_shp, 
+                                 input_df,
+                                 inputs$operator_string[[i]],
+                                 inputs$route_string[[i]],
+                                 inputs$board_lat[[i]],
+                                 inputs$board_lon[[i]],
+                                 inputs$alight_lat[[i]],
+                                 inputs$alight_lon[[i]])}}
+  
+  df_variable_levels <- input_df %>%
+    gather(survey_variable, survey_response) %>%
+    group_by(survey_variable, survey_response) %>%
+    summarise(count = n()) %>%
+    select(-count) %>% 
+    ungroup()
+  
+  external_variable_levels <- variable_dictionary %>%
+    filter(operator == name & generic_response != "NONCATEGORICAL")
+  
+  # check_dropped_variables(df_variable_levels, 
+  #                         external_variable_levels)
+  
+  return_df <- input_df %>%
+    select(one_of(variables_vector)) %>%
+    rename_at(vars(contains('id')), funs(sub('id', 'ID', .))) %>%
+    gather(survey_variable, survey_response, -ID) %>%
+    mutate(ID = as.character(ID),
+           operator = name,
+           survey_year = year,
+           survey_tech = default_tech)
+  
+  check_duplicate_variables(return_df)
+  
+  return(return_df)
+  
 }
