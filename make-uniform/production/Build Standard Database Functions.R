@@ -96,7 +96,7 @@ get_rail_names <- function(station_names, survey_records, operator, route_name,
     
     combined_names <- board_names %>% 
       left_join(alight_names, by = "id") %>% 
-      mutate(full_name = paste(operator, station_na.x, station_na.y, sep = "---")) %>%
+      mutate(full_name = paste(operator, station_na.x, station_na.y, sep = "___")) %>%
       select(id, full_name)
     
     mutate_exp <- paste0("ifelse(", route_name, " == '", operator, "', full_name, ", route_name, ")")
@@ -155,12 +155,12 @@ check_duplicate_variables <- function(df_duplicates) {
 
 read_operator <- function(name, year, default_tech, file_path, variable_dictionary) {
   
-  # name <- 'AC Transit'
-  # year <- 2018
+  # name <- 'SF Muni'
+  # year <- 2017
   # default_tech <- 'local bus'
-  # file_path <- f_actransit_survey_path
+  # file_path <- f_muni_survey_path
   # variable_dictionary <- dictionary_all
-  
+  # 
   variables_vector <- variable_dictionary %>%
     filter(operator == name) %>%
     .$survey_variable %>%

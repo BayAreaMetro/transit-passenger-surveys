@@ -196,30 +196,30 @@ When adding a new operator, create a `read_operator` call and add the resulting
 dataframe to `survey_combine` in the last step.
 
 ```{r add-surveys}
-ac_transit_df <- read_operator('AC Transit',
-                               2013,
-                               'local bus',
-                               f_actransit_survey_path,
-                               dictionary_all)
+# ac_transit_df <- read_operator('AC Transit',
+#                                2013,
+#                                'local bus',
+#                                f_actransit_survey_path,
+#                                dictionary_all)
 
-# bart_df <- read_operator('BART',
-#                          2015,
-#                          'heavy rail',
-#                          f_bart_survey_path,
-#                          dictionary_all)
-# 
-# caltrain_df <- read_operator('Caltrain',
-#                              2014,
-#                              'commuter rail',
-#                              f_caltrain_survey_path,
-#                              dictionary_all)
-# 
-# muni_df <- read_operator('SF Muni',
-#                          2017,
-#                          'local bus',
-#                          f_muni_survey_path,
-#                          dictionary_all)
-# 
+bart_df <- read_operator('BART',
+                         2015,
+                         'heavy rail',
+                         f_bart_survey_path,
+                         dictionary_all)
+
+caltrain_df <- read_operator('Caltrain',
+                             2014,
+                             'commuter rail',
+                             f_caltrain_survey_path,
+                             dictionary_all)
+
+muni_df <- read_operator('SF Muni',
+                         2014,
+                         'local bus',
+                         f_muni_survey_path,
+                         dictionary_all)
+
 # napa_vine_df <- read_operator('Napa Vine',
 #                               2014,
 #                               'local bus',
@@ -232,10 +232,10 @@ ac_transit_df <- read_operator('AC Transit',
 #                         f_vta_survey_path,
 #                         dictionary_all)
 
-survey_combine <- bind_rows(ac_transit_df,
-  # bart_df,
-  # caltrain_df,
-  # muni_df,
+survey_combine <- bind_rows(# ac_transit_df,
+  bart_df,
+  caltrain_df,
+  muni_df
   # napa_vine_df,
   # vta_df
   )
@@ -258,7 +258,7 @@ survey_non <- survey_combine %>%
   filter(!is.na(generic_variable)) %>%
   mutate(generic_response = survey_response) %>% 
   left_join(canonical_routes_crosswalk, by = c("operator" = "survey", "survey_year" = "survey_year", "generic_response" = "survey_name")) %>%
-  mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response))
+  mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response)) 
   
 # Combine the categorical and non-categorical survey data and prepare to flatten
 survey_flat <- bind_rows(survey_cat, survey_non) %>%

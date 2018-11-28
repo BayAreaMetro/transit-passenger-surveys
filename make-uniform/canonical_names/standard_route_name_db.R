@@ -729,7 +729,7 @@ bad_references <- sf_muni_routes %>%
 
 sf_muni_routes <- sf_muni_routes %>%
   filter(canonical_operator != "BAD REFERENCE") %>%
-  mutate(survey = "SFMTA",
+  mutate(survey = "SF Muni",
          survey_year = 2014) %>%
   select(survey, survey_year, survey_name, canonical_name, canonical_operator, -variable) %>%
   unique() %>%
