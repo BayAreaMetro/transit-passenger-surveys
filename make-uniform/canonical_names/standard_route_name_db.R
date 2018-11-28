@@ -54,7 +54,7 @@ canonical_station_path <- paste0(dir_path,
 canonical_route_path <- "../production/canonical_route_crosswalk.csv"
 
 # Read crosswalk files
-op_delim <- "---"
+op_delim <- "___"
 
 get_rail_names_inputs <- read.csv(get_rail_names_inputs_path)
 
@@ -128,69 +128,52 @@ ac_transit_routes <- ac_transit_raw_df %>%
   mutate(canonical_name = str_replace_all(canonical_name, " *- *", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, " */ *", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, " +", " ")) %>%
-  
+  mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
+ 
   mutate(canonical_name = str_replace(canonical_name, "^ROUTE ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "(?<=^AC Transit [0-9A-Z]{1,5} ) ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "^AC Transit ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " \\[TO.*", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " \\[CLOCKWISE.*", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " \\[COUNTERCLOCKWISE.*", "")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Dtn. Oakland Dtn. Berkeley 4th St. Harrison", "Berkeley BART to Downtown Oakland")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "San Pablo & Monroe Berkeley Merritt BART", "University Village Albany to Montclair")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Fruitvale Ave Alameda 11th M.L.K. Jr Wy", "Dimond District Oakland to downtown Oakland")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Fruitvale Ave Alameda Oakland Airport", "Dimond Dist. to Oakland Airport")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Union Landing Frmt. Blvd. Ohlone", "Ohlone College to Union Landing Shopping Center")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Fremont BART Newpark Mall Pacific Commons", "Fremont BART to NewPark Mall")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Fremont BART Mission Warm Springs Industrial Area", "Fremont BART to Gateway Blvd. & Lakeside Pkwy.")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Frmt BART Mission Milpitas Alder", "Fremont BART to Great Mall")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Hayward Bart  South Hayward Bart Chabot", "Hayward BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Fremont BART U.C. BART Mission Ohlone Newark", "Fremont BART to New Park Mall")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Fremont BART Warm Springs", "Fremont BART to Warm Springs Blvd. & Dixon Landing Rd.")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Fremont BART Mowry Thornton", "Fremont BART to NewPark Mall")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Hayward Bart C.V. Bart Hwd. Bart Cherryland", "Hayward BART to Castro Valley BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "HWD. BART WHITMAN SO. HWD. BART", "Hayward BART to South Hayward BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "North Richmond Shuttle", "El Cerrito Del Norte BART to Richmond Parkway Transit Center")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Fruitvale Bart Skyline High School", "Fruitvale BART to Skyline High School")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Dtn. Oakland Eastmont T.C. Bayfair Bart", "Downtown Oakland to Bay Fair BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Eastmont T. C. Foothill Sq.", "Eastmont Transit Center to Foothill Square Oakland")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Coliseum Bart Knowland Zoo", "Coliseum BART to Oakland Zoo")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Coliseum Bart Golf Links Rd Dunkirk Ave", "Coliseum BART Mountain Golf Links Rd Dunkirk Ave")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Fruitvale Bart Maxwell Park Div. 4.", "Fruitvale BART to Maxwell Park")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Bayfair BART  Castro Valley  Hayward bart", "Hayward BART to Bay Fair BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Oakland Alameda Fruitvale Bart", "Rockridge BART to Fruitvale BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "RockRidge 3RUN", "Rockridge BART to Berkeley Amtrak")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "U.C. Village U.C. Campus", "University Village to UC Campus (Berkeley BART).")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Fruitvale Bart Merritt College", "Fruitvale BART to Merritt College")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "CSUEB HAYWARD BART SHUTTLE", "Hayward BART to Cal State East Bay")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "W. Oakland Bart Fruitvale Bart", "West Oakland BART to Fruitvale BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Richmond Pkwy. TC. Richmond BART", "Richmond BART to Richmond Pkwy. Transit Center")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Richmond Pkwy TC El Cerrito Plaza BART", "El Cerrito Plaza BART to Richmond Parkway Transit Center")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Richmond Downtown Oakland", "Hilltop Mall to Oakland Amtrak")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Richmond Downtown Oakland", "Point Richmond to Oakland Amtrak")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "San Pablo Rapid BUS", "San Pablo Rapid Contra Costa College to Jack London Square")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Eastmont T.C. Oakland Airport", "Eastmont Transit Center to Oakland Airport")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "CCC Richmond BART Ford Pt.", "Marina Bay Richmond to San Pablo Dam Rd. El Sobrante")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Bayfair Bart Washington Manor S. L. Bart", "San Leandro BART to Bay Fair BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Hilltop Mall CCC del Norte BART", "El Cerrito del Norte BART to Hilltop Mall")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "OWL Dtn. Oakland Oakland Airport", "All Nighter. Downtown Oakland to Oakland Airport")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Hayward BART S. Hayward BART", "Hayward BART to South Hayward BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Hayward BART S. Hayward BART", "Hayward BART to South Hayward BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Berkeley BART Downtown Oakland", "Berkeley BART to Lake Merritt BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Hayward Bart Bayfair Bart San Lorenzo", "Hayward BART to Bay Fair BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Hayward Bart Hayward Hills", "Hayward BART to Hayward High School.")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Kelly Hill Hayward BART", "Hayward BART to Fairview District")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Coliseum Bart 98th Ave Eastmont T.C.", "Coliseum BART Edgewater Dr.")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Hwd.BART  UC Bart Fmt Bart", "Bay Fair BART to Fremont BART")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "San Francisco Piedmont", "Highland Ave. Piedmont")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "DB1 Dumbarton Express", "DB1 Union City to Deer Creek Rd.")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "San Francisco Claremont  Parkwood", "Caldecott Ln. Oakland")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "San Francisco El Sobrante", "Hilltop Dr. Park & Ride")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Hayward BART  Hillsdale Mall  Oracle", "Hayward BART to Oracle")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "San Francisco Eastmont T.C.", "Eastmont Transit Center Oakland")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "San Francisco Castro Valley", "Castro Valley Park & Ride")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "San Francisco Alameda Fruitvale Bart", "Park Ave. & Encinal Ave. Alameda")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "San Francisco San Lorenzo  Hayward", "Eden Shores Hayward")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "W. Oakland Bart Fruitval Bart", "Downtown Oakland to Fruitvale BART")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "12 Dtn. Oakland Dtn. Berkeley 4th St. Harrison", "12 Berkeley BART to Downtown Oakland")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "14 W Oakland Bart Fruitval Bart", "14 Downtown Oakland to Fruitvale BART")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "18 San Pablo & Monroe Berkeley Merritt BART", "18 University Village Albany to Montclair")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "20 Dimond District Oakland to downtown Oakland", "20 Fruitvale Ave Alameda 11th MLK Jr Wy")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "21 Fruitvale Ave Alameda Oakland Airport", "21 Dimond Dist to Oakland Airport")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "210 Ohlone College to Union Landing Shopping Center", "210 Union Landing Frmt Blvd Ohlone")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "212 Fremont BART Newpark Mall Pacific Commons", "212 Fremont BART to NewPark Mall")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "215 Fremont BART Mission Warm Springs Industrial Area", "215 Fremont BART to Gateway Blvd & Lakeside Pkwy")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "217 Frmt BART Mission Milpitas Alder", "217 Fremont BART to Great Mall")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "22 Hayward Bart South Hayward Bart Chabot", "22 Hayward BART")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "232 Fremont BART UC BART Mission Ohlone Newark", "232 Fremont BART to New Park Mall")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "239 Fremont BART Warm Springs", "239 Fremont BART to Warm Springs Blvd & Dixon Landing Rd")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "251 Fremont BART Mowry Thornton", "251 Fremont BART to NewPark Mall")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "32 Hayward Bart CV Bart Hwd Bart Cherryland", "32 Hayward BART to Castro Valley BART")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "37 HWD BART WHITMAN SO HWD BART", "37 Hayward BART to South Hayward BART")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "376 North Richmond Shuttle", "376 El Cerrito Del Norte BART to Richmond Parkway Transit Center")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "39 Fruitvale Bart Skyline High School", "39 Fruitvale BART to Skyline High School")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "40 Dtn Oakland Eastmont TC Bayfair Bart", "40 Downtown Oakland to Bay Fair BART")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "45 Eastmont T C Foothill Sq", "45 Eastmont Transit Center to Foothill Square Oakland")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "46 Coliseum Bart Knowland Zoo", "46 Coliseum BART to Oakland Zoo")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "46L Coliseum Bart Golf Links Rd Dunkirk Ave", "46L Coliseum BART Mountain Golf Links Rd Dunkirk Ave")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "47 Fruitvale Bart Maxwell Park Div 4", "47 Fruitvale BART to Maxwell Park")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "48 Bayfair BART Castro Valley Hayward bart", "48 Hayward BART to Bay Fair BART")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "51A Oakland Alameda Fruitvale Bart", "51A Rockridge BART to Fruitvale BART")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "51B RockRidge 3RUN", "51B Rockridge BART to Berkeley Amtrak")) %>%
+  # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
+  # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
+  # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
+  # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
+  # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
+  # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
+  # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
+  # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
+  # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
+  # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
+  # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
+  # 
   # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
   # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
   # mutate(canonical_name = str_replace(canonical_name, "", "")) %>%
@@ -264,7 +247,8 @@ ac_transit_routes <- ac_transit_raw_df %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Sierra Point"), "SAMTRANS", canonical_operator)) %>%
   
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "Stanford Marguerite"), "STANFORD", canonical_operator)) %>%
+  mutate(canonical_name = ifelse(str_detect(canonical_name, "Stanford Marguerite"), "Stanford Marguerite Shuttle", canonical_name)) %>%
+    mutate(canonical_operator = ifelse(str_detect(survey_name, "Stanford Marguerite"), "Stanford", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Tri Delta ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Tri Delta"), "TRI-DELTA", canonical_operator)) %>%
@@ -289,9 +273,6 @@ ac_transit_routes <- ac_transit_raw_df %>%
   
   mutate(canonical_operator = ifelse(canonical_operator == "", "BAD REFERENCE", canonical_operator))
 
-ac_transit_routes %>% select(canonical_name,canonical_operator) %>% unique() %>% View()
-
-
 ac_transit_routes <- ac_transit_routes %>%
   filter(canonical_operator != "BAD REFERENCE") %>%
   mutate(survey = "AC Transit",
@@ -313,16 +294,20 @@ bart_routes <- bart_raw_df %>%
   mutate(canonical_name = survey_name) %>%
   mutate(canonical_operator = "") %>%
   
-  mutate(canonical_name = str_replace_all(canonical_name, "  ", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " *- *", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " */ *", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " +", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " {2,9}", " ")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "illogical"), "Missing", canonical_operator)) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Missing"), "Missing", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^AC Transit Route ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^AC Transit Route "), "AC TRANSIT", canonical_operator)) %>%
   
-  mutate(canonical_name = str_replace(canonical_name, "^ACE ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^ACE "), "ACE", canonical_operator)) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^ACE.*", "ACE")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^ACE "), "AMTRAK", canonical_operator)) %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "AirTrain"), "AirTrain", canonical_operator)) %>%
 
@@ -339,14 +324,18 @@ bart_routes <- bart_raw_df %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Bishop Ranch"), "Bishop Ranch", canonical_operator)) %>%
   
+  mutate(canonical_name = str_replace(canonical_name, "North Burlingame shuttle", "North Burlingame Shuttle")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Burlingame"), "CALTRAIN", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Caltrain L[A-Z]* ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "^Caltrain (?=B)", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " \\(unspecified\\)", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^CALTRAIN___", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "Bayhill Shuttle.*", "Bayhill San Bruno Shuttle")) %>% 
+  mutate(canonical_name = str_replace(canonical_name, "(?<=Mariners Island ).*", "PCA Employer Shuttle")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Caltrain"), "CALTRAIN", canonical_operator)) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^CALTRAIN---"), "CALTRAIN", canonical_operator)) %>%
   
+  mutate(canonical_name = str_replace(canonical_name, "^Capitol Corridor.*", "Capitol Corridor")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Capitol Corridor"), "AMTRAK", canonical_operator)) %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Childrens Hospital"), "UCSF", canonical_operator)) %>%
@@ -383,12 +372,13 @@ bart_routes <- bart_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Golden Gate Transit"), "GOLDEN GATE TRANSIT", canonical_operator)) %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Muni"), "MUNI", canonical_operator)) %>%
-  mutate(canonical_name = str_replace(canonical_name, "^Muni Route 55 16th St.", "55 16th Street")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^Muni Route 55 16th St", "55 16th Street")) %>%
   mutate(canonical_name = str_replace(canonical_name, "Oshaughnessy", "OShaughnessy")) %>%
   mutate(canonical_name = ifelse(str_detect(canonical_name, "Cable Car"), paste0(canonical_name, " Cable Car"), canonical_name)) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Cable Car - ", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^Muni Cable Car ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "^Muni (Route )?", "")) %>%
-  mutate(canonical_name = str_replace(canonical_name, " - Historic Streetcar", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, " Historic Streetcar", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "(?<=Express )BUS ", "")) %>%
   mutate(canonical_name = ifelse(canonical_operator == "SF Muni", str_replace_all(canonical_name, "[-/]", " "), canonical_name)) %>%
   mutate(canonical_name = str_replace(canonical_name, "(?<=.{1,4}Light Rail:.{1,50}) {1,5}Metro", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "(?<=[A-Z]{1}) Light Rail: ", " ")) %>%
@@ -409,6 +399,7 @@ bart_routes <- bart_raw_df %>%
   mutate(canonical_name = str_replace(canonical_name, "^Monterey-Salinas Transit Route ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Monterey-Salinas"), "Monterey-Salinas Transit", canonical_operator)) %>%
   
+  mutate(canonical_name = str_replace(canonical_name, "Oyster Point Shuttle \\(South SF\\)", "Oyster Point Shuttle")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Oyster"), "CALTRAIN", canonical_operator)) %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "PresidiGo"), "PRESIDIGO", canonical_operator)) %>%
@@ -419,6 +410,7 @@ bart_routes <- bart_raw_df %>%
   mutate(canonical_name = str_replace(canonical_name, "^SamTrans (Route )?", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "SamTrans"), "SAMTRANS", canonical_operator)) %>%
   
+  mutate(canonical_name = str_replace(canonical_name, "San Joaquin \\(Amtrak\\)", "San Joaquin")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "San Joaquin"), "AMTRAK", canonical_operator)) %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "San Leandro"), "SLTMO", canonical_operator)) %>%
@@ -440,9 +432,10 @@ bart_routes <- bart_raw_df %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Sierra Point"), "SAMTRANS", canonical_operator)) %>%
   
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "Stanford Marguerite"), "STANFORD", canonical_operator)) %>%
+  mutate(canonical_name = ifelse(str_detect(canonical_name, "Stanford Marguerite"), "Stanford Marguerite Shuttle", canonical_name)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "Stanford Marguerite"), "Stanford", canonical_operator)) %>%
   
-  mutate(canonical_name = str_replace(canonical_name, "^Tri Delta Transit Route", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^Tri Delta Transit Route ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Tri Delta Transit"), "TRI-DELTA", canonical_operator)) %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "UC Berkeley"), "UC BERKELEY", canonical_operator)) %>%
@@ -460,10 +453,12 @@ bart_routes <- bart_raw_df %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^VTA Route 902", "902 Light Rail")) %>%
   mutate(canonical_name = str_replace(canonical_name, "(?<=^VTA.{0,20}):.*", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "53 West Valley College To Sunnyvale Transit Ctr", "53 Westgate Sunnyvale Ctrn")) %>%
   mutate(canonical_name = str_replace(canonical_name, "^VTA Route ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "^VTA ", "")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "Downtown Area Shuttle", "DOWNTOWN AREA SHUTTLE")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "Downtown Area Shuttle", "Downtown Area Shuttle (Dash)")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^VTA"), "VTA", canonical_operator)) %>%
+  mutate(canonical_name = ifelse(canonical_operator == "VTA", str_to_title(str_to_lower(canonical_name)), canonical_name)) %>% 
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "West Berkeley"), "Berkeley Gateway TMA", canonical_operator)) %>%
   
@@ -496,8 +491,13 @@ caltrain_routes <- caltrain_raw_df %>%
   mutate(canonical_name = survey_name) %>%
   mutate(canonical_operator = "") %>%
   
-  mutate(canonical_name = str_replace_all(canonical_name, "  ", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " *- *", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " */ *", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " +", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " {2,9}", " ")) %>%
+  
   
   mutate(canonical_name = str_replace_all(canonical_name, "AC Transit Route ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "AC Transit"), "AC TRANSIT", canonical_operator)) %>%
@@ -508,13 +508,13 @@ caltrain_routes <- caltrain_raw_df %>%
 
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^AirTrain"), "AirTrain", canonical_operator)) %>%
 
-  mutate(canonical_name = str_replace_all(canonical_name, "Angel Island.*", "Angel Island-Tiburon Ferry")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Angel Island"), "Angel Island-Tiburon Ferry", canonical_operator)) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "Angel Island.*", "Angel Island Tiburon Ferry")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Angel Island"), "SF BAY FERRY", canonical_operator)) %>%
   
-  mutate(canonical_name = str_replace_all(canonical_name, "BART [A-Z]*/[A-Z]* ", "BART---")) %>%
-  mutate(canonical_name = str_replace_all(canonical_name, "(?<=BART---[A-Za-z /]{1,50}) [Tt]o ", op_delim)) %>%
-  mutate(canonical_name = str_replace_all(canonical_name, "BART---", "")) %>%
-  mutate(canonical_name = str_replace_all(canonical_name, "BART - ", "")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "^BART[A-Z ]* ", "BART___")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "(?<=BART[_A-Za-z /]{1,50}) [Tt]o ", op_delim)) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "BART___", "")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "^BART ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^BART"), "BART", canonical_operator)) %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Bayview"), "Bayview", canonical_operator)) %>%
@@ -523,10 +523,12 @@ caltrain_routes <- caltrain_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Burlingame"), "CALTRAIN", canonical_operator)) %>%
 
   mutate(canonical_name = str_replace_all(canonical_name, "^Caltrain SHUTTLE", "Shuttle")) %>% 
-  mutate(canonical_name = str_replace_all(canonical_name, "^Caltrain- ", "")) %>% 
-  mutate(canonical_name = str_replace_all(canonical_name, "^CALTRAIN---", "")) %>% 
+  mutate(canonical_name = str_replace_all(canonical_name, "^Caltrain ", "")) %>% 
+  mutate(canonical_name = str_replace_all(canonical_name, "^CALTRAIN___", "")) %>% 
+  mutate(canonical_name = str_replace_all(canonical_name, "So S", "South S")) %>% 
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Caltrain"), "CALTRAIN", canonical_operator)) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^CALTRAIN"), "CALTRAIN", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^CALTRAIN___"), "CALTRAIN", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace_all(canonical_name, "^County Connection Route ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^County Connection"), "COUNTY CONNECTION", canonical_operator)) %>%
@@ -534,7 +536,8 @@ caltrain_routes <- caltrain_raw_df %>%
   mutate(canonical_name = str_replace_all(canonical_name, "^Dumbarton Express Route ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Dumbarton Express"), "DUMBARTON EXPRESS", canonical_operator)) %>%
 
-  mutate(canonical_name = str_replace_all(canonical_name, "^Golden Gate Ferry ", "")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "^Golden Gate Ferry [A-Z]* ", "")) %>%
+  mutate(canonical_name = ifelse(str_detect(survey_name, "^Golden Gate Ferry"), paste(canonical_name, "Ferry"), canonical_name)) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Golden Gate Ferry"), "GOLDEN GATE FERRY", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace_all(canonical_name, "^Golden Gate Transit Route ", "")) %>%
@@ -544,10 +547,13 @@ caltrain_routes <- caltrain_raw_df %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Muni"), "MUNI", canonical_operator)) %>%
   mutate(canonical_name = str_replace(canonical_name, "Oshaughnessy", "OShaughnessy")) %>%
-  mutate(canonical_name = str_replace(canonical_name, ".*Cable Car.*", "Cable Car")) %>%
+  mutate(canonical_name = ifelse(str_detect(canonical_name, "Cable Car"), paste0(canonical_name, " Cable Car"), canonical_name)) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^Muni Cable Car ", "")) %>%  
   mutate(canonical_name = str_replace(canonical_name, "^Muni Route ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "^Muni ", "")) %>%
-  mutate(canonical_name = str_replace(canonical_name, " - Historic Streetcar", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, " Historic Streetcar", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "33 Stanyan", "33 Ashbury 18th")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "(?<=OWL).*", "")) %>%
   mutate(canonical_name = ifelse(canonical_operator == "SF Muni", str_replace_all(canonical_name, "[-/]", " "), canonical_name)) %>%
   mutate(canonical_name = str_replace(canonical_name, "(?<=.{1,4}Light Rail:.{1,50}) {1,5}Metro", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "(?<=[A-Z]{1}) Light Rail: ", " ")) %>%
@@ -555,19 +561,29 @@ caltrain_routes <- caltrain_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Palo Alto"), "Palo Alto", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace_all(canonical_name, "^Sam *Trans*\\s+(Route )*", "")) %>%
-  mutate(canonical_name = str_replace_all(canonical_name, "–", "-")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " – ", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "ñ", "n")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Sam *Trans*"), "SAMTRANS", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^VTA (Route |-)*", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "(?<=^Santa Clara VTA.{0,20} Light Rail):.*", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "^Santa Clara VTA ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^(Santa Clara )*VTA"), "VTA", canonical_operator)) %>%
-
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Stanford"), "Stanford", canonical_operator)) %>%
+  mutate(canonical_name = ifelse(str_detect(survey_name, "DASH"), "201 Downtown Area Shuttle (Dash)", canonical_name)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "DASH"), "VTA", canonical_operator)) %>%
+  mutate(canonical_name = ifelse(canonical_operator == "VTA", str_to_title(str_to_lower(canonical_name)), canonical_name)) %>% 
+  mutate(canonical_name = ifelse(str_detect(survey_name, "SJC"), "SJC Airport Flyer Shuttle", canonical_name)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "SJC"), "VTA", canonical_operator)) %>%
+  
+  mutate(canonical_name = ifelse(str_detect(canonical_name, "Stanford Marguerite"), "Stanford Marguerite Shuttle", canonical_name)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "Stanford Marguerite"), "Stanford", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^SCMTD Highway ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "^Santa Cruz Metro", "Unknown")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "(SCMTD|^Santa Cruz)"), "Santa Cruz Metro", canonical_operator)) %>%
+  
+  mutate(canonical_name = ifelse(str_detect(canonical_name, "^\\s*Shuttles ") & !str_detect(canonical_name, "Shuttle$"), paste(canonical_name, "Shuttle"), canonical_name)) %>%
+  mutate(canonical_name = ifelse(str_detect(canonical_name, "^\\s*Shuttles "), str_replace(canonical_name, "^\\s*Shuttles ", ""), canonical_name)) %>%
   
   mutate(canonical_operator = ifelse(canonical_operator == "", "BAD REFERENCE", canonical_operator))
 
@@ -591,8 +607,12 @@ sf_muni_routes <- sf_muni_raw_df %>%
   mutate(canonical_name = survey_name) %>%
   mutate(canonical_operator = "") %>%
   
-  mutate(canonical_name = str_replace(canonical_name, "  ", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " *- *", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " */ *", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " +", " ")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, " {2,9}", " ")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, fixed("missing", ignore_case = TRUE)), "Missing", canonical_operator)) %>%
   mutate(canonical_operator = ifelse(survey_name == "-", "Missing", canonical_operator)) %>%
   
@@ -603,20 +623,21 @@ sf_muni_routes <- sf_muni_raw_df %>%
   mutate(canonical_name = str_replace(canonical_name, "^MUNI ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " \\[ INBOUND \\]", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " \\[ OUTBOUND \\]", "")) %>%  
-  mutate(canonical_name = ifelse(canonical_name == "California-", "California Cable Car", canonical_name)) %>%
-  mutate(canonical_name = ifelse(canonical_name == "Powell-Hyde", "Powell Hyde Cable Car", canonical_name)) %>%
-  mutate(canonical_name = ifelse(canonical_operator == "SF Muni", str_replace_all(canonical_name, "[-/]", " "), canonical_name)) %>%
+  mutate(canonical_name = ifelse(canonical_name == "California", "California Cable Car", canonical_name)) %>%
+  mutate(canonical_name = ifelse(canonical_name == "Powell Hyde", "Powell Hyde Cable Car", canonical_name)) %>%
+  mutate(canonical_name = ifelse(canonical_name == "MASON POWELL", "Powell Mason Cable Car", canonical_name)) %>%
+  mutate(canonical_name = str_replace(canonical_name, "S Light Rail: Castro Shuttle Metro", "S Castro Shuttle")) %>%
+  mutate(canonical_name = ifelse(canonical_operator == "MUNI", str_replace_all(canonical_name, "[-/]", " "), canonical_name)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^AC ", "")) %>%
   mutate(canonical_operator  = ifelse(str_detect(survey_name, "^AC "), "AC TRANSIT", canonical_operator)) %>%
   
-  mutate(canonical_name = str_replace(canonical_name, "^Alcatraz ", "")) %>%
-  mutate(canonical_operator  = ifelse(str_detect(survey_name, "^Alcatraz "), "Alcatraz", canonical_operator)) %>%
+  mutate(canonical_operator  = ifelse(str_detect(survey_name, "^Alcatraz "), "SF BAY FERRY", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Altamont Commuter Express.*", "ACE")) %>%
   mutate(canonical_operator  = ifelse(str_detect(survey_name, "^Altamont Commuter Express"), "AMTRAK", canonical_operator)) %>%
   
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Angel Island"), canonical_name, canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Angel Island"), "SF BAY FERRY", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "Apple bus", "Apple Shuttle")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Apple"), "Apple", canonical_operator)) %>%
@@ -629,7 +650,8 @@ sf_muni_routes <- sf_muni_raw_df %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Burlingame"), "CALTRAIN", canonical_operator)) %>%
   
-  mutate(canonical_name = str_replace(canonical_name, "^CALTRAIN ", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^Caltrain ", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "(?<=Burlingame Trolley Shuttle).*", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "(^CALTRAIN---)|(^Caltrain)"), "CALTRAIN", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Capitol Corridor.*", "Capitol Corridor")) %>%
@@ -651,12 +673,16 @@ sf_muni_routes <- sf_muni_raw_df %>%
   mutate(canonical_name = str_replace(canonical_name, "^Golden Gate ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Golden Gate "), "GOLDEN GATE TRANSIT", canonical_operator)) %>%
   
+  mutate(canonical_name = str_replace(canonical_name, "^Ferry ", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Golden Gate Ferry"), "GOLDEN GATE FERRY", canonical_operator)) %>%
+  
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Harbor Bay"), "Harbor Bay", canonical_operator)) %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "LBL"), "LBL", canonical_operator)) %>%
   
-  mutate(canonical_name = str_replace(canonical_name, "^Livermore Amadore ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Livermore Amadore "), "LAVTA", canonical_operator)) %>%
+  mutate(canonical_name = str_replace(canonical_name, " *Livermore Amadore* (Valley )*(Transit)*", "")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "Livermore Amador"), "LAVTA", canonical_operator)) %>%
+  mutate(canonical_name = ifelse(canonical_operator == "LAVTA" & canonical_name == "", "Missing", canonical_name)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Marin[ ]*", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Marin[ ]*"), "MARIN TRANSIT", canonical_operator)) %>%
@@ -671,6 +697,7 @@ sf_muni_routes <- sf_muni_raw_df %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "SFSU"), "SFSU", canonical_operator)) %>%
   
+  mutate(canonical_name = ifelse(str_detect(canonical_name, "Stanford Marguerite"), "Stanford Marguerite Shuttle", canonical_name)) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Stanford "), "Stanford", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^SolTrans ", "")) %>%
@@ -688,8 +715,8 @@ sf_muni_routes <- sf_muni_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^VINE "), "NAPA VINE", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^VTA ", "")) %>%
-  mutate(canonical_name = str_replace(canonical_name, "DASH Downtown Area Shuttle", "DOWNTOWN AREA SHUTTLE (DASH)")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^VTA "), "VTA", canonical_operator)) %>%
+  mutate(canonical_name = ifelse(str_detect(survey_name, "DASH"), "201 Downtown Area Shuttle (Dash)", canonical_name)) %>%
+  mutate(canonical_name = ifelse(canonical_operator == "VTA", str_to_title(str_to_lower(canonical_name)), canonical_name)) %>% 
   
   mutate(canonical_name = str_replace(canonical_name, "^WestCAT ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^WestCAT "), "WESTCAT", canonical_operator)) %>%
@@ -710,18 +737,38 @@ sf_muni_routes <- sf_muni_routes %>%
 
 # Review of error_check shows that the only records not in reconciled in ALL
 # survey standardizations are records in ONLY one of them.
-error_check <- left_join(bind_rows(bart_routes, caltrain_routes, sf_muni_routes), 
-                         ac_transit_routes,
+error_check <- left_join(bind_rows(sf_muni_routes, bart_routes),
+                         caltrain_routes,
                          by = c("canonical_name", "canonical_operator")) %>%
-  bind_rows(right_join(bind_rows(bart_routes, caltrain_routes, sf_muni_routes), 
-                       ac_transit_routes, 
+  bind_rows(right_join(bind_rows(sf_muni_routes, bart_routes),
+                       caltrain_routes,
                        by = c("canonical_name", "canonical_operator"))) %>%
-  filter(is.na(survey_name.x) | is.na(survey_name.y))
+  filter(is.na(survey_name.x) | is.na(survey_name.y)) %>% 
+  mutate(group_count = ifelse(!is.na(survey_name.x), 1, 0),
+         single_count = ifelse(!is.na(survey_name.y), 1, 0)) %>%
+  group_by(canonical_name, canonical_operator) %>%
+  summarise(group_uses = sum(group_count),
+            single_uses = sum(single_count)) %>%
+  ungroup() %>%
+  mutate(canonical_name = str_replace(canonical_name, "^ ", ""),
+    route = str_extract(canonical_name, "^[[:alnum:]]* "))
+
+group_df <- error_check %>% 
+  filter(group_uses != 0) %>%
+  select(canonical_operator, route, group_name = canonical_name)
+
+new_df <- error_check %>%
+  filter(single_uses != 0) %>% 
+  select(canonical_operator, route, new_name = canonical_name)
+
+error_check <- new_df %>%
+  full_join(group_df, by = c("canonical_operator", "route")) %>%
+  arrange(canonical_operator, route)
 
 canonical_routes <- ac_transit_routes %>% 
   bind_rows(bart_routes, caltrain_routes, sf_muni_routes) %>%
   mutate(canonical_name = paste(canonical_operator, canonical_name, sep = op_delim)) %>%
-  select(-canonical_operator)
+  select(-canonical_operator) 
 
 write.csv(canonical_routes, canonical_route_path, row.names = FALSE)
   
