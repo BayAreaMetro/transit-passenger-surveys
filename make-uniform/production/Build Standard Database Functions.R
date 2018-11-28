@@ -210,3 +210,186 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
   return(return_df)
   
 }
+
+## Method library for standardization
+# Set Operator Name
+set_operator_name <- function(input_vector) {
+  input_df <- as.data.frame(input_vector) %>%
+    rename(input_field = input_vector)
+  
+  output_df <- input_df %>%
+    mutate(ouput_field = "None") %>%
+    mutate(output_field = str_extract(input_field, "^[A-Za-z ]*"))
+}
+
+# Deprecated Set Operator Name
+# set_operator_name <- function(input_vector){
+#   
+#   input_df <- as.data.frame(input_vector) %>%
+#     rename(input_field = input_vector)
+#   
+#   output_df <- input_df %>%
+#     mutate(output_field = "None") %>%
+#     
+#     # BART, AMTRAK, and Caltrain may be named in route names, so do first, then overwrite
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Amtrak", ignore_case = TRUE)), "AMTRAK", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("BART", ignore_case = TRUE)), "BART", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Caltrain", ignore_case = TRUE)), "CALTRAIN", output_field)) %>%
+#     
+#     # Transit Agencies
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("AC ", ignore_case = TRUE)), "AC TRANSIT", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("ACE", ignore_case = TRUE)), "ACE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("AC Transit", ignore_case = TRUE)), "AC TRANSIT", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("AirBART", ignore_case = TRUE)), "AC TRANSIT", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("AirTrain", ignore_case = TRUE)), "BART", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Capitol Corridor", ignore_case = TRUE)), "AMTRAK", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("County Connection", ignore_case = TRUE)),"COUNTY CONNECTION", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Fairfield and", ignore_case = TRUE)),"FAIRFIELD-SUISUN",output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Golden Gate ", ignore_case = TRUE)), "GOLDEN GATE TRANSIT", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Golden Gate Tran", ignore_case = TRUE)), "GOLDEN GATE TRANSIT", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Golden Gate Ferry", ignore_case = TRUE)), "GOLDEN GATE FERRY", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Marin Transit", ignore_case = TRUE)), "MARIN TRANSIT", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Muni", ignore_case = TRUE)), "MUNI", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Rio Vista Delta Breeze", ignore_case = TRUE)), "RIO-VISTA", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("SamTrans", ignore_case = TRUE)), "SAMTRANS", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Sam Trans", ignore_case = TRUE)), "SAMTRANS", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Santa Rosa CityBus", ignore_case = TRUE)), "SANTA ROSA CITYBUS", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("SF Bay Ferry", ignore_case = TRUE)), "SF BAY FERRY", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Soltrans", ignore_case = TRUE)), "SOLTRANS", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Tri Delta", ignore_case = TRUE)), "TRI-DELTA", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Union City", ignore_case = TRUE)), "UNION CITY", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("WestCAT", ignore_case = TRUE)), "WESTCAT", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("VINE", ignore_case = TRUE)), "NAPA VINE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("VTA", ignore_case = TRUE)), "VTA", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("DASH Downtown Area Shuttle", ignore_case = TRUE)), "VTA", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Tiburon FERRY Tiburon To Angel Island State Park", ignore_case = TRUE)), "BLUE GOLD FERRY", output_field)) %>%
+#     
+#     # Correct AC route with 'union city' in the name
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("AC 200 Union City BART", ignore_case = TRUE)), "AC TRANSIT", output_field)) %>%
+#     
+#     # PRIVATE SHUTTLE
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Stanford", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Commuter shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Corinthian lines shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Caltrain- Shuttles Genentech", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Kaiser shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("San Jose airport shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("American Canyon Safeway", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Shuttles Broadway - Millbrae", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Genentech Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Sierra Point/Brisbane Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("San Francisco General Hospital (SFGH) Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Seton Medical Center Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("UCSF Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("CPMC Hospital Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("West Berkeley Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Highland Hospital Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("San Francisco General Hospital (SFGH) Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Seton Medical Center Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Oyster Point Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Utah Grand Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Childrens Hospital Oakland", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Apple Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Facebook Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Alta Bates Shuttles", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Harbor Bay Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Alameda County employee shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("San Leandro LINKS", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("North Burlingame shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Fairmont Hospital / Juvenile Justice Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Yahoo Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Bayhill Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Bishop Ranch Shuttle", ignore_case = TRUE)), "PRIVATE SHUTTLE", output_field)) %>%
+#     
+#     # OTHER
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Calistoga Handy Van", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Lake Transit", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Saint Helena Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Burlingame Trolley Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("SCMTD Highway 17", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Santa Cruz Metro", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Menlo Park Shuttle Midday Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Palo Alto E Embarcadero Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("CSU East Bay Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("UC Berkeley Campus Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Shuttle - other or unspecified", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Unknown", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("LBL / Lawrence Berkeley Lab Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Agency provided, but route not spec", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("San Francisco State (SFSU) Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("PresidiGO", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Emery Go-Round", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("B on Broadway", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Estuary Crossing - College of Alameda Shuttle", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Other", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Monterey-Salinas Transit", ignore_case = TRUE)), "OTHER", output_field)) %>%
+#     
+#     # Vague 'Ferry'
+#     mutate(output_field = ifelse(str_detect(input_field, fixed("Ferry", ignore_case = TRUE)), "SF BAY FERRY", output_field)) %>%
+#     mutate(output_field = ifelse(is.na(input_field), NA, output_field))
+#   
+#   return(output_df$output_field)
+# }
+
+
+
+# Set Technology
+set_base_technology <- function(input_vector){
+  
+  operator = c("ACE",                "AC TRANSIT",        "AIR BART",         
+               "AMTRAK",             "BART",              "CALTRAIN",
+               "COUNTY CONNECTION",  "FAIRFIELD-SUISUN",  "GOLDEN GATE TRANSIT", 
+               "GOLDEN GATE FERRY",  "MARIN TRANSIT",     "MUNI",              
+               "NAPA VINE",          "RIO-VISTA",         "SAMTRANS",
+               "SANTA ROSA CITYBUS", "SF BAY FERRY",      "SOLTRANS",
+               "TRI-DELTA",          "UNION CITY",        "WESTCAT",
+               "VTA",                "OTHER",             "PRIVATE SHUTTLE",  
+               "OTHER AGENCY",      "BLUE GOLD FERRY"
+  )
+  
+  technology = c("commuter rail", "local bus",     "local bus", 
+                 "commuter rail", "heavy rail",    "commuter rail", 
+                 "local bus",     "local bus",     "express bus",   
+                 "ferry",         "local bus",     "local bus", 
+                 "local bus",     "local bus",     "local bus",
+                 "local bus",     "ferry",         "local bus", 
+                 "local bus",     "local bus",     "local bus",     
+                 "local bus",     "local bus",     "local bus",
+                 "local bus",     "ferry"
+  )
+  
+  tech_df <- data.frame(operator, technology)
+  
+  input_df <- as.data.frame(input_vector) %>% 
+    rename(operator = input_vector)
+  
+  output_df <- left_join(input_df, tech_df, by = c("operator"))
+  
+  return(output_df$technology)
+}
+
+# Update Technology
+update_technology <- function(input_vector){
+  
+  input_df <- as.data.frame(input_vector) %>%
+    rename(input_field = input_vector)
+  
+  output_df <- input_df %>%
+    mutate(output_field = "No Update") %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("Muni", ignore_case = TRUE)) &
+                                   str_detect(input_field, fixed("Light Rail", ignore_case = TRUE)),
+                                 "light rail", 
+                                 output_field
+    )
+    ) %>%
+    mutate(output_field = ifelse(str_detect(input_field, fixed("VTA", ignore_case = TRUE)) &
+                                   str_detect(input_field, fixed("Light Rail", ignore_case = TRUE)), 
+                                 "light rail", 
+                                 output_field
+    )
+    ) %>%
+    mutate(output_field = ifelse(is.na(input_field), NA, output_field))
+  
+  return(output_df$output_field)
+}
+
