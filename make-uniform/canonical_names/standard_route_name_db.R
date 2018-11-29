@@ -259,7 +259,7 @@ ac_transit_routes <- ac_transit_raw_df %>%
   
   mutate(canonical_name = str_replace(canonical_name, '85 San Leandro BART Union Landing', '85 San Leandro BART to South Hayward BART')) %>%
   mutate(canonical_name = str_replace(canonical_name, '89 San Leandro Bart S L Marina Bayfair Bart', '89 San Leandro BART to Bay Fair BART')) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "San Leandro"), "SLTMO", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^San Leandro"), "SLTMO", canonical_operator)) %>%
   
   mutate(canonical_operator = ifelse(str_detect(survey_name, "SFSU"), "SFSU", canonical_operator)) %>%
   
@@ -445,7 +445,7 @@ bart_routes <- bart_raw_df %>%
   mutate(canonical_name = str_replace(canonical_name, "San Joaquin \\(Amtrak\\)", "San Joaquin")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "San Joaquin"), "AMTRAK", canonical_operator)) %>%
   
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "San Leandro"), "SLTMO", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^San Leandro"), "SLTMO", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Santa Cruz Metro Route ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Santa Cruz Metro"), "Santa Cruz Metro", canonical_operator)) %>%
@@ -687,7 +687,7 @@ sf_muni_routes <- sf_muni_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "(^CALTRAIN---)|(^Caltrain)"), "CALTRAIN", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Capitol Corridor.*", "Capitol Corridor")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Capitol Corridor "), "SACRAMENTO", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Capitol Corridor "), "AMTRAK", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^County Connection ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^County Connection "), "COUNTY CONNECTION", canonical_operator)) %>%

@@ -218,8 +218,8 @@ set_operator_name <- function(input_vector) {
     rename(input_field = input_vector)
   
   output_df <- input_df %>%
-    mutate(ouput_field = "None") %>%
-    mutate(output_field = str_extract(input_field, "^[A-Za-z ]*"))
+    mutate(output_field = "None") %>%
+    mutate(output_field = str_extract(input_field, "^[A-Za-z- ]*"))
 }
 
 # Deprecated Set Operator Name
