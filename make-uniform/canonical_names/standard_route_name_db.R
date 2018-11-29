@@ -214,10 +214,10 @@ ac_transit_routes <- ac_transit_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Apple"), "Apple", canonical_operator)) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Broadway"), "AC TRANSIT", canonical_operator)) %>%
   
-  mutate(canonical_name = str_replace(canonical_name, "^BART---", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^BART___", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^BART"), "BART", canonical_operator)) %>%
   
-  mutate(canonical_name = str_replace(canonical_name, "^CALTRAIN---", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^CALTRAIN___", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^CALTRAIN"), "CALTRAIN", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "County Connection (Route )*", "")) %>%
@@ -651,13 +651,13 @@ sf_muni_routes <- sf_muni_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^[0-9]"), "MUNI", canonical_operator)) %>% 
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^[A-Z]+-"), "MUNI", canonical_operator)) %>% 
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^MUNI "), "MUNI", canonical_operator)) %>%
-  mutate(canonical_operator = ifelse(str_detect(canonical_name, "Cable Car"), "MUNI", canonical_operator)) %>%
   mutate(canonical_name = str_replace(canonical_name, "^MUNI ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " \\[ INBOUND \\]", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " \\[ OUTBOUND \\]", "")) %>%  
   mutate(canonical_name = ifelse(canonical_name == "California", "California Cable Car", canonical_name)) %>%
   mutate(canonical_name = ifelse(canonical_name == "Powell Hyde", "Powell Hyde Cable Car", canonical_name)) %>%
-  mutate(canonical_name = ifelse(canonical_name == "MASON POWELL", "Powell Mason Cable Car", canonical_name)) %>%
+  mutate(canonical_name = ifelse(canonical_name == "POWELL MASON", "Powell Mason Cable Car", canonical_name)) %>%
+  mutate(canonical_operator = ifelse(str_detect(canonical_name, "Cable Car"), "MUNI", canonical_operator)) %>%
   mutate(canonical_name = str_replace(canonical_name, "S Light Rail: Castro Shuttle Metro", "S Castro Shuttle")) %>%
   mutate(canonical_name = ifelse(canonical_operator == "MUNI", str_replace_all(canonical_name, "[-/]", " "), canonical_name)) %>%
   
@@ -675,7 +675,9 @@ sf_muni_routes <- sf_muni_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Apple"), "Apple", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^BART ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "BART---"), "BART", canonical_operator)) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^Brisbain", "Brisbane")) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "Brisbain"), "BART", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "BART___"), "BART", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Blue & Gold ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Blue & Gold "), "BLUE GOLD FERRY", canonical_operator)) %>%
@@ -684,7 +686,7 @@ sf_muni_routes <- sf_muni_raw_df %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Caltrain ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "(?<=Burlingame Trolley Shuttle).*", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "(^CALTRAIN---)|(^Caltrain)"), "CALTRAIN", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "(^CALTRAIN___)|(^Caltrain)"), "CALTRAIN", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Capitol Corridor.*", "Capitol Corridor")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Capitol Corridor "), "AMTRAK", canonical_operator)) %>%
@@ -756,9 +758,6 @@ sf_muni_routes <- sf_muni_raw_df %>%
   mutate(canonical_operator = ifelse(survey_name == "Lynx", "WestCAT", canonical_operator)) %>%
   
   mutate(canonical_operator = ifelse(canonical_operator == "", "BAD REFERENCE", canonical_operator))
-
-bad_references <- sf_muni_routes %>% 
-  filter(canonical_operator == "BAD REFERENCE")
 
 sf_muni_routes <- sf_muni_routes %>%
   filter(canonical_operator != "BAD REFERENCE") %>%
