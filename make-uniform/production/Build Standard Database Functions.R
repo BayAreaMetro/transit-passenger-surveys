@@ -155,11 +155,11 @@ check_duplicate_variables <- function(df_duplicates) {
 
 read_operator <- function(name, year, default_tech, file_path, variable_dictionary) {
   
-  name <- 'BART'
-  year <- 2015
-  default_tech <- 'heavy rail'
-  file_path <- f_bart_survey_path
-  variable_dictionary <- dictionary_all
+  # name <- 'BART'
+  # year <- 2015
+  # default_tech <- 'heavy rail'
+  # file_path <- f_bart_survey_path
+  # variable_dictionary <- dictionary_all
 
   variables_vector <- variable_dictionary %>%
     filter(operator == name) %>%

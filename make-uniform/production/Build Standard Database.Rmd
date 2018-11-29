@@ -196,11 +196,11 @@ When adding a new operator, create a `read_operator` call and add the resulting
 dataframe to `survey_combine` in the last step.
 
 ```{r add-surveys}
-# ac_transit_df <- read_operator('AC Transit',
-#                                2013,
-#                                'local bus',
-#                                f_actransit_survey_path,
-#                                dictionary_all)
+ac_transit_df <- read_operator('AC Transit',
+                               2013,
+                               'local bus',
+                               f_actransit_survey_path,
+                               dictionary_all)
 
 bart_df <- read_operator('BART',
                          2015,
@@ -232,7 +232,7 @@ muni_df <- read_operator('SF Muni',
 #                         f_vta_survey_path,
 #                         dictionary_all)
 
-survey_combine <- bind_rows(# ac_transit_df,
+survey_combine <- bind_rows(ac_transit_df,
   bart_df,
   caltrain_df,
   muni_df
@@ -258,7 +258,8 @@ survey_non <- survey_combine %>%
   filter(!is.na(generic_variable)) %>%
   mutate(generic_response = survey_response) %>% 
   left_join(canonical_routes_crosswalk, by = c("operator" = "survey", "survey_year" = "survey_year", "generic_response" = "survey_name")) %>%
-  mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response)) 
+  mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response)) %>%
+  select(-canonical_name)
   
 # Combine the categorical and non-categorical survey data and prepare to flatten
 survey_flat <- bind_rows(survey_cat, survey_non) %>%
