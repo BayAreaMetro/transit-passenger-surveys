@@ -197,7 +197,7 @@ dataframe to `survey_combine` in the last step.
 
 ```{r add-surveys}
 ac_transit_df <- read_operator('AC Transit',
-                               2013,
+                               2018,
                                'local bus',
                                f_actransit_survey_path,
                                dictionary_all)
@@ -215,7 +215,7 @@ caltrain_df <- read_operator('Caltrain',
                              dictionary_all)
 
 muni_df <- read_operator('SF Muni',
-                         2014,
+                         2017,
                          'local bus',
                          f_muni_survey_path,
                          dictionary_all)
@@ -308,7 +308,8 @@ transferred to or from.
 
 # Standardize year born
 survey_standard <- survey_flat %>%
-  mutate(year_born = ifelse(str_detect(year_born_four_digit, "Missing"), 
+  mutate(year_born = ifelse(
+    str_detect(year_born_four_digit,"Missing") | str_detect(year_born_four_digit,"Not Provided"), 
                             NA, 
                             year_born_four_digit)) %>%
   mutate(year_born = ifelse(is.na(year_born), NA, as.numeric(year_born))) %>%
