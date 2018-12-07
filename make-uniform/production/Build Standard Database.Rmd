@@ -87,23 +87,10 @@ dir_path <- user_list %>%
   filter(user == Sys.getenv("USERNAME")) %>%
   .$path
 
-f_spatial_to_be_geocoded_path <- paste0(dir_path, 
-  "_geocoding Standardized/spatial_places_to_be_geocoded.csv")
-
-f_board_to_be_geocoded_path <- paste0(dir_path, 
-  "_geocoding Standardized/boarding_places_to_be_geocoded.csv")
-
-f_alight_to_be_geocoded_path <- paste0(dir_path, 
-  "_geocoding Standardized/alighting_places_to_be_geocoded.csv")
-
-f_spatial_geocoded_path <- paste0(dir_path, 
-  "_geocoding Standardized/spatial_places_geocoded.csv")
-
-f_transit_geocoded_path <- paste0(dir_path, 
-  "_geocoding Standardized/boarding_alighting_places_geocoded.csv")
-
 f_canonical_station_path <- paste0(dir_path,
   "Geography Files/Passenger_Railway_Stations_2018.shp")
+
+f_taps_coords <- paste0(dir_path, "_geocoding Standardized/TAPs/taps_lat_long.csv")
 
 f_rail_names_inputs_path <- "rail_names_inputs.csv"
 
@@ -240,7 +227,7 @@ survey_combine <- bind_rows(ac_transit_df,
   # vta_df
   )
 
-# remove(ac_transit_df, bart_df, caltrain_df, muni_df, napa_vine_df, vta_df)
+remove(ac_transit_df, bart_df, caltrain_df, muni_df, napa_vine_df, vta_df)
 
 ```
 
@@ -260,6 +247,8 @@ survey_non <- survey_combine %>%
   left_join(canonical_routes_crosswalk, by = c("operator" = "survey", "survey_year" = "survey_year", "generic_response" = "survey_name")) %>%
   mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response)) %>%
   select(-canonical_name)
+
+
   
 # Combine the categorical and non-categorical survey data and prepare to flatten
 survey_flat <- bind_rows(survey_cat, survey_non) %>%
@@ -1153,24 +1142,23 @@ survey_standard <- survey_standard %>%
 survey_standard <- survey_standard %>%
   mutate(unique_ID = paste(ID, operator, survey_year, sep = "---"))
 
-temp_lat <- survey_standard %>%
+survey_lat <- survey_standard %>%
   select(unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat, 
          school = school_lat, workplace = workplace_lat)
 
-temp_lon <- survey_standard %>%
+survey_lon <- survey_standard %>%
   select(unique_ID, dest = dest_lon, home = home_lon, orig = orig_lon, 
          school = school_lon, workplace = workplace_lon)
 
-temp_lat_gather <- temp_lat %>%
+survey_lat <- survey_lat %>%
   gather(variable, y_coord, -unique_ID)
 
-temp_lon_gather <- temp_lon %>%
+survey_lon <- survey_lon %>%
   gather(variable, x_coord, -unique_ID)
 
-write_places <- temp_lat_gather %>%
-  left_join(temp_lon_gather, by = c("unique_ID", "variable"))
+survey_coords <- left_join(survey_lat, survey_lon, by = c("unique_ID", "variable"))
 
-write_places <- write_places %>%
+survey_coords <- survey_coords %>%
   mutate(x_coord = as.numeric(x_coord)) %>%
   mutate(y_coord = as.numeric(y_coord)) %>%
   filter(!is.na(x_coord)) %>%
@@ -1184,25 +1172,106 @@ survey_standard <- survey_standard %>%
   mutate(last_alight_lon  = ifelse(number_transfers_alight_dest == 0, survey_alight_lon, last_alight_lon)) %>%
   mutate(last_alight_tech = ifelse(number_transfers_alight_dest == 0, survey_tech,       last_alight_tech))
 
-write_board <- survey_standard %>%
+survey_board <- survey_standard %>%
   select(unique_ID, first_board_lat, first_board_lon, first_board_tech) %>%
   mutate(first_board_lat = as.numeric(first_board_lat)) %>%
   mutate(first_board_lon = as.numeric(first_board_lon)) %>%
   filter(!is.na(first_board_lat)) %>%
   filter(!is.na(first_board_lon))
 
-write_alight <- survey_standard %>%
+survey_alight <- survey_standard %>%
   select(unique_ID, last_alight_lat, last_alight_lon, last_alight_tech) %>%
   mutate(last_alight_lat = as.numeric(last_alight_lat)) %>%
   mutate(last_alight_lon = as.numeric(last_alight_lon)) %>%
   filter(!is.na(last_alight_lat)) %>%
   filter(!is.na(last_alight_lon))
 
-write.csv(write_places, file = f_spatial_to_be_geocoded_path, row.names = FALSE, quote = F)
-write.csv(write_board,  file = f_board_to_be_geocoded_path, row.names = FALSE, quote = F)
-write.csv(write_alight, file = f_alight_to_be_geocoded_path, row.names = FALSE, quote = F)
+remove(survey_lat, survey_lon)
 
-remove(temp_lat, temp_lon, temp_lat_gather, temp_lon_gather, write_places, write_board, write_alight)
+```
+
+## Geocode Transit Locations
+```{r geocode_transit}
+taps_coords <- read.csv(f_taps_coords) %>% 
+  rename_all(tolower) %>% 
+  select(n, mode, lat, lon = long) %>%
+  mutate(mode = recode(mode, 
+                       `1` = "local bus", `2` = "express bus", `3` = "ferry", 
+                       `4` = "light rail", `5` = "heavy rail", `6` = "commuter rail"))
+
+taps_spatial <- st_as_sf(taps_coords, coords = c("lon", "lat"))
+survey_coords_spatial <- st_as_sf(survey_coords, coords = c("x_coord", "y_coord"))
+survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "first_board_lat"))
+survey_alight_spatial <- st_as_sf(survey_alight, coords = c("last_alight_lon", "last_alight_lat"))
+
+survey_board_spatial <- survey_board_spatial %>%
+  mutate(board_tap = NA)
+survey_alight_spatial <- survey_alight_spatial %>%
+  mutate(alight_tap = NA)
+
+for (item in unique(taps_spatial$mode)) {
+  temp_tap_spatial <- taps_spatial %>% 
+    filter(mode == item)
+  temp_tap_spatial <- temp_tap_spatial %>%
+    bind_cols(match = 1:nrow(temp_tap_spatial))
+  
+  temp_board <- survey_board_spatial %>%
+    filter(first_board_tech == item) 
+  temp_board <- temp_board %>% 
+    bind_cols(temp_board_tap = st_nearest_feature(temp_board, temp_tap_spatial)) 
+  
+   temp_alight <- survey_alight_spatial %>%
+    filter(last_alight_tech == item) 
+   temp_alight <- temp_alight %>%
+    bind_cols(temp_alight_tap = st_nearest_feature(temp_alight, temp_tap_spatial)) 
+  
+  st_geometry(temp_tap_spatial) <- NULL
+  
+  temp_board <- temp_board %>%
+    left_join(as.data.frame(temp_tap_spatial) %>% select(match, n), by = c("temp_board_tap" = "match")) %>%
+    select(-temp_board_tap) %>%
+    rename(temp_board_tap = n)
+
+  survey_board_spatial <- survey_board_spatial %>%
+    left_join(as.data.frame(temp_board) %>% select(unique_ID, temp_board_tap), by = "unique_ID") %>%
+    mutate(board_tap = ifelse(!is.na(temp_board_tap), temp_board_tap, board_tap)) %>%
+    select(-temp_board_tap)
+
+  temp_alight <- temp_alight %>%
+    left_join(as.data.frame(temp_tap_spatial) %>% select(match, n), by = c("temp_alight_tap" = "match")) %>%
+    select(-temp_alight_tap) %>%
+    rename(temp_alight_tap = n)
+
+  survey_alight_spatial <- survey_alight_spatial %>%
+    left_join(as.data.frame(temp_alight) %>% select(unique_ID, temp_alight_tap), by = "unique_ID") %>%
+    mutate(alight_tap = ifelse(!is.na(temp_alight_tap), temp_alight_tap, alight_tap)) %>%
+    select(-temp_alight_tap)
+  
+  rm(temp_tap_spatial, temp_board, temp_alight)
+}
+  
+board_coords <- as.data.frame(st_coordinates(survey_board_spatial)) %>%
+  rename(first_board_lat = Y,
+         first_board_lon = X)
+survey_board_spatial <- survey_board_spatial %>%
+  bind_cols(board_coords) %>%
+  select(-first_board_tech)
+st_geometry(survey_board_spatial) <- NULL
+
+alight_coords <- as.data.frame(st_coordinates(survey_alight_spatial)) %>%
+  rename(last_alight_lat = Y,
+         last_alight_lon = X)
+survey_alight_spatial <- survey_alight_spatial %>%
+  bind_cols(alight_coords) %>% 
+  select(-last_alight_tech)
+st_geometry(survey_alight_spatial) <- NULL
+
+board_alight_tap <- survey_board_spatial %>%
+  left_join(survey_alight_spatial, by = c("unique_ID"))
+
+remove(alight_coords, board_coords, 
+       survey_board_spatial, survey_alight_spatial,
+       survey_coords_spatial, taps_coords, taps_spatial)
 
 ```
 

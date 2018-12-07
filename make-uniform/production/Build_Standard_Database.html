@@ -131,24 +131,24 @@ $(document).ready(function () {
 <li><a href="#user-intervention-01"><em>User Intervention #01</em></a></li>
 <li><a href="#user-intervention-02"><em>User Intervention #02</em></a></li>
 <li><a href="#user-intervention-03"><em>User Intervention #03</em></a><ul>
-<li><a href="#prepare-dictionaries">Prepare Dictionaries</a></li>
-<li><a href="#add-surveys">Add Surveys</a></li>
+<li><a href="#prepare-dictionaries">Prepare dictionaries</a></li>
+<li><a href="#add-canonical-station-locations-and-crosswalk-for-recode">Add canonical station locations and crosswalk for recode</a></li>
+<li><a href="#add-surveys">Add surveys</a></li>
 </ul></li>
 <li><a href="#user-intervention-04"><em>User Intervention #04</em></a><ul>
-<li><a href="#combine-across-operators-and-flatten">Combine across operators and flatten</a></li>
-<li><a href="#update-survey-technology">Update Survey Technology</a></li>
+<li><a href="#flatten">Flatten</a></li>
+<li><a href="#update-survey-technology">Update survey technology</a></li>
 </ul></li>
-<li><a href="#user-intervention-05"><em>User Intervention #05</em></a><ul>
-<li><a href="#method-library-for-standardization">Method Library for Standardization</a></li>
-</ul></li>
+<li><a href="#user-intervention-05"><em>User Intervention #05</em></a></li>
 <li><a href="#user-intervention-06"><em>User Intervention 06</em></a><ul>
-<li><a href="#build-standard-variables">Build Standard variables</a><ul>
-<li><a href="#geocode-xy-to-travel-model-geographies">Geocode XY to Travel Model Geographies</a></li>
+<li><a href="#build-standard-variables">Build standard variables</a><ul>
+<li><a href="#geocode-xy-to-travel-model-geographies">Geocode XY to travel model geographies</a></li>
 </ul></li>
+<li><a href="#geocode-transit-locations">Geocode Transit Locations</a></li>
 </ul></li>
 <li><a href="#user-intervention-07"><em>User Intervention 07</em></a><ul>
 <li><a href="#clean-up-data-types">Clean up data types</a></li>
-<li><a href="#write-rds-to-disk">Write RDS to Disk</a></li>
+<li><a href="#write-rds-to-disk">Write RDS to disk</a></li>
 </ul></li>
 <li><a href="#debug">DEBUG</a></li>
 </ul>
@@ -173,8 +173,11 @@ $(document).ready(function () {
 <div id="libraries" class="section level4">
 <h4>Libraries</h4>
 <pre class="r"><code>list_of_packages &lt;- c(
-  &quot;tidyverse&quot;,
-  &quot;knitr&quot;
+  &quot;geosphere&quot;,
+  &quot;knitr&quot;,
+  &quot;rlang&quot;,
+  &quot;sf&quot;,
+  &quot;tidyverse&quot;
   )
 
 new_packages &lt;- list_of_packages[!(list_of_packages %in% installed.packages()[,&quot;Package&quot;])]
@@ -184,15 +187,35 @@ if(length(new_packages)) install.packages(new_packages)
 for (p in list_of_packages){
   library(p, character.only = TRUE)
 }</code></pre>
-<pre><code>## Warning: package 'tidyverse' was built under R version 3.5.1</code></pre>
-<pre><code>## -- Attaching packages ------------------------------------------------------------------------------------------------------------------------------------------------- tidyverse 1.2.1 --</code></pre>
+<pre><code>## Linking to GEOS 3.6.1, GDAL 2.2.3, PROJ 4.9.3</code></pre>
+<pre><code>## -- Attaching packages ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ tidyverse 1.2.1 --</code></pre>
 <pre><code>## v ggplot2 2.2.1     v purrr   0.2.5
-## v tibble  1.4.2     v dplyr   0.7.5
+## v tibble  1.4.2     v dplyr   0.7.7
 ## v tidyr   0.8.1     v stringr 1.3.1
 ## v readr   1.1.1     v forcats 0.3.0</code></pre>
-<pre><code>## -- Conflicts ---------------------------------------------------------------------------------------------------------------------------------------------------- tidyverse_conflicts() --
-## x dplyr::filter() masks stats::filter()
-## x dplyr::lag()    masks stats::lag()</code></pre>
+<pre><code>## -- Conflicts --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- tidyverse_conflicts() --
+## x purrr::%@%()         masks rlang::%@%()
+## x purrr::%||%()        masks rlang::%||%()
+## x purrr::as_function() masks rlang::as_function()
+## x dplyr::filter()      masks stats::filter()
+## x purrr::flatten()     masks rlang::flatten()
+## x purrr::flatten_chr() masks rlang::flatten_chr()
+## x purrr::flatten_dbl() masks rlang::flatten_dbl()
+## x purrr::flatten_int() masks rlang::flatten_int()
+## x purrr::flatten_lgl() masks rlang::flatten_lgl()
+## x purrr::invoke()      masks rlang::invoke()
+## x dplyr::lag()         masks stats::lag()
+## x purrr::list_along()  masks rlang::list_along()
+## x purrr::modify()      masks rlang::modify()
+## x purrr::rep_along()   masks rlang::rep_along()
+## x purrr::splice()      masks rlang::splice()</code></pre>
+<pre class="r"><code>list_of_functions &lt;- c(
+  &quot;Build Standard Database Functions.R&quot;
+)
+
+for (f in list_of_functions){
+  source(f)
+}</code></pre>
 </div>
 <div id="knitr-and-global-config" class="section level4">
 <h4>Knitr and global config</h4>
@@ -208,55 +231,56 @@ for (p in list_of_packages){
 <div id="user-intervention-02" class="section level1">
 <h1><em>User Intervention #02</em></h1>
 <p>When adding a new operator, the user must: add the path to the survey data in the code block below, e.g., <code>f_bart_survey_path</code></p>
-<pre class="r"><code>me &lt;- Sys.getenv(&quot;USERNAME&quot;)
-dir_path &lt;- user_list %&gt;%
-  filter(user == me) %&gt;%
+<pre class="r"><code>dir_path &lt;- user_list %&gt;%
+  filter(user == Sys.getenv(&quot;USERNAME&quot;)) %&gt;%
   .$path
 
-f_spatial_to_be_geocoded_path &lt;- paste0(dir_path, 
-  &quot;_geocoding Standardized/spatial_places_to_be_geocoded.csv&quot;)
+f_canonical_station_path &lt;- paste0(dir_path,
+  &quot;Geography Files/Passenger_Railway_Stations_2018.shp&quot;)
 
-f_board_to_be_geocoded_path &lt;- paste0(dir_path, 
-  &quot;_geocoding Standardized/boarding_places_to_be_geocoded.csv&quot;)
+f_taps_coords &lt;- paste0(dir_path, &quot;_geocoding Standardized/TAPs/taps_lat_long.csv&quot;)
 
-f_alight_to_be_geocoded_path &lt;- paste0(dir_path, 
-  &quot;_geocoding Standardized/alighting_places_to_be_geocoded.csv&quot;)
+f_rail_names_inputs_path &lt;- &quot;rail_names_inputs.csv&quot;
 
-f_spatial_geocoded_path &lt;- paste0(dir_path, 
-  &quot;_geocoding Standardized/spatial_places_geocoded.csv&quot;)
+f_geocode_column_names_path &lt;- &quot;bespoke_survey_station_column_names.csv&quot;
 
-f_transit_geocoded_path &lt;- paste0(dir_path, 
-  &quot;_geocoding Standardized/boarding_alighting_places_geocoded.csv&quot;)
+f_canonical_routes_path &lt;- &quot;canonical_route_crosswalk.csv&quot;
 
-f_caltrain_survey_path &lt;- paste0(dir_path, 
-  &quot;Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv&quot;)
-
-f_napa_survey_path &lt;- paste0(dir_path, 
-  &quot;Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv&quot;)
+f_actransit_survey_path &lt;- paste0(dir_path,
+  &quot;AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv&quot;)
 
 f_bart_survey_path &lt;- paste0(dir_path, 
   &quot;BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv&quot;)
 
+f_caltrain_survey_path &lt;- paste0(dir_path, 
+  &quot;Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv&quot;)
+
+# f_marin_survey_path &lt;- paste0(dir_path,
+#   &quot;Marin Transit/Final Data/marin transit_data file_finalreweighted043018.csv&quot;)
+  
 f_muni_survey_path &lt;- paste0(dir_path, 
   &quot;Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv&quot;)
+
+f_napa_survey_path &lt;- paste0(dir_path, 
+  &quot;Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv&quot;)
 
 f_vta_survey_path &lt;- paste0(dir_path, 
   &quot;VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv&quot;)
 
-f_output_rdata_path &lt;- paste0(dir_path, 
-  &quot;_data Standardized/survey_standard.RData&quot;)
+f_output_rds_path &lt;- paste0(dir_path, 
+  &quot;_data Standardized/survey_standard.RDS&quot;)
 
 f_output_csv_path &lt;- paste0(dir_path, 
   &quot;_data Standardized/survey_standard.csv&quot;)
 
 f_ancillary_output_rdata_path &lt;- paste0(dir_path, 
-  &quot;_data Standardized/ancillary_variables.RData&quot;)
+  &quot;_data Standardized/ancillary_variables.RDS&quot;)
 
 f_ancillary_output_csv_path &lt;- paste0(dir_path, 
   &quot;_data Standardized/ancillary_variables.csv&quot;)
 
 f_output_decom_rdata_path &lt;- paste0(dir_path, 
-  &quot;_data Standardized/decomposition/survey_decomposition.RData&quot;)
+  &quot;_data Standardized/decomposition/survey_decomposition.RDS&quot;)
 
 f_output_decom_csv_path &lt;- paste0(dir_path, 
   &quot;_data Standardized/decomposition/survey_decomposition.csv&quot;)</code></pre>
@@ -265,13 +289,17 @@ f_output_decom_csv_path &lt;- paste0(dir_path,
 <h1><em>User Intervention #03</em></h1>
 <p>When adding a new operator, the user must update the dictionary files that translate the survey coding to the standard coding. Edits to the dictionary can be made in the Excel file <code>Dictionary for Standard Database.xlsx</code>. The Excel file needs to be exported to <code>csv</code>; the code reads in the CSV file. The existing entries in the dictionary <em>should</em> explicate the expected task.</p>
 <div id="prepare-dictionaries" class="section level2">
-<h2>Prepare Dictionaries</h2>
+<h2>Prepare dictionaries</h2>
 <pre class="r"><code>dictionary_all &lt;- read.csv('Dictionary for Standard Database.csv', 
-                           header = TRUE
-                           )
-colnames(dictionary_all) &lt;- tolower(colnames(dictionary_all))
-
-# Prepare separate dictionaries for categorical and non-categorical variables
+                           header = TRUE) %&gt;%
+  rename_all(tolower)</code></pre>
+<pre><code>## Warning: `is_lang()` is soft-deprecated as of rlang 0.2.0.
+## Please use `is_call()` instead
+## This warning is displayed once per session.</code></pre>
+<pre><code>## Warning: `lang()` is soft-deprecated as of rlang 0.2.0.
+## Please use `call2()` instead
+## This warning is displayed once per session.</code></pre>
+<pre class="r"><code># Prepare separate dictionaries for categorical and non-categorical variables
 dictionary_non &lt;- dictionary_all %&gt;%
   filter(generic_response == 'NONCATEGORICAL') %&gt;%
   select(operator, survey_variable, generic_variable)
@@ -279,43 +307,49 @@ dictionary_non &lt;- dictionary_all %&gt;%
 dictionary_cat &lt;- dictionary_all %&gt;%
   filter(generic_response != 'NONCATEGORICAL') %&gt;%
   mutate(survey_response = as.character(survey_response))</code></pre>
+<pre><code>## Warning: The `printer` argument is soft-deprecated as of rlang 0.3.0.
+## This warning is displayed once per session.</code></pre>
+</div>
+<div id="add-canonical-station-locations-and-crosswalk-for-recode" class="section level2">
+<h2>Add canonical station locations and crosswalk for recode</h2>
+<pre class="r"><code>rail_names_inputs &lt;- read.csv(f_rail_names_inputs_path)
+canonical_station_shp &lt;- st_read(f_canonical_station_path)</code></pre>
+<pre><code>## Reading layer `Passenger_Railway_Stations_2018' from data source `C:\Users\helseljw\OneDrive - WSP O365\mtc_onboard\Data and Reports\Geography Files\Passenger_Railway_Stations_2018.shp' using driver `ESRI Shapefile'
+## Simple feature collection with 673 features and 11 fields
+## geometry type:  POINT
+## dimension:      XY
+## bbox:           xmin: -122.7344 ymin: 37.00545 xmax: -121.5671 ymax: 38.45206
+## epsg (SRID):    4326
+## proj4string:    +proj=longlat +datum=WGS84 +no_defs</code></pre>
+<pre class="r"><code># Create index of stations
+canonical_station_shp &lt;- canonical_station_shp %&gt;%
+  select(station_na, agencyname, mode) %&gt;%
+  mutate(index = 1:nrow(canonical_station_shp))
+
+# Add canonical route crosswalk
+canonical_routes_crosswalk &lt;- read.csv(f_canonical_routes_path)</code></pre>
 </div>
 <div id="add-surveys" class="section level2">
-<h2>Add Surveys</h2>
-<pre class="r"><code>read_operator &lt;- function(name, year, default_tech, file_path, variable_dictionary) {
-  
-  # name &lt;- 'BART'
-  # year &lt;- 2015
-  # default_tech &lt;- 'heavy rail'
-  # file_path &lt;- f_bart_survey_path
-  # variable_dictionary &lt;- dictionary_all
-  
-  variables_vector &lt;- variable_dictionary %&gt;%
-    filter(operator == name) %&gt;%
-    .$survey_variable %&gt;%
-    unique()
-  
-  df &lt;- read.csv(file_path, header = TRUE, comment.char = &quot;&quot;, quote = &quot;\&quot;&quot;) %&gt;%
-    select(one_of(variables_vector)) %&gt;%
-    rename_at(vars(contains('id')), funs(sub('id', 'ID', .))) %&gt;%
-    gather(survey_variable, survey_response, -ID) %&gt;%
-    mutate(ID = as.character(ID),
-         operator = name,
-         survey_year = year,
-         survey_tech = default_tech)
-  
-  return(df)
-  
-}</code></pre>
+<h2>Add surveys</h2>
 </div>
 </div>
 <div id="user-intervention-04" class="section level1">
 <h1><em>User Intervention #04</em></h1>
 <p>When adding a new operator, create a <code>read_operator</code> call and add the resulting dataframe to <code>survey_combine</code> in the last step.</p>
-<pre class="r"><code>bart_df &lt;- read_operator('BART', 
-                         2015, 
-                         'heavy rail', 
-                         f_bart_survey_path, 
+<pre class="r"><code>ac_transit_df &lt;- read_operator('AC Transit',
+                               2013,
+                               'local bus',
+                               f_actransit_survey_path,
+                               dictionary_all)</code></pre>
+<pre><code>## Warning: `chr_along()` is soft-deprecated as of rlang 0.2.0.
+## This warning is displayed once per session.</code></pre>
+<pre><code>## Warning: `lang_modify()` is soft-deprecated as of rlang 0.2.0.
+## Please use `call_modify()` instead
+## This warning is displayed once per session.</code></pre>
+<pre class="r"><code>bart_df &lt;- read_operator('BART',
+                         2015,
+                         'heavy rail',
+                         f_bart_survey_path,
                          dictionary_all)
 
 caltrain_df &lt;- read_operator('Caltrain',
@@ -325,52 +359,47 @@ caltrain_df &lt;- read_operator('Caltrain',
                              dictionary_all)
 
 muni_df &lt;- read_operator('SF Muni',
-                         2017,
+                         2014,
                          'local bus',
                          f_muni_survey_path,
                          dictionary_all)
 
-vta_df &lt;- read_operator('VTA',
-                        2017,
-                        'local bus',
-                        f_vta_survey_path,
-                        dictionary_all)
+# napa_vine_df &lt;- read_operator('Napa Vine',
+#                               2014,
+#                               'local bus',
+#                               f_napa_survey_path,
+#                               dictionary_all)
+# 
+# vta_df &lt;- read_operator('VTA',
+#                         2017,
+#                         'local bus',
+#                         f_vta_survey_path,
+#                         dictionary_all)
 
-napa_vine_df &lt;- read_operator('Napa Vine',
-                              2014,
-                              'local bus',
-                              f_napa_survey_path,
-                              dictionary_all)
+survey_combine &lt;- bind_rows(ac_transit_df,
+  bart_df,
+  caltrain_df,
+  muni_df
+  # napa_vine_df,
+  # vta_df
+  )
 
-survey_combine &lt;- bind_rows(bart_df,
-                            caltrain_df,
-                            muni_df,
-                            vta_df,
-                            napa_vine_df)
-
-remove(bart_df, caltrain_df, muni_df, vta_df, napa_vine_df)</code></pre>
-<div id="combine-across-operators-and-flatten" class="section level2">
-<h2>Combine across operators and flatten</h2>
+# remove(ac_transit_df, bart_df, caltrain_df, muni_df, napa_vine_df, vta_df)</code></pre>
+<div id="flatten" class="section level2">
+<h2>Flatten</h2>
 <pre class="r"><code># Join the dictionary and prepare the categorical variables
 survey_cat &lt;- survey_combine %&gt;%
   left_join(dictionary_cat, by = c(&quot;operator&quot;, &quot;survey_variable&quot;, &quot;survey_response&quot;)) %&gt;%
   filter(!is.na(generic_variable))
   
-# check for multiple instances of (ID,operator,survey_year,survey_tech,Generic_Variable) -- it'll cause errors in the dcast
-ref_count &lt;- survey_cat %&gt;% 
-  group_by(ID, operator, survey_year, survey_tech, survey_variable) %&gt;% 
-  summarise(count = n())
-
-mult_ref_count  &lt;- ref_count %&gt;%
-  filter(count &gt; 1)
-
-stopifnot(nrow(mult_ref_count) == 0)
-
 # Join the dictionary and prepare the non-categorical variables
 survey_non &lt;- survey_combine %&gt;% 
   left_join(dictionary_non, by = c(&quot;operator&quot;, &quot;survey_variable&quot;)) %&gt;%
   filter(!is.na(generic_variable)) %&gt;%
-  mutate(generic_response = survey_response)
+  mutate(generic_response = survey_response) %&gt;% 
+  left_join(canonical_routes_crosswalk, by = c(&quot;operator&quot; = &quot;survey&quot;, &quot;survey_year&quot; = &quot;survey_year&quot;, &quot;generic_response&quot; = &quot;survey_name&quot;)) %&gt;%
+  mutate(generic_response = ifelse(str_detect(generic_variable, &quot;route&quot;) &amp; !is.na(canonical_name), canonical_name, generic_response)) %&gt;%
+  select(-canonical_name)
   
 # Combine the categorical and non-categorical survey data and prepare to flatten
 survey_flat &lt;- bind_rows(survey_cat, survey_non) %&gt;%
@@ -382,7 +411,7 @@ remove(survey_cat,
        survey_non)</code></pre>
 </div>
 <div id="update-survey-technology" class="section level2">
-<h2>Update Survey Technology</h2>
+<h2>Update survey technology</h2>
 </div>
 </div>
 <div id="user-intervention-05" class="section level1">
@@ -399,183 +428,12 @@ survey_flat &lt;- survey_flat %&gt;%
   select(-new_survey_tech)
 
 remove(survey_tech_update)</code></pre>
-<div id="method-library-for-standardization" class="section level2">
-<h2>Method Library for Standardization</h2>
-<pre class="r"><code># Set Operator Name
-set_operator_name &lt;- function(input_vector){
-  
-  input_df &lt;- as.data.frame(input_vector) %&gt;%
-    rename(input_field = input_vector)
-  
-  output_df &lt;- input_df %&gt;%
-    mutate(output_field = &quot;None&quot;) %&gt;%
-    
-    # BART, AMTRAK, and Caltrain may be named in route names, so do first, then overwrite
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Amtrak&quot;, ignore_case = TRUE)), &quot;AMTRAK&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;BART&quot;, ignore_case = TRUE)), &quot;BART&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Caltrain&quot;, ignore_case = TRUE)), &quot;CALTRAIN&quot;, output_field)) %&gt;%
-    
-    # Transit Agencies
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;AC &quot;, ignore_case = TRUE)), &quot;AC TRANSIT&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;ACE&quot;, ignore_case = TRUE)), &quot;ACE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;AC Transit&quot;, ignore_case = TRUE)), &quot;AC TRANSIT&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;AirBART&quot;, ignore_case = TRUE)), &quot;AC TRANSIT&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;AirTrain&quot;, ignore_case = TRUE)), &quot;BART&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Capitol Corridor&quot;, ignore_case = TRUE)), &quot;AMTRAK&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;County Connection&quot;, ignore_case = TRUE)),&quot;COUNTY CONNECTION&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Fairfield and&quot;, ignore_case = TRUE)),&quot;FAIRFIELD-SUISUN&quot;,output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Golden Gate &quot;, ignore_case = TRUE)), &quot;GOLDEN GATE TRANSIT&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Golden Gate Tran&quot;, ignore_case = TRUE)), &quot;GOLDEN GATE TRANSIT&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Golden Gate Ferry&quot;, ignore_case = TRUE)), &quot;GOLDEN GATE FERRY&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Marin Transit&quot;, ignore_case = TRUE)), &quot;MARIN TRANSIT&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Muni&quot;, ignore_case = TRUE)), &quot;MUNI&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Rio Vista Delta Breeze&quot;, ignore_case = TRUE)), &quot;RIO-VISTA&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;SamTrans&quot;, ignore_case = TRUE)), &quot;SAMTRANS&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Sam Trans&quot;, ignore_case = TRUE)), &quot;SAMTRANS&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Santa Rosa CityBus&quot;, ignore_case = TRUE)), &quot;SANTA ROSA CITYBUS&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;SF Bay Ferry&quot;, ignore_case = TRUE)), &quot;SF BAY FERRY&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Soltrans&quot;, ignore_case = TRUE)), &quot;SOLTRANS&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Tri Delta&quot;, ignore_case = TRUE)), &quot;TRI-DELTA&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Union City&quot;, ignore_case = TRUE)), &quot;UNION CITY&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;WestCAT&quot;, ignore_case = TRUE)), &quot;WESTCAT&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;VINE&quot;, ignore_case = TRUE)), &quot;NAPA VINE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;VTA&quot;, ignore_case = TRUE)), &quot;VTA&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;DASH Downtown Area Shuttle&quot;, ignore_case = TRUE)), &quot;VTA&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Tiburon FERRY Tiburon To Angel Island State Park&quot;, ignore_case = TRUE)), &quot;BLUE GOLD FERRY&quot;, output_field)) %&gt;%
-    
-    # Correct AC route with 'union city' in the name
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;AC 200 Union City BART&quot;, ignore_case = TRUE)), &quot;AC TRANSIT&quot;, output_field)) %&gt;%
-    
-    # PRIVATE SHUTTLE
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Stanford&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Commuter shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Corinthian lines shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Caltrain- Shuttles Genentech&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Kaiser shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;San Jose airport shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;American Canyon Safeway&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Shuttles Broadway - Millbrae&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Genentech Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Sierra Point/Brisbane Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;San Francisco General Hospital (SFGH) Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Seton Medical Center Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;UCSF Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;CPMC Hospital Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;West Berkeley Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Highland Hospital Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;San Francisco General Hospital (SFGH) Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Seton Medical Center Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Oyster Point Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Utah Grand Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Childrens Hospital Oakland&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Apple Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Facebook Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Alta Bates Shuttles&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Harbor Bay Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Alameda County employee shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;San Leandro LINKS&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;North Burlingame shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Fairmont Hospital / Juvenile Justice Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Yahoo Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Bayhill Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Bishop Ranch Shuttle&quot;, ignore_case = TRUE)), &quot;PRIVATE SHUTTLE&quot;, output_field)) %&gt;%
-    
-    # OTHER
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Calistoga Handy Van&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Lake Transit&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Saint Helena Shuttle&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Burlingame Trolley Shuttle&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;SCMTD Highway 17&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Santa Cruz Metro&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Menlo Park Shuttle Midday Shuttle&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Palo Alto E Embarcadero Shuttle&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;CSU East Bay Shuttle&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;UC Berkeley Campus Shuttle&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Shuttle - other or unspecified&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Unknown&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;LBL / Lawrence Berkeley Lab Shuttle&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Agency provided, but route not spec&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;San Francisco State (SFSU) Shuttle&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;PresidiGO&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Emery Go-Round&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;B on Broadway&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Estuary Crossing - College of Alameda Shuttle&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Other&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Monterey-Salinas Transit&quot;, ignore_case = TRUE)), &quot;OTHER&quot;, output_field)) %&gt;%
-    
-    # Vague 'Ferry'
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Ferry&quot;, ignore_case = TRUE)), &quot;SF BAY FERRY&quot;, output_field)) %&gt;%
-    mutate(output_field = ifelse(is.na(input_field), NA, output_field))
-  
-  return(output_df$output_field)
-}
-
-# Set Technology
-set_base_technology &lt;- function(input_vector){
-  
-  operator = c(&quot;ACE&quot;,                &quot;AC TRANSIT&quot;,        &quot;AIR BART&quot;,         
-               &quot;AMTRAK&quot;,             &quot;BART&quot;,              &quot;CALTRAIN&quot;,
-               &quot;COUNTY CONNECTION&quot;,  &quot;FAIRFIELD-SUISUN&quot;,  &quot;GOLDEN GATE TRANSIT&quot;, 
-               &quot;GOLDEN GATE FERRY&quot;,  &quot;MARIN TRANSIT&quot;,     &quot;MUNI&quot;,              
-               &quot;NAPA VINE&quot;,          &quot;RIO-VISTA&quot;,         &quot;SAMTRANS&quot;,
-               &quot;SANTA ROSA CITYBUS&quot;, &quot;SF BAY FERRY&quot;,      &quot;SOLTRANS&quot;,
-               &quot;TRI-DELTA&quot;,          &quot;UNION CITY&quot;,        &quot;WESTCAT&quot;,
-               &quot;VTA&quot;,                &quot;OTHER&quot;,             &quot;PRIVATE SHUTTLE&quot;,  
-               &quot;OTHER AGENCY&quot;,      &quot;BLUE GOLD FERRY&quot;
-               )
-  
-  technology = c(&quot;commuter rail&quot;, &quot;local bus&quot;,     &quot;local bus&quot;, 
-                 &quot;commuter rail&quot;, &quot;heavy rail&quot;,    &quot;commuter rail&quot;, 
-                 &quot;local bus&quot;,     &quot;local bus&quot;,     &quot;express bus&quot;,   
-                 &quot;ferry&quot;,         &quot;local bus&quot;,     &quot;local bus&quot;, 
-                 &quot;local bus&quot;,     &quot;local bus&quot;,     &quot;local bus&quot;,
-                 &quot;local bus&quot;,     &quot;ferry&quot;,         &quot;local bus&quot;, 
-                 &quot;local bus&quot;,     &quot;local bus&quot;,     &quot;local bus&quot;,     
-                 &quot;local bus&quot;,     &quot;local bus&quot;,     &quot;local bus&quot;,
-                 &quot;local bus&quot;,     &quot;ferry&quot;
-                 )
-  
-  tech_df &lt;- data.frame(operator, technology)
-  
-  input_df &lt;- as.data.frame(input_vector) %&gt;% 
-    rename(operator = input_vector)
-  
-  output_df &lt;- left_join(input_df, tech_df, by = c(&quot;operator&quot;))
-  
-  return(output_df$technology)
-}
-
-# Update Technology
-update_technology &lt;- function(input_vector){
-  
-  input_df &lt;- as.data.frame(input_vector) %&gt;%
-    rename(input_field = input_vector)
-  
-  output_df &lt;- input_df %&gt;%
-    mutate(output_field = &quot;No Update&quot;) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;Muni&quot;, ignore_case = TRUE)) &amp;
-                                 str_detect(input_field, fixed(&quot;Light Rail&quot;, ignore_case = TRUE)),
-                                 &quot;light rail&quot;, 
-                                 output_field
-                                 )
-           ) %&gt;%
-    mutate(output_field = ifelse(str_detect(input_field, fixed(&quot;VTA&quot;, ignore_case = TRUE)) &amp;
-                                 str_detect(input_field, fixed(&quot;Light Rail&quot;, ignore_case = TRUE)), 
-                                 &quot;light rail&quot;, 
-                                 output_field
-                                 )
-           ) %&gt;%
-    mutate(output_field = ifelse(is.na(input_field), NA, output_field))
-  
-  return(output_df$output_field)
-}</code></pre>
-</div>
 </div>
 <div id="user-intervention-06" class="section level1">
 <h1><em>User Intervention 06</em></h1>
 <p>User should run each of the <code>Steps</code> below individually and make sure the results make sense. In addition, the <code>debug_transfers</code> frame should be empty. If it’s not, the code has failed to identify an operator or technology for a route that is being transferred to or from.</p>
 <div id="build-standard-variables" class="section level2">
-<h2>Build Standard variables</h2>
+<h2>Build standard variables</h2>
 <pre class="r"><code># Step 1:  Age-related transformations
 # -------------------------------------------------------------------------------------
 
@@ -585,9 +443,10 @@ survey_standard &lt;- survey_flat %&gt;%
                             NA, 
                             year_born_four_digit)) %&gt;%
   mutate(year_born = ifelse(is.na(year_born), NA, as.numeric(year_born))) %&gt;%
-  select(-year_born_four_digit)
-
-# Manual fixes to year born
+  select(-year_born_four_digit)</code></pre>
+<pre><code>## Warning in ifelse(is.na(year_born), NA, as.numeric(year_born)): NAs
+## introduced by coercion</code></pre>
+<pre class="r"><code># Manual fixes to year born
 survey_standard &lt;- survey_standard %&gt;%
   mutate(survey_year = as.numeric(survey_year)) %&gt;%
   mutate(year_born = ifelse(year_born == 1900, 2000, year_born)) %&gt;%
@@ -597,40 +456,40 @@ survey_standard &lt;- survey_standard %&gt;%
 
 table(survey_standard$year_born)</code></pre>
 <pre><code>## 
-## 1920 1921 1922 1923 1925 1926 1927 1928 1929 1930 1931 1932 1933 1934 1935 
-##   18    5    3    3    5   14   12   14   15   21   22   46   39   45   55 
-## 1936 1937 1938 1939 1940 1941 1942 1943 1944 1945 1946 1947 1948 1949 1950 
-##   61   79  108  124  223  166  227  263  255  367  370  518  604  618  856 
-## 1951 1952 1953 1954 1955 1956 1957 1958 1959 1960 1961 1962 1963 1964 1965 
-##  646  739  666  799  948  970 1017 1058 1165 1620 1143 1284 1334 1278 1769 
-## 1966 1967 1968 1969 1970 1971 1972 1973 1974 1975 1976 1977 1978 1979 1980 
-## 1306 1796 1713 1777 2238 1574 1770 1625 1765 2041 2499 2234 2982 2751 3234 
-## 1981 1982 1983 1984 1985 1986 1987 1988 1989 1990 1991 1992 1993 1994 1995 
-## 2765 3103 3040 2876 3345 3340 3874 4178 4323 4560 3503 3429 2857 2666 2635 
-## 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 
-## 2367 2111 1726 1139  842  405  193    5    3    4    7    7    9    4    3 
-## 2014 
-##   21</code></pre>
+## 1920 1921 1922 1923 1924 1925 1926 1927 1928 1929 1930 1931 1932 1933 1934 
+##   12    4    3    3    1    6   11   12   13   11   24   27   45   37   50 
+## 1935 1936 1937 1938 1939 1940 1941 1942 1943 1944 1945 1946 1947 1948 1949 
+##   58   65   84  106  128  216  166  234  272  269  381  384  526  611  629 
+## 1950 1951 1952 1953 1954 1955 1956 1957 1958 1959 1960 1961 1962 1963 1964 
+##  882  648  749  690  800  951  947 1012 1075 1170 1641 1106 1264 1317 1253 
+## 1965 1966 1967 1968 1969 1970 1971 1972 1973 1974 1975 1976 1977 1978 1979 
+## 1770 1318 1830 1678 1755 2294 1589 1726 1635 1769 1997 2474 2242 2960 2698 
+## 1980 1981 1982 1983 1984 1985 1986 1987 1988 1989 1990 1991 1992 1993 1994 
+## 3139 2740 3057 2922 2802 3304 3298 3806 4157 4166 4341 3489 3450 2771 2524 
+## 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 
+## 2377 2277 1936 1687 1309  906  452  277   93   33   21   15   10   11    6 
+## 2010 2014 
+##    5   21</code></pre>
 <pre class="r"><code># Compute approximate respondent age 
 survey_standard &lt;- survey_standard %&gt;%
   mutate(approximate_age = ifelse(!is.na(year_born) &amp; survey_year &gt;= year_born, survey_year - year_born, NA))
 
 table(survey_standard$approximate_age)</code></pre>
 <pre><code>## 
-##    0    5    6    7    8    9   10   11   12   13   14   15   16   17   18 
-##   21    3    4    9    7    7    4    5    4    4   66  224  526 1063 1496 
-##   19   20   21   22   23   24   25   26   27   28   29   30   31   32   33 
-## 2226 2640 2706 2858 3154 3373 4001 3860 4411 4174 3888 3677 3035 3048 2925 
-##   34   35   36   37   38   39   40   41   42   43   44   45   46   47   48 
-## 3014 3301 2699 2905 2484 2769 2157 2197 1775 1710 1693 2114 1624 1894 1708 
-##   49   50   51   52   53   54   55   56   57   58   59   60   61   62   63 
-## 1540 1777 1342 1548 1233 1290 1458 1067 1362 1089  977 1049  901  821  748 
-##   64   65   66   67   68   69   70   71   72   73   74   75   76   77   78 
-##  604  744  647  802  572  519  431  295  330  259  246  216  128  181  102 
-##   79   80   81   82   83   84   85   86   87   88   89   90   91   92   94 
-##   86   68   66   50   38   30   40   20   20   13   13   11   11    2    2 
-##   95   96   97 
-##    5    5   16</code></pre>
+##    0    3    4    5    6    7    8    9   10   11   12   13   14   15   16 
+##   21    2    2    5    7   17   24   37   93  230  377  496 1061 1217 1567 
+##   17   18   19   20   21   22   23   24   25   26   27   28   29   30   31 
+## 1752 1868 2180 2430 2871 2988 3443 3865 4399 4112 3813 3359 3368 3073 2941 
+##   32   33   34   35   36   37   38   39   40   41   42   43   44   45   46 
+## 2913 2822 2833 3081 2828 2580 2295 2158 1866 1733 1662 1695 1878 2047 1719 
+##   47   48   49   50   51   52   53   54   55   56   57   58   59   60   61 
+## 1778 1526 1525 1455 1306 1281 1215 1407 1407 1061 1038  967  903  871  733 
+##   62   63   64   65   66   67   68   69   70   71   72   73   74   75   76 
+##  732  724  788  688  595  555  416  405  303  267  220  179  209  145  122 
+##   77   78   79   80   81   82   83   84   85   86   87   88   89   90   91 
+##   86   71   59   42   48   44   31   21   12   12   13   11    5    4    2 
+##   92   93   94   95 
+##    4    4   10    2</code></pre>
 <pre class="r"><code># Step 2:  Trip- and tour-purpose-related transformations
 # -------------------------------------------------------------------------------------
 
@@ -720,7 +579,7 @@ survey_standard &lt;- survey_standard %&gt;%
                             &amp; at_work_after_dest_purp == 'not at work after surveyed trip' &amp; 
                               (orig_purp == 'college' | dest_purp == 'college'), 
                             'university', 
-                            tour_purp) ) %&gt;%
+                            tour_purp)) %&gt;%
   
   # if work before trip and home after, assume work tour
   mutate(tour_purp = ifelse(tour_purp == 'missing' &amp; 
@@ -819,15 +678,17 @@ survey_standard &lt;- survey_standard %&gt;%
 table(survey_standard$tour_purp)</code></pre>
 <pre><code>## 
 ##             at work             college             eat out 
-##                1042                4496                3319 
+##                1050                2049                3221 
 ##           escorting         high school                home 
-##                 792                1182                 166 
-##             missing other discretionary   other maintenance 
-##                3333                5020                8006 
-##              school            shopping   social recreation 
-##                 762                5419               12703 
-##          university                work        work-related 
-##                4970               63981                1969</code></pre>
+##                 777                1366                 173 
+##             missing               other other discretionary 
+##                3351                  29                5429 
+##   other maintenance              school            shopping 
+##                7368                 693                5554 
+##   social recreation          university                work 
+##               12683                6327               64395 
+##        work-related 
+##                1527</code></pre>
 <pre class="r"><code># Step 3:  Update Key locations and Status Flags
 # -------------------------------------------------------------------------------------
 
@@ -907,13 +768,13 @@ survey_standard &lt;- survey_standard %&gt;%
 table(survey_standard$vehicles)</code></pre>
 <pre><code>## 
 ## four or more          one        three          two         zero 
-##         1964        35309         9600        29015        34245</code></pre>
+##         1179        36345         8352        26853        36236</code></pre>
 <pre class="r"><code>table(survey_standard$workers)</code></pre>
 <pre><code>## 
 ##        five        four         one six or more       three         two 
-##        2418        5824       26740        1550       19037       49816 
+##        1960        4967       27747        1279       18372       49271 
 ##        zero 
-##        7029</code></pre>
+##        7650</code></pre>
 <pre class="r"><code>vehicles_dictionary &lt;- data.frame(
   vehicles = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 
                'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more'), 
@@ -944,7 +805,7 @@ survey_standard &lt;- survey_standard %&gt;%
 table(survey_standard$auto_suff)</code></pre>
 <pre><code>## 
 ## auto negotiating  auto sufficient       zero autos 
-##            33932            41642            34245</code></pre>
+##            32729            39686            36236</code></pre>
 <pre class="r"><code>remove(vehicles_dictionary, 
        workers_dictionary)
 
@@ -1058,9 +919,7 @@ survey_standard &lt;- survey_standard %&gt;%
             third_after)  
 
 table(survey_standard$first_before_technology)</code></pre>
-<pre><code>## 
-## commuter rail   express bus         ferry    heavy rail     local bus 
-##           566            67            61          1921         11038</code></pre>
+<pre><code>## &lt; table of extent 0 &gt;</code></pre>
 <pre class="r"><code>survey_standard &lt;- survey_standard %&gt;%
   mutate(first_before_technology = ifelse(first_before_update_tech != &quot;No Update&quot;, 
                                           as.character(first_before_update_tech),  
@@ -1088,10 +947,8 @@ table(survey_standard$first_before_technology)</code></pre>
 
 table(survey_standard$first_before_technology)</code></pre>
 <pre><code>## 
-## commuter rail   express bus         ferry    heavy rail    light rail 
-##           566            67            61          1921          1131 
-##     local bus 
-##          9907</code></pre>
+## light rail 
+##         89</code></pre>
 <pre class="r"><code># Clean up
 remove(first_before, 
        second_before, 
@@ -1147,52 +1004,960 @@ survey_standard &lt;- survey_standard %&gt;%
 
 table(survey_standard$transfer_from)</code></pre>
 <pre><code>## 
-##          AC TRANSIT                 ACE              AMTRAK 
-##                1095                   6                  28 
-##                BART            CALTRAIN   COUNTY CONNECTION 
-##                2067                 568                 227 
-##    FAIRFIELD-SUISUN GOLDEN GATE TRANSIT                MUNI 
-##                  21                  63                5209 
-##           NAPA VINE                None               OTHER 
-##                  89              103506                 472 
-##     PRIVATE SHUTTLE           RIO-VISTA            SAMTRANS 
-##                 253                   4                 353 
-##        SF BAY FERRY            SOLTRANS           TRI-DELTA 
-##                  59                  64                 118 
-##          UNION CITY                 VTA             WESTCAT 
-##                  85                2838                  35</code></pre>
+##                                                                
+##                                                         112969 
+##                  AC TRANSIT___1 Berkeley BART to Bay Fair BART 
+##                                                              2 
+##                  AC TRANSIT___10 San Leandro BART Hayward BART 
+##                                                              1 
+##          AC TRANSIT___57 Emeryville to Foothill Square Oakland 
+##                                                              1 
+##              AC TRANSIT___75 San Leandro BART to Bay Fair BART 
+##                                                              2 
+##             AC TRANSIT___86 Hayward BART to South Hayward BART 
+##                                                              1 
+##                  AC TRANSIT___99 Bay Fair BART to Fremont BART 
+##                                                              1 
+##                                        BAD REFERENCE___Unknown 
+##                                                              2 
+##                          BART___Balboa Park___16th St. Mission 
+##                                                              1 
+##                            BART___Balboa Park___Montgomery St. 
+##                                                              1 
+## BART___Coliseum/Oakland Airport___12th St. Oakland City Center 
+##                                                              1 
+##                      BART___Coliseum/Oakland Airport___Fremont 
+##                                                              1 
+##                      BART___Dublin/Pleasanton___Montgomery St. 
+##                                                              1 
+##                      BART___El Cerrito del Norte___Embarcadero 
+##                                                              1 
+##                                      BART___Fremont___Bay Fair 
+##                                                              1 
+##                                     BART___Fremont___Fruitvale 
+##                                                              1 
+##                                   BART___Fremont___San Leandro 
+##                                                              1 
+##                                   BART___San Leandro___Fremont 
+##                                                              1 
+##               COUNTY CONNECTION___97X BART Dublin Bishop Ranch 
+##                                                              1 
+##                                 Missing___Missing Dummy Record 
+##                                                           2986 
+##                                                 MUNI___19 Polk 
+##                                                              1 
+##                                          MUNI___28 19th Avenue 
+##                                                              3 
+##                                               MUNI___29 Sunset 
+##                                                              2 
+##                                         MUNI___38R Geary Rapid 
+##                                                              1 
+##                                                MUNI___5 Fulton 
+##                                                              1 
+##                                  MUNI___83X Mid Market Express 
+##                                                              1 
+##                                      MUNI___F Market &amp; Wharves 
+##                                                              1 
+##                               MUNI___KT Ingleside Third Street 
+##                                                              2 
+##                                                 MUNI___N Judah 
+##                                                              1 
+##                             SAMTRANS___ECR Palo Alto Daly City 
+##                                                              1 
+##                        VTA___181 San Jose Diridon Fremont Bart 
+##                                                              2</code></pre>
 <pre class="r"><code>table(survey_standard$transfer_to)</code></pre>
 <pre><code>## 
-##          AC TRANSIT                 ACE              AMTRAK 
-##                1040                   2                  15 
-##                BART            CALTRAIN   COUNTY CONNECTION 
-##                2236                 812                 280 
-##    FAIRFIELD-SUISUN GOLDEN GATE TRANSIT                MUNI 
-##                  15                  46                6386 
-##           NAPA VINE                None               OTHER 
-##                  68              101487                 532 
-##     PRIVATE SHUTTLE            SAMTRANS        SF BAY FERRY 
-##                 339                 344                  46 
-##            SOLTRANS           TRI-DELTA          UNION CITY 
-##                  53                 110                  68 
-##                 VTA             WESTCAT 
-##                3234                  47</code></pre>
+##                                                                                 
+##                                                                           98093 
+##                                   AC TRANSIT___1 Berkeley BART to Bay Fair BART 
+##                                                                             169 
+##                                   AC TRANSIT___10 San Leandro BART Hayward BART 
+##                                                                              41 
+##                                         AC TRANSIT___11 Dimond District Oakland 
+##                                                                               7 
+##                               AC TRANSIT___12 Berkeley BART to Downtown Oakland 
+##                                                                              28 
+##                              AC TRANSIT___14 Downtown Oakland to Fruitvale BART 
+##                                                                              59 
+##                          AC TRANSIT___18 University Village Albany to Montclair 
+##                                                                              63 
+##                                 AC TRANSIT___19 Downtown Oakland Fruitvale BART 
+##                                                                               3 
+##                                             AC TRANSIT___1R International Rapid 
+##                                                                              11 
+##                     AC TRANSIT___20 Dimond District Oakland to downtown Oakland 
+##                                                                              58 
+##                                   AC TRANSIT___200 Union City BART Fremont BART 
+##                                                                              24 
+##                                  AC TRANSIT___21 Dimond Dist to Oakland Airport 
+##                                                                              39 
+##                AC TRANSIT___210 Ohlone College to Union Landing Shopping Center 
+##                                                                              16 
+##                                   AC TRANSIT___212 Fremont BART to NewPark Mall 
+##                                                                              18 
+##                   AC TRANSIT___215 Fremont BART to Gateway Blvd &amp; Lakeside Pkwy 
+##                                                                               8 
+##                AC TRANSIT___216 Ohlone College Newark Campus to Union City BART 
+##                                                                               9 
+##                                     AC TRANSIT___217 Fremont BART to Great Mall 
+##                                                                              30 
+##                                                    AC TRANSIT___22 Hayward BART 
+##                                                                              47 
+##                                  AC TRANSIT___232 Fremont BART to New Park Mall 
+##                                                                               6 
+##           AC TRANSIT___239 Fremont BART to Warm Springs Blvd &amp; Dixon Landing Rd 
+##                                                                              17 
+##                                           AC TRANSIT___25 El Cerrito Plaza BART 
+##                                                                               2 
+##                        AC TRANSIT___26 Emery Bay Public Market to Lakeshore Ave 
+##                                                                              14 
+##                                           AC TRANSIT___275 Union City BART Loop 
+##                                                                               3 
+##                          AC TRANSIT___29 Emeryville West Oakland BART Lakeshore 
+##                                                                              13 
+##                                 AC TRANSIT___31 Alameda Point to MacArthur BART 
+##                                                                              13 
+##                              AC TRANSIT___32 Hayward BART to Castro Valley BART 
+##                                                                              13 
+##                                              AC TRANSIT___33 Montclair Highland 
+##                                                                              21 
+##                             AC TRANSIT___36 West Oakland BART Bancroft Berkeley 
+##                                                                               7 
+##                              AC TRANSIT___37 Hayward BART to South Hayward BART 
+##                                                                               6 
+##   AC TRANSIT___376 El Cerrito Del Norte BART to Richmond Parkway Transit Center 
+##                                                                               2 
+##                           AC TRANSIT___39 Fruitvale BART to Skyline High School 
+##                                                                               9 
+##                               AC TRANSIT___40 Downtown Oakland to Bay Fair BART 
+##                                                                              78 
+##              AC TRANSIT___45 Eastmont Transit Center to Foothill Square Oakland 
+##                                                                              42 
+##                                    AC TRANSIT___46 Coliseum BART to Oakland Zoo 
+##                                                                              12 
+##               AC TRANSIT___46L Coliseum BART Mountain Golf Links Rd Dunkirk Ave 
+##                                                                               1 
+##                                  AC TRANSIT___47 Fruitvale BART to Maxwell Park 
+##                                                                               2 
+##                                   AC TRANSIT___48 Hayward BART to Bay Fair BART 
+##                                                                               8 
+##                                 AC TRANSIT___49 Rockridge BART to Berkeley BART 
+##                                                                               8 
+##                               AC TRANSIT___51A Rockridge BART to Fruitvale BART 
+##                                                                             174 
+##                              AC TRANSIT___51B Rockridge BART to Berkeley Amtrak 
+##                                                                             117 
+##                 AC TRANSIT___52 University Village to UC Campus (Berkeley BART) 
+##                                                                              17 
+##                               AC TRANSIT___54 Fruitvale BART to Merritt College 
+##                                                                              45 
+##                           AC TRANSIT___57 Emeryville to Foothill Square Oakland 
+##                                                                             137 
+##                      AC TRANSIT___58L Oakland Amtrak to Eastmont Transit Center 
+##                                                                               3 
+##                               AC TRANSIT___6 Downtown Oakland Downtown Berkeley 
+##                                                                              60 
+##                              AC TRANSIT___60 Hayward BART to Cal State East Bay 
+##                                                                              45 
+##                             AC TRANSIT___62 West Oakland BART to Fruitvale BART 
+##                                                                              28 
+##                             AC TRANSIT___646 Montera Skyline High Coliseum Bart 
+##                                                                               1 
+##                                      AC TRANSIT___648 Skyline HS Fruitvale Bart 
+##                                                                               1 
+##                       AC TRANSIT___65 Berkeley BART to Lawrence Hall of Science 
+##                                                                               8 
+##                             AC TRANSIT___654 Skyline HS 35th Ave Fruitvale Bart 
+##                                                                               5 
+##                             AC TRANSIT___655 Montera MS 35th Ave Fruitvale Bart 
+##                                                                               1 
+##                 AC TRANSIT___657 Coliseum BART to Oakland Technical High School 
+##                                                                               1 
+##                   AC TRANSIT___658 Skyline HS Macarthur Blvd 40th San Pablo Ave 
+##                                                                               2 
+##                                AC TRANSIT___668 21st &amp; Macdonald Ave El Cerrito 
+##                                                                               1 
+##                                   AC TRANSIT___67 Berkeley BART to Grizzly Peak 
+##                                                                               2 
+##                                AC TRANSIT___672 NRichmond San Pablo El Sobrante 
+##                                                                               1 
+##                                        AC TRANSIT___7 El Cerrito del Norte BART 
+##                                                                               8 
+##                   AC TRANSIT___70 Richmond BART to Richmond Pkwy Transit Center 
+##                                                                              14 
+##        AC TRANSIT___71 El Cerrito Plaza BART to Richmond Parkway Transit Center 
+##                                                                              22 
+##                                  AC TRANSIT___72 Hilltop Mall to Oakland Amtrak 
+##                                                                             131 
+##                               AC TRANSIT___72M Point Richmond to Oakland Amtrak 
+##                                                                              41 
+##     AC TRANSIT___72R San Pablo Rapid Contra Costa College to Jack London Square 
+##                                                                              39 
+##                      AC TRANSIT___73 Eastmont Transit Center to Oakland Airport 
+##                                                                              89 
+##             AC TRANSIT___74 Marina Bay Richmond to San Pablo Dam Rd El Sobrante 
+##                                                                              22 
+##                               AC TRANSIT___75 San Leandro BART to Bay Fair BART 
+##                                                                              12 
+##                       AC TRANSIT___76 El Cerrito del Norte BART to Hilltop Mall 
+##                                                                              23 
+##                              AC TRANSIT___79 Rockridge Berkeley El Cerrito BART 
+##                                                                               6 
+##                                       AC TRANSIT___80 Claremont El Cerrito Bart 
+##                                                                               5 
+##                AC TRANSIT___805 All Nighter Downtown Oakland to Oakland Airport 
+##                                                                               1 
+##                            AC TRANSIT___81 Claremont Berkeley Amtrak BerkMarina 
+##                                                                               2 
+##                              AC TRANSIT___83 Hayward BART to South Hayward BART 
+##                                                                              10 
+##                          AC TRANSIT___85 San Leandro BART to South Hayward BART 
+##                                                                              14 
+##                AC TRANSIT___851 All Nighter Downtown Berkeley to Fruitvale BART 
+##                                                                               1 
+##                              AC TRANSIT___86 Hayward BART to South Hayward BART 
+##                                                                              18 
+##                              AC TRANSIT___88 Berkeley BART to Lake Merritt BART 
+##                                                                              30 
+##                               AC TRANSIT___89 San Leandro BART to Bay Fair BART 
+##                                                                              30 
+##                               AC TRANSIT___90 Coliseum Bart 85thAve Foothill Sq 
+##                                                                               7 
+##                                   AC TRANSIT___93 Hayward BART to Bay Fair BART 
+##                                                                              12 
+##                             AC TRANSIT___94 Hayward BART to Hayward High School 
+##                                                                               2 
+##                               AC TRANSIT___95 Hayward BART to Fairview District 
+##                                                                               7 
+##                                 AC TRANSIT___96 Fruitvale Montana Alameda Point 
+##                                                                               9 
+##                                AC TRANSIT___97 Bay Fair BART to Union City BART 
+##                                                                              85 
+##                                      AC TRANSIT___98 Coliseum BART Edgewater Dr 
+##                                                                              38 
+##                                   AC TRANSIT___99 Bay Fair BART to Fremont BART 
+##                                                                              61 
+##   AC TRANSIT___Alameda County employee shuttle (Lake Merritt, 12th St, Hayward) 
+##                                                                               2 
+##                  AC TRANSIT___Alta Bates Shuttles (MacArthur, Rockridge, Ashby) 
+##                                                                              16 
+##                                            AC TRANSIT___B Lakeshore Ave Oakland 
+##                                                                               1 
+##             AC TRANSIT___B on Broadway Free Broadway Shuttle (19th St, 12th St) 
+##                                                                               6 
+##                                           AC TRANSIT___BSD BROADWAY SHUTTLE DAY 
+##                                                                               5 
+##                                         AC TRANSIT___BSN BROADWAY SHUTTLE NIGHT 
+##                                                                               1 
+##                                            AC TRANSIT___C Highland Ave Piedmont 
+##                                                                               2 
+##                        AC TRANSIT___CB Warren Freeway and Broadway Terr Oakland 
+##                                                                               1 
+##                                              AC TRANSIT___DB1 Dumbarton Express 
+##                                                                               1 
+##                                             AC TRANSIT___E Caldecott Ln Oakland 
+##                                                                               1 
+##         AC TRANSIT___Estuary Crossing College of Alameda Shuttle (Lake Merritt) 
+##                                                                               4 
+##                                               AC TRANSIT___F UC Campus Berkeley 
+##                                                                              25 
+##                                             AC TRANSIT___FS Solano Ave Berkeley 
+##                                                                               3 
+##                              AC TRANSIT___G Richmond St &amp; Potrero St El Cerrito 
+##                                                                               2 
+##                           AC TRANSIT___H Barrett Ave &amp; San Pablo Ave El Cerrito 
+##                                                                               2 
+##                        AC TRANSIT___J Sacramento St and University Ave Berkeley 
+##                                                                               1 
+##                                                 AC TRANSIT___L San Pablo Dam Rd 
+##                                                                               5 
+##                                          AC TRANSIT___LA Hilltop Dr Park &amp; Ride 
+##                                                                               2 
+##                                           AC TRANSIT___M Hayward BART to Oracle 
+##                                                                               3 
+##                                 AC TRANSIT___NL Eastmont Transit Center Oakland 
+##                                                                              38 
+##                                 AC TRANSIT___NX1 Fruitvale Ave &amp; MacArthur Blvd 
+##                                                                               2 
+##                                       AC TRANSIT___NX2 High St &amp; MacArthur Blvd 
+##                                                                               1 
+##                               AC TRANSIT___NX3 Marlow Dr &amp; Foothill Way Oakland 
+##                                                                               1 
+##                                   AC TRANSIT___O Park Ave &amp; Encinal Ave Alameda 
+##                                                                              12 
+##                             AC TRANSIT___P Highland Ave &amp; Highland Way Piedmont 
+##                                                                               2 
+##                                              AC TRANSIT___S Eden Shores Hayward 
+##                                                                               1 
+##                              AC TRANSIT___SB Cedar Blvd &amp; Stevenson Blvd Newark 
+##                                                                               2 
+##                              AC TRANSIT___U Fremont BART to Stanford University 
+##                                                                               1 
+##                                  AC TRANSIT___W Broadway &amp; Blanding Ave Alameda 
+##                                                                               1 
+##                                                AirTrain___AirTrain (SF Airport) 
+##                                                                             541 
+##                                                         AMTRAK___Amtrak Shuttle 
+##                                                                               1 
+##                                                       AMTRAK___Capitol Corridor 
+##                                                                              12 
+##                                                            AMTRAK___San Joaquin 
+##                                                                               3 
+##                                                           Apple___Apple Shuttle 
+##                                                                               1 
+##                                                           BAD REFERENCE___Ferry 
+##                                                                               6 
+##                                                           BAD REFERENCE___Other 
+##                                                                               1 
+##                                    BAD REFERENCE___Shuttle other or unspecified 
+##                                                                              27 
+##                                                         BAD REFERENCE___Unknown 
+##                                                                              27 
+##                                                    BART___Balboa Park___MISSING 
+##                                                                               1 
+##                                                      BART___Daly City___Fremont 
+##                                                                               2 
+##                                 BART___Dept of Health (DHS) Shuttle (del Norte) 
+##                                                                               1 
+##                                                    BART___Embarcadero___MISSING 
+##                                                                               1 
+##                                                      BART___Millbrae___Richmond 
+##                                                                             130 
+##                                   BART___MISSING___12th St. Oakland City Center 
+##                                                                               3 
+##                                                        BART___MISSING___Hayward 
+##                                                                               1 
+##                                                        BART___MISSING___MISSING 
+##                                                                              52 
+##                                                     BART___MISSING___Powell St. 
+##                                                                               2 
+##                BART___Pittsburg Bay Point___San Francisco International Airport 
+##                                                                              14 
+##                                                       BART___Richmond___Fremont 
+##                                                                               2 
+##                                                      BART___Richmond___Millbrae 
+##                                                                              12 
+##                BART___San Francisco International Airport___Pittsburg Bay Point 
+##                                                                              17 
+##     BART___UCSF Mission Bay Parnassus Heights and other UCSF facilities Shuttle 
+##                                                                               2 
+##                            Berkeley Gateway TMA___West Berkeley Shuttle (Ashby) 
+##                                                                               5 
+##                              Bishop Ranch___Bishop Ranch Shuttle (Walnut Creek) 
+##                                                                               2 
+##                                                 BLUE GOLD FERRY___Tiburon Ferry 
+##                                                                               2 
+##                                    CALTRAIN___Airport Flyer Santa Clara Shuttle 
+##                                                                               3 
+##                                            CALTRAIN___Bayhill San Bruno Shuttle 
+##                                                                               1 
+##                                            CALTRAIN___Bayshore Brisbane Shuttle 
+##                                                                               1 
+##                                            CALTRAIN___Broadway Millbrae Shuttle 
+##                                                                               1 
+##                                                    CALTRAIN___Broadway Shuttle  
+##                                                                               2 
+##                                          CALTRAIN___Burlingame Bayside Shuttle  
+##                                                                              10 
+##                                                 CALTRAIN___Campus Drive Shuttle 
+##                                                                               2 
+##                                                   CALTRAIN___Deer Creek Shuttle 
+##                                                                               1 
+##                                     CALTRAIN___East Palo Alto Community Shuttle 
+##                                                                               1 
+##                                           CALTRAIN___Foster City North Shuttle  
+##                                                                               5 
+##                                CALTRAIN___Genentech Shuttle (Glen Park, others) 
+##                                                                              18 
+##                                                  CALTRAIN___LIMITED Limited 200 
+##                                                                               1 
+##                                               CALTRAIN___Lincoln Centre Shuttle 
+##                                                                               3 
+##                                                      CALTRAIN___LOCAL Local 100 
+##                                                                               2 
+##                                 CALTRAIN___Mariners Island PCA Employer Shuttle 
+##                                                                               3 
+##                                                   CALTRAIN___Marsh Road Shuttle 
+##                                                                               2 
+##                                                 CALTRAIN___Mary Moffett Shuttle 
+##                                                                               1 
+##                                                    CALTRAIN___MISSING___MISSING 
+##                                                                             374 
+##                                                      CALTRAIN___Mission Shuttle 
+##                                                                               1 
+##                                             CALTRAIN___North Burlingame Shuttle 
+##                                                                               2 
+##                                                       CALTRAIN___Oracle Shuttle 
+##                                                                               1 
+##                                                 CALTRAIN___Oyster Point Shuttle 
+##                                                                               3 
+##                                               CALTRAIN___Pacific Shores Shuttle 
+##                                                                               3 
+##                                 CALTRAIN___Redwood Shores (Bridge Park) Shuttle 
+##                                                                               1 
+##                                     CALTRAIN___Redwood Shores (Clipper) Shuttle 
+##                                                                               1 
+##                                                 CALTRAIN___RWC Midpoint Shuttle 
+##                                                                               2 
+##                                               CALTRAIN___Seaport Centre Shuttle 
+##                                                                               5 
+##                                                    CALTRAIN___Shoreline Shuttle 
+##                                                                               3 
+##                                                              CALTRAIN___Shuttle 
+##                                                                               2 
+##                                       COUNTY CONNECTION___1 Rossmoor Shadelands 
+##                                                                              14 
+##                                     COUNTY CONNECTION___10 BART Concord Clayton 
+##                                                                              27 
+##                               COUNTY CONNECTION___11 BART Concord BART Pleasant 
+##                                                                               6 
+##                                            COUNTY CONNECTION___14 Monument Blvd 
+##                                                                               5 
+##                                               COUNTY CONNECTION___15 Treat Blvd 
+##                                                                              16 
+##                                      COUNTY CONNECTION___16 AMTRAK BART Concord 
+##                                                                               2 
+##                               COUNTY CONNECTION___17 BART Concord North Concord 
+##                                                                               6 
+##                                COUNTY CONNECTION___18 AMTRAK BART Pleasant Hill 
+##                                                                               5 
+##                                      COUNTY CONNECTION___19 AMTRAK BART Concord 
+##                                                                               4 
+##                                         COUNTY CONNECTION___20 DVC BART Concord 
+##                                                                              42 
+##                              COUNTY CONNECTION___21 BART Walnut Creek San Ramon 
+##                                                                              26 
+##                         COUNTY CONNECTION___260 BART Concord Cal State East Bay 
+##                                                                               1 
+##                              COUNTY CONNECTION___28 BART North Concord Martinez 
+##                                                                              14 
+##                  COUNTY CONNECTION___310 BART Concord Clayton Rd Kirker Pass Rd 
+##                                                                               1 
+##                            COUNTY CONNECTION___311 BART Concord BART PH BART WC 
+##                                                                               2 
+##                      COUNTY CONNECTION___316 Martinez AMTRAK BART Pleasant Hill 
+##                                                                               1 
+##                                        COUNTY CONNECTION___320 DVC BART Concord 
+##                                                                               1 
+##                             COUNTY CONNECTION___321 Walnut Creek BART San Ramon 
+##                                                                               2 
+##                                    COUNTY CONNECTION___35 BART Dublin San Ramon 
+##                                                                              11 
+##                                    COUNTY CONNECTION___36 San Ramon BART Dublin 
+##                                                                               8 
+##                               COUNTY CONNECTION___5 Creekside BART Walnut Creek 
+##                                                                               8 
+##                                   COUNTY CONNECTION___6 Lafayette Moraga Orinda 
+##                                                                              18 
+##           COUNTY CONNECTION___7 Shadelands BART Pleasant Hill BART Walnut Creek 
+##                                                                               9 
+##                                     COUNTY CONNECTION___9 DVC BART Walnut Creek 
+##                                                                              10 
+##                                COUNTY CONNECTION___91X Concord Commuter Express 
+##                                                                               1 
+##                                     COUNTY CONNECTION___93X Kirker Pass Express 
+##                                                                               2 
+##                             COUNTY CONNECTION___95X San Ramon BART Walnut Creek 
+##                                                                               1 
+##                          COUNTY CONNECTION___96X BART Walnut Creek Bishop Ranch 
+##                                                                              14 
+##                                COUNTY CONNECTION___97X BART Dublin Bishop Ranch 
+##                                                                               6 
+##                              COUNTY CONNECTION___98X Martinez BART Walnut Creek 
+##                                                                               9 
+##        COUNTY CONNECTION___Downtown Walnut Creek Trolley Shuttle &quot;Free Ride (4) 
+##                                                                               8 
+##                               CPMC___CPMC Hospital Shuttle (Civic Ctr, 24th St) 
+##                                                                               4 
+##                    CSU___CSU East Bay Shuttle (Castro Valley, Hayward, Concord) 
+##                                                                              53 
+##                         DUMBARTON EXPRESS___DB Union City BART to Stanford Oval 
+##                                                                               3 
+##             DUMBARTON EXPRESS___DB1 Union City BART to Stanford Industrial Park 
+##                                                                               3 
+##                                                EMERYVILLE MTA___Go Round Hollis 
+##                                                                               2 
+##                                     EMERYVILLE MTA___Go Round Shellmound Powell 
+##                                                                               2 
+##                                   EMERYVILLE MTA___Go Round Shuttle (MacArthur) 
+##                                                                              87 
+##                                  Facebook___Facebook Shuttle (Ashby, MacArthur) 
+##                                                                               1 
+##                               FAIRFIELD-SUISUN___40 Vacaville Walnut Creek BART 
+##                                                                               1 
+##                       FAIRFIELD-SUISUN___90 Fairfield El Cerrito Del Norte BART 
+##                                                                              14 
+##       Fairmont Hospital___Fairmont Hospital Juvenile Justice Shuttle (Bay Fair) 
+##                                                                               3 
+##                                              GOLDEN GATE FERRY___Larkspur Ferry 
+##                                                                               5 
+##                                             GOLDEN GATE FERRY___Sausalito Ferry 
+##                                                                               6 
+##                               GOLDEN GATE TRANSIT___10 Strawberry San Francisco 
+##                                                                               2 
+##                              GOLDEN GATE TRANSIT___101 Santa Rosa San Francisco 
+##                                                                               4 
+##                             GOLDEN GATE TRANSIT___101X Santa Rosa San Francisco 
+##                                                                               1 
+##                                         GOLDEN GATE TRANSIT___2 Marin Headlands 
+##                                                                               4 
+##                            GOLDEN GATE TRANSIT___24 Manor Fairfax San Francisco 
+##                                                                               6 
+##                              GOLDEN GATE TRANSIT___27 San Anselmo San Francisco 
+##                                                                               5 
+##                               GOLDEN GATE TRANSIT___4 Mill Valley San Francisco 
+##                                                                               4 
+##                         GOLDEN GATE TRANSIT___40 El Cerrito Richmond San Rafael 
+##                                                                               6 
+##                         GOLDEN GATE TRANSIT___42 El Cerrito Richmond San Rafael 
+##                                                                               7 
+##                                   GOLDEN GATE TRANSIT___70 Novato San Francisco 
+##                                                                               7 
+##                  GOLDEN GATE TRANSIT___72 Santa Rosa Rohnert Park San Francisco 
+##                                                                               3 
+##                    GOLDEN GATE TRANSIT___92 Manzanita Park &amp; Ride San Francisco 
+##                                                                               1 
+##                  GOLDEN GATE TRANSIT___97 Larkspur Ferry Terminal San Francisco 
+##                                                                               1 
+##                                      Harbor Bay___Harbor Bay Shuttle (Coliseum) 
+##                                                                               6 
+##                    Highland Hospital___Highland Hospital Shuttle (Lake Merritt) 
+##                                                                               8 
+##                          Kaiser___Kaiser Shuttles (MacArthur, Richmond, others) 
+##                                                                              27 
+##                                                LAVTA___1 East Dublin Pleasanton 
+##                                                                               1 
+##                                               LAVTA___10 Stoneridge East Avenue 
+##                                                                              11 
+##                              LAVTA___12 East Dublin College Northwest Livermore 
+##                                                                              12 
+##                                                          LAVTA___2 Dublin Ranch 
+##                                                                               1 
+##                                   LAVTA___20 East Dublin East Livermore Express 
+##                                                                               3 
+##                                                LAVTA___3 West Dublin Pleasanton 
+##                                                                               1 
+##                                                           LAVTA___53 Stoneridge 
+##                                                                               2 
+##                                   LAVTA___70XV Stoneridge Pleasant Hill Express 
+##                                                                               1 
+##                                                               LAVTA___8 Hopyard 
+##                                                                               2 
+##                                                LAVTA___9 Hacienda Business Park 
+##                                                                               1 
+##                                                LAVTA___R Stoneridge East Avenue 
+##                                                                               2 
+##          LBL___LBL Lawrence Berkeley Lab Shuttle (Downtown Berkeley, Rockridge) 
+##                                                                               9 
+##                                  Menlo Park___Menlo Park Shuttle Midday Shuttle 
+##                                                                               2 
+##    Missing___Agency provided, but route not spec; or illogical transit provided 
+##                                                                              16 
+##                                                  Missing___Missing Dummy Record 
+##                                                                            2986 
+##                                                                 Missing___Other 
+##                                                                               2 
+##                                                             MUNI___1 California 
+##                                                                             215 
+##                                                              MUNI___10 Townsend 
+##                                                                              70 
+##                                                        MUNI___12 Folsom Pacific 
+##                                                                              29 
+##                                                               MUNI___14 Mission 
+##                                                                             307 
+##                                                      MUNI___14L Mission Limited 
+##                                                                               7 
+##                                                        MUNI___14R Mission Rapid 
+##                                                                              58 
+##                                                      MUNI___14X Mission Express 
+##                                                                               3 
+##                                                           MUNI___18 46th Avenue 
+##                                                                              27 
+##                                                                  MUNI___19 Polk 
+##                                                                              78 
+##                                                 MUNI___1AX California A Express 
+##                                                                               1 
+##                                                 MUNI___1BX California B Express 
+##                                                                               1 
+##                                                                MUNI___2 Clement 
+##                                                                              39 
+##                                                                 MUNI___21 Hayes 
+##                                                                              41 
+##                                                              MUNI___22 Fillmore 
+##                                                                             231 
+##                                                              MUNI___23 Monterey 
+##                                                                              41 
+##                                                            MUNI___24 Divisadero 
+##                                                                             182 
+##                                                       MUNI___25 Treasure Island 
+##                                                                              49 
+##                                                                MUNI___27 Bryant 
+##                                                                              61 
+##                                                           MUNI___28 19th Avenue 
+##                                                                             233 
+##                                                  MUNI___28L 19th Avenue Limited 
+##                                                                               6 
+##                                                    MUNI___28R 19th Avenue Rapid 
+##                                                                              17 
+##                                                                MUNI___29 Sunset 
+##                                                                             173 
+##                                                                MUNI___3 Jackson 
+##                                                                              16 
+##                                                              MUNI___30 Stockton 
+##                                                                             194 
+##                                                       MUNI___30X Marina Express 
+##                                                                               4 
+##                                                                MUNI___31 Balboa 
+##                                                                              54 
+##                                                    MUNI___31BX Balboa B Express 
+##                                                                               2 
+##                                                          MUNI___33 Ashbury 18th 
+##                                                                              60 
+##                                                                MUNI___35 Eureka 
+##                                                                               5 
+##                                                              MUNI___36 Teresita 
+##                                                                              16 
+##                                                               MUNI___37 Corbett 
+##                                                                              18 
+##                                                                 MUNI___38 Geary 
+##                                                                             421 
+##                                                     MUNI___38AX Geary A Express 
+##                                                                               1 
+##                                                     MUNI___38BX Geary B Express 
+##                                                                               2 
+##                                                        MUNI___38L Geary Limited 
+##                                                                              31 
+##                                                          MUNI___38R Geary Rapid 
+##                                                                              65 
+##                                                                  MUNI___39 Coit 
+##                                                                               1 
+##                                                                 MUNI___41 Union 
+##                                                                              24 
+##                                                               MUNI___43 Masonic 
+##                                                                             124 
+##                                                          MUNI___44 OShaughnessy 
+##                                                                             159 
+##                                                        MUNI___45 Union Stockton 
+##                                                                              76 
+##                                                              MUNI___47 Van Ness 
+##                                                                             135 
+##                                                  MUNI___48 Quintara 24th Street 
+##                                                                             122 
+##                                                      MUNI___49 Van Ness Mission 
+##                                                                             213 
+##                                                                 MUNI___5 Fulton 
+##                                                                             149 
+##                                                             MUNI___52 Excelsior 
+##                                                                              34 
+##                                                                MUNI___54 Felton 
+##                                                                              68 
+##                                                           MUNI___55 16th Street 
+##                                                                              12 
+##                                                            MUNI___57 Parkmerced 
+##                                                                              15 
+##                                                        MUNI___5L Fulton_Limited 
+##                                                                              10 
+##                                                          MUNI___5R Fulton Rapid 
+##                                                                              28 
+##                                                       MUNI___6 Haight Parnassus 
+##                                                                              49 
+##                                                              MUNI___66 Quintara 
+##                                                                               5 
+##                                                        MUNI___67 Bernal Heights 
+##                                                                              15 
+##                                                         MUNI___7 Haight Noriega 
+##                                                                              75 
+##                                                  MUNI___7R Haight Noriega Rapid 
+##                                                                               2 
+##                                                       MUNI___7X Noriega Express 
+##                                                                               4 
+##                                                               MUNI___8 Bayshore 
+##                                                                             156 
+##                                                     MUNI___81X Caltrain Express 
+##                                                                               1 
+##                                                   MUNI___82X Levi Plaza Express 
+##                                                                              11 
+##                                                   MUNI___83X Mid Market Express 
+##                                                                               6 
+##                                                   MUNI___8AX Bayshore A Express 
+##                                                                               9 
+##                                                   MUNI___8BX Bayshore B Express 
+##                                                                              15 
+##                                                      MUNI___8X Bayshore Express 
+##                                                                              40 
+##                                                              MUNI___9 San Bruno 
+##                                                                             158 
+##                                                         MUNI___90 San Bruno Owl 
+##                                                                               2 
+##                                                                   MUNI___91 Owl 
+##                                                                               1 
+##                                                       MUNI___9R San Bruno Rapid 
+##                                                                              23 
+##                                                     MUNI___California Cable Car 
+##                                                                              19 
+##                                                            MUNI___E Embarcadero 
+##                                                                              13 
+##                                                       MUNI___F Market &amp; Wharves 
+##                                                                             313 
+##                                                                 MUNI___J Church 
+##                                                                             113 
+##                                                                    MUNI___K OWL 
+##                                                                               1 
+##                                                MUNI___KT Ingleside Third Street 
+##                                                                             487 
+##                                                                    MUNI___L OWL 
+##                                                                               1 
+##                                                                MUNI___L Taraval 
+##                                                                             214 
+##                                                             MUNI___M Ocean View 
+##                                                                             257 
+##                                                                    MUNI___M OWL 
+##                                                                               1 
+##                                                                  MUNI___N Judah 
+##                                                                             539 
+##                                                                    MUNI___N OWL 
+##                                                                               3 
+##                                     MUNI___NX Judah Express Peak direction only 
+##                                                                               3 
+##                                                             MUNI___NX N Express 
+##                                                                               1 
+##                                                    MUNI___Powell Hyde Cable Car 
+##                                                                              22 
+##                                                   MUNI___Powell Mason Cable Car 
+##                                                                              11 
+##                                                         MUNI___S Castro Shuttle 
+##                                                                               2 
+##                                                                    MUNI___T OWL 
+##                                                                              19 
+##                                                 NAPA VINE___29 Commuter Express 
+##                                                                               1 
+##                                                                           Other 
+##                                                                               2 
+##                                     Palo Alto___Palo Alto E Embarcadero Shuttle 
+##                                                                               1 
+##                      PRESIDIGO___PresidiGo Shuttles (Embarcadero, GG Park area) 
+##                                                                              18 
+##                                         SAMTRANS___110 Linda Mar Daly City BART 
+##                                                                              12 
+##                                             SAMTRANS___112 Linda Mar Colma BART 
+##                                                                               4 
+##                                    SAMTRANS___118 Crespi Park &amp; Ride Colma BART 
+##                                                                               1 
+##                                        SAMTRANS___120 Colma BART Daly City BART 
+##                                                                              41 
+##                                   SAMTRANS___121 Skyline College Daly City BART 
+##                                                                              26 
+##                              SAMTRANS___122 South San Francisco BART Stonestown 
+##                                                                              13 
+##                          SAMTRANS___130 South San Francisco BART Daly City BART 
+##                                                                               8 
+##                                                                  SAMTRANS___131 
+##                                                                               3 
+##                                SAMTRANS___133 Tanforan South San Francisco BART 
+##                                                                               2 
+##                                     SAMTRANS___140 Pacific Manor San Bruno BART 
+##                                                                              11 
+##                                SAMTRANS___141 Downtown San Bruno San Bruno BART 
+##                                                                               1 
+##                          SAMTRANS___250 Downtown San Mateo College of San Mateo 
+##                                                                              18 
+##                                                                  SAMTRANS___256 
+##                                                                               2 
+##                             SAMTRANS___260 Carlmont Village San Carlos Caltrain 
+##                                                                              13 
+##            SAMTRANS___270 Redwood City Caltrain Station Marsh Road (Menlo Park) 
+##                                                                               6 
+##                     SAMTRANS___274 Canada College Redwood City Caltrain Station 
+##                                                                               7 
+##                    SAMTRANS___275 Woodside Fernside Redwood City Transit Center 
+##                                                                               4 
+##                      SAMTRANS___28 Serramonte Center South San Francisco School 
+##                                                                               2 
+##       SAMTRANS___280 Stanford Shopping Center Palo Alto Caltrain East Palo Alto 
+##                                                                               1 
+##       SAMTRANS___281 Stanford Shopping Center Palo Alto Caltrain East Palo Alto 
+##                                                                               8 
+## SAMTRANS___292 Hillsdale Shopping Center SF International Airport San Francisco 
+##                                                                              42 
+##                         SAMTRANS___294 Linda Mar Park Hillsdale Shopping Center 
+##                                                                               1 
+##                                    SAMTRANS___295 Downtown San Mateo Menlo Park 
+##                                                                               3 
+##                                      SAMTRANS___296 Redwood City East Palo Alto 
+##                                                                              21 
+##                                           SAMTRANS___297 Redwood City Palo Alto 
+##                                                                               1 
+##                                                              SAMTRANS___397 OWL 
+##                                                                               3 
+##                                                                  SAMTRANS___398 
+##                                                                               2 
+##                               SAMTRANS___49 Terra Nova School Airport San Bruno 
+##                                                                               1 
+##                                              SAMTRANS___ECR Palo Alto Daly City 
+##                                                                              91 
+##                             SAMTRANS___Seton Medical Center Shuttle (Daly City) 
+##                                                                               4 
+##                  SAMTRANS___Sierra Point Brisbane Shuttle (Balboa Pk, Millbrae) 
+##                                                                               1 
+##                                                           Santa Cruz Metro___17 
+##                                                                               5 
+##                                                      Santa Cruz Metro___Unknown 
+##                                                                               3 
+##                                            SF BAY FERRY___Alameda Oakland Ferry 
+##                                                                               4 
+##                                        SF BAY FERRY___Alcatraz Hornblower Ferry 
+##                                                                              13 
+##                                       SF BAY FERRY___Angel Island Tiburon Ferry 
+##                                                                               1 
+##                                                 SF BAY FERRY___Harbor Bay Ferry 
+##                                                                               3 
+##                                                    SF BAY FERRY___Vallejo Ferry 
+##                                                                               5 
+##       SFGH___San Francisco General Hospital (SFGH) Shuttle (24th St, Civic Ctr) 
+##                                                                               4 
+##                           SFSU___San Francisco State (SFSU) Shuttle (Daly City) 
+##                                                                             213 
+##                                               SLTMO___San Leandro LINKS Shuttle 
+##                                                                               6 
+##                                         SOLTRANS___78 Vallejo Walnut Creek Bart 
+##                                                                               5 
+##                                 SOLTRANS___80 Vallejo El Cerrito Del Norte BART 
+##                                                                              32 
+##                        SOLTRANS___SolTrans 80 Vallejo El Cerrito Del Norte BART 
+##                                                                               1 
+##                                          Stanford___Stanford Marguerite Shuttle 
+##                                                                             160 
+##                                  TRI-DELTA___201 Pittsburg BART to Concord BART 
+##                                                                               2 
+##                            TRI-DELTA___300 Pittsburg BART Brentwood Park &amp; Ride 
+##                                                                              23 
+##                                          TRI-DELTA___380 Pittsburg BART Antioch 
+##                                                                              17 
+##                                          TRI-DELTA___387 Pittsburg BART Antioch 
+##                                                                              13 
+##                            TRI-DELTA___388 Pittsburg BART Hillcrest Park &amp; Ride 
+##                                                                              15 
+##                                        TRI-DELTA___389 Pittsburg BART Bay Point 
+##                                                                               1 
+##                            TRI-DELTA___390 Pittsburg BART Hillcrest Park &amp; Ride 
+##                                                                               2 
+##                            TRI-DELTA___391 Pittsburg BART Brentwood Park &amp; Ride 
+##                                                                              37 
+##       UC BERKELEY___UC Berkeley Campus Shuttle Bear Transit (Downtown Berkeley) 
+##                                                                              10 
+##                           UCSF___Childrens Hospital Oakland Shuttle (MacArthur) 
+##                                                                              19 
+##                            UCSF___UCSF Shuttle Mission Bay, Parnassus (16th St) 
+##                                                                              33 
+##                                                          UNION CITY___2 Whipple 
+##                                                                               2 
+##                                                      UNION CITY___4 Seven Hills 
+##                                                                               1 
+##                  UNION CITY___Union City 1 Alvarado Niles: Union City Blvd Dyer 
+##                                                                               1 
+##                                           UNION CITY___Union City 4 Seven Hills 
+##                                                                               1 
+##                                                     VTA___10 Metro Airport Ctrn 
+##                                                                               7 
+##                                          VTA___120 Fremont Bart Lockheed Martin 
+##                                                                               1 
+##                                     VTA___180 Fremont Bart San Jose Diridon Sta 
+##                                                                              12 
+##                                         VTA___181 San Jose Diridon Fremont Bart 
+##                                                                              81 
+##                                          VTA___201 Downtown Area Shuttle (Dash) 
+##                                                                              57 
+##                                         VTA___22 Eastridge Palo Alto Menlo Park 
+##                                                                              30 
+##                                      VTA___23 Alum Rock Transit Ctr De Anza Col 
+##                                                                               1 
+##                                          VTA___25 Alum Rock Lrt De Anza College 
+##                                                                               1 
+##                                           VTA___26 Eastridge Sunnyvale Lockheed 
+##                                                                               2 
+##                                     VTA___32 Sta Clara Ctrn Sn Antonio Shop Ctr 
+##                                                                               4 
+##                                         VTA___323 De Anza Col Downtown San Jose 
+##                                                                               2 
+##                                        VTA___35 Stanford Shop Ctr Dntn Mtn View 
+##                                                                               9 
+##                                         VTA___40 La Avenida Sn Antonio Shop Ctr 
+##                                                                               2 
+##                                             VTA___51 Vallco Moffett Fld Ame Ctr 
+##                                                                               1 
+##                                            VTA___51 Vallco Moffett Fld Ames Ctr 
+##                                                                               7 
+##                                         VTA___52 Dntn Mtn View Foothill College 
+##                                                                               7 
+##                                                   VTA___522 Eastridge Palo Alto 
+##                                                                               9 
+##                                                VTA___53 Westgate Sunnyvale Ctrn 
+##                                                                               1 
+##                                                  VTA___54 De Anza Coll Lockheed 
+##                                                                               5 
+##                                          VTA___55 De Anza College Great America 
+##                                                                               5 
+##                                         VTA___57 West Valley Coll Great America 
+##                                                                               1 
+##                                              VTA___60 Winchester Lrt Gt America 
+##                                                                               2 
+##                                          VTA___63 Almaden Valley San Jose State 
+##                                                                               5 
+##                                              VTA___64 Almaden Lrt Mckee &amp; White 
+##                                                                              18 
+##                                          VTA___65 Kooser &amp; Meridian Downtown Sj 
+##                                                                               9 
+##                                         VTA___66 Sta Teresa Hosp Milpitas Dixon 
+##                                                                               2 
+##                                                VTA___68 Gilroy San Jose Diridon 
+##                                                                               9 
+##                                              VTA___71 Eastridge Great Mall Main 
+##                                                                               1 
+##                                                                   VTA___77 Core 
+##                                                                               1 
+##                                        VTA___81 San Jose State Cupertino Square 
+##                                                                               2 
+##                                                VTA___82 Westgate 21st &amp; Mission 
+##                                                                               3 
+##                                      VTA___89 California Ave Ctrn Vets Hospital 
+##                                                                               1 
+##                                                            VTA___901 Light Rail 
+##                                                                              16 
+##                                                            VTA___902 Light Rail 
+##                                                                              64 
+##                                             VTA___970 Highway 17 Express Amtrak 
+##                                                                               5 
+##                                                 VTA___SJC Airport Flyer Shuttle 
+##                                                                               6 
+##             WESTCAT___16 Local Pinole Valley to Richmond Parkway Transit Center 
+##                                                                               2 
+##           WESTCAT___C3 Regional Contra Costa College to Hercules Transit Center 
+##                                                                               2 
+##                     WESTCAT___JL Express Del Norte BART Hilltop Shopping Center 
+##                                                                              10 
+##                 WESTCAT___JPX Express Del Norte BART to Hercules Transit Center 
+##                                                                              19 
+##             WESTCAT___JR Express Del Norte BART Richmond Parkway Transit Center 
+##                                                                              10 
+##                  WESTCAT___JX Express Del Norte BART to Hercules Transit Center 
+##                                                                               9 
+##             WESTCAT___LYNX Transbay Hercules to San Francisco Transbay Terminal 
+##                                                                               1 
+##                           Yahoo___Yahoo Shuttle (Fremont, Glen Park, MacArthur) 
+##                                                                               1</code></pre>
 <pre class="r"><code>table(survey_standard$survey_tech)</code></pre>
 <pre><code>## 
-## commuter rail   express bus    heavy rail    light rail     local bus 
-##          6032           716         46948         19962         43502</code></pre>
+## commuter rail    heavy rail     local bus 
+##          6032         46948         63012</code></pre>
 <pre class="r"><code>table(survey_standard$first_board_tech)</code></pre>
 <pre><code>## 
-## commuter rail   express bus         ferry    heavy rail    light rail 
-##          5498           573            61         45058         18676 
-##     local bus 
-##         47294</code></pre>
+## commuter rail    heavy rail    light rail     local bus 
+##          5951         46947            89         63005</code></pre>
 <pre class="r"><code>table(survey_standard$last_alight_tech)</code></pre>
 <pre><code>## 
-## commuter rail   express bus         ferry    heavy rail    light rail 
-##          5647           508            51         44278         19097 
-##     local bus 
-##         47579</code></pre>
+## commuter rail    heavy rail    light rail     local bus 
+##          5952         46941            96         63003</code></pre>
 <pre class="r"><code># Travel Model One path (re-write to acknowledge NA explicitly)
 # -- Access
 survey_standard &lt;- survey_standard %&gt;%
@@ -1206,7 +1971,7 @@ survey_standard &lt;- survey_standard %&gt;%
 table(survey_standard$path_access)</code></pre>
 <pre><code>## 
 ##     D     W     X 
-## 27803 86027  3330</code></pre>
+## 26757 85840  3395</code></pre>
 <pre class="r"><code># -- Egress
 survey_standard &lt;- survey_standard %&gt;%
   mutate(path_egress = &quot;X&quot;) %&gt;%
@@ -1219,7 +1984,7 @@ survey_standard &lt;- survey_standard %&gt;%
 table(survey_standard$path_egress)</code></pre>
 <pre><code>## 
 ##     D     W     X 
-## 21206 92624  3330</code></pre>
+## 20574 92056  3362</code></pre>
 <pre class="r"><code># -- Line haul
 # --- Technology present calculations
 survey_standard &lt;- survey_standard %&gt;%
@@ -1254,8 +2019,8 @@ survey_standard &lt;- survey_standard %&gt;%
 
 table(survey_standard$commuter_rail_present)</code></pre>
 <pre><code>## 
-##  FALSE   TRUE 
-## 115666   1494</code></pre>
+##  FALSE 
+## 115992</code></pre>
 <pre class="r"><code>helper_relevant_tech &lt;- 'heavy rail'
 survey_standard &lt;- survey_standard %&gt;%
   mutate(heavy_rail_present = FALSE) %&gt;%
@@ -1268,8 +2033,8 @@ survey_standard &lt;- survey_standard %&gt;%
 
 table(survey_standard$heavy_rail_present)</code></pre>
 <pre><code>## 
-##  FALSE   TRUE 
-## 112741   4419</code></pre>
+##  FALSE 
+## 115992</code></pre>
 <pre class="r"><code>helper_relevant_tech &lt;- 'express bus'
 survey_standard &lt;- survey_standard %&gt;%
   mutate(express_bus_present = FALSE) %&gt;%
@@ -1282,8 +2047,8 @@ survey_standard &lt;- survey_standard %&gt;%
 
 table(survey_standard$express_bus_present)</code></pre>
 <pre><code>## 
-##  FALSE   TRUE 
-## 117038    122</code></pre>
+##  FALSE 
+## 115992</code></pre>
 <pre class="r"><code>helper_relevant_tech &lt;- 'ferry'
 survey_standard &lt;- survey_standard %&gt;%
   mutate(ferry_present = FALSE) %&gt;%
@@ -1296,8 +2061,8 @@ survey_standard &lt;- survey_standard %&gt;%
 
 table(survey_standard$ferry_present)</code></pre>
 <pre><code>## 
-##  FALSE   TRUE 
-## 117044    116</code></pre>
+##  FALSE 
+## 115992</code></pre>
 <pre class="r"><code>helper_relevant_tech &lt;- 'light rail'
 survey_standard &lt;- survey_standard %&gt;%
   mutate(light_rail_present = FALSE) %&gt;%
@@ -1311,7 +2076,7 @@ survey_standard &lt;- survey_standard %&gt;%
 table(survey_standard$light_rail_present)</code></pre>
 <pre><code>## 
 ##  FALSE   TRUE 
-## 114323   2837</code></pre>
+## 115798    194</code></pre>
 <pre class="r"><code>survey_standard &lt;- survey_standard %&gt;%
   mutate(path_line_haul = &quot;LOC&quot;) %&gt;%
   mutate(path_line_haul = ifelse(light_rail_present,    
@@ -1331,12 +2096,10 @@ table(survey_standard$light_rail_present)</code></pre>
 
 table(survey_standard$path_label)</code></pre>
 <pre><code>## 
-## D-COM-D D-COM-W D-EXP-D D-EXP-W D-HVY-D D-HVY-W D-LOC-D D-LOC-W D-LOC-X 
-##     247     283      25      19     437     693    8340   16743      10 
-## D-LRF-D D-LRF-W W-COM-D W-COM-W W-EXP-D W-EXP-W W-HVY-D W-HVY-W W-LOC-D 
-##     542     464     357     607      21      51     606    2613   10189 
-## W-LOC-W W-LOC-X W-LRF-D W-LRF-W X-HVY-D X-LOC-D X-LOC-W X-LOC-X 
-##   69738       5     431    1409       1      10       4    3315</code></pre>
+## D-LOC-D D-LOC-W D-LOC-X D-LRF-D D-LRF-W W-LOC-D W-LOC-W W-LOC-X W-LRF-D 
+##    9518   17175      13      24      27   10995   74669      34      22 
+## W-LRF-W X-LOC-D X-LOC-W X-LOC-X X-LRF-W 
+##     120      15      64    3315       1</code></pre>
 <pre class="r"><code># Boardings
 survey_standard &lt;- survey_standard %&gt;%
   mutate(boardings = 1L) %&gt;%
@@ -1349,8 +2112,8 @@ survey_standard &lt;- survey_standard %&gt;%
 
 table(survey_standard$boardings)</code></pre>
 <pre><code>## 
-##     1     2     3     4     5 
-## 89629 24000  3245   275    11</code></pre>
+##      1      2      3 
+## 115798    190      4</code></pre>
 <pre class="r"><code># If missing, compute number_transfers_orig_board and number_transfers_alight_dest
 survey_standard &lt;- survey_standard %&gt;%
   mutate(first  = ifelse(str_length(first_route_before_survey_board)  == 0L, 0, 1)) %&gt;%
@@ -1367,12 +2130,12 @@ survey_standard &lt;- survey_standard %&gt;%
 
 table(survey_standard$number_transfers_orig_board)</code></pre>
 <pre><code>## 
-##      0      1      2      3 
-## 103506  12694    918     42</code></pre>
+##     0     1     2     3 
+## 99788 12232   949  3023</code></pre>
 <pre class="r"><code>table(survey_standard$number_transfers_alight_dest)</code></pre>
 <pre><code>## 
-##      0      1      2      3      4 
-## 101486  14687    941     44      2</code></pre>
+##     0     1     2     3     4 
+## 98093 13980   898  3018     2</code></pre>
 <pre class="r"><code>survey_standard &lt;- survey_standard %&gt;%
   mutate(survey_boardings = 1L + 
            as.numeric(number_transfers_orig_board) + 
@@ -1380,12 +2143,10 @@ table(survey_standard$number_transfers_orig_board)</code></pre>
 
 table(survey_standard$boardings, survey_standard$survey_boardings)</code></pre>
 <pre><code>##    
-##         1     2     3     4     5
-##   1 89628     1     0     0     0
-##   2     0 23998     2     0     0
-##   3     0     0  3244     0     1
-##   4     0     0     0   274     1
-##   5     0     0     0     0    11</code></pre>
+##         1     2     3     4     5     7
+##   1 86417 23187  2976   223     9  2986
+##   2     0   125    51    13     0     0
+##   3     0     0     2     1     1     0</code></pre>
 <pre class="r"><code># Build debug data frame to find odds and ends
 debug_transfers &lt;- survey_standard %&gt;%
   filter(!(boardings == survey_boardings)) %&gt;%
@@ -1445,363 +2206,355 @@ survey_standard &lt;- survey_standard %&gt;%
 table(survey_standard$work_status)</code></pre>
 <pre><code>## 
 ## full- or part-time            missing         non-worker 
-##              82849              13858              20453</code></pre>
+##              85159               5104              25729</code></pre>
 <pre class="r"><code>table(survey_standard$student_status)</code></pre>
 <pre><code>## 
 ## full- or part-time            missing        non-student 
-##              16862              11331              88967</code></pre>
+##              15817              10707              89468</code></pre>
 <pre class="r"><code>table(survey_standard$fare_medium)</code></pre>
 <pre><code>## 
 ##                               cash                            clipper 
-##                              14049                               5260 
+##                              14169                               1809 
 ##                   clipper (8-ride)                   clipper (e-cash) 
-##                                224                              41041 
+##                                224                              44824 
 ##                  clipper (monthly)                     clipper (pass) 
-##                               2125                              24964 
+##                               2125                              22987 
 ## exempt (employee, law enforcement)                               pass 
-##                                280                               3938 
-##                     pass (20-ride)                       pass (24-hr) 
-##                                 54                                678 
-##                          pass (go)                     pass (monthly) 
-##                                833                                 84 
+##                                280                               3847 
+##                       pass (24-hr)                          pass (go) 
+##                                669                                833 
 ##                             ticket                   ticket (one-way) 
 ##                              18042                                855</code></pre>
 <pre class="r"><code>table(survey_standard$fare_category)</code></pre>
 <pre><code>## 
-##              adult           disabled           medicare 
-##             103143               1647                  2 
-##             senior senior or disabled            student 
-##               4149                 84                184 
-##              youth 
-##               2304</code></pre>
+##    adult disabled medicare   senior  student    youth 
+##   101207     1864        2     4604      109     2432</code></pre>
 <pre class="r"><code>table(survey_standard$hispanic)</code></pre>
 <pre><code>## 
 ##     HISPANIC/LATINO OR OF SPANISH ORIGIN 
-##                                    21856 
+##                                    19608 
 ## NOT HISPANIC/LATINO OR OF SPANISH ORIGIN 
-##                                    90761</code></pre>
+##                                    91841</code></pre>
 <pre class="r"><code>table(survey_standard$race)</code></pre>
 <pre><code>## 
 ## ASIAN BLACK OTHER WHITE 
-## 23736 12139 26960 49621</code></pre>
+## 22263 15538 25092 48395</code></pre>
 <pre class="r"><code>table(survey_standard$language_at_home)</code></pre>
 <pre><code>## 
 ##                       Acholi                      Aequian 
 ##                            1                            1 
 ##                    Afrikaans                    AFRIKAANS 
-##                           28                            1 
+##                           34                            1 
 ##                         Akan                     Akkadian 
-##                            1                            1 
+##                            3                            1 
 ##                     Albanian                     ALBANIAN 
 ##                            2                            2 
-##                    Algonquin American Sign Language (ASL) 
-##                            1                           48 
-## AMERICAN SIGN LANGUAGE (ASL)                      Amharic 
-##                           53                           78 
-##                      AMHARIC                       Arabic 
-##                            4                          142 
-##                       ARABIC             Arabic, Standard 
-##                           16                          169 
-##                    Aragonese                      Aramaic 
-##                            2                            5 
-##                       Aranes                     Armenian 
-##                            1                           22 
-##                     ARMENIAN            Armenian, Eastern 
-##                            5                            3 
+##               Albanian, Tosk                    Algonquin 
+##                            1                            1 
+## American Sign Language (ASL) AMERICAN SIGN LANGUAGE (ASL) 
+##                           59                           53 
+##                      Amharic                      AMHARIC 
+##                           84                            4 
+##                       Arabic                       ARABIC 
+##                          142                           15 
+##             Arabic, Standard                    Aragonese 
+##                          211                            2 
+##                      Aramaic                       Aranes 
+##                            4                            1 
+##                     Armenian                     ARMENIAN 
+##                           19                            5 
+##            Armenian, Eastern            Armenian, Western 
+##                            4                            1 
 ##                     Assyrian                     ASSYRIAN 
 ##                            1                            1 
-##         Assyrian Neo-Aramaic                         Avar 
-##                            3                            1 
-##                      Bashkir                       BASQUE 
+##         Assyrian Neo-Aramaic                     Asturian 
 ##                            2                            1 
+##                      Babungo                      Bashkir 
+##                            1                            2 
+##                       Basque                       BASQUE 
+##                            1                            1 
 ##                    Belarusan                    BELARUSAN 
 ##                            3                            1 
 ##                   Belarusian                   BELARUSIAN 
-##                            3                            1 
+##                            1                            1 
 ##                Belize Creole                BELIZE CREOLE 
 ##                            4                            1 
 ##                      Bengali                      BENGALI 
-##                           85                            9 
+##                           77                            9 
 ##                       Berber           BerbiceCreoleDutch 
-##                            4                            2 
+##                            4                            1 
 ##                        Berta                    Bolognese 
 ##                            1                            1 
 ##                      Bosnian                      BOSNIAN 
-##                            3                            1 
+##                            4                            1 
 ##                       Breton                    Bulgarian 
-##                            1                           15 
+##                            1                           16 
 ##                    BULGARIAN                      Burmese 
 ##                            3                           14 
 ##                    Cantonese                 Cape Verdian 
-##                           31                            1 
+##                           28                            1 
 ##                      Catalan                      Cebuano 
-##                            6                            5 
+##                            7                            3 
 ##                  Celtiberian                     Chamorro 
-##                            1                            5 
+##                            1                            6 
 ##                     CHAMORRO                        CHIGA 
 ##                            1                            1 
-##                      CHINESE          CHINESE (CANTONESE) 
-##                          163                           34 
-##           CHINESE (MANDARIN)        Chinese (unspecified) 
-##                          140                          836 
-##            Chinese Cantonese             Chinese Mandarin 
-##                         3139                         1868 
-##                Chinese Other           Chinese, Cantonese 
-##                          128                          532 
-##            Chinese, Mandarin                     Chippewa 
-##                          602                            1 
-##                     Cimbrian              Classical Greek 
-##                            1                            5 
+##                      Chinese                      CHINESE 
+##                           97                          159 
+##          CHINESE (CANTONESE)           CHINESE (MANDARIN) 
+##                           34                          140 
+##        Chinese (unspecified)            Chinese Cantonese 
+##                          836                         2920 
+##             Chinese Mandarin                Chinese Other 
+##                         1394                           76 
+##           Chinese, Cantonese            Chinese, Mandarin 
+##                          772                          809 
+##                     Chippewa                     Cimbrian 
+##                            2                            1 
+##              Classical Greek        Crioulo, Upper Guinea 
+##                            4                            1 
 ##                     Croatian                        Czech 
-##                           13                           16 
-##                       Danish                       DANISH 
-##                           45                            5 
-##              Danish, SejerÃ¸                         Dari 
-##                            1                            9 
-##                        Dutch                        DUTCH 
-##                           99                            5 
-##                 Dutch Creole   Early Contemporary Swedish 
-##                            6                            4 
-##                          Edo                 ENGLISH ONLY 
-##                            1                        77106 
-##                     Estonian                     ESTONIAN 
+##                           12                           16 
+##                         Dair                       Danish 
+##                            1                           46 
+##                       DANISH              Danish, SejerÃ¸ 
+##                            5                            1 
+##                         Dari                        Dutch 
+##                           10                           91 
+##                        DUTCH                 Dutch Creole 
+##                            4                            3 
+##   Early Contemporary Swedish                          Edo 
 ##                            3                            1 
-##                    Ethiopian                 Extremaduran 
+##                 ENGLISH ONLY                     Estonian 
+##                        79019                            3 
+##                     ESTONIAN                    Ethiopian 
 ##                            1                            1 
 ##                      Faroese                        Farsi 
 ##                            7                          151 
 ##                        FARSI               Farsi, Eastern 
-##                           21                           94 
+##                           21                           92 
 ##                       Fijian                       FIJIAN 
 ##                            3                            1 
 ##                     Filipino                     FILIPINO 
-##                          156                           10 
-##                     Finglish                      Finnish 
-##                            1                           24 
-##                      FINNISH                     Frankish 
-##                            4                            1 
-##                       French                       FRENCH 
-##                          987                           71 
-##                FRENCH CREOLE            Fulfulde, Adamawa 
-##                            1                            2 
+##                          157                           10 
+##                      Finnish                      FINNISH 
+##                           23                            4 
+##                     Frankish                       French 
+##                            1                         1017 
+##                       FRENCH                FRENCH CREOLE 
+##                           68                            1 
 ##                Ga / Ghanaian                     Galician 
-##                            1                            3 
+##                            1                            2 
 ##           Galindian, Eastern                        Ganda 
-##                           13                            1 
+##                            8                            1 
 ##                       German                       GERMAN 
-##                          666                           39 
+##                          671                           37 
 ##                        Greek                        GREEK 
-##                           59                            3 
+##                           52                            3 
 ##                      Guanche                     GuaranÃ­ 
-##                            1                            4 
+##                            1                            3 
 ##                     Gujarati                     GUJARATI 
 ##                           18                            2 
-##                       Gullah                       GURANI 
-##                            1                            1 
-##      Haitian / French Creole        Haitian Creole French 
-##                            8                           18 
-##                       Harari                        Hausa 
-##                            2                            6 
-##                        HAUSA                     Hawaiian 
-##                            1                           21 
-##                     HAWAIIAN                       Hebrew 
-##                            5                          103 
+##                       GURANI      Haitian / French Creole 
+##                            1                            8 
+##        Haitian Creole French                       Harari 
+##                           18                            2 
+##                        Hausa                        HAUSA 
+##                            5                            1 
+##                     Hawaiian                       Hebrew 
+##                           22                          107 
 ##                       HEBREW                        Hindi 
-##                           11                         1654 
-##                        HINDI             Hmong/Hmong-Mien 
-##                          180                           10 
+##                           11                          969 
+##                        HINDI                      Hittite 
+##                          180                            1 
+##                        Hmong             Hmong/Hmong-Mien 
+##                            5                           10 
 ##                      Hokkien                    Hungarian 
-##                            2                           25 
+##                            2                           23 
 ##                    HUNGARIAN                    Icelandic 
-##                            2                            3 
+##                            2                            2 
 ##                    ICELANDIC                         Igbo 
 ##                            1                            8 
 ##                      Ilocano                      ILOCANO 
-##                           26                            2 
+##                           20                            2 
 ##               INDO-PORTUGESE              Indo-Portuguese 
-##                            2                           20 
+##                            2                           18 
 ##                   Indonesian                   INDONESIAN 
-##                           97                            8 
+##                           81                            6 
 ##                      Ingrian                        Irish 
 ##                            1                           16 
 ##                        IRISH               Irish / Gaelic 
 ##                            1                            6 
 ##                 Irish Gaelic                      Italian 
-##                            8                          331 
-##                      ITALIAN                     Jamaican 
-##                           34                            7 
-##     Jamaican/Jamaican Creole                     Japanese 
-##                            2                          640 
-##                     JAPANESE                   Jatvingian 
-##                           40                            1 
-##                     Javanese             Jewish Malayalam 
-##                            3                            7 
-##             JEWISH MALAYALAM                 Judeo-Arabic 
-##                            1                            2 
-##                  Judeo-Greek                Judeo-Iranian 
-##                            1                            4 
-##              Judeo-Malayalam              JUDEO-MALAYALAM 
-##                            5                            3 
-##             Judeo-Portuguese             JUDEO-PORTUGUESE 
-##                            4                            1 
-##                 Judeo-Slavic                      Kannada 
-##                            1                           54 
+##                           10                          316 
+##                      ITALIAN                 Italo-Celtic 
+##                           34                            1 
+##                     Jamaican     Jamaican/Jamaican Creole 
+##                            8                            2 
+##                     Japanese                     JAPANESE 
+##                          599                           40 
+##                   Jatvingian                     Javanese 
+##                            1                            1 
+##             Jewish Malayalam             JEWISH MALAYALAM 
+##                            1                            1 
+##                 Judeo-Arabic                 Judeo-Berber 
+##                            2                            1 
+##                Judeo-Iranian              Judeo-Malayalam 
+##                            5                            4 
+##              JUDEO-MALAYALAM             Judeo-Portuguese 
+##                            3                            4 
+##             JUDEO-PORTUGUESE                      Kannada 
+##                            1                           21 
 ##                      KANNADA            Kannada, Medieval 
-##                           12                            2 
+##                           12                            1 
 ##                       Kharia                        Khmer 
-##                            1                           36 
+##                            1                           37 
 ##                        KHMER                         Khmu 
 ##                            1                            1 
 ##                      Konkani                      KONKANI 
 ##                            2                            1 
 ##                       Korean                       KOREAN 
-##                          533                           32 
-##                       Kreyol                        Kriol 
+##                          492                           31 
+##                       Kreyol                         Krio 
 ##                            1                            1 
-##                          Lao            Late Old Japanese 
-##                           21                            2 
-##                        Latin                        LATIN 
-##                           11                            1 
-##                      Latvian                      Leonese 
-##                            9                            1 
-##                   Lithuanian      Louisiana Creole French 
-##                            4                            2 
-##      LOUISIANA CREOLE FRENCH                   Low German 
-##                            1                            3 
-##                   LOW GERMAN               LUXEMBOURGEOIS 
-##                            1                            1 
-##                   Macedonian                        Malay 
-##                            2                           13 
-##                    Malayalam                      Maltese 
-##                           11                            5 
-##                      Mangala                        Maori 
+##                        Kriol                          Lao 
+##                            1                           22 
+##            Late Old Japanese                        Latin 
+##                            1                           12 
+##                        LATIN                      Latvian 
+##                            1                            5 
+##                      Leonese                   Lithuanian 
+##                            1                            4 
+##      Louisiana Creole French      LOUISIANA CREOLE FRENCH 
+##                            6                            1 
+##                   Low German                   LOW GERMAN 
+##                            2                            1 
+##               LUXEMBOURGEOIS                   Macedonian 
 ##                            1                            2 
+##                        Malay                    Malayalam 
+##                           11                           11 
+##                      Maltese                        Maori 
+##                            5                            2 
 ##                      Marathi                      MARATHI 
 ##                            5                            6 
-##                  Marrucinian                  Meshcherian 
+##                  Marrucinian                  Marshallese 
 ##                            1                            1 
-##                     Meskwaki                  Micronesian 
-##                            2                            1 
-##                  MICRONESIAN           Middle High German 
+##                       Meitei                  Meshcherian 
 ##                            1                            1 
-##              Middle Japanese        Middle Swedish, Newer 
-##                            1                            4 
+##                     Meskwaki        Middle Swedish, Newer 
+##                            1                            3 
 ##                    MONGOLIAN              Mongolian, Halh 
 ##                            1                           23 
-##                         Nama                       Navajo 
-##                            1                            5 
-##                       NAVAJO                       Nepali 
-##                            1                           26 
-##                    Norwegian                    NORWEGIAN 
-##                           47                            3 
-##           Norwegian, Nynorsk                  Old English 
+##                      Nahuatl                         Nama 
 ##                            1                            1 
-##                   Old French              Old High German 
-##                            1                            1 
-##                  Old Persian                 Old Prussian 
-##                           26                            1 
-##                  Old Spanish                        Oriya 
-##                           32                            2 
-##          Oromo, West Central                        Other 
-##                            2                          135 
+##                       Navajo                       NAVAJO 
+##                            4                            1 
+##                       Nepali                    Norwegian 
+##                           50                           46 
+##                    NORWEGIAN                  Old Persian 
+##                            2                           18 
+##                 Old Prussian                  Old Spanish 
+##                            1                           10 
+##                        Oriya                        Other 
+##                            2                          180 
 ##                      Palauan                      PALAUAN 
 ##                            1                            1 
-##                    Pampangan             Panjabi, Western 
-##                            3                            1 
-##              Pashto, Central             Pashto, Northern 
+##                    Pampangan             Panjabi, Eastern 
+##                            3                            2 
+##              Pashto, Central                   Phoenician 
+##                            1                            1 
+##                       Picard             Pidgin, Nigerian 
+##                            1                           10 
+##                       Polish                       POLISH 
+##                           55                            8 
+##                   Portuguese                   PORTUGUESE 
+##                          272                           33 
+##            Portuguese creole    Portuguese creole of Tugo 
 ##                            2                            1 
-##                   Phoenician                       Picard 
-##                            2                            1 
-##             Pidgin, Nigerian                       Polish 
-##                           20                           68 
-##                       POLISH                   Portuguese 
-##                            8                          284 
-##                   PORTUGUESE            Portuguese creole 
-##                           34                            2 
-##    Portuguese creole of Tugo                   Potawatomi 
-##                            3                            1 
-##                      Punjabi                      PUNJABI 
-##                          192                            8 
+##                   Potawatomi                      Punjabi 
+##                            1                          136 
+##                      PUNJABI Quichua, Santiago Del Estero 
+##                            8                            1 
 ##                     Romanian                     ROMANIAN 
-##                           35                            3 
+##                           30                            3 
 ##                      Russian                      RUSSIAN 
-##                          492                           39 
+##                          458                           39 
 ##                 SAAMI, SOUTH                       Samoan 
-##                            1                          102 
+##                            1                          105 
 ##                     Sanskrit                      Serbian 
-##                            1                           21 
+##                            1                           20 
 ##                      SERBIAN                 Shanghainese 
 ##                            1                            1 
-##                  Shingazidja                SIGN LANGUAGE 
-##                            2                            4 
+##          ShowMongolian, Halh                SIGN LANGUAGE 
+##                            6                            4 
 ##                      Sinhala                      SINHALA 
-##                           12                            2 
+##                            7                            2 
 ##                       Slovak                       SLOVAK 
-##                           13                            1 
+##                           10                            1 
 ##                    Slovenian                       Somali 
-##                            6                            1 
+##                            5                            5 
 ##                       SOMOAN                      Spanish 
-##                            2                        13836 
+##                            2                        12690 
 ##                      SPANISH                  Sranantongo 
-##                          735                            2 
+##                          583                            1 
 ##                      Swabian                      Swahili 
-##                            1                           42 
+##                            1                           45 
 ##                      SWAHILI                      Swedish 
 ##                            3                           90 
 ##                      SWEDISH SWEDISH (EARLY CONTEMPORARY) 
 ##                           10                            1 
 ##                 Swiss German                      Tagalog 
-##                            8                         2312 
+##                            8                         2096 
 ##                      TAGALOG                     Tahitian 
-##                           90                            1 
+##                           85                            3 
 ##                     Tamasheq                    TAMAZIGHT 
-##                            6                            1 
+##                            4                            1 
 ##                        Tamil                        TAMIL 
 ##                           53                           22 
-##                        Tatar                         Tayo 
-##                            1                            1 
-##                       Telugu                       TELUGU 
-##                          215                           53 
-##                      Teochew                         Thai 
-##                            1                          167 
-##                         THAI                      Tibetan 
-##                            3                            3 
-##                     Tigrinya                       Tongan 
-##                            5                           39 
-##                       TONGAN                         Tulu 
-##                            9                            1 
-##                      Turkish                      TURKISH 
-##                           63                           18 
-##                      Turkmen                    Ukrainian 
-##                            1                           36 
-##                    UKRAINIAN                 Unidentified 
-##                            4                           16 
-##                      Unknown                         Urdu 
-##                            3                          123 
-##                         URDU                        Uzbek 
-##                            9                            2 
-##                   Vietnamese                   VIETNAMESE 
-##                          953                           67 
-##             Visaya / Cebuano                          Vod 
-##                            4                            1 
-##                        Xhosa                      Yiddish 
-##                            1                           10 
+##                        Tatar                       Telugu 
+##                            1                          144 
+##                       TELUGU                      Teochew 
+##                           53                            1 
+##                         Thai                         THAI 
+##                          161                            3 
+##                      Tibetan                     Tigrinya 
+##                            3                            5 
+##                       Tongan                       TONGAN 
+##                           42                            9 
+##                         Tulu                      Turkish 
+##                            1                           57 
+##                      TURKISH                      Turkmen 
+##                           18                            1 
+##                    Ukrainian                    UKRAINIAN 
+##                           33                            4 
+##                 Unidentified                      Unknown 
+##                           16                            3 
+##                         Urdu                         URDU 
+##                          113                            9 
+##                        Uzbek                   Vietnamese 
+##                            2                          587 
+##                   VIETNAMESE             Visaya / Cebuano 
+##                           66                            4 
+##                          Vod                      Yiddish 
+##                            1                           11 
 ##                       Yoruba                       YORUBA 
 ##                            5                            1 
-##                        Zarma                         Zulu 
-##                            1                            3</code></pre>
+##                   Yotvingian                        Zarma 
+##                            1                            1 
+##                         Zulu 
+##                            4</code></pre>
 <pre class="r"><code>table(survey_standard$household_income)</code></pre>
 <pre><code>## 
 ##   $10,000 to $25,000 $100,000 to $150,000   $150,000 or higher 
-##                 7630                11539                10981 
+##                 7928                11142                10493 
 ##   $25,000 to $35,000   $35,000 to $50,000   $50,000 to $75,000 
-##                 7532                14935                21171 
+##                 8069                15296                21198 
 ##  $75,000 to $100,000              Missing        under $10,000 
-##                12100                  308                 6783</code></pre>
+##                11695                  252                 6953</code></pre>
 <pre class="r"><code>table(survey_standard$eng_proficient)</code></pre>
 <pre><code>## 
 ## NOT AT ALL   NOT WELL  VERY WELL       WELL 
-##        625       2681      23258       6928</code></pre>
+##        583       2455      21514       6354</code></pre>
 <pre class="r"><code># Step 8:  Create route if needed, set dates and times
 # -------------------------------------------------------------------------------------
 
@@ -1831,13 +2584,12 @@ survey_standard &lt;- survey_standard %&gt;%
   mutate(day_of_the_week = toupper(weekdays(date)))
 
 table(survey_standard$operator, survey_standard$day_of_the_week)</code></pre>
-<pre><code>##            
-##             FRIDAY MONDAY SATURDAY SUNDAY THURSDAY TUESDAY WEDNESDAY
-##   BART        8447   8556        0      0     9181    8919      8833
-##   Caltrain       0   1177      206    237     1641     896      1547
-##   Napa Vine     32     13      119     39      115      13       121
-##   SF Muni     8068   7952     2261   2277     9042    9509      9198
-##   VTA          182   3121      996    715     3468    3373      3539</code></pre>
+<pre><code>##             
+##              FRIDAY MONDAY SATURDAY SUNDAY THURSDAY TUESDAY WEDNESDAY
+##   AC Transit   1518   2521      905    584     2831    3289      3030
+##   BART         8447   8556        0      0     9181    8919      8833
+##   Caltrain        0   1177      206    237     1641     896      1547
+##   SF Muni      8068   7952     2261   2277     9042    9509      9198</code></pre>
 <pre class="r"><code># Fill in missing weekpart
 survey_standard &lt;- survey_standard %&gt;%
   mutate(weekpart = ifelse(is.na(weekpart) &amp; day_of_the_week == &quot;SUNDAY&quot;,   &quot;WEEKEND&quot;, weekpart)) %&gt;%
@@ -1849,13 +2601,12 @@ survey_standard &lt;- survey_standard %&gt;%
   mutate(weekpart = ifelse(is.na(weekpart) &amp; day_of_the_week == &quot;SATURDAY&quot;, &quot;WEEKEND&quot;, weekpart))
 
 table(survey_standard$operator,survey_standard$weekpart)</code></pre>
-<pre><code>##            
-##             WEEKDAY WEEKEND
-##   BART        46948       0
-##   Caltrain     5589     443
-##   Napa Vine     294     158
-##   SF Muni     43796    4538
-##   VTA         13683    1711</code></pre>
+<pre><code>##             
+##              WEEKDAY WEEKEND
+##   AC Transit   12854    1824
+##   BART         46948       0
+##   Caltrain      5589     443
+##   SF Muni      43796    4538</code></pre>
 <pre class="r"><code># Get field dates from date
 field_dates &lt;- survey_standard %&gt;%
   group_by(operator, survey_year) %&gt;%
@@ -1894,53 +2645,52 @@ survey_standard &lt;- survey_standard %&gt;%
 
 table(survey_standard$field_start)</code></pre>
 <pre><code>## 
-## 2014-05-14 2014-10-07 2015-02-17 2015-07-25 2016-12-07 
-##        452       6032      46948      48334      15394</code></pre>
+## 2014-10-07 2015-02-17 2015-07-25 2017-10-23 
+##       6032      46948      48334      14678</code></pre>
 <pre class="r"><code>table(survey_standard$field_end)</code></pre>
 <pre><code>## 
-## 2014-11-20 2014-12-11 2015-05-29 2017-07-03 2017-07-23 
-##        452       6032      46948      15394      48334</code></pre>
+## 2014-12-11 2015-05-29 2017-07-23 2018-03-14 
+##       6032      46948      48334      14678</code></pre>
 <pre class="r"><code>table(survey_standard$time_start)</code></pre>
 <pre><code>## 
 ##    0    1    2    3    4    5    6    7    8    9   10   11   12   13   14 
-##  156  125  140  112  303 2008 6871 9474 9832 8872 5756 5861 6315 6864 7005 
+##  151  119  140  110  300 1808 6156 8418 8647 7835 4786 4950 5292 5631 5735 
 ##   15   16   17   18   19   20   21   22   23 
-## 7940 8297 7742 6358 4099 3663 3170 2230  600</code></pre>
+## 6550 7082 6687 5472 3555 3210 2802 1975  536</code></pre>
 <pre class="r"><code>table(survey_standard$day_part)</code></pre>
 <pre><code>## 
 ##  AM PEAK EARLY AM  EVENING   MIDDAY  PM PEAK 
-##    40805     2423    14183    26045    30337</code></pre>
+##    35842     2218    12488    21608    25791</code></pre>
 <pre class="r"><code>table(survey_standard$day_of_the_week)</code></pre>
 <pre><code>## 
 ##    FRIDAY    MONDAY  SATURDAY    SUNDAY  THURSDAY   TUESDAY WEDNESDAY 
-##     16729     20819      3582      3268     23447     22710     23238</code></pre>
+##     18033     20206      3372      3098     22695     22613     22608</code></pre>
 <pre class="r"><code>survey_standard &lt;- survey_standard %&gt;%
   select(-date_string, -time_string, -time1, -time2, 
          -time3, -time4, -survey_time_posix)</code></pre>
 <div id="geocode-xy-to-travel-model-geographies" class="section level3">
-<h3>Geocode XY to Travel Model Geographies</h3>
+<h3>Geocode XY to travel model geographies</h3>
 <pre class="r"><code># Prepare and write locations that need to be geo-coded to disk
 survey_standard &lt;- survey_standard %&gt;%
   mutate(unique_ID = paste(ID, operator, survey_year, sep = &quot;---&quot;))
 
-temp_lat &lt;- survey_standard %&gt;%
+survey_lat &lt;- survey_standard %&gt;%
   select(unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat, 
          school = school_lat, workplace = workplace_lat)
 
-temp_lon &lt;- survey_standard %&gt;%
+survey_lon &lt;- survey_standard %&gt;%
   select(unique_ID, dest = dest_lon, home = home_lon, orig = orig_lon, 
          school = school_lon, workplace = workplace_lon)
 
-temp_lat_gather &lt;- temp_lat %&gt;%
+survey_lat &lt;- survey_lat %&gt;%
   gather(variable, y_coord, -unique_ID)
 
-temp_lon_gather &lt;- temp_lon %&gt;%
+survey_lon &lt;- survey_lon %&gt;%
   gather(variable, x_coord, -unique_ID)
 
-write_places &lt;- temp_lat_gather %&gt;%
-  left_join(temp_lon_gather, by = c(&quot;unique_ID&quot;, &quot;variable&quot;))
+survey_coords &lt;- left_join(survey_lat, survey_lon, by = c(&quot;unique_ID&quot;, &quot;variable&quot;))
 
-write_places &lt;- write_places %&gt;%
+survey_coords &lt;- survey_coords %&gt;%
   mutate(x_coord = as.numeric(x_coord)) %&gt;%
   mutate(y_coord = as.numeric(y_coord)) %&gt;%
   filter(!is.na(x_coord)) %&gt;%
@@ -1957,7 +2707,7 @@ write_places &lt;- write_places %&gt;%
   mutate(last_alight_lon  = ifelse(number_transfers_alight_dest == 0, survey_alight_lon, last_alight_lon)) %&gt;%
   mutate(last_alight_tech = ifelse(number_transfers_alight_dest == 0, survey_tech,       last_alight_tech))
 
-write_board &lt;- survey_standard %&gt;%
+survey_board &lt;- survey_standard %&gt;%
   select(unique_ID, first_board_lat, first_board_lon, first_board_tech) %&gt;%
   mutate(first_board_lat = as.numeric(first_board_lat)) %&gt;%
   mutate(first_board_lon = as.numeric(first_board_lon)) %&gt;%
@@ -1967,7 +2717,7 @@ write_board &lt;- survey_standard %&gt;%
 ## introduced by coercion</code></pre>
 <pre><code>## Warning in evalq(as.numeric(first_board_lon), &lt;environment&gt;): NAs
 ## introduced by coercion</code></pre>
-<pre class="r"><code>write_alight &lt;- survey_standard %&gt;%
+<pre class="r"><code>survey_alight &lt;- survey_standard %&gt;%
   select(unique_ID, last_alight_lat, last_alight_lon, last_alight_tech) %&gt;%
   mutate(last_alight_lat = as.numeric(last_alight_lat)) %&gt;%
   mutate(last_alight_lon = as.numeric(last_alight_lon)) %&gt;%
@@ -1977,64 +2727,125 @@ write_board &lt;- survey_standard %&gt;%
 ## introduced by coercion</code></pre>
 <pre><code>## Warning in evalq(as.numeric(last_alight_lon), &lt;environment&gt;): NAs
 ## introduced by coercion</code></pre>
-<pre class="r"><code>write.csv(write_places, file = f_spatial_to_be_geocoded_path, row.names = FALSE, quote = F)
-write.csv(write_board,  file = f_board_to_be_geocoded_path, row.names = FALSE, quote = F)
-write.csv(write_alight, file = f_alight_to_be_geocoded_path, row.names = FALSE, quote = F)
-
-remove(temp_lat, temp_lon, temp_lat_gather, temp_lon_gather, write_places, write_board, write_alight)</code></pre>
+<pre class="r"><code>remove(survey_lat, survey_lon)</code></pre>
 </div>
+</div>
+<div id="geocode-transit-locations" class="section level2">
+<h2>Geocode Transit Locations</h2>
+<pre class="r"><code>taps_coords &lt;- read.csv(f_taps_coords) %&gt;% 
+  rename_all(tolower) %&gt;% 
+  select(n, mode, lat, lon = long) %&gt;%
+  mutate(mode = as.factor(recode(mode, 
+                                 `1` = &quot;local bus&quot;, `2` = &quot;express bus&quot;, 
+                                 `3` = &quot;ferry&quot;, `4` = &quot;light rail&quot;, 
+                                 `5` = &quot;heavy rail&quot;, `6` = &quot;commuter rail&quot;)))
+
+taps_spatial &lt;- st_as_sf(taps_coords, coords = c(&quot;lon&quot;, &quot;lat&quot;))
+survey_coords_spatial &lt;- st_as_sf(survey_coords, coords = c(&quot;x_coord&quot;, &quot;y_coord&quot;))
+survey_board_spatial &lt;- st_as_sf(survey_board, coords = c(&quot;first_board_lon&quot;, &quot;first_board_lat&quot;))
+survey_alight_spatial &lt;- st_as_sf(survey_alight, coords = c(&quot;last_alight_lon&quot;, &quot;last_alight_lat&quot;))
+
+survey_board_spatial &lt;- survey_board_spatial %&gt;%
+  mutate(board_tap = NA)
+survey_alight_spatial &lt;- survey_alight_spatial %&gt;%
+  mutate(alight_tap = NA)
+
+for (item in unique(taps_spatial$mode)) {
+  temp_tap_spatial &lt;- taps_spatial %&gt;% 
+    filter(mode == item)
+  temp_tap_spatial &lt;- temp_tap_spatial %&gt;%
+    bind_cols(match = 1:nrow(temp_tap_spatial))
+  
+  temp_board &lt;- survey_board_spatial %&gt;%
+    filter(first_board_tech == item) %&gt;%
+    bind_cols(temp_board_tap = st_nearest_feature(temp_board, temp_tap_spatial)) 
+  
+   temp_alight &lt;- survey_alight_spatial %&gt;%
+    filter(last_alight_tech == item) %&gt;%
+    bind_cols(temp_alight_tap = st_nearest_feature(temp_alight, temp_tap_spatial)) 
+  
+  st_geometry(temp_tap_spatial) &lt;- NULL
+  
+  temp_board &lt;- temp_board %&gt;%
+    left_join(as.data.frame(temp_tap_spatial) %&gt;% select(match, n), by = c(&quot;temp_board_tap&quot; = &quot;match&quot;)) %&gt;%
+    select(-temp_board_tap) %&gt;%
+    rename(temp_board_tap = n)
+
+  survey_board_spatial &lt;- survey_board_spatial %&gt;%
+    left_join(as.data.frame(temp_board) %&gt;% select(unique_ID, temp_board_tap), by = &quot;unique_ID&quot;) %&gt;%
+    mutate(board_tap = ifelse(!is.na(temp_board_tap), temp_board_tap, board_tap)) %&gt;%
+    select(-temp_board_tap)
+
+  temp_alight &lt;- temp_alight %&gt;%
+    left_join(as.data.frame(temp_tap_spatial) %&gt;% select(match, n), by = c(&quot;temp_alight_tap&quot; = &quot;match&quot;)) %&gt;%
+    select(-temp_alight_tap) %&gt;%
+    rename(temp_alight_tap = n)
+
+  survey_alight_spatial &lt;- survey_alight_spatial %&gt;%
+    left_join(as.data.frame(temp_alight) %&gt;% select(unique_ID, temp_alight_tap), by = &quot;unique_ID&quot;) %&gt;%
+    mutate(alight_tap = ifelse(!is.na(temp_alight_tap), temp_alight_tap, alight_tap)) %&gt;%
+    select(-temp_alight_tap)
+}</code></pre>
+<pre><code>## Error in st_geometry(x): object 'temp_board' not found</code></pre>
+<pre class="r"><code>  survey_alight_spatial &lt;- survey_alight_spatial %&gt;% 
+    bind_cols(tap = st_nearest_feature(survey_alight_spatial, taps_spatial))</code></pre>
 </div>
 </div>
 <div id="user-intervention-07" class="section level1">
 <h1><em>User Intervention 07</em></h1>
 <p>Use the <code>__/geocode-engine</code> to geocode the above outcomes so the below expected files are ready.</p>
 <pre class="r"><code># Bring in the geocoding results
-geocoded_spatial_places &lt;- read.csv(f_spatial_geocoded_path, header = TRUE)
-geocoded_transit_places &lt;- read.csv(f_transit_geocoded_path, header = TRUE)
-
-geocoded_spatial_places &lt;- geocoded_spatial_places %&gt;% 
+geocoded_spatial_places &lt;- read.csv(f_spatial_geocoded_path, header = TRUE)</code></pre>
+<pre><code>## Error in read.table(file = file, header = header, sep = sep, quote = quote, : object 'f_spatial_geocoded_path' not found</code></pre>
+<pre class="r"><code>geocoded_transit_places &lt;- read.csv(f_transit_geocoded_path, header = TRUE)</code></pre>
+<pre><code>## Error in read.table(file = file, header = header, sep = sep, quote = quote, : object 'f_transit_geocoded_path' not found</code></pre>
+<pre class="r"><code>geocoded_spatial_places &lt;- geocoded_spatial_places %&gt;% 
   rename(unique_ID = Unique_ID) %&gt;%
-  select(-x_coord, -y_coord)
-
-geo_spatial_maz &lt;- geocoded_spatial_places %&gt;%
+  select(-x_coord, -y_coord)</code></pre>
+<pre><code>## Error in eval(lhs, parent, parent): object 'geocoded_spatial_places' not found</code></pre>
+<pre class="r"><code>geo_spatial_maz &lt;- geocoded_spatial_places %&gt;%
   select(-TAZ1454) %&gt;%
   spread(variable, MAZ_ORIGINAL) %&gt;%
   select(unique_ID, dest_maz = dest, home_maz = home, orig_maz = orig, 
-         school_maz = school, workplace_maz = workplace)
-
-geo_spatial_taz &lt;- geocoded_spatial_places %&gt;%
+         school_maz = school, workplace_maz = workplace)</code></pre>
+<pre><code>## Error in eval(lhs, parent, parent): object 'geocoded_spatial_places' not found</code></pre>
+<pre class="r"><code>geo_spatial_taz &lt;- geocoded_spatial_places %&gt;%
   select(-MAZ_ORIGINAL) %&gt;%
   spread(variable, TAZ1454) %&gt;%
   select(unique_ID, dest_taz = dest, home_taz = home, orig_taz = orig, 
-         school_taz = school, workplace_taz = workplace) 
-
-geo_transit_tap &lt;- geocoded_transit_places %&gt;%
+         school_taz = school, workplace_taz = workplace) </code></pre>
+<pre><code>## Error in eval(lhs, parent, parent): object 'geocoded_spatial_places' not found</code></pre>
+<pre class="r"><code>geo_transit_tap &lt;- geocoded_transit_places %&gt;%
   select(unique_ID = Unique_ID, first_board_tap = board_tap, 
-         last_alight_tap = alight_tap)
-
-# Joins
+         last_alight_tap = alight_tap)</code></pre>
+<pre><code>## Error in eval(lhs, parent, parent): object 'geocoded_transit_places' not found</code></pre>
+<pre class="r"><code># Joins
 survey_standard &lt;- survey_standard %&gt;% 
   left_join(geo_spatial_maz, by = c(&quot;unique_ID&quot;)) %&gt;%
   left_join(geo_spatial_taz, by = c(&quot;unique_ID&quot;)) %&gt;%
-  left_join(geo_transit_tap, by = c(&quot;unique_ID&quot;))
-
-remove(geocoded_spatial_places, 
+  left_join(geo_transit_tap, by = c(&quot;unique_ID&quot;))</code></pre>
+<pre><code>## Error in tbl_vars(y): object 'geo_spatial_maz' not found</code></pre>
+<pre class="r"><code>remove(geocoded_spatial_places, 
        geocoded_transit_places, 
        geo_spatial_maz, 
        geo_spatial_taz, 
        geo_transit_tap)</code></pre>
+<pre><code>## Warning in remove(geocoded_spatial_places, geocoded_transit_places,
+## geo_spatial_maz, : object 'geocoded_spatial_places' not found</code></pre>
+<pre><code>## Warning in remove(geocoded_spatial_places, geocoded_transit_places,
+## geo_spatial_maz, : object 'geocoded_transit_places' not found</code></pre>
+<pre><code>## Warning in remove(geocoded_spatial_places, geocoded_transit_places,
+## geo_spatial_maz, : object 'geo_spatial_maz' not found</code></pre>
+<pre><code>## Warning in remove(geocoded_spatial_places, geocoded_transit_places,
+## geo_spatial_maz, : object 'geo_spatial_taz' not found</code></pre>
+<pre><code>## Warning in remove(geocoded_spatial_places, geocoded_transit_places,
+## geo_spatial_maz, : object 'geo_transit_tap' not found</code></pre>
 <div id="clean-up-data-types" class="section level3">
 <h3>Clean up data types</h3>
 <pre class="r"><code># Cast all factors to numeric or string
 survey_standard &lt;- survey_standard %&gt;%
-  mutate(first_before_operator  = as.character(first_before_operator)) %&gt;%
-  mutate(second_before_operator = as.character(second_before_operator)) %&gt;%
-  mutate(third_before_operator  = as.character(third_before_operator)) %&gt;%
-  mutate(first_after_operator   = as.character(first_after_operator)) %&gt;%
-  mutate(second_after_operator  = as.character(second_after_operator)) %&gt;%
-  mutate(third_after_operator   = as.character(third_after_operator)) %&gt;%
-  mutate(depart_hour            = as.numeric(depart_hour)) %&gt;%
-  mutate(return_hour            = as.numeric(return_hour)) %&gt;%
+  mutate_at(vars(contains(&quot;operator&quot;)), as.character) %&gt;%
+  mutate_at(vars(contains(&quot;hour&quot;)), as.numeric) %&gt;%
   mutate(survey_board_lat       = as.numeric(survey_board_lat)) %&gt;%
   mutate(survey_board_lon       = as.numeric(survey_board_lon)) %&gt;%
   mutate(survey_alight_lat      = as.numeric(survey_alight_lat)) %&gt;%
@@ -2044,6 +2855,12 @@ survey_standard &lt;- survey_standard %&gt;%
   mutate(last_alight_lat        = as.numeric(last_alight_lat)) %&gt;%
   mutate(last_alight_lon        = as.numeric(last_alight_lon)) %&gt;%
   mutate(weight                 = as.numeric(weight))</code></pre>
+<pre><code>## Warning: `mut_node_car()` is soft-deprecated as of rlang 0.2.0.
+## This warning is displayed once per session.</code></pre>
+<pre><code>## Warning in evalq(as.numeric(depart_hour), &lt;environment&gt;): NAs introduced by
+## coercion</code></pre>
+<pre><code>## Warning in evalq(as.numeric(return_hour), &lt;environment&gt;): NAs introduced by
+## coercion</code></pre>
 <pre><code>## Warning in evalq(as.numeric(survey_board_lon), &lt;environment&gt;): NAs
 ## introduced by coercion</code></pre>
 <pre><code>## Warning in evalq(as.numeric(survey_alight_lon), &lt;environment&gt;): NAs
@@ -2174,7 +2991,7 @@ survey_standard &lt;- survey_standard %&gt;%
          -workplace_lon)</code></pre>
 </div>
 <div id="write-rds-to-disk" class="section level2">
-<h2>Write RDS to Disk</h2>
+<h2>Write RDS to disk</h2>
 <pre class="r"><code># Compute trip weight, replace missing weights with zero, and set field language to interview language
 survey_standard &lt;- survey_standard %&gt;%
   mutate(weight = ifelse(is.na(weight), 0.0, weight)) %&gt;%
@@ -2188,8 +3005,9 @@ survey_standard_cols &lt;- survey_standard %&gt;%
 survey_standard &lt;- survey_standard %&gt;%
   select(survey_standard_cols, survey_time)
 
-saveRDS(survey_standard, file = f_output_rdata_path)
-saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
+saveRDS(survey_standard, file = f_output_rdata_path)</code></pre>
+<pre><code>## Error in saveRDS(survey_standard, file = f_output_rdata_path): object 'f_output_rdata_path' not found</code></pre>
+<pre class="r"><code>saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
 
 write.csv(survey_standard, file = f_output_csv_path, row.names = FALSE)
 write.csv(ancillary_df, file = f_ancillary_output_csv_path, row.names = FALSE)</code></pre>
