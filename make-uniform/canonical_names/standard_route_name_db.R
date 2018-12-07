@@ -313,7 +313,7 @@ ac_transit_routes <- ac_transit_raw_df %>%
 ac_transit_routes <- ac_transit_routes %>%
   filter(canonical_operator != "BAD REFERENCE") %>%
   mutate(survey = "AC Transit",
-         survey_year = 2013) %>%
+         survey_year = 2018) %>%
   select(survey, survey_year, survey_name, canonical_name, canonical_operator, -variable) %>%
   unique()
   
@@ -767,7 +767,7 @@ sf_muni_routes <- sf_muni_raw_df %>%
 sf_muni_routes <- sf_muni_routes %>%
   filter(canonical_operator != "BAD REFERENCE") %>%
   mutate(survey = "SF Muni",
-         survey_year = 2014) %>%
+         survey_year = 2017) %>%
   select(survey, survey_year, survey_name, canonical_name, canonical_operator, -variable) %>%
   unique() %>%
   arrange(canonical_operator, canonical_name)
