@@ -244,7 +244,7 @@ survey_non <- survey_combine %>%
   left_join(dictionary_non, by = c("operator", "survey_variable")) %>%
   filter(!is.na(generic_variable)) %>%
   mutate(generic_response = survey_response) %>% 
-  left_join(canonical_routes_crosswalk, by = c("operator" = "survey", "survey_year" = "survey_year", "generic_response" = "survey_name")) %>%
+  left_join(canonical_routes_crosswalk, by = c("operator" = "survey", "survey_year" = "survey_year", "survey_response" = "survey_name")) %>%
   mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response)) %>%
   select(-canonical_name)
 
@@ -1168,10 +1168,10 @@ survey_coords <- survey_coords %>%
 survey_standard <- survey_standard %>%
   mutate(first_board_lat  = ifelse(number_transfers_orig_board == 0,  survey_board_lat,  first_board_lat)) %>%
   mutate(first_board_lon  = ifelse(number_transfers_orig_board == 0,  survey_board_lon,  first_board_lon)) %>%
-  mutate(first_board_tech = ifelse(number_transfers_orig_board == 0,  survey_tech,       first_board_tech)) %>%
+  # mutate(first_board_tech = ifelse(number_transfers_orig_board == 0,  survey_tech,       first_board_tech)) %>%
   mutate(last_alight_lat  = ifelse(number_transfers_alight_dest == 0, survey_alight_lat, last_alight_lat)) %>%
   mutate(last_alight_lon  = ifelse(number_transfers_alight_dest == 0, survey_alight_lon, last_alight_lon)) %>%
-  mutate(last_alight_tech = ifelse(number_transfers_alight_dest == 0, survey_tech,       last_alight_tech))
+  # mutate(last_alight_tech = ifelse(number_transfers_alight_dest == 0, survey_tech,       last_alight_tech))
 
 survey_board <- survey_standard %>%
   select(unique_ID, first_board_lat, first_board_lon, first_board_tech) %>%

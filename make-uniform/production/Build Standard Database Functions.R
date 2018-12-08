@@ -376,7 +376,7 @@ update_technology <- function(input_vector){
   
   output_df <- input_df %>%
     mutate(output_field = "No Update") %>%
-    mutate(output_field = ifelse(str_detect(input_field, fixed("Muni", ignore_case = TRUE)) &
+    mutate(output_field = ifelse(str_detect(input_field, fixed("MUNI", ignore_case = TRUE)) &
                                    str_detect(input_field, fixed("Light Rail", ignore_case = TRUE)),
                                  "light rail", 
                                  output_field

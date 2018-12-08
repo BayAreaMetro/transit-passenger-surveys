@@ -774,8 +774,39 @@ sf_muni_routes <- sf_muni_routes %>%
 
 canonical_routes <- ac_transit_routes %>% 
   bind_rows(bart_routes, caltrain_routes, sf_muni_routes) %>%
-  mutate(canonical_name = paste(canonical_operator, canonical_name, sep = op_delim)) %>%
-  select(-canonical_operator) 
+  mutate(canonical_name = paste(canonical_operator, canonical_name, sep = op_delim)) 
+
+base_tech <- data.frame(operator = c("ACE",                "AC TRANSIT",        "AIR BART",         
+                                     "AMTRAK",             "BART",              "CALTRAIN",
+                                     "COUNTY CONNECTION",  "FAIRFIELD-SUISUN",  "GOLDEN GATE TRANSIT", 
+                                     "GOLDEN GATE FERRY",  "MARIN TRANSIT",     "MUNI",              
+                                     "NAPA VINE",          "RIO-VISTA",         "SAMTRANS",
+                                     "SANTA ROSA CITYBUS", "SF BAY FERRY",      "SOLTRANS",
+                                     "TRI-DELTA",          "UNION CITY",        "WESTCAT",
+                                     "VTA",                "OTHER",             "PRIVATE SHUTTLE",  
+                                     "OTHER AGENCY",      "BLUE GOLD FERRY"),
+                        technology = c("commuter rail", "local bus",     "local bus", 
+                                       "commuter rail", "heavy rail",    "commuter rail", 
+                                       "local bus",     "local bus",     "express bus",   
+                                       "ferry",         "local bus",     "local bus", 
+                                       "local bus",     "local bus",     "local bus",
+                                       "local bus",     "ferry",         "local bus", 
+                                       "local bus",     "local bus",     "local bus",     
+                                       "local bus",     "local bus",     "local bus",
+                                       "local bus",     "ferry"))
+
+expand_tech <- data.frame(operator = c("AC TRANSIT", "AirTrain", "AMTRAK", "Apple", "BAD REFERENCE", "BART", "Bayview",
+                                       "Berkeley Gateway TMA", "BERKELEY GATEWAY TMA", "Bishop Ranch", "BLUE GOLD FERRY", "CALTRAIN", "COUNTY CONNECTION", "CPMC",
+                                       "CSU", "DUMBARTON EXPRESS", "EMERYVILLE MTA", "Facebook", "FAIRFIELD-SUISUN", "Fairmont Hospital", "GOLDEN GATE FERRY",
+                                       "GOLDEN GATE TRANSIT", "Harbor Bay", "Highland Hospital", "Kaiser", "LAVTA", "LBL", "MARIN TRANSIT",
+                                       "Menlo Park", "Missing", "Monterey-Salinas Transit", "MUNI", "NAPA VINE", "Palo Alto", "PRESIDIGO",
+                                       "RIO-VISTA", "SAMTRANS", "Santa Cruz Metro", "Santa Rosa City", "SF BAY FERRY", "SFGH", "SFSU",
+                                       "SLTMO", "SOLTRANS", "Stanford", "TRI-DELTA", "UC BERKELEY", "UCSF", "UNION CITY",
+                                       "Utah Grand", "VTA", "WestCAT", "WESTCAT", "Yahoo"),
+                          technology = c("local bus", "heavy rail", "local bus")
+                          
+                          )
+
 
 write.csv(canonical_routes, canonical_route_path, row.names = FALSE)
   
