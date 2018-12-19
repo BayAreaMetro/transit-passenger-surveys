@@ -26,8 +26,7 @@ get_nearest_station <- function(station_names_df, survey_records_df, operator_ke
   # lon_name_string <- "final_transfer_to_first_boarding_lon"
   # 
   # operator_key_string <- "BART"
-  temp_tech_key_string <- "Rapid Rail"
-  
+
   vars <- c(route = route_name_string,
             lat = lat_name_string,
             lng = lon_name_string)
@@ -62,7 +61,8 @@ get_nearest_station <- function(station_names_df, survey_records_df, operator_ke
     filter(distance_meters == min_distance) %>%
     left_join(., station_names_df, by = c("index")) %>%
     mutate(station_na = ifelse(min_distance > 500, "MISSING", station_na)) %>%
-    select(id, station_na)
+    select(id, station_na) %>%
+    mutate()
   
   return(return_df)
 }
@@ -156,11 +156,11 @@ check_duplicate_variables <- function(df_duplicates) {
 
 read_operator <- function(name, year, default_tech, file_path, variable_dictionary) {
   
-  name <- 'AC Transit'
-  year <- 2018
-  default_tech <- 'local bus'
-  file_path <- f_actransit_survey_path
-  variable_dictionary <- dictionary_all
+  # name <- 'AC Transit'
+  # year <- 2018
+  # default_tech <- 'local bus'
+  # file_path <- f_actransit_survey_path
+  # variable_dictionary <- dictionary_all
 
   variables_vector <- variable_dictionary %>%
     filter(operator == name) %>%
