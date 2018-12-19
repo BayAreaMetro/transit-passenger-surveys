@@ -73,14 +73,14 @@ get_rail_names <- function(station_names, survey_records, operator, route_name,
   # station_names <- canonical_station_shp
   # survey_records <- input_df %>%
   #   filter(id == 10018)
-  # # select(id,
-  # #         "final_trip_first_route",
-  # #         "final_transfer_from_first_boarding_lat",
-  # #         "final_transfer_from_first_boarding_lon",
-  # #         "final_transfer_from_first_alighting_lat",
-  # #         "final_transfer_from_first_alighting_lon")
+  # select(id,
+  #         "final_trip_first_route",
+  #         "final_transfer_from_first_boarding_lat",
+  #         "final_transfer_from_first_boarding_lon",
+  #         "final_transfer_from_first_alighting_lat",
+  #         "final_transfer_from_first_alighting_lon")
   # operator <- "BART"
-  # route_name <- "final_trip_first_route"
+  # route_name <- "final_trip_to_first_route"
   # board_lat <- "final_transfer_from_first_boarding_lat"
   # board_lon <- "final_transfer_from_first_boarding_lon"
   # alight_lat <- "final_transfer_from_first_alighting_lat"
@@ -156,11 +156,11 @@ check_duplicate_variables <- function(df_duplicates) {
 
 read_operator <- function(name, year, default_tech, file_path, variable_dictionary) {
   
-  # name <- 'AC Transit'
-  # year <- 2018
-  # default_tech <- 'local bus'
-  # file_path <- f_actransit_survey_path
-  # variable_dictionary <- dictionary_all
+  name <- 'AC Transit'
+  year <- 2018
+  default_tech <- 'local bus'
+  file_path <- f_actransit_survey_path
+  variable_dictionary <- dictionary_all
 
   variables_vector <- variable_dictionary %>%
     filter(operator == name) %>%
