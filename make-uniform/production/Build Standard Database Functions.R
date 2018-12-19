@@ -71,7 +71,8 @@ get_rail_names <- function(station_names, survey_records, operator, route_name,
                            board_lat, board_lon, alight_lat, alight_lon) {
   
   # station_names <- canonical_station_shp
-  # survey_records <- ac_transit_raw_df #%>%
+  # survey_records <- input_df %>%
+  #   filter(id == 10018)
   # # select(id,
   # #         "final_trip_first_route",
   # #         "final_transfer_from_first_boarding_lat",
