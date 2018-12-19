@@ -234,7 +234,7 @@ ac_transit_routes <- ac_transit_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "DHS"), "BART", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Dumbarton Express Route ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Dumbarton Express"), "DUMBARTON EXPRESS", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Dumbarton Express"), "AC TRANSIT", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Emery ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Emery"), "EMERYVILLE MTA", canonical_operator)) %>%
@@ -300,7 +300,7 @@ ac_transit_routes <- ac_transit_raw_df %>%
   mutate(canonical_name = str_replace(canonical_name, '71 Core', '71 Eastridge Great Mall Main')) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^VTA"), "VTA", canonical_operator)) %>%
   
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "West Berkeley"), "BERKELEY GATEWAY TMA", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "West Berkeley"), "Berkeley Gateway TMA", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^WestCAT ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "WestCAT"), "WESTCAT", canonical_operator)) %>%
@@ -387,7 +387,7 @@ bart_routes <- bart_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "CSU"), "CSU", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Dumbarton Express Route ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Dumbarton Express"), "DUMBARTON EXPRESS", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Dumbarton Express"), "AC TRANSIT", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace(canonical_name, "^Emery ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Emery"), "EMERYVILLE MTA", canonical_operator)) %>%
@@ -571,7 +571,7 @@ caltrain_routes <- caltrain_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^County Connection"), "COUNTY CONNECTION", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace_all(canonical_name, "^Dumbarton Express Route ", "")) %>%
-  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Dumbarton Express"), "DUMBARTON EXPRESS", canonical_operator)) %>%
+  mutate(canonical_operator = ifelse(str_detect(survey_name, "^Dumbarton Express"), "AC TRANSIT", canonical_operator)) %>%
 
   mutate(canonical_name = str_replace_all(canonical_name, "^Golden Gate Ferry [A-Z]* ", "")) %>%
   mutate(canonical_name = ifelse(str_detect(survey_name, "^Golden Gate Ferry"), paste(canonical_name, "Ferry"), canonical_name)) %>%
@@ -776,37 +776,33 @@ canonical_routes <- ac_transit_routes %>%
   bind_rows(bart_routes, caltrain_routes, sf_muni_routes) %>%
   mutate(canonical_name = paste(canonical_operator, canonical_name, sep = op_delim)) 
 
-base_tech <- data.frame(operator = c("ACE",                "AC TRANSIT",        "AIR BART",         
-                                     "AMTRAK",             "BART",              "CALTRAIN",
-                                     "COUNTY CONNECTION",  "FAIRFIELD-SUISUN",  "GOLDEN GATE TRANSIT", 
-                                     "GOLDEN GATE FERRY",  "MARIN TRANSIT",     "MUNI",              
-                                     "NAPA VINE",          "RIO-VISTA",         "SAMTRANS",
-                                     "SANTA ROSA CITYBUS", "SF BAY FERRY",      "SOLTRANS",
-                                     "TRI-DELTA",          "UNION CITY",        "WESTCAT",
-                                     "VTA",                "OTHER",             "PRIVATE SHUTTLE",  
-                                     "OTHER AGENCY",      "BLUE GOLD FERRY"),
-                        technology = c("commuter rail", "local bus",     "local bus", 
-                                       "commuter rail", "heavy rail",    "commuter rail", 
-                                       "local bus",     "local bus",     "express bus",   
-                                       "ferry",         "local bus",     "local bus", 
-                                       "local bus",     "local bus",     "local bus",
-                                       "local bus",     "ferry",         "local bus", 
-                                       "local bus",     "local bus",     "local bus",     
-                                       "local bus",     "local bus",     "local bus",
-                                       "local bus",     "ferry"))
-
-expand_tech <- data.frame(operator = c("AC TRANSIT", "AirTrain", "AMTRAK", "Apple", "BAD REFERENCE", "BART", "Bayview",
-                                       "Berkeley Gateway TMA", "BERKELEY GATEWAY TMA", "Bishop Ranch", "BLUE GOLD FERRY", "CALTRAIN", "COUNTY CONNECTION", "CPMC",
-                                       "CSU", "DUMBARTON EXPRESS", "EMERYVILLE MTA", "Facebook", "FAIRFIELD-SUISUN", "Fairmont Hospital", "GOLDEN GATE FERRY",
+base_tech <- data.frame(canonical_operator = c("AC TRANSIT", "AirTrain", "AMTRAK", "Apple", "BAD REFERENCE", "BART", "Bayview",
+                                       "Berkeley Gateway TMA", "Bishop Ranch", "BLUE GOLD FERRY", "CALTRAIN", "COUNTY CONNECTION", "CPMC",
+                                       "CSU", "EMERYVILLE MTA", "Facebook", "FAIRFIELD-SUISUN", "Fairmont Hospital", "GOLDEN GATE FERRY",
                                        "GOLDEN GATE TRANSIT", "Harbor Bay", "Highland Hospital", "Kaiser", "LAVTA", "LBL", "MARIN TRANSIT",
                                        "Menlo Park", "Missing", "Monterey-Salinas Transit", "MUNI", "NAPA VINE", "Palo Alto", "PRESIDIGO",
                                        "RIO-VISTA", "SAMTRANS", "Santa Cruz Metro", "Santa Rosa City", "SF BAY FERRY", "SFGH", "SFSU",
                                        "SLTMO", "SOLTRANS", "Stanford", "TRI-DELTA", "UC BERKELEY", "UCSF", "UNION CITY",
-                                       "Utah Grand", "VTA", "WestCAT", "WESTCAT", "Yahoo"),
-                          technology = c("local bus", "heavy rail", "local bus")
+                                       "Utah Grand", "VTA", "WESTCAT", "Yahoo"),
+                          technology = c("local bus", "heavy rail", "commuter rail", "local bus", "BAD REFERENCE", "heavy rail", "local bus",
+                                         "local bus", "local bus", "ferry", "commuter rail", "local bus", "local bus", 
+                                         "local bus", "local bus", "local bus", "local bus", "local bus", "ferry",
+                                         "local bus", "local bus", "local bus", "local bus", "local bus", "local bus", "local bus",
+                                         "local bus", "Missing",  "local bus", "local bus", "local bus", "local bus", "local bus",
+                                         "local bus", "local bus", "local bus", "local bus", "ferry",  "local bus", "local bus",
+                                         "local bus", "local bus", "local bus", "local bus", "local bus", "local bus", "local bus",
+                                         "local bus", "local bus", "local bus", "local bus")
                           
                           )
 
+# Add bespoke tech replacements to handle exceptions from the base tech
+canonical_routes <- canonical_routes %>% 
+  left_join(base_tech, by = "canonical_operator") %>%
+  mutate(technology = ifelse(str_detect(canonical_name,"Light Rail") | str_detect(survey_name, "Light Rail"), "light rail", technology)) %>%
+  mutate(technology = ifelse(str_detect(canonical_name, "AC TRANSIT___[A-Z]+ ") & !str_detect(canonical_name, fixed("shuttle", ignore_case = TRUE)), "express bus", technology)) %>%
+  mutate(technology = ifelse(canonical_operator == "NAPA VINE" & str_detect(canonical_name, "(21)|(25)|(29)"), "express bus", technology)) %>%
+  mutate(technology = ifelse(str_detect(canonical_name, "^MUNI___[A-Z]+ "), "light rail", technology)) %>%
+  mutate(technology = ifelse(str_detect(canonical_name, "^VTA___1[0-9]{2}"), "express bus", technology))
 
 write.csv(canonical_routes, canonical_route_path, row.names = FALSE)
   

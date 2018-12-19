@@ -244,17 +244,17 @@ survey_non <- survey_combine %>%
   left_join(dictionary_non, by = c("operator", "survey_variable")) %>%
   filter(!is.na(generic_variable)) %>%
   mutate(generic_response = survey_response) %>% 
-  left_join(canonical_routes_crosswalk, by = c("operator" = "survey", "survey_year" = "survey_year", "survey_response" = "survey_name")) %>%
+  left_join(canonical_routes_crosswalk %>% select(-technology), by = c("operator" = "survey", "survey_year" = "survey_year", "survey_response" = "survey_name")) %>%
   mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response)) %>%
-  select(-canonical_name)
+  select(-canonical_name, -canonical_operator)
 
-
-  
 # Combine the categorical and non-categorical survey data and prepare to flatten
 survey_flat <- bind_rows(survey_cat, survey_non) %>%
   select(-survey_variable, -survey_response) %>%
   spread(generic_variable, generic_response) %>%
-  arrange(operator, survey_year, ID) 
+  arrange(operator, survey_year, ID) %>%
+  mutate(route = ifelse(operator == "BART", paste("BART", onoff_enter_station, onoff_exit_station, sep = "___"), route)) %>%
+  mutate(route = ifelse(operator == "Caltrain", paste("CALTRAIN", onoff_enter_station, onoff_exit_station, sep = "___"), route))
 
 remove(survey_cat, 
        survey_non)
@@ -267,21 +267,14 @@ remove(survey_cat,
 When the operator data is read in, it assumes every route in the system uses
 the same technology (e.g., all Muni routes are local bus). This is not correct,
 as some operators operate multiple technologies. These bespoke technologies are
-added here. See the `bespoke_survey_tech_replacement.csv` database for the changes,
-which have to be crafted manually.
+added here. These changes are recorded in the canonical route name database and 
+must be updated manually.
 
 ```{r update-tech}
-survey_tech_update <- read.csv("bespoke_survey_tech_replacement.csv", 
-                               colClasses = "character")
-
 survey_flat <- survey_flat %>% 
-  left_join(survey_tech_update, by = c("operator", "route")) %>% 
-  mutate(survey_tech = ifelse(!is.na(new_survey_tech), 
-                              new_survey_tech, 
-                              survey_tech)) %>%
-  select(-new_survey_tech)
+  left_join(canonical_routes_crosswalk %>% select(-survey_name) %>% unique(), 
+            by = c("operator" = "survey", "route" = "canonical_name", "survey_year")) 
 
-remove(survey_tech_update)
 ```
 
 # _User Intervention 06_
@@ -646,6 +639,16 @@ survey_standard <- survey_standard %>%
   mutate(third_route_after_survey_alight = ifelse(third_route_after_survey_alight == "Missing - Dummy Record", 
                                                   "", 
                                                   third_route_after_survey_alight)) 
+
+survey_standard <- survey_standard %>%
+  mutate(first_before_operator = str_extract(first_route_before_survey_board, "^[A-Z ]+"),
+         second_before_operator = str_extract(second_route_before_survey_board, "^[A-Z ]+"),
+         third_before_operator = str_extract(third_route_before_survey_board, "^[A-Z ]+"),
+         first_after_operator = str_extract(first_route_after_survey_alight, "^[A-Z ]+"),
+         second_after_operator = str_extract(second_route_after_survey_alight, "^[A-Z ]+"),
+         third_after_operator = str_extract(third_route_after_survey_alight, "^[A-Z ]+"))
+
+
 
 first_before <- as.data.frame(set_operator_name(survey_standard$first_route_before_survey_board))
 colnames(first_before) <- c("first_before_operator")
