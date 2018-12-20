@@ -1,3 +1,6 @@
+# Parameters
+DELIMITER = "___"
+
 # Geocode Functions
 sfc_as_cols <- function(x, geometry, names = c("x", "y")) {
   if (missing(geometry)) {
@@ -67,53 +70,62 @@ get_nearest_station <- function(station_names_df, survey_records_df, operator_ke
   return(return_df)
 }
 
-get_rail_names <- function(station_names, survey_records, operator, route_name,
-                           board_lat, board_lon, alight_lat, alight_lon) {
+
+get_rail_names <- function(station_names_shp, 
+                           survey_records_df, 
+                           operator, 
+                           route_name,
+                           board_lat, 
+                           board_lon, 
+                           alight_lat, 
+                           alight_lon) {
   
-  # station_names <- canonical_station_shp
-  # survey_records <- input_df %>%
-  #   filter(id == 10018)
-  # select(id,
-  #         "final_trip_first_route",
-  #         "final_transfer_from_first_boarding_lat",
-  #         "final_transfer_from_first_boarding_lon",
-  #         "final_transfer_from_first_alighting_lat",
-  #         "final_transfer_from_first_alighting_lon")
+  
+  # station_names_shp <- canonical_station_shp
   # operator <- "BART"
+  # survey_records_df <- input_df
   # route_name <- "final_trip_to_first_route"
   # board_lat <- "final_transfer_from_first_boarding_lat"
   # board_lon <- "final_transfer_from_first_boarding_lon"
   # alight_lat <- "final_transfer_from_first_alighting_lat"
   # alight_lon <- "final_transfer_from_first_alighting_lon"
   
-  filter_check <- paste0(route_name, " == '", operator, "'")
+  filter_expression <- paste0(route_name, " == '", operator, "'")
   
-  if(survey_records %>% filter_(filter_check) %>% nrow() > 0) {
-    board_names <- get_nearest_station(station_names, survey_records, operator, 
+  number_of_relevant_records <- survey_records_df %>%
+    filter_(filter_expression) %>%
+    nrow()
+  
+  if(number_of_relevant_records > 0) {
+    
+    board_names <- get_nearest_station(station_names_shp, survey_records_df, operator, 
                                        route_name, board_lat, board_lon)  
     
-    alight_names <- get_nearest_station(station_names, survey_records, operator,
+    alight_names <- get_nearest_station(station_names_shp, survey_records_df, operator,
                                         route_name, alight_lat, alight_lon)  
     
     combined_names <- board_names %>% 
       left_join(alight_names, by = "id") %>% 
-      mutate(full_name = paste(operator, station_na.x, station_na.y, sep = "___")) %>%
+      mutate(full_name = paste(operator, station_na.x, station_na.y, sep = DELIMITER)) %>%
       select(id, full_name)
     
     mutate_exp <- paste0("ifelse(", route_name, " == '", operator, "', full_name, ", route_name, ")")
     
-    temp <- survey_records %>%
+    temp_df <- survey_records_df %>%
       left_join(combined_names, by = "id") %>%
       mutate_(full_name = mutate_exp) %>%
       select(id, full_name)
     
-    survey_records <- survey_records %>% 
-      left_join(temp, by = "id") %>%
+    return_df <- survey_records_df %>% 
+      left_join(temp_df, by = "id") %>%
       mutate(!!route_name := full_name) %>% 
       select(-full_name)
+  
+  } else {
+    return_df <- survey_records_df
   }
   
-  return(survey_records)
+  return(return_df)
 }
 
 # Read Survey Functions
@@ -154,13 +166,20 @@ check_duplicate_variables <- function(df_duplicates) {
   
 }
 
-read_operator <- function(name, year, default_tech, file_path, variable_dictionary) {
+read_operator <- function(name, 
+                          year, 
+                          default_tech, 
+                          file_path, 
+                          variable_dictionary, 
+                          rail_names_df,
+                          canonical_shp) {
   
   # name <- 'AC Transit'
   # year <- 2018
   # default_tech <- 'local bus'
   # file_path <- f_actransit_survey_path
   # variable_dictionary <- dictionary_all
+  # rail_names_df <- rail_names_inputs_df
 
   variables_vector <- variable_dictionary %>%
     filter(operator == name) %>%
@@ -169,22 +188,27 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
   
   input_df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") 
   
-  if (name %in% rail_names_inputs$survey_name) {
-    inputs <- rail_names_inputs %>% 
-      filter(survey_name_df == name)
+  if (name %in% rail_names_df$survey_name) {
     
-    for (i in 1:nrow(rail_names_inputs %>% filter(survey_name_df == name))) {
+    relevant_rail_names_df <- rail_names_df %>% 
+      filter(survey_name == name)
+    
+    for (i in 1:nrow(relevant_rail_names_df)) {
       
-      input_df <- get_rail_names(canonical_station_shp, 
-                                 input_df,
-                                 inputs$operator_string[[i]],
-                                 inputs$route_string[[i]],
-                                 inputs$board_lat[[i]],
-                                 inputs$board_lon[[i]],
-                                 inputs$alight_lat[[i]],
-                                 inputs$alight_lon[[i]])}}
+      updated_df <- get_rail_names(canonical_shp, 
+                                   input_df,
+                                   relevant_rail_names_df$operator_string[[i]],
+                                   relevant_rail_names_df$route_string[[i]],
+                                   relevant_rail_names_df$board_lat[[i]],
+                                   relevant_rail_names_df$board_lon[[i]],
+                                   relevant_rail_names_df$alight_lat[[i]],
+                                   relevant_rail_names_df$alight_lon[[i]])
+    }
+  } else {
+    updated_df <- input_df 
+  }
   
-  df_variable_levels <- input_df %>%
+  df_variable_levels <- updated_df %>%
     gather(survey_variable, survey_response) %>%
     group_by(survey_variable, survey_response) %>%
     summarise(count = n()) %>%
@@ -197,7 +221,7 @@ read_operator <- function(name, year, default_tech, file_path, variable_dictiona
   # check_dropped_variables(df_variable_levels, 
   #                         external_variable_levels)
   
-  return_df <- input_df %>%
+  return_df <- updated_df %>%
     select(one_of(variables_vector)) %>%
     rename_at(vars(contains('id')), funs(sub('id', 'ID', .))) %>%
     gather(survey_variable, survey_response, -ID) %>%

@@ -47,11 +47,11 @@ for (p in list_of_packages){
   library(p, character.only = TRUE)
 }
 
-list_of_functions <- c(
+list_of_helpers <- c(
   "Build Standard Database Functions.R"
 )
 
-for (f in list_of_functions){
+for (f in list_of_helpers){
   source(f)
 }
 ```
@@ -63,7 +63,14 @@ knitr::opts_chunk$set(cache = FALSE, error = TRUE)
 options(stringsAsFactors = FALSE)
 ```
 
-# _User Intervention #01_
+
+#### Parameters
+```{r parameters}
+DELIMITER = "___"
+```
+
+
+# _User Intervention_
 The code uses r-user-name-specific relative directories. Add your name and your
 relative (to this directory) path to the `Data and Reports` directory to the two
 vectors in the below code block. Run `Sys.getenv('USERNAME')` to determine your R
@@ -79,7 +86,7 @@ user_list <- data.frame(
 )
 ```
 
-# _User Intervention #02_ 
+# _User Intervention_ 
 When adding a new operator, the user must: add the path to the survey data in 
 the code block below, e.g., `f_bart_survey_path`
 ```{r file-names}
@@ -138,9 +145,9 @@ f_output_decom_csv_path <- paste0(dir_path,
   "_data Standardized/decomposition/survey_decomposition.csv")
 ```
 
-# _User Intervention #03_
+# _User Intervention_
 When adding a new operator, the user must update the dictionary files that translate
-the survey coding to the standard coding. Edits to the dictionary can be made in
+the usually-bespoke survey coding to the standard coding. Edits to the dictionary can be made in
 the Excel file `Dictionary for Standard Database.xlsx`. The Excel file needs to 
 be exported to `csv`; the code reads in the CSV file. The existing entries in the
 dictionary *should* explicate the expected task. 
@@ -162,19 +169,26 @@ dictionary_cat <- dictionary_all %>%
 
 ```
 
+# _User Intervention_
+Each route in the Bay Area has a `canonical` or reference name. This name is stored
+in the database referenced in `f_canonical_path`. The user must match the route 
+names from a survey being added to the `canonical` route names in order to conduct 
+two ancillary tasks: (a) decomposition analysis of survey weights and (b) updates
+to the default technology assigned to the surveys in the subsequent code blocks.
+
+Please note that the `canonical` station names for BART and Caltrain are stored
+in the `f_canonical_station_path` shape file and appended via spatial matching
+in other surveys. 
+
 ## Add canonical station locations and crosswalk for recode
 ```{r}
-rail_names_inputs <- read.csv(f_rail_names_inputs_path)
+rail_names_inputs_df <- read.csv(f_rail_names_inputs_path)
 canonical_station_shp <- st_read(f_canonical_station_path)
 
 # Create index of stations
 canonical_station_shp <- canonical_station_shp %>%
   select(station_na, agencyname, mode) %>%
   mutate(index = 1:nrow(canonical_station_shp)) 
-  # mutate(station_na = str_replace_all(station_na, "[.]", "")) %>%
-  # mutate(station_na = str_replace_all(station_na, "Int'l", "International")) %>%
-  # mutate(station_na = str_replace(route, "Oakland Airport", "Oakland International Airport")) %>%
-  # mutate(station_na = str_replace_all(station_na, "/", " "))
 
 # Add canonical route crosswalk
 canonical_routes_crosswalk <- read.csv(f_canonical_routes_path)
@@ -182,46 +196,60 @@ canonical_routes_crosswalk <- read.csv(f_canonical_routes_path)
 
 ## Add surveys
 
-# _User Intervention #04_
+# _User Intervention_
 When adding a new operator, create a `read_operator` call and add the resulting
-dataframe to `survey_combine` in the last step.
+dataframe to `survey_combine` in the last step. For operators that provide service
+across multiple technologies, enter the dominant technology here and add route-specific
+changes to the `canonical` route database (e.g., SF Muni Metro routes are `light rail`)
 
 ```{r add-surveys}
 ac_transit_df <- read_operator('AC Transit',
                                2018,
                                'local bus',
                                f_actransit_survey_path,
-                               dictionary_all)
+                               dictionary_all,
+                               rail_names_inputs_df,
+                               canonical_station_shp)
 
 bart_df <- read_operator('BART',
                          2015,
                          'heavy rail',
                          f_bart_survey_path,
-                         dictionary_all)
+                         dictionary_all,
+                         rail_names_inputs_df,
+                         canonical_station_shp)
 
 caltrain_df <- read_operator('Caltrain',
                              2014,
                              'commuter rail',
                              f_caltrain_survey_path,
-                             dictionary_all)
+                             dictionary_all,
+                             rail_names_inputs_df,
+                             canonical_station_shp)
 
 muni_df <- read_operator('SF Muni',
                          2017,
                          'local bus',
                          f_muni_survey_path,
-                         dictionary_all)
+                         dictionary_all,
+                         rail_names_inputs_df,
+                         canonical_station_shp)
 
 # napa_vine_df <- read_operator('Napa Vine',
 #                               2014,
 #                               'local bus',
 #                               f_napa_survey_path,
-#                               dictionary_all)
+#                               dictionary_all,
+#                               rail_names_inputs_df,
+#                               canonical_station_shp)
 # 
 # vta_df <- read_operator('VTA',
 #                         2017,
 #                         'local bus',
 #                         f_vta_survey_path,
-#                         dictionary_all)
+#                         dictionary_all,
+#                         rail_names_inputs_df,
+#                         canonical_station_shp)
 
 survey_combine <- bind_rows(ac_transit_df,
   bart_df,
@@ -231,7 +259,13 @@ survey_combine <- bind_rows(ac_transit_df,
   # vta_df
   )
 
-remove(ac_transit_df, bart_df, caltrain_df, muni_df, napa_vine_df, vta_df)
+remove(ac_transit_df, 
+       bart_df, 
+       caltrain_df, 
+       muni_df 
+       #napa_vine_df, 
+       #vta_df
+      )
 
 ```
 
@@ -257,8 +291,8 @@ survey_flat <- bind_rows(survey_cat, survey_non) %>%
   select(-survey_variable, -survey_response) %>%
   spread(generic_variable, generic_response) %>%
   arrange(operator, survey_year, ID) %>%
-  mutate(route = ifelse(operator == "BART", paste("BART", onoff_enter_station, onoff_exit_station, sep = "___"), route)) %>%
-  mutate(route = ifelse(operator == "Caltrain", paste("CALTRAIN", onoff_enter_station, onoff_exit_station, sep = "___"), route)) %>%
+  mutate(route = ifelse(operator == "BART", paste("BART", onoff_enter_station, onoff_exit_station, sep = DELIMITER), route)) %>%
+  mutate(route = ifelse(operator == "Caltrain", paste("CALTRAIN", onoff_enter_station, onoff_exit_station, sep = DELIMITER), route)) %>%
   mutate(route = str_replace(route, "Intl", "International"))
 
 remove(survey_cat, 
@@ -268,8 +302,8 @@ remove(survey_cat,
 
 ## Update survey technology
 
-# _User Intervention #05_
-When the operator data is read in, it assumes every route in the system uses
+# _User Intervention_
+As noted above, when the operator data is read in, it assumes every route in the survey uses
 the same technology (e.g., all Muni routes are local bus). This is not correct,
 as some operators operate multiple technologies. These bespoke technologies are
 added here. These changes are recorded in the canonical route name database and 
@@ -278,15 +312,11 @@ must be updated manually.
 ```{r update-tech}
 survey_flat <- survey_flat %>% 
   left_join(canonical_routes_crosswalk %>% select(-survey_name) %>% unique(), 
-            by = c("operator" = "survey", "route" = "canonical_name", "survey_year")) %>%
-  mutate(canonical_operator = ifelse(operator == "BART", "BART", canonical_operator),
-         canonical_operator = ifelse(operator == "Caltrain", "CALTRAIN", canonical_operator)) %>%
-  mutate(technology = ifelse(canonical_operator == "BART", "heavy rail", technology),
-         technology = ifelse(canonical_operator == "CALTRAIN", "commuter rail", technology)) 
+            by = c("operator" = "survey", "route" = "canonical_name", "survey_year"))
 
 ```
 
-# _User Intervention 06_
+# _User Intervention_
 User should run each of the `Steps` below individually and make sure the results make sense.
 In addition, the `debug_transfers` frame should be empty. If it's not, the code
 has failed to identify an operator or technology for a route that is being
@@ -318,7 +348,8 @@ table(survey_standard$year_born)
 
 # Compute approximate respondent age 
 survey_standard <- survey_standard %>%
-  mutate(approximate_age = ifelse(!is.na(year_born) & survey_year >= year_born, survey_year - year_born, NA))
+  mutate(approximate_age = ifelse(!is.na(year_born) & survey_year >= year_born, survey_year - year_born, NA)) %>%
+  mutate(approximate_age = ifelse(approximate_age == 0, NA, approximate_age))
 
 table(survey_standard$approximate_age)
 
@@ -577,6 +608,9 @@ survey_standard <- survey_standard %>%
                                  'full- or part-time', 
                                  student_status))
 
+table(survey_standard$work_status)
+table(survey_standard$student_status)
+
 # Step 4:  Automobile Sufficiency
 # -------------------------------------------------------------------------------------
 
@@ -650,13 +684,12 @@ survey_standard <- survey_standard %>%
                                                   third_route_after_survey_alight)) 
 
 survey_standard <- survey_standard %>%
-  mutate(first_operator_before = str_extract(first_route_before_survey_board, "^[A-z ]+?(?=_)"),
-         second_operator_before = str_extract(second_route_before_survey_board, "^[A-z ]+?(?=_)"),
-         third_operator_before = str_extract(third_route_before_survey_board, "^[A-z ]+?(?=_)"),
-         first_operator_after = str_extract(first_route_after_survey_alight, "^[A-z ]+?(?=_)"),
-         second_operator_after = str_extract(second_route_after_survey_alight, "^[A-z ]+?(?=_)"),
-         third_operator_after = str_extract(third_route_after_survey_alight, "^[A-z ]+?(?=_)"))
-
+  mutate(first_before_operator = str_extract(first_route_before_survey_board, "^[A-z ]+?(?=_)"),
+         second_before_operator = str_extract(second_route_before_survey_board, "^[A-z ]+?(?=_)"),
+         third_before_operator = str_extract(third_route_before_survey_board, "^[A-z ]+?(?=_)"),
+         first_after_operator = str_extract(first_route_after_survey_alight, "^[A-z ]+?(?=_)"),
+         second_after_operator = str_extract(second_route_after_survey_alight, "^[A-z ]+?(?=_)"),
+         third_after_operator = str_extract(third_route_after_survey_alight, "^[A-z ]+?(?=_)"))
 
 # Set the technology for each of the six legs
 tech_crosswalk <- canonical_routes_crosswalk %>% 
@@ -665,45 +698,33 @@ tech_crosswalk <- canonical_routes_crosswalk %>%
 
 survey_standard <- survey_standard %>%
   left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
-                                  "first_operator_before" = "canonical_operator", 
+                                  "first_before_operator" = "canonical_operator", 
                                   "first_route_before_survey_board" = "canonical_name")) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "BART", "heavy rail", temp_tech)) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "Caltrain", "commuter rail", temp_tech)) %>%
   rename(first_before_technology = temp_tech) %>%
   
   left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
-                                  "second_operator_before" = "canonical_operator", 
+                                  "second_before_operator" = "canonical_operator", 
                                   "second_route_before_survey_board" = "canonical_name")) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "BART", "heavy rail", temp_tech)) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "Caltrain", "commuter rail", temp_tech)) %>%
   rename(second_before_technology = temp_tech) %>%
   
   left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
-                                  "third_operator_before" = "canonical_operator", 
+                                  "third_before_operator" = "canonical_operator", 
                                   "third_route_before_survey_board" = "canonical_name")) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "BART", "heavy rail", temp_tech)) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "Caltrain", "commuter rail", temp_tech)) %>%
   rename(third_before_technology = temp_tech) %>%
   
   left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
-                                  "first_operator_after" = "canonical_operator", 
+                                  "first_after_operator" = "canonical_operator", 
                                   "first_route_after_survey_alight" = "canonical_name")) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "BART", "heavy rail", temp_tech)) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "Caltrain", "commuter rail", temp_tech)) %>%
   rename(first_after_technology = temp_tech) %>%
   
   left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
-                                  "second_operator_after" = "canonical_operator", 
+                                  "second_after_operator" = "canonical_operator", 
                                   "second_route_after_survey_alight" = "canonical_name")) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "BART", "heavy rail", temp_tech)) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "Caltrain", "commuter rail", temp_tech)) %>%
   rename(second_after_technology = temp_tech) %>%
   
   left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
-                                  "third_operator_after" = "canonical_operator",
+                                  "third_after_operator" = "canonical_operator",
                                   "third_route_after_survey_alight" = "canonical_name")) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "BART", "heavy rail", temp_tech)) %>%
-  mutate(temp_tech = ifelse(canonical_operator == "Caltrain", "commuter rail", temp_tech)) %>%
   rename(third_after_technology = temp_tech)
 
 table(survey_standard$first_before_technology)
@@ -956,6 +977,7 @@ survey_standard <- survey_standard %>%
   mutate(language_at_home = ifelse(as.character(language_at_home_binary) == 'OTHER', 
                                    as.character(language_at_home_detail), 
                                    as.character(language_at_home_binary))) %>%
+  mutate(language_at_home = toupper(language_at_home)) %>%
   select(-language_at_home_binary, 
          -language_at_home_detail, 
          -race_dmy_ind, 
@@ -1103,10 +1125,8 @@ survey_coords <- survey_coords %>%
 survey_standard <- survey_standard %>%
   mutate(first_board_lat  = ifelse(number_transfers_orig_board == 0,  survey_board_lat,  first_board_lat)) %>%
   mutate(first_board_lon  = ifelse(number_transfers_orig_board == 0,  survey_board_lon,  first_board_lon)) %>%
-  # mutate(first_board_tech = ifelse(number_transfers_orig_board == 0,  survey_tech,       first_board_tech)) %>%
   mutate(last_alight_lat  = ifelse(number_transfers_alight_dest == 0, survey_alight_lat, last_alight_lat)) %>%
-  mutate(last_alight_lon  = ifelse(number_transfers_alight_dest == 0, survey_alight_lon, last_alight_lon)) %>%
-  # mutate(last_alight_tech = ifelse(number_transfers_alight_dest == 0, survey_tech,       last_alight_tech))
+  mutate(last_alight_lon  = ifelse(number_transfers_alight_dest == 0, survey_alight_lon, last_alight_lon)) 
 
 survey_board <- survey_standard %>%
   select(unique_ID, first_board_lat, first_board_lon, first_board_tech) %>%
@@ -1211,7 +1231,7 @@ remove(alight_coords, board_coords,
 
 ```
 
-# _User Intervention 07_
+# _User Intervention_
 Use the `__/geocode-engine` to geocode the above outcomes so the below expected
 files are ready. 
 
@@ -1401,7 +1421,7 @@ survey_standard_cols <- survey_standard %>%
 survey_standard <- survey_standard %>%
   select(survey_standard_cols, survey_time)
 
-saveRDS(survey_standard, file = f_output_rdata_path)
+saveRDS(survey_standard, file = f_output_rds_path)
 saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
 
 write.csv(survey_standard, file = f_output_csv_path, row.names = FALSE)
