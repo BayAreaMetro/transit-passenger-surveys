@@ -684,12 +684,12 @@ survey_standard <- survey_standard %>%
                                                   third_route_after_survey_alight)) 
 
 survey_standard <- survey_standard %>%
-  mutate(first_before_operator = str_extract(first_route_before_survey_board, "^[A-z ]+?(?=_)"),
-         second_before_operator = str_extract(second_route_before_survey_board, "^[A-z ]+?(?=_)"),
-         third_before_operator = str_extract(third_route_before_survey_board, "^[A-z ]+?(?=_)"),
-         first_after_operator = str_extract(first_route_after_survey_alight, "^[A-z ]+?(?=_)"),
-         second_after_operator = str_extract(second_route_after_survey_alight, "^[A-z ]+?(?=_)"),
-         third_after_operator = str_extract(third_route_after_survey_alight, "^[A-z ]+?(?=_)"))
+  mutate(first_before_operator = str_extract(first_route_before_survey_board, "^[A-z -]+?(?=_)"),
+         second_before_operator = str_extract(second_route_before_survey_board, "^[A-z -]+?(?=_)"),
+         third_before_operator = str_extract(third_route_before_survey_board, "^[A-z -]+?(?=_)"),
+         first_after_operator = str_extract(first_route_after_survey_alight, "^[A-z -]+?(?=_)"),
+         second_after_operator = str_extract(second_route_after_survey_alight, "^[A-z -]+?(?=_)"),
+         third_after_operator = str_extract(third_route_after_survey_alight, "^[A-z -]+?(?=_)"))
 
 # Set the technology for each of the six legs
 tech_crosswalk <- canonical_routes_crosswalk %>% 
