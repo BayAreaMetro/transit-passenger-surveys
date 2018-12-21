@@ -80,7 +80,7 @@ canonical_route_path <- "../production/canonical_route_crosswalk.csv"
 OP_DELIMITER <- "___"
 ROUTE_DELIMITER <- "&&&"
 
-get_rail_names_inputs <- read.csv(get_rail_names_inputs_path)
+get_rail_names_inputs_df <- read.csv(get_rail_names_inputs_path)
 
 # Read raw survey files
 ac_transit_raw_df <- read.csv(ac_transit_path) %>% 
@@ -129,13 +129,13 @@ caltrain_raw_df <- caltrain_raw_df %>%
 
 # Adjust route names within AC Transit survey
 
-transfer_names <- ac_transit_raw_df %>%
+transfer_names_list <- ac_transit_raw_df %>%
   select(matches("final_trip|final_route")) %>%
   select(-matches("code|stopid|other")) %>%
   colnames()
 
-ac_transit_routes <- ac_transit_raw_df %>%
-  select(one_of(transfer_names)) %>%
+ac_transit_routes_df <- ac_transit_raw_df %>%
+  select(one_of(transfer_names_list)) %>%
   gather(variable, value = survey_name) %>%
   filter(survey_name != "") %>% 
   unique() %>%
@@ -148,6 +148,7 @@ ac_transit_routes <- ac_transit_raw_df %>%
   mutate(canonical_name = str_replace_all(canonical_name, " +", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "\\s", " ")) %>%
  
   mutate(canonical_name = str_replace(canonical_name, "^ROUTE ", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "(?<=^AC Transit [0-9A-Z]{1,5} ) ", "")) %>%
@@ -335,7 +336,7 @@ ac_transit_routes <- ac_transit_raw_df %>%
   
   mutate(canonical_operator = ifelse(canonical_operator == "", "BAD REFERENCE", canonical_operator))
 
-ac_transit_routes <- ac_transit_routes %>%
+ac_transit_routes_df <- ac_transit_routes_df %>%
   filter(canonical_operator != "BAD REFERENCE") %>%
   mutate(survey = "AC Transit",
          survey_year = 2018) %>%
@@ -343,13 +344,13 @@ ac_transit_routes <- ac_transit_routes %>%
   unique()
   
 #Adjust route names within BART survey
-transfer_names <- bart_raw_df %>%
+transfer_names_list <- bart_raw_df %>%
   select_at(vars(matches("(trnsfr)|(route)"))) %>%
   select_at(vars(-contains("agency"))) %>%
   colnames()
 
-bart_routes <- bart_raw_df %>% 
-  select(one_of(transfer_names)) %>%
+bart_routes_df <- bart_raw_df %>% 
+  select(one_of(transfer_names_list)) %>%
   gather(variable, value = survey_name) %>%
   filter(survey_name != "") %>%
   unique() %>%
@@ -362,6 +363,7 @@ bart_routes <- bart_raw_df %>%
   mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, " {2,9}", " ")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "\\s", " ")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "illogical"), "Missing", canonical_operator)) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Missing"), "Missing", canonical_operator)) %>%
   
@@ -538,19 +540,19 @@ bart_routes <- bart_raw_df %>%
   
   mutate(canonical_operator = ifelse(canonical_operator == "", "BAD REFERENCE", canonical_operator))
   
-bart_routes <- bart_routes %>%
+bart_routes_df <- bart_routes_df %>%
   mutate(survey = "BART",
          survey_year = 2015) %>%
   select(survey, survey_year, survey_name, canonical_name, canonical_operator, -variable) %>%
   unique()
 
 # Adjust route names within Caltrain survey
-caltrain_names <- caltrain_raw_df %>%
+caltrain_names_list <- caltrain_raw_df %>%
   select(route, matches("(transfer_)|route"), -matches("loc")) %>%
   colnames()
 
-caltrain_routes <- caltrain_raw_df %>% 
-  select(one_of(caltrain_names)) %>%
+caltrain_routes_df <- caltrain_raw_df %>% 
+  select(one_of(caltrain_names_list)) %>%
   gather(variable, value = survey_name) %>%
   filter(survey_name != "") %>%
   unique() %>% 
@@ -562,6 +564,7 @@ caltrain_routes <- caltrain_raw_df %>%
   mutate(canonical_name = str_replace_all(canonical_name, " +", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "\\s", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, " {2,9}", " ")) %>%
   
   
@@ -653,7 +656,7 @@ caltrain_routes <- caltrain_raw_df %>%
   
   mutate(canonical_operator = ifelse(canonical_operator == "", "BAD REFERENCE", canonical_operator))
 
-caltrain_routes <- caltrain_routes %>%
+caltrain_routes_df <- caltrain_routes_df %>%
   filter(canonical_operator != "BAD REFERENCE") %>%
   mutate(survey = "Caltrain",
          survey_year = 2014) %>%
@@ -661,7 +664,7 @@ caltrain_routes <- caltrain_routes %>%
   unique()
   
 # Adjust route names within Muni survey
-sf_muni_routes <- sf_muni_raw_df %>%
+sf_muni_routes_df <- sf_muni_raw_df %>%
   select_at(vars(contains("route"))) %>%
   select_at(vars(-contains("lat"))) %>%
   select_at(vars(-contains("lon"))) %>%
@@ -678,6 +681,7 @@ sf_muni_routes <- sf_muni_raw_df %>%
   mutate(canonical_name = str_replace_all(canonical_name, " +", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "\\s", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, " {2,9}", " ")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, fixed("missing", ignore_case = TRUE)), "Missing", canonical_operator)) %>%
   mutate(canonical_operator = ifelse(survey_name == "-", "Missing", canonical_operator)) %>%
@@ -793,7 +797,7 @@ sf_muni_routes <- sf_muni_raw_df %>%
   
   mutate(canonical_operator = ifelse(canonical_operator == "", "BAD REFERENCE", canonical_operator))
 
-sf_muni_routes <- sf_muni_routes %>%
+sf_muni_routes_df <- sf_muni_routes_df %>%
   filter(canonical_operator != "BAD REFERENCE") %>%
   mutate(survey = "SF Muni",
          survey_year = 2017) %>%
@@ -806,7 +810,7 @@ sf_muni_routes <- sf_muni_routes %>%
 canonical_station_shp <- st_read(canonical_station_path)
 st_geometry(canonical_station_shp) <- NULL
 
-# canonical_bart_stations_df <- bart_routes %>% 
+# canonical_bart_stations_df <- bart_routes_df %>% 
 #   filter(canonical_operator == "BART") %>% 
 #   select(canonical_name) %>% 
 #   mutate(station_1 = str_replace(canonical_name, "&&&.*", "")) %>% 
@@ -837,22 +841,22 @@ bart_station_df <- expand.grid(bart_station_df$shp_name, bart_station_df$shp_nam
   mutate(survey_name = paste0("BART", OP_DELIMITER, station_1, ROUTE_DELIMITER, station_2)) %>%
   bind_cols(expand.grid(bart_station_df$canonical_name, bart_station_df$canonical_name) %>%
               rename(station_1 = Var1, station_2 = Var2) %>%
-              mutate(canonical_name = paste0("BART", OP_DELIMITER, station_1, ROUTE_DELIMITER, station_2))) %>%
-  mutate(survey = "RAIL STATIONS", 
+              mutate(canonical_name = paste0(station_1, ROUTE_DELIMITER, station_2))) %>%
+  mutate(survey = "GEOCODE", 
          survey_year = 2018,
          canonical_operator = "BART"
          ) %>%
   select(survey, survey_year, survey_name, canonical_name, canonical_operator)
 
-canonical_caltrain_stations_df <- caltrain_routes %>% 
-  filter(canonical_operator == "CALTRAIN") %>% 
-  select(canonical_name) %>% 
-  mutate(station_1 = str_replace(canonical_name, "&&&.*", "")) %>% 
-  mutate(station_2 = str_replace(canonical_name, ".*&&&", "")) 
-canonical_caltrain_stations_df <- canonical_caltrain_stations_df %>%
-  select(station = station_1) %>%
-  bind_rows(canonical_caltrain_stations_df %>% select(station = station_2)) %>%
-  unique()
+# canonical_caltrain_stations_df <- caltrain_routes_df %>% 
+#   filter(canonical_operator == "CALTRAIN") %>% 
+#   select(canonical_name) %>% 
+#   mutate(station_1 = str_replace(canonical_name, "&&&.*", "")) %>% 
+#   mutate(station_2 = str_replace(canonical_name, ".*&&&", "")) 
+# canonical_caltrain_stations_df <- canonical_caltrain_stations_df %>%
+#   select(station = station_1) %>%
+#   bind_rows(canonical_caltrain_stations_df %>% select(station = station_2)) %>%
+#   unique()
 
 caltrain_station_df <- canonical_station_shp %>% 
   filter(agencyname == "CALTRAIN") %>% 
@@ -865,30 +869,28 @@ caltrain_station_df <- canonical_station_shp %>%
   mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, "'", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
-  mutate(canonical_name = str_replace_all(canonical_name, " {2,9}", " ")) 
-  # mutate(canonical_name = str_replace(canonical_name, "(?<=Coliseum).*", "")) %>%
-  # mutate(canonical_name = str_replace(canonical_name, "Oakland Airport", "Oakland International Airport")) %>%
-  # mutate(canonical_name = str_replace(canonical_name, "Intl", "International")) %>%
-  # mutate(canonical_name = str_replace(canonical_name, "(?<=Pittsburg ).*", "Bay Point")) 
+  mutate(canonical_name = str_replace_all(canonical_name, " {2,9}", " ")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "22nd St", "22nd Street")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "S San Francisco", "South San Francisco"))
 
 caltrain_station_df <- expand.grid(caltrain_station_df$shp_name, caltrain_station_df$shp_name) %>%
   rename(station_1 = Var1, station_2 = Var2) %>%
   mutate(survey_name = paste0("CALTRAIN", OP_DELIMITER, station_1, ROUTE_DELIMITER, station_2)) %>%
   bind_cols(expand.grid(caltrain_station_df$canonical_name, caltrain_station_df$canonical_name) %>%
               rename(station_1 = Var1, station_2 = Var2) %>%
-              mutate(canonical_name = paste0("CALTRAIN", OP_DELIMITER, station_1, ROUTE_DELIMITER, station_2))) %>%
-  mutate(survey = "RAIL STATIONS", 
+              mutate(canonical_name = paste0(station_1, ROUTE_DELIMITER, station_2))) %>%
+  mutate(survey = "GEOCODE", 
          survey_year = 2018,
          canonical_operator = "CALTRAIN"
   ) %>%
   select(survey, survey_year, survey_name, canonical_name, canonical_operator)
 
 
-canonical_routes <- ac_transit_routes %>% 
-  bind_rows(bart_routes, caltrain_routes, sf_muni_routes) %>%
+canonical_routes_df <- ac_transit_routes_df %>% 
+  bind_rows(bart_routes_df, caltrain_routes_df, sf_muni_routes_df, bart_station_df, caltrain_station_df) %>%
   mutate(canonical_name = paste(canonical_operator, canonical_name, sep = OP_DELIMITER)) 
 
-base_tech <- data.frame(canonical_operator = c("AC TRANSIT", "AirTrain", "AMTRAK", "Apple", "BAD REFERENCE", "BART", "Bayview",
+base_tech_df <- data.frame(canonical_operator = c("AC TRANSIT", "AirTrain", "AMTRAK", "Apple", "BAD REFERENCE", "BART", "Bayview",
                                        "Berkeley Gateway TMA", "Bishop Ranch", "BLUE GOLD FERRY", "CALTRAIN", "COUNTY CONNECTION", "CPMC",
                                        "CSU", "EMERYVILLE MTA", "Facebook", "FAIRFIELD-SUISUN", "Fairmont Hospital", "GOLDEN GATE FERRY",
                                        "GOLDEN GATE TRANSIT", "Harbor Bay", "Highland Hospital", "Kaiser", "LAVTA", "LBL", "MARIN TRANSIT",
@@ -908,22 +910,22 @@ base_tech <- data.frame(canonical_operator = c("AC TRANSIT", "AirTrain", "AMTRAK
                           )
 
 # Add bespoke tech replacements to handle exceptions from the base tech
-canonical_routes <- canonical_routes %>% 
-  left_join(base_tech, by = "canonical_operator") %>%
+canonical_routes_df <- canonical_routes_df %>% 
+  left_join(base_tech_df, by = "canonical_operator") %>%
   mutate(technology = ifelse(str_detect(canonical_name,"Light Rail") | str_detect(survey_name, "Light Rail"), "light rail", technology)) %>%
   mutate(technology = ifelse(str_detect(canonical_name, "AC TRANSIT___[A-Z]+ ") & !str_detect(canonical_name, fixed("shuttle", ignore_case = TRUE)), "express bus", technology)) %>%
   mutate(technology = ifelse(canonical_operator == "NAPA VINE" & str_detect(canonical_name, "(21)|(25)|(29)"), "express bus", technology)) %>%
   mutate(technology = ifelse(str_detect(canonical_name, "^MUNI___[A-Z]+ "), "light rail", technology)) %>%
   mutate(technology = ifelse(str_detect(canonical_name, "^VTA___1[0-9]{2}"), "express bus", technology))
 
-write.csv(canonical_routes, canonical_route_path, row.names = FALSE)
+write.csv(canonical_routes_df, canonical_route_path, row.names = FALSE)
   
 # # The code below can be used to help develop copy paste material for reconciling routes in new surveys
-# error_check <- left_join(bind_rows(sf_muni_routes, bart_routes, caltrain_routes),
-#                          ac_transit_routes,
+# error_check <- left_join(bind_rows(sf_muni_routes_df, bart_routes_df, caltrain_routes_df),
+#                          ac_transit_routes_df,
 #                          by = c("canonical_name", "canonical_operator")) %>%
-#   bind_rows(right_join(bind_rows(sf_muni_routes, bart_routes, caltrain_routes),
-#                        ac_transit_routes,
+#   bind_rows(right_join(bind_rows(sf_muni_routes_df, bart_routes_df, caltrain_routes_df),
+#                        ac_transit_routes_df,
 #                        by = c("canonical_name", "canonical_operator"))) %>%
 #   filter(is.na(survey_name.x) | is.na(survey_name.y)) %>%
 #   mutate(group_count = ifelse(!is.na(survey_name.x), 1, 0),
