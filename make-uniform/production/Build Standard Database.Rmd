@@ -66,7 +66,8 @@ options(stringsAsFactors = FALSE)
 
 #### Parameters
 ```{r parameters}
-DELIMITER = "___"
+OP_DELIMITER = "___"
+ROUTE_DELIMITER = "&&&"
 ```
 
 
@@ -278,22 +279,31 @@ survey_cat <- survey_combine %>%
   filter(!is.na(generic_variable))
   
 # Join the dictionary and prepare the non-categorical variables
+rail_crosswalk_df <- canonical_routes_crosswalk %>%
+  filter(survey == "GEOCODE") %>%
+  select(survey_name, canonical_name)
+
 survey_non <- survey_combine %>% 
   left_join(dictionary_non, by = c("operator", "survey_variable")) %>%
   filter(!is.na(generic_variable)) %>%
   mutate(generic_response = survey_response) %>% 
-  left_join(canonical_routes_crosswalk %>% select(-technology), by = c("operator" = "survey", "survey_year" = "survey_year", "survey_response" = "survey_name")) %>%
+  left_join(canonical_routes_crosswalk %>% select(-technology), by = c("operator" = "survey", "survey_year", "survey_response" = "survey_name")) %>%
   mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response)) %>%
-  select(-canonical_name, -canonical_operator)
+  select(-canonical_name, -canonical_operator) %>%
+  left_join(rail_crosswalk_df, by = c("generic_response" = "survey_name")) %>%
+  mutate(generic_response = ifelse(!is.na(canonical_name), canonical_name, generic_response)) %>%
+  select(-canonical_name)
 
 # Combine the categorical and non-categorical survey data and prepare to flatten
 survey_flat <- bind_rows(survey_cat, survey_non) %>%
   select(-survey_variable, -survey_response) %>%
   spread(generic_variable, generic_response) %>%
   arrange(operator, survey_year, ID) %>%
-  mutate(route = ifelse(operator == "BART", paste("BART", onoff_enter_station, onoff_exit_station, sep = DELIMITER), route)) %>%
-  mutate(route = ifelse(operator == "Caltrain", paste("CALTRAIN", onoff_enter_station, onoff_exit_station, sep = DELIMITER), route)) %>%
-  mutate(route = str_replace(route, "Intl", "International"))
+  mutate(route = ifelse(operator == "BART", paste0("BART", OP_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
+  mutate(route = ifelse(operator == "Caltrain", paste0("CALTRAIN", OP_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
+  left_join(rail_crosswalk_df, by = c("route" = "survey_name")) %>%
+  mutate(route = ifelse(!is.na(canonical_name), canonical_name, route)) %>%
+  select(-canonical_name)
 
 remove(survey_cat, 
        survey_non)

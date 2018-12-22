@@ -1,6 +1,6 @@
 # Parameters
 OP_DELIMITER <-  "___"
-ROUTE_DELIMITER <- "---"
+ROUTE_DELIMITER <- "&&&"
 
 # Geocode Functions
 sfc_as_cols <- function(x, geometry, names = c("x", "y")) {
@@ -25,9 +25,9 @@ get_nearest_station <- function(station_names_df, survey_records_df, operator_ke
   # testing names
   # station_names_df <- station_names
   # survey_records_df <- survey_records
-  # route_name_string <- "final_trip_to_first_route"
-  # lat_name_string <- "final_transfer_to_first_boarding_lat"
-  # lon_name_string <- "final_transfer_to_first_boarding_lon"
+  # route_name_string <- "final_trip_from_first_route"
+  # lat_name_string <- "final_transfer_from_first_boarding_lat"
+  # lon_name_string <- "final_transfer_from_first_boarding_lon"
   # 
   # operator_key_string <- "BART"
 
@@ -85,7 +85,7 @@ get_rail_names <- function(station_names_shp,
   # station_names_shp <- canonical_station_shp
   # operator <- "BART"
   # survey_records_df <- input_df
-  # route_name <- "final_trip_to_first_route"
+  # route_name <- "final_trip_first_route"
   # board_lat <- "final_transfer_from_first_boarding_lat"
   # board_lon <- "final_transfer_from_first_boarding_lon"
   # alight_lat <- "final_transfer_from_first_alighting_lat"
@@ -174,13 +174,14 @@ read_operator <- function(name,
                           variable_dictionary, 
                           rail_names_df,
                           canonical_shp) {
-  
+  # 
   # name <- 'AC Transit'
   # year <- 2018
   # default_tech <- 'local bus'
   # file_path <- f_actransit_survey_path
   # variable_dictionary <- dictionary_all
   # rail_names_df <- rail_names_inputs_df
+  # canonical_shp <- canonical_station_shp
 
   variables_vector <- variable_dictionary %>%
     filter(operator == name) %>%
@@ -188,6 +189,8 @@ read_operator <- function(name,
     unique()
   
   input_df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") 
+  
+  updated_df <- input_df
   
   if (name %in% rail_names_df$survey_name) {
     
@@ -197,7 +200,7 @@ read_operator <- function(name,
     for (i in 1:nrow(relevant_rail_names_df)) {
       
       updated_df <- get_rail_names(canonical_shp, 
-                                   input_df,
+                                   updated_df,
                                    relevant_rail_names_df$operator_string[[i]],
                                    relevant_rail_names_df$route_string[[i]],
                                    relevant_rail_names_df$board_lat[[i]],
@@ -205,9 +208,7 @@ read_operator <- function(name,
                                    relevant_rail_names_df$alight_lat[[i]],
                                    relevant_rail_names_df$alight_lon[[i]])
     }
-  } else {
-    updated_df <- input_df 
-  }
+  } 
   
   df_variable_levels <- updated_df %>%
     gather(survey_variable, survey_response) %>%
