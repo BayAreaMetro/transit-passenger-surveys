@@ -55,9 +55,7 @@ dir_path <- user_list %>%
 f_decomposition_file_name <- paste0(
   dir_path, "_data Standardized/decomposition/survey_decomposition.RDS")
 
-f_canonical_route_names_file_name <- paste0("temp_canonical_route_names.csv")
-
-f_standard_crosswalk_file_name <- paste0("temp_standard_route_crosswalk.csv")
+f_canonical_route_crosswalk_file_name <- paste0("temp_canonical_route_crosswalk.csv")
 
 f_output_file_name <- paste0("route_level_analysis.csv")
 
@@ -70,9 +68,9 @@ remove(user_list)
 input_df <- readRDS(f_decomposition_file_name)
 
 # TODO fix muni hacks
-crosswalk_df <- read.csv(f_standard_crosswalk_file_name, header = TRUE, colClasses = c("NULL", rep("character", 5))) %>%
-  mutate(survey = ifelse(survey == "SFMTA", "SF Muni", survey)) %>%
-  mutate(survey_year = ifelse(survey == "SF Muni", "2017", survey_year))
+crosswalk_df <- read.csv(f_canonical_route_crosswalk_file_name, 
+                         header = TRUE, 
+                         colClasses = c("NULL", rep("character", 5))) 
 
 # TODO: add legacy surveys when we get there
 
@@ -164,8 +162,8 @@ running_df <- running_df %>%
   mutate(tofrom_label = label) %>%
   mutate(tofrom_label = ifelse(str_detect(label, "before"), "from", tofrom_label)) %>%
   mutate(tofrom_label = ifelse(str_detect(label, "after"), "to", tofrom_label)) %>%
-  select(survey_operator = operator,
-         survey_route = route,
+  select(operator,
+         route,
          survey_name = intercept_operator,
          survey_year,
          weekpart,
@@ -174,18 +172,7 @@ running_df <- running_df %>%
          survey_label = tofrom_label,
          survey_detail_label = label)
 
-
-join_df <- crosswalk_df %>%
-  rename(survey_name = survey, survey_year, survey_route = survey_name) %>%
-  mutate(survey_year = as.integer(survey_year))
-
-# TODO remove BART hack when crosswalk fixed
-working_df <- left_join(running_df, join_df, by = c("survey_name", "survey_year", "survey_route")) %>%
-  mutate(canonical_operator = ifelse(is.na(canonical_operator) & survey_operator == "BART", "BART", canonical_operator)) %>%
-  mutate(canonical_name = ifelse(is.na(canonical_name) & survey_operator == "BART", survey_route, canonical_name)) %>%
-  filter(!is.na(canonical_operator)) %>%
-  select(-survey_route, -survey_operator) %>%
-  rename(route = canonical_name, operator = canonical_operator) %>%
+working_df <- running_df %>%
   group_by(operator, route, survey_name, survey_year, weekpart, survey_label, survey_detail_label) %>%
   summarise(survey_boardings = sum(survey_boardings), survey_trips = sum(survey_trips)) %>%
   ungroup() %>%
