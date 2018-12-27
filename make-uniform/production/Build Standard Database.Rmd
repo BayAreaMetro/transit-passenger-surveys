@@ -701,38 +701,60 @@ survey_standard <- survey_standard %>%
          second_after_operator = str_extract(second_route_after_survey_alight, "^[A-z -]+?(?=_)"),
          third_after_operator = str_extract(third_route_after_survey_alight, "^[A-z -]+?(?=_)"))
 
+```
+
+```{r temp chunk}
+
 # Set the technology for each of the six legs
-tech_crosswalk <- canonical_routes_crosswalk %>% 
+tech_crosswalk_df <- canonical_routes_crosswalk %>% 
   select(-survey_name) %>%
   rename(temp_tech = technology)
 
+tech_crosswalk_expansion_list <- tech_crosswalk_df %>%
+  select(survey) %>% 
+  unique() %>%
+  filter(!survey %in% c("BART", "Caltrain", "GEOCODE"))
+
+tech_crosswalk_expansion_df <- tech_crosswalk_df %>%
+  filter(survey == "GEOCODE") %>%
+  select(-survey)
+
+tech_crosswalk_expansion_df <- tech_crosswalk_expansion_list %>% 
+  merge(tech_crosswalk_expansion_df, by = NULL)
+
+tech_crosswalk_df <- tech_crosswalk_df %>%
+  bind_rows(tech_crosswalk_expansion_df) %>%
+  filter(survey != "GEOCODE")
+
+remove(tech_crosswalk_expansion_df, tech_crosswalk_expansion_list)
+
 survey_standard <- survey_standard %>%
-  left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
+  left_join(tech_crosswalk_df, by =c("operator" = "survey", "survey_year", 
                                   "first_before_operator" = "canonical_operator", 
                                   "first_route_before_survey_board" = "canonical_name")) %>%
   rename(first_before_technology = temp_tech) %>%
   
-  left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
+  left_join(tech_crosswalk_df, by =c("operator" = "survey", "survey_year", 
                                   "second_before_operator" = "canonical_operator", 
                                   "second_route_before_survey_board" = "canonical_name")) %>%
   rename(second_before_technology = temp_tech) %>%
   
-  left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
+  left_join(tech_crosswalk_df, by =c("operator" = "survey", "survey_year", 
                                   "third_before_operator" = "canonical_operator", 
                                   "third_route_before_survey_board" = "canonical_name")) %>%
   rename(third_before_technology = temp_tech) %>%
   
-  left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
+  left_join(tech_crosswalk_df, by =c("operator" = "survey", "survey_year", 
                                   "first_after_operator" = "canonical_operator", 
                                   "first_route_after_survey_alight" = "canonical_name")) %>%
   rename(first_after_technology = temp_tech) %>%
   
-  left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
+  left_join(tech_crosswalk_df, by =c("operator" = "survey", "survey_year", 
                                   "second_after_operator" = "canonical_operator", 
                                   "second_route_after_survey_alight" = "canonical_name")) %>%
   rename(second_after_technology = temp_tech) %>%
   
-  left_join(tech_crosswalk, by =c("operator" = "survey", "survey_year", 
+  left_join(tech_crosswalk_df, by =c("operator" = "survey", "survey_year", 
                                   "third_after_operator" = "canonical_operator",
                                   "third_route_after_survey_alight" = "canonical_name")) %>%
   rename(third_after_technology = temp_tech)
