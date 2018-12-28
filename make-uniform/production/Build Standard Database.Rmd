@@ -672,24 +672,24 @@ remove(vehicles_dictionary,
 # - remove BART 'Missing - Dummy Record' before starting
 # - remove Muni 'None' before starting
 survey_standard <- survey_standard %>%
-  mutate(first_route_before_survey_board = ifelse(first_route_before_survey_board == "Missing - Dummy Record", 
+  mutate(first_route_before_survey_board = ifelse(first_route_before_survey_board == "Missing___Missing Dummy Record", 
                                                   "", 
                                                   first_route_before_survey_board) ) %>%
-  mutate(second_route_before_survey_board = ifelse(second_route_before_survey_board == "Missing - Dummy Record", 
+  mutate(second_route_before_survey_board = ifelse(second_route_before_survey_board == "Missing___Missing Dummy Record", 
                                                    "", 
                                                    second_route_before_survey_board)) %>%
-  mutate(third_route_before_survey_board = ifelse(third_route_before_survey_board == "Missing - Dummy Record", 
+  mutate(third_route_before_survey_board = ifelse(third_route_before_survey_board == "Missing___Missing Dummy Record", 
                                                   "", 
                                                   third_route_before_survey_board))
 
 survey_standard <- survey_standard %>%
-  mutate(first_route_after_survey_alight = ifelse(first_route_after_survey_alight == "Missing - Dummy Record", 
+  mutate(first_route_after_survey_alight = ifelse(first_route_after_survey_alight == "Missing___Missing Dummy Record", 
                                                   "", 
                                                   first_route_after_survey_alight)) %>%
-  mutate(second_route_after_survey_alight = ifelse(second_route_after_survey_alight == "Missing - Dummy Record", 
+  mutate(second_route_after_survey_alight = ifelse(second_route_after_survey_alight == "Missing___Missing Dummy Record", 
                                                    "", 
                                                    second_route_after_survey_alight)) %>%
-  mutate(third_route_after_survey_alight = ifelse(third_route_after_survey_alight == "Missing - Dummy Record", 
+  mutate(third_route_after_survey_alight = ifelse(third_route_after_survey_alight == "Missing___Missing Dummy Record", 
                                                   "", 
                                                   third_route_after_survey_alight)) 
 
@@ -701,20 +701,24 @@ survey_standard <- survey_standard %>%
          second_after_operator = str_extract(second_route_after_survey_alight, "^[A-z -]+?(?=_)"),
          third_after_operator = str_extract(third_route_after_survey_alight, "^[A-z -]+?(?=_)"))
 
+```
+
+```{r temp chunk}
 
 # Set the technology for each of the six legs
 tech_crosswalk_df <- canonical_routes_crosswalk %>% 
   select(-survey_name) %>%
-  rename(temp_tech = technology)
+  rename(temp_tech = technology) %>%
+  unique()
 
 tech_crosswalk_expansion_list <- tech_crosswalk_df %>%
-  select(survey) %>% 
+  select(survey, survey_year) %>% 
   unique() %>%
   filter(!survey %in% c("BART", "Caltrain", "GEOCODE"))
 
 tech_crosswalk_expansion_df <- tech_crosswalk_df %>%
   filter(survey == "GEOCODE") %>%
-  select(-survey)
+  select(-survey, -survey_year)
 
 tech_crosswalk_expansion_df <- tech_crosswalk_expansion_list %>% 
   merge(tech_crosswalk_expansion_df, by = NULL)
@@ -905,7 +909,6 @@ survey_standard <- survey_standard %>%
 
 table(survey_standard$light_rail_present)
 
-
 survey_standard <- survey_standard %>%
   mutate(path_line_haul = "LOC") %>%
   mutate(path_line_haul = ifelse(light_rail_present,    
@@ -942,12 +945,12 @@ survey_standard <- survey_standard %>%
   mutate(first  = ifelse(str_length(first_route_before_survey_board)  == 0L, 0, 1)) %>%
   mutate(second = ifelse(str_length(second_route_before_survey_board) == 0L, 0, 1)) %>%
   mutate(third  = ifelse(str_length(third_route_before_survey_board)  == 0L, 0, 1)) %>%
-  mutate(number_transfers_orig_board = ifelse(is.na(number_transfers_orig_board), 
+  mutate(number_transfers_orig_board = ifelse(is.na(number_transfers_orig_board),
          first + second + third, number_transfers_orig_board)) %>%
   mutate(first  = ifelse(str_length(first_route_after_survey_alight)  == 0L, 0, 1)) %>%
   mutate(second = ifelse(str_length(second_route_after_survey_alight) == 0L, 0, 1)) %>%
   mutate(third  = ifelse(str_length(third_route_after_survey_alight)  == 0L, 0, 1)) %>%
-  mutate(number_transfers_alight_dest = ifelse(is.na(number_transfers_alight_dest), 
+  mutate(number_transfers_alight_dest = ifelse(is.na(number_transfers_alight_dest),
          first + second + third, number_transfers_alight_dest)) %>%
   select(-first, -second, -third)
 
@@ -955,8 +958,8 @@ table(survey_standard$number_transfers_orig_board)
 table(survey_standard$number_transfers_alight_dest)
 
 survey_standard <- survey_standard %>%
-  mutate(survey_boardings = 1L + 
-           as.numeric(number_transfers_orig_board) + 
+  mutate(survey_boardings = 1L +
+           as.numeric(number_transfers_orig_board) +
            as.numeric(number_transfers_alight_dest) )
 
 table(survey_standard$boardings, survey_standard$survey_boardings)
@@ -974,8 +977,10 @@ debug_transfers <- survey_standard %>%
          third_route_after_survey_alight,  third_after_operator,  third_after_technology)
 
 survey_standard <- survey_standard %>%
-  select(-survey_boardings, -commuter_rail_present, -heavy_rail_present, 
+  select(-survey_boardings, -commuter_rail_present, -heavy_rail_present,
          -ferry_present, -light_rail_present, -express_bus_present)
+
+
 
 ```
 
