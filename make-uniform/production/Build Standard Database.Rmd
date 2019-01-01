@@ -171,9 +171,17 @@ names from a survey being added to the `canonical` route names. These route name
 are used to assign technologies to each of the routes collected in the survey,
 which allows travel model path labels to be assigned to each trip. 
 
+For transfers to BART and Caltrain, the software geo-codes the transfer locations
+to the nearest BART or Caltrain station. To facilitate this process, the user must 
+add the relevant variable names from the original surevy data to the `rail_names_inputs.csv`.
+This is necessary because this information is not carried through to the standard
+survey outcomes. 
+
 Please note that the `canonical` station names for BART and Caltrain are stored
 in the `f_canonical_station_path` shape file and appended via spatial matching
 to other surveys. 
+
+
 
 ## Add canonical station locations and crosswalk for recode
 ```{r}
