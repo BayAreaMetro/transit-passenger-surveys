@@ -55,8 +55,6 @@ dir_path <- user_list %>%
 f_decomposition_file_name <- paste0(
   dir_path, "_data Standardized/decomposition/survey_decomposition.RDS")
 
-f_canonical_route_crosswalk_file_name <- paste0("temp_canonical_route_crosswalk.csv")
-
 f_output_file_name <- paste0("route_level_analysis.csv")
 
 remove(user_list)
@@ -66,11 +64,6 @@ remove(user_list)
 #### Data Reads
 ```{r data-reads}
 input_df <- readRDS(f_decomposition_file_name)
-
-# TODO fix muni hacks
-crosswalk_df <- read.csv(f_canonical_route_crosswalk_file_name, 
-                         header = TRUE, 
-                         colClasses = c("NULL", rep("character", 5))) 
 
 # TODO: add legacy surveys when we get there
 
@@ -192,7 +185,10 @@ output_df <- left_join(trips_df,
                               "route", 
                               "weekpart", 
                               "survey_name", "survey_year")) %>%
-  mutate(survey_boardings = ifelse(is.na(survey_boardings), 0.0, survey_boardings))
+  mutate(survey_boardings = ifelse(is.na(survey_boardings), 0.0, survey_boardings)) %>%
+  mutate(operator = ifelse(operator == "MUNI", "SF Muni", operator)) %>%
+  mutate(operator = ifelse(operator == "AC TRANSIT", "AC Transit", operator)) %>%
+  mutate(operator = ifelse(operator == "CALTRAIN", "Caltrain", operator))
   
 # remove(working_df, boardings_df, trips_df, running_df)
 ```
