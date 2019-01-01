@@ -1039,14 +1039,8 @@ table(survey_standard$language_at_home)
 table(survey_standard$household_income)
 table(survey_standard$eng_proficient)
   
-# Step 8:  Create route if needed, set dates and times
+# Step 8:  Set dates and times
 # -------------------------------------------------------------------------------------
-
-# Build route from entry and exit station, as needed
-survey_standard <- survey_standard %>%
-  mutate(route = ifelse(!is.na(onoff_enter_station), 
-                        paste(onoff_enter_station, onoff_exit_station, sep = " "), 
-                        route))
 
 # Deal with date and time
 survey_standard <- survey_standard %>%
