@@ -12,9 +12,7 @@ editor_options:
 
 #### Purpose
 Procedure to translate any number of on-board survey data sets into a single 
-dataset with common variables and common responses.  This is a work-in-progress 
-production version of the procedures.  See `../mini-example` and 
-`../small-example` for working proto-types.  In this script, we put in place 
+dataset with common variables and common responses. In this script, we put in place 
 procedures to process surveys into a standard database.  See 
 `Extract Variables from Legacy Surveys.Rmd` for procedures to extract 
 variables from legacy surveys (i.e., those with SAS summary scripts).
@@ -47,13 +45,8 @@ for (p in list_of_packages){
   library(p, character.only = TRUE)
 }
 
-list_of_helpers <- c(
-  "Build Standard Database Functions.R"
-)
+source("Build Standard Database Functions.R")
 
-for (f in list_of_helpers){
-  source(f)
-}
 ```
 
 #### Knitr and global config
@@ -66,7 +59,7 @@ options(stringsAsFactors = FALSE)
 
 #### Parameters
 ```{r parameters}
-OP_DELIMITER = "___"
+OPERATOR_DELIMITER = "___"
 ROUTE_DELIMITER = "&&&"
 ```
 
@@ -90,6 +83,7 @@ user_list <- data.frame(
 # _User Intervention_ 
 When adding a new operator, the user must: add the path to the survey data in 
 the code block below, e.g., `f_bart_survey_path`
+
 ```{r file-names}
 dir_path <- user_list %>%
   filter(user == Sys.getenv("USERNAME")) %>%
@@ -173,13 +167,13 @@ dictionary_cat <- dictionary_all %>%
 # _User Intervention_
 Each route in the Bay Area has a `canonical` or reference name. This name is stored
 in the database referenced in `f_canonical_path`. The user must match the route 
-names from a survey being added to the `canonical` route names in order to conduct 
-two ancillary tasks: (a) decomposition analysis of survey weights and (b) updates
-to the default technology assigned to the surveys in the subsequent code blocks.
+names from a survey being added to the `canonical` route names. These route names
+are used to assign technologies to each of the routes collected in the survey,
+which allows travel model path labels to be assigned to each trip. 
 
 Please note that the `canonical` station names for BART and Caltrain are stored
 in the `f_canonical_station_path` shape file and appended via spatial matching
-in other surveys. 
+to other surveys. 
 
 ## Add canonical station locations and crosswalk for recode
 ```{r}
@@ -299,8 +293,8 @@ survey_flat <- bind_rows(survey_cat, survey_non) %>%
   select(-survey_variable, -survey_response) %>%
   spread(generic_variable, generic_response) %>%
   arrange(operator, survey_year, ID) %>%
-  mutate(route = ifelse(operator == "BART", paste0("BART", OP_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
-  mutate(route = ifelse(operator == "Caltrain", paste0("CALTRAIN", OP_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
+  mutate(route = ifelse(operator == "BART", paste0("BART", OPERATOR_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
+  mutate(route = ifelse(operator == "Caltrain", paste0("CALTRAIN", OPERATOR_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
   left_join(rail_crosswalk_df, by = c("route" = "survey_name")) %>%
   mutate(route = ifelse(!is.na(canonical_name), canonical_name, route)) %>%
   select(-canonical_name)
@@ -316,7 +310,7 @@ remove(survey_cat,
 As noted above, when the operator data is read in, it assumes every route in the survey uses
 the same technology (e.g., all Muni routes are local bus). This is not correct,
 as some operators operate multiple technologies. These bespoke technologies are
-added here. These changes are recorded in the canonical route name database and 
+added here. These changes are recorded in the `canonical route name database` and 
 must be updated manually.
 
 ```{r update-tech}
@@ -328,7 +322,7 @@ survey_flat <- survey_flat %>%
 
 # _User Intervention_
 User should run each of the `Steps` below individually and make sure the results make sense.
-In addition, the `debug_transfers` frame should be empty. If it's not, the code
+In addition, the `debug_transfers` dataframe should be empty. If it's not, the code
 has failed to identify an operator or technology for a route that is being
 transferred to or from. 
 
@@ -669,8 +663,7 @@ remove(vehicles_dictionary,
 # -------------------------------------------------------------------------------------
 
 # Set operator for each of six legs (three before, three after)
-# - remove BART 'Missing - Dummy Record' before starting
-# - remove Muni 'None' before starting
+# - remove Dummy Records
 survey_standard <- survey_standard %>%
   mutate(first_route_before_survey_board = ifelse(first_route_before_survey_board == "Missing___Missing Dummy Record", 
                                                   "", 
@@ -694,12 +687,12 @@ survey_standard <- survey_standard %>%
                                                   third_route_after_survey_alight)) 
 
 survey_standard <- survey_standard %>%
-  mutate(first_before_operator = str_extract(first_route_before_survey_board, "^[A-z -]+?(?=_)"),
+  mutate(first_before_operator  = str_extract(first_route_before_survey_board,  "^[A-z -]+?(?=_)"),
          second_before_operator = str_extract(second_route_before_survey_board, "^[A-z -]+?(?=_)"),
-         third_before_operator = str_extract(third_route_before_survey_board, "^[A-z -]+?(?=_)"),
-         first_after_operator = str_extract(first_route_after_survey_alight, "^[A-z -]+?(?=_)"),
-         second_after_operator = str_extract(second_route_after_survey_alight, "^[A-z -]+?(?=_)"),
-         third_after_operator = str_extract(third_route_after_survey_alight, "^[A-z -]+?(?=_)"))
+         third_before_operator  = str_extract(third_route_before_survey_board,  "^[A-z -]+?(?=_)"),
+         first_after_operator   = str_extract(first_route_after_survey_alight,  "^[A-z -]+?(?=_)"),
+         second_after_operator  = str_extract(second_route_after_survey_alight, "^[A-z -]+?(?=_)"),
+         third_after_operator   = str_extract(third_route_after_survey_alight,  "^[A-z -]+?(?=_)"))
 
 ```
 

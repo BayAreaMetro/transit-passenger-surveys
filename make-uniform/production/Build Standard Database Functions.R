@@ -1,5 +1,5 @@
 # Parameters
-OP_DELIMITER <-  "___"
+OPERATOR_DELIMITER <-  "___"
 ROUTE_DELIMITER <- "&&&"
 
 # Geocode Functions
@@ -107,7 +107,7 @@ get_rail_names <- function(station_names_shp,
     
     combined_names <- board_names %>% 
       left_join(alight_names, by = "id") %>% 
-      mutate(full_name = paste0(operator, OP_DELIMITER, station_na.x, ROUTE_DELIMITER, station_na.y)) %>%
+      mutate(full_name = paste0(operator, OPERATOR_DELIMITER, station_na.x, ROUTE_DELIMITER, station_na.y)) %>%
       select(id, full_name)
     
     mutate_exp <- paste0("ifelse(", route_name, " == '", operator, "', full_name, ", route_name, ")")
