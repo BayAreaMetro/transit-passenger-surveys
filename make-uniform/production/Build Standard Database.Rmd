@@ -98,7 +98,11 @@ dir_path <- user_list %>%
 f_canonical_station_path <- paste0(dir_path,
   "Geography Files/Passenger_Railway_Stations_2018.shp")
 
-f_taps_coords <- paste0(dir_path, "_geocoding Standardized/TAPs/taps_lat_long.csv")
+f_taps_coords_path <- paste0(dir_path, "_geocoding Standardized/TAPs/taps_lat_long.csv")
+
+f_taz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/tazs.shp")
+
+f_maz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/mazs.shp")
 
 f_rail_names_inputs_path <- "rail_names_inputs.csv"
 
@@ -1132,7 +1136,7 @@ survey_standard <- survey_standard %>%
 ```{r geocode-doit}
 # Prepare and write locations that need to be geo-coded to disk
 survey_standard <- survey_standard %>%
-  mutate(unique_ID = paste(ID, operator, survey_year, sep = "---"))
+  mutate(unique_ID = paste(ID, operator, survey_year, sep = "___"))
 
 survey_lat <- survey_standard %>%
   select(unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat, 
@@ -1182,7 +1186,7 @@ remove(survey_lat, survey_lon)
 
 ## Geocode Transit Locations
 ```{r geocode_transit}
-taps_coords <- read.csv(f_taps_coords) %>% 
+taps_coords <- read.csv(f_taps_coords_path) %>% 
   rename_all(tolower) %>% 
   select(n, mode, lat, lon = long) %>%
   mutate(mode = recode(mode, 
@@ -1195,9 +1199,11 @@ survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "fi
 survey_alight_spatial <- st_as_sf(survey_alight, coords = c("last_alight_lon", "last_alight_lat"))
 
 survey_board_spatial <- survey_board_spatial %>%
-  mutate(board_tap = NA)
+  mutate(board_tap = NA,
+         distance = NA)
 survey_alight_spatial <- survey_alight_spatial %>%
-  mutate(alight_tap = NA)
+  mutate(alight_tap = NA,
+         distance = NA)
 
 for (item in unique(taps_spatial$mode)) {
   temp_tap_spatial <- taps_spatial %>% 
@@ -1208,12 +1214,39 @@ for (item in unique(taps_spatial$mode)) {
   temp_board <- survey_board_spatial %>%
     filter(first_board_tech == item) 
   temp_board <- temp_board %>% 
-    bind_cols(temp_board_tap = st_nearest_feature(temp_board, temp_tap_spatial)) 
+    bind_cols(temp_board_tap = st_nearest_feature(temp_board, temp_tap_spatial))
   
-   temp_alight <- survey_alight_spatial %>%
+  temp_distance <- temp_board %>% 
+    select(temp_board_tap)
+  st_geometry(temp_distance) <- NULL
+  temp_distance <- temp_tap_spatial %>%
+    right_join(temp_distance, by = c("match" = "temp_board_tap"))
+  temp_distance <- temp_distance %>%
+    mutate(dist = st_distance(temp_board, temp_distance, by_element = TRUE))
+  st_geometry(temp_distance) <- NULL
+  temp_board <- temp_board %>%
+    ### Fix left join because it is set up to have a match for each row and the join criterion isn't exclusive.
+    left_join(temp_distance %>% select(match, dist), by = c("temp_board_tap" = "match")) %>%
+    mutate(distance = ifelse(!is.na(dist), dist, distance)) %>%
+    select(-dist)
+
+  temp_alight <- survey_alight_spatial %>%
     filter(last_alight_tech == item) 
-   temp_alight <- temp_alight %>%
+  temp_alight <- temp_alight %>%
     bind_cols(temp_alight_tap = st_nearest_feature(temp_alight, temp_tap_spatial)) 
+  
+  temp_distance <- temp_alight %>% 
+    select(temp_alight_tap)
+  st_geometry(temp_distance) <- NULL
+  temp_distance <- temp_tap_spatial %>%
+    right_join(temp_distance, by = c("match" = "temp_alight_tap"))
+  temp_distance <- temp_distance %>%
+    mutate(dist = st_distance(temp_alight, temp_distance, by_element = TRUE))
+  st_geometry(temp_distance) <- NULL
+  temp_alight <- temp_alight %>%
+    left_join(temp_distance %>% select(match, dist), by = c("temp_alight_tap" = "match")) %>%
+    mutate(distance = ifelse(!is.na(dist), dist, distance)) %>%
+    select(-dist)
   
   st_geometry(temp_tap_spatial) <- NULL
   
@@ -1223,9 +1256,10 @@ for (item in unique(taps_spatial$mode)) {
     rename(temp_board_tap = n)
 
   survey_board_spatial <- survey_board_spatial %>%
-    left_join(as.data.frame(temp_board) %>% select(unique_ID, temp_board_tap), by = "unique_ID") %>%
-    mutate(board_tap = ifelse(!is.na(temp_board_tap), temp_board_tap, board_tap)) %>%
-    select(-temp_board_tap)
+    left_join(as.data.frame(temp_board) %>% select(unique_ID, temp_board_tap, temp_dist = distance), by = "unique_ID") %>%
+    mutate(board_tap = ifelse(!is.na(temp_board_tap), temp_board_tap, board_tap),
+           distance = ifelse(!is.na(temp_dist), temp_dist, distance)) %>%
+    select(-temp_board_tap, -temp_dist)
 
   temp_alight <- temp_alight %>%
     left_join(as.data.frame(temp_tap_spatial) %>% select(match, n), by = c("temp_alight_tap" = "match")) %>%
@@ -1233,9 +1267,10 @@ for (item in unique(taps_spatial$mode)) {
     rename(temp_alight_tap = n)
 
   survey_alight_spatial <- survey_alight_spatial %>%
-    left_join(as.data.frame(temp_alight) %>% select(unique_ID, temp_alight_tap), by = "unique_ID") %>%
-    mutate(alight_tap = ifelse(!is.na(temp_alight_tap), temp_alight_tap, alight_tap)) %>%
-    select(-temp_alight_tap)
+    left_join(as.data.frame(temp_alight) %>% select(unique_ID, temp_alight_tap, temp_dist = distance), by = "unique_ID") %>%
+    mutate(alight_tap = ifelse(!is.na(temp_alight_tap), temp_alight_tap, alight_tap),
+           distance = ifelse(!is.na(temp_dist), temp_dist, distance)) %>%
+    select(-temp_alight_tap, -temp_dist)
   
   rm(temp_tap_spatial, temp_board, temp_alight)
 }
@@ -1260,19 +1295,23 @@ board_alight_tap <- survey_board_spatial %>%
   left_join(survey_alight_spatial, by = c("unique_ID"))
 
 remove(alight_coords, board_coords, 
-       survey_board_spatial, survey_alight_spatial,
-       survey_coords_spatial, taps_coords, taps_spatial)
+       survey_board_spatial, survey_alight_spatial, taps_coords, taps_spatial)
 
 ```
 
-# _User Intervention_
-Use the `__/geocode-engine` to geocode the above outcomes so the below expected
-files are ready. 
+## Geocode Other Locations
+```{r geocode_other}
+taz_shp <- st_read(f_taz_shp_path)
+
+maz_shp <- st_read(f_maz_shp_path)
+
+
+
+```
+
 
 ```{r geocode-addit}
 # Bring in the geocoding results
-geocoded_spatial_places <- read.csv(f_spatial_geocoded_path, header = TRUE)
-geocoded_transit_places <- read.csv(f_transit_geocoded_path, header = TRUE)
 
 geocoded_spatial_places <- geocoded_spatial_places %>% 
   rename(unique_ID = Unique_ID) %>%
