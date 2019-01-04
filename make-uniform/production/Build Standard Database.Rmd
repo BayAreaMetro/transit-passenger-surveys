@@ -31,6 +31,7 @@ interventions.
 ```{r overhead}
 list_of_packages <- c(
   "geosphere",
+  "ggplot2",
   "knitr",
   "rlang",
   "sf",
@@ -1127,7 +1128,7 @@ survey_standard <- survey_standard %>%
 
 ```
 
-### Geocode XY to travel model geographies 
+## Geocode XY to travel model geographies 
 ```{r geocode-doit}
 # Prepare and write locations that need to be geo-coded to disk
 survey_standard <- survey_standard %>%
@@ -1220,11 +1221,10 @@ for (item in unique(taps_spatial$mode)) {
     mutate(dist = st_distance(temp_board, temp_distance, by_element = TRUE))
   st_geometry(temp_distance) <- NULL
   temp_board <- temp_board %>%
-    ### Fix left join because it is set up to have a match for each row and the join criterion isn't exclusive.
-    left_join(temp_distance %>% select(match, dist), by = c("temp_board_tap" = "match")) %>%
-    mutate(distance = ifelse(!is.na(dist), dist, distance)) %>%
+    bind_cols(temp_distance %>% select(dist)) %>%
+    mutate(distance = dist) %>% 
     select(-dist)
-
+   
   temp_alight <- survey_alight_spatial %>%
     filter(last_alight_tech == item) 
   temp_alight <- temp_alight %>%
@@ -1239,8 +1239,8 @@ for (item in unique(taps_spatial$mode)) {
     mutate(dist = st_distance(temp_alight, temp_distance, by_element = TRUE))
   st_geometry(temp_distance) <- NULL
   temp_alight <- temp_alight %>%
-    left_join(temp_distance %>% select(match, dist), by = c("temp_alight_tap" = "match")) %>%
-    mutate(distance = ifelse(!is.na(dist), dist, distance)) %>%
+    bind_cols(temp_distance %>% select(dist)) %>%
+    mutate(distance = dist) %>% 
     select(-dist)
   
   st_geometry(temp_tap_spatial) <- NULL
@@ -1269,7 +1269,16 @@ for (item in unique(taps_spatial$mode)) {
   
   rm(temp_tap_spatial, temp_board, temp_alight)
 }
-  
+
+# Plot distribution of distance between boarding/alighting locations and TAP
+qplot(survey_board_spatial %>%
+        bind_rows(survey_alight_spatial) %>% 
+        .$distance, 
+      geom = "histogram",
+      main = "Distribution of distance between \nboarding/alighting location and TAP",
+      xlab = "Distance (m)",
+      binwidth = 1)
+
 board_coords <- as.data.frame(st_coordinates(survey_board_spatial)) %>%
   rename(first_board_lat = Y,
          first_board_lon = X)
@@ -1286,21 +1295,28 @@ survey_alight_spatial <- survey_alight_spatial %>%
   select(-last_alight_tech)
 st_geometry(survey_alight_spatial) <- NULL
 
-board_alight_tap <- survey_board_spatial %>%
-  left_join(survey_alight_spatial, by = c("unique_ID"))
+board_alight_tap <- survey_board_spatial %>% select(-distance) %>%
+  left_join(survey_alight_spatial %>% select(-distance), by = c("unique_ID"))
 
-remove(alight_coords, board_coords, 
-       survey_board_spatial, survey_alight_spatial, taps_coords, taps_spatial)
-
+remove(alight_coords, board_coords,
+       survey_board_spatial, survey_alight_spatial, 
+       taps_coords, taps_spatial)
 ```
 
 ## Geocode Other Locations
 ```{r geocode_other}
-taz_shp <- st_read(f_taz_shp_path)
+taz_shp <- st_read(f_taz_shp_path) %>%
+  select(taz = TAZ_ORIGIN) %>%
+  bind_cols(match = 1:nrow(taz_shp))
 
-maz_shp <- st_read(f_maz_shp_path)
+maz_shp <- st_read(f_maz_shp_path) %>%
+  select(maz = MAZ_ORIGIN) %>%
+  bind_cols(match = 1:nrow(maz_shp))
 
-
+survey_coords_spatial <- survey_coords_spatial %>%
+  mutate(taz = st_nearest_feature(survey_coords_spatial, taz_shp),
+         maz = st_nearest_feature(survey_coords_spatial, maz_shp)) %>%
+  left_join(taz_shp, by = 
 
 ```
 
