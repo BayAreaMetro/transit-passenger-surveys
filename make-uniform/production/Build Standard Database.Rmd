@@ -1189,10 +1189,16 @@ taps_coords <- read.csv(f_taps_coords_path) %>%
                        `1` = "local bus", `2` = "express bus", `3` = "ferry", 
                        `4` = "light rail", `5` = "heavy rail", `6` = "commuter rail"))
 
-taps_spatial <- st_as_sf(taps_coords, coords = c("lon", "lat"))
-survey_coords_spatial <- st_as_sf(survey_coords, coords = c("x_coord", "y_coord"))
-survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "first_board_lat"))
-survey_alight_spatial <- st_as_sf(survey_alight, coords = c("last_alight_lon", "last_alight_lat"))
+# CRS = 4236 sets the lat/long coordinates in the WGS1984 geographic survey
+# CRS = 2230 sets the projection for NAD 1983 California Zone 6 in US Feet
+taps_spatial <- st_as_sf(taps_coords, coords = c("lon", "lat"), crs = 4236)
+taps_spatial <- st_transform(taps_spatial, crs = 2230)
+survey_coords_spatial <- st_as_sf(survey_coords, coords = c("x_coord", "y_coord"), crs = 4236)
+survey_coords_spatial <- st_transform(survey_coords_spatial, crs = 2230)
+survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "first_board_lat"), crs = 4236)
+survey_board_spatial <- st_transform(survey_board_spatial, crs = 2230)
+survey_alight_spatial <- st_as_sf(survey_alight, coords = c("last_alight_lon", "last_alight_lat"), crs = 4236)
+survey_alight_spatial <- st_transform(survey_alight_spatial, crs = 2230)
 
 survey_board_spatial <- survey_board_spatial %>%
   mutate(board_tap = NA,
@@ -1305,18 +1311,68 @@ remove(alight_coords, board_coords,
 
 ## Geocode Other Locations
 ```{r geocode_other}
+### Figure out projections
+#Decimal degrees are 4236
+# shape files are 2230?
+
 taz_shp <- st_read(f_taz_shp_path) %>%
-  select(taz = TAZ_ORIGIN) %>%
-  bind_cols(match = 1:nrow(taz_shp))
+  select(taz = TAZ_ORIGIN) 
+taz_shp <- bind_cols(taz_shp, match = 1:nrow(taz_shp))
+taz_shp <- st_set_crs(taz_shp, 2230)
+
 
 maz_shp <- st_read(f_maz_shp_path) %>%
-  select(maz = MAZ_ORIGIN) %>%
-  bind_cols(match = 1:nrow(maz_shp))
+  select(maz = MAZ_ORIGIN)
+maz_shp <- bind_cols(maz_shp, match = 1:nrow(maz_shp))
+maz_shp <- st_set_crs(maz_shp, 2230)
 
 survey_coords_spatial <- survey_coords_spatial %>%
-  mutate(taz = st_nearest_feature(survey_coords_spatial, taz_shp),
-         maz = st_nearest_feature(survey_coords_spatial, maz_shp)) %>%
-  left_join(taz_shp, by = 
+  st_join(taz_shp, join = st_within)
+
+bad_survey_coords_spatial <- survey_coords_spatial %>%
+  filter(is.na(taz))
+
+temp <- st_distance(bad_survey_coords_spatial, taz_shp)
+
+survey_coords_spatial <- survey_coords_spatial %>%
+  mutate(taz_index = st_nearest_feature(survey_coords_spatial, taz_shp))
+survey_coords_spatial <- survey_coords_spatial %>%
+  mutate(maz_index = st_nearest_feature(survey_coords_spatial, maz_shp))
+
+taz_distance <- survey_coords_spatial %>%
+  select(taz_index)
+st_geometry(taz_distance) <- NULL
+taz_distance <- taz_shp %>%
+  right_join(taz_distance, by = c("match" = "taz_index"))
+taz_distance <- taz_distance %>%
+  mutate(dist = st_distance(taz_shp, taz_distance, by_element = TRUE))
+st_geometry(taz_distance) <- NULL
+temp <- survey_coords_spatial %>%
+  mutate(taz_dist = taz_distance$dist)
+
+
+################  
+  temp_board <- temp_board %>%
+    left_join(as.data.frame(temp_tap_spatial) %>% select(match, n), by = c("temp_board_tap" = "match")) %>%
+    select(-temp_board_tap) %>%
+    rename(temp_board_tap = n)
+
+  survey_board_spatial <- survey_board_spatial %>%
+    left_join(as.data.frame(temp_board) %>% select(unique_ID, temp_board_tap, temp_dist = distance), by = "unique_ID") %>%
+    mutate(board_tap = ifelse(!is.na(temp_board_tap), temp_board_tap, board_tap),
+           distance = ifelse(!is.na(temp_dist), temp_dist, distance)) %>%
+    select(-temp_board_tap, -temp_dist)
+
+  temp_alight <- temp_alight %>%
+    left_join(as.data.frame(temp_tap_spatial) %>% select(match, n), by = c("temp_alight_tap" = "match")) %>%
+    select(-temp_alight_tap) %>%
+    rename(temp_alight_tap = n)
+
+  survey_alight_spatial <- survey_alight_spatial %>%
+    left_join(as.data.frame(temp_alight) %>% select(unique_ID, temp_alight_tap, temp_dist = distance), by = "unique_ID") %>%
+    mutate(alight_tap = ifelse(!is.na(temp_alight_tap), temp_alight_tap, alight_tap),
+           distance = ifelse(!is.na(temp_dist), temp_dist, distance)) %>%
+    select(-temp_alight_tap, -temp_dist)
 
 ```
 
