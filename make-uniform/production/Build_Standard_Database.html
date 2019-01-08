@@ -1628,6 +1628,7 @@ survey_standard &lt;- survey_standard %&gt;%
 survey_standard &lt;- survey_standard %&gt;%
   mutate(time_string = ifelse(time_string == &quot;Missing - Dummy Record&quot;, NA, time_string)) %&gt;%
   mutate(time_string = ifelse(time_string == &quot;Missing - Question Not Asked&quot;, NA, time_string)) %&gt;%
+  mutate(time_string = ifelse(time_string == &quot;missing&quot;, NA, time_string)) %&gt;%
   # interpret the time string
   mutate(time1 = as.POSIXct(strptime(time_string, format = &quot;%l:%M:%S %p&quot;))) %&gt;%
   mutate(time2 = as.POSIXct(strptime(time_string, format = &quot;%l:%M %p&quot;))) %&gt;%
