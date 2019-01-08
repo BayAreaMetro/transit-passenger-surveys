@@ -1193,19 +1193,16 @@ taps_coords <- read.csv(f_taps_coords_path) %>%
 # CRS = 2230 sets the projection for NAD 1983 California Zone 6 in US Feet
 taps_spatial <- st_as_sf(taps_coords, coords = c("lon", "lat"), crs = 4236)
 taps_spatial <- st_transform(taps_spatial, crs = 2230)
-survey_coords_spatial <- st_as_sf(survey_coords, coords = c("x_coord", "y_coord"), crs = 4236)
-survey_coords_spatial <- st_transform(survey_coords_spatial, crs = 2230)
-survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "first_board_lat"), crs = 4236)
 survey_board_spatial <- st_transform(survey_board_spatial, crs = 2230)
 survey_alight_spatial <- st_as_sf(survey_alight, coords = c("last_alight_lon", "last_alight_lat"), crs = 4236)
 survey_alight_spatial <- st_transform(survey_alight_spatial, crs = 2230)
 
 survey_board_spatial <- survey_board_spatial %>%
-  mutate(board_tap = NA,
-         distance = NA)
+  mutate(board_tap = NA)#,
+         # distance = NA)
 survey_alight_spatial <- survey_alight_spatial %>%
-  mutate(alight_tap = NA,
-         distance = NA)
+  mutate(alight_tap = NA)#,
+         # distance = NA)
 
 for (item in unique(taps_spatial$mode)) {
   temp_tap_spatial <- taps_spatial %>% 
@@ -1218,36 +1215,36 @@ for (item in unique(taps_spatial$mode)) {
   temp_board <- temp_board %>% 
     bind_cols(temp_board_tap = st_nearest_feature(temp_board, temp_tap_spatial))
   
-  temp_distance <- temp_board %>% 
-    select(temp_board_tap)
-  st_geometry(temp_distance) <- NULL
-  temp_distance <- temp_tap_spatial %>%
-    right_join(temp_distance, by = c("match" = "temp_board_tap"))
-  temp_distance <- temp_distance %>%
-    mutate(dist = st_distance(temp_board, temp_distance, by_element = TRUE))
-  st_geometry(temp_distance) <- NULL
-  temp_board <- temp_board %>%
-    bind_cols(temp_distance %>% select(dist)) %>%
-    mutate(distance = dist) %>% 
-    select(-dist)
+  # temp_distance <- temp_board %>% 
+  #   select(temp_board_tap)
+  # st_geometry(temp_distance) <- NULL
+  # temp_distance <- temp_tap_spatial %>%
+  #   right_join(temp_distance, by = c("match" = "temp_board_tap"))
+  # temp_distance <- temp_distance %>%
+  #   mutate(dist = st_distance(temp_board, temp_distance, by_element = TRUE))
+  # st_geometry(temp_distance) <- NULL
+  # temp_board <- temp_board %>%
+  #   bind_cols(temp_distance %>% select(dist)) %>%
+  #   mutate(distance = dist) %>% 
+  #   select(-dist)
    
   temp_alight <- survey_alight_spatial %>%
     filter(last_alight_tech == item) 
   temp_alight <- temp_alight %>%
     bind_cols(temp_alight_tap = st_nearest_feature(temp_alight, temp_tap_spatial)) 
   
-  temp_distance <- temp_alight %>% 
-    select(temp_alight_tap)
-  st_geometry(temp_distance) <- NULL
-  temp_distance <- temp_tap_spatial %>%
-    right_join(temp_distance, by = c("match" = "temp_alight_tap"))
-  temp_distance <- temp_distance %>%
-    mutate(dist = st_distance(temp_alight, temp_distance, by_element = TRUE))
-  st_geometry(temp_distance) <- NULL
-  temp_alight <- temp_alight %>%
-    bind_cols(temp_distance %>% select(dist)) %>%
-    mutate(distance = dist) %>% 
-    select(-dist)
+  # temp_distance <- temp_alight %>% 
+  #   select(temp_alight_tap)
+  # st_geometry(temp_distance) <- NULL
+  # temp_distance <- temp_tap_spatial %>%
+  #   right_join(temp_distance, by = c("match" = "temp_alight_tap"))
+  # temp_distance <- temp_distance %>%
+  #   mutate(dist = st_distance(temp_alight, temp_distance, by_element = TRUE))
+  # st_geometry(temp_distance) <- NULL
+  # temp_alight <- temp_alight %>%
+  #   bind_cols(temp_distance %>% select(dist)) %>%
+  #   mutate(distance = dist) %>% 
+  #   select(-dist)
   
   st_geometry(temp_tap_spatial) <- NULL
   
@@ -1257,10 +1254,13 @@ for (item in unique(taps_spatial$mode)) {
     rename(temp_board_tap = n)
 
   survey_board_spatial <- survey_board_spatial %>%
-    left_join(as.data.frame(temp_board) %>% select(unique_ID, temp_board_tap, temp_dist = distance), by = "unique_ID") %>%
-    mutate(board_tap = ifelse(!is.na(temp_board_tap), temp_board_tap, board_tap),
-           distance = ifelse(!is.na(temp_dist), temp_dist, distance)) %>%
-    select(-temp_board_tap, -temp_dist)
+    left_join(as.data.frame(temp_board) %>% select(unique_ID, temp_board_tap 
+                                                   # temp_dist = distance
+                                                   ), by = "unique_ID") %>%
+    mutate(board_tap = ifelse(!is.na(temp_board_tap), temp_board_tap, board_tap)
+           # distance = ifelse(!is.na(temp_dist), temp_dist, distance)
+           ) %>%
+    select(-temp_board_tap)#, -temp_dist)
 
   temp_alight <- temp_alight %>%
     left_join(as.data.frame(temp_tap_spatial) %>% select(match, n), by = c("temp_alight_tap" = "match")) %>%
@@ -1268,22 +1268,25 @@ for (item in unique(taps_spatial$mode)) {
     rename(temp_alight_tap = n)
 
   survey_alight_spatial <- survey_alight_spatial %>%
-    left_join(as.data.frame(temp_alight) %>% select(unique_ID, temp_alight_tap, temp_dist = distance), by = "unique_ID") %>%
-    mutate(alight_tap = ifelse(!is.na(temp_alight_tap), temp_alight_tap, alight_tap),
-           distance = ifelse(!is.na(temp_dist), temp_dist, distance)) %>%
-    select(-temp_alight_tap, -temp_dist)
+    left_join(as.data.frame(temp_alight) %>% select(unique_ID, temp_alight_tap
+                                                    # temp_dist = distance
+                                                    ), by = "unique_ID") %>%
+    mutate(alight_tap = ifelse(!is.na(temp_alight_tap), temp_alight_tap, alight_tap)
+           # distance = ifelse(!is.na(temp_dist), temp_dist, distance)
+           ) %>%
+    select(-temp_alight_tap)#, -temp_dist)
   
   rm(temp_tap_spatial, temp_board, temp_alight)
 }
 
 # Plot distribution of distance between boarding/alighting locations and TAP
-qplot(survey_board_spatial %>%
-        bind_rows(survey_alight_spatial) %>% 
-        .$distance, 
-      geom = "histogram",
-      main = "Distribution of distance between \nboarding/alighting location and TAP",
-      xlab = "Distance (m)",
-      binwidth = 1)
+# qplot(survey_board_spatial %>%
+#         bind_rows(survey_alight_spatial) %>% 
+#         .$distance, 
+#       geom = "histogram",
+#       main = "Distribution of distance between \nboarding/alighting location and TAP",
+#       xlab = "Distance (m)",
+#       binwidth = 1)
 
 board_coords <- as.data.frame(st_coordinates(survey_board_spatial)) %>%
   rename(first_board_lat = Y,
@@ -1301,8 +1304,8 @@ survey_alight_spatial <- survey_alight_spatial %>%
   select(-last_alight_tech)
 st_geometry(survey_alight_spatial) <- NULL
 
-board_alight_tap <- survey_board_spatial %>% select(-distance) %>%
-  left_join(survey_alight_spatial %>% select(-distance), by = c("unique_ID"))
+board_alight_tap <- survey_board_spatial %>%
+  left_join(survey_alight_spatial, by = c("unique_ID"))
 
 remove(alight_coords, board_coords,
        survey_board_spatial, survey_alight_spatial, 
@@ -1311,69 +1314,99 @@ remove(alight_coords, board_coords,
 
 ## Geocode Other Locations
 ```{r geocode_other}
-### Figure out projections
-#Decimal degrees are 4236
-# shape files are 2230?
+survey_coords_spatial <- st_as_sf(survey_coords, coords = c("x_coord", "y_coord"), crs = 4236)
+survey_coords_spatial <- st_transform(survey_coords_spatial, crs = 2230)
+survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "first_board_lat"), crs = 4236)
 
 taz_shp <- st_read(f_taz_shp_path) %>%
   select(taz = TAZ_ORIGIN) 
 taz_shp <- bind_cols(taz_shp, match = 1:nrow(taz_shp))
 taz_shp <- st_set_crs(taz_shp, 2230)
 
-
 maz_shp <- st_read(f_maz_shp_path) %>%
   select(maz = MAZ_ORIGIN)
 maz_shp <- bind_cols(maz_shp, match = 1:nrow(maz_shp))
 maz_shp <- st_set_crs(maz_shp, 2230)
 
+#### Find nearest TAZ (within 1/4 mile, else NA)
 survey_coords_spatial <- survey_coords_spatial %>%
   st_join(taz_shp, join = st_within)
 
 bad_survey_coords_spatial <- survey_coords_spatial %>%
   filter(is.na(taz))
 
-temp <- st_distance(bad_survey_coords_spatial, taz_shp)
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  mutate(taz_index = st_nearest_feature(bad_survey_coords_spatial, taz_shp))
+
+bad_survey_coords_dist <- taz_shp %>%  
+  right_join(data.frame(match = bad_survey_coords_spatial$taz_index), by = "match")  %>%
+  rename(bad_taz = taz)
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  mutate(dist = st_distance(bad_survey_coords_spatial, bad_survey_coords_dist, by_element = TRUE)) 
+
+# If there is no TAZ within 1/4 mile, the TAZ is replaced with NA to indicate a failure
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  mutate(taz = bad_survey_coords_dist$bad_taz) %>% 
+  select(-taz_index) %>%
+  mutate(taz = ifelse(as.numeric(dist) / 5280 <= 0.25, taz, NA))
+
+# Plot distribution of distance between locations and TAZ where location not in TAZ
+# Plot distribution of distance between boarding/alighting locations and TAP
+# qplot(as.numeric(bad_survey_coords_spatial$dist),
+#       geom = "histogram",
+#       main = "Distribution of distance between \ncoordinates and TAZ",
+#       xlab = "Distance (m)",
+#       binwidth = 10)
+
+st_geometry(bad_survey_coords_spatial) <- NULL
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  select(-match, -dist) %>% 
+  rename(dist_taz = taz)
 
 survey_coords_spatial <- survey_coords_spatial %>%
-  mutate(taz_index = st_nearest_feature(survey_coords_spatial, taz_shp))
+  left_join(bad_survey_coords_spatial, by = c("unique_ID", "variable")) %>%
+  mutate(taz = ifelse(is.na(taz), dist_taz, taz)) %>%
+  select(-dist_taz, -match)
+
+# Find nearest MAZ within 1/4 mile (else NA)
 survey_coords_spatial <- survey_coords_spatial %>%
-  mutate(maz_index = st_nearest_feature(survey_coords_spatial, maz_shp))
+  st_join(maz_shp, join = st_within)
 
-taz_distance <- survey_coords_spatial %>%
-  select(taz_index)
-st_geometry(taz_distance) <- NULL
-taz_distance <- taz_shp %>%
-  right_join(taz_distance, by = c("match" = "taz_index"))
-taz_distance <- taz_distance %>%
-  mutate(dist = st_distance(taz_shp, taz_distance, by_element = TRUE))
-st_geometry(taz_distance) <- NULL
-temp <- survey_coords_spatial %>%
-  mutate(taz_dist = taz_distance$dist)
+bad_survey_coords_spatial <- survey_coords_spatial %>%
+  filter(is.na(maz))
 
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  mutate(maz_index = st_nearest_feature(bad_survey_coords_spatial, maz_shp))
 
-################  
-  temp_board <- temp_board %>%
-    left_join(as.data.frame(temp_tap_spatial) %>% select(match, n), by = c("temp_board_tap" = "match")) %>%
-    select(-temp_board_tap) %>%
-    rename(temp_board_tap = n)
+bad_survey_coords_dist <- maz_shp %>%  
+  right_join(data.frame(match = bad_survey_coords_spatial$maz_index), by = "match")  %>%
+  rename(bad_maz = maz)
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  mutate(dist = st_distance(bad_survey_coords_spatial, bad_survey_coords_dist, by_element = TRUE)) 
 
-  survey_board_spatial <- survey_board_spatial %>%
-    left_join(as.data.frame(temp_board) %>% select(unique_ID, temp_board_tap, temp_dist = distance), by = "unique_ID") %>%
-    mutate(board_tap = ifelse(!is.na(temp_board_tap), temp_board_tap, board_tap),
-           distance = ifelse(!is.na(temp_dist), temp_dist, distance)) %>%
-    select(-temp_board_tap, -temp_dist)
+# If there is no maz within 1/4 mile, the maz is replaced with NA to indicate a failure
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  mutate(maz = bad_survey_coords_dist$bad_maz) %>% 
+  select(-maz_index) %>%
+  mutate(maz = ifelse(as.numeric(dist) / 5280 <= 0.25, maz, NA))
 
-  temp_alight <- temp_alight %>%
-    left_join(as.data.frame(temp_tap_spatial) %>% select(match, n), by = c("temp_alight_tap" = "match")) %>%
-    select(-temp_alight_tap) %>%
-    rename(temp_alight_tap = n)
+# Plot distribution of distance between locations and maz where location not in maz
+# Plot distribution of distance between boarding/alighting locations and TAP
+# qplot(as.numeric(bad_survey_coords_spatial$dist),
+#       geom = "histogram",
+#       main = "Distribution of distance between \ncoordinates and maz",
+#       xlab = "Distance (m)",
+#       binwidth = 10)
 
-  survey_alight_spatial <- survey_alight_spatial %>%
-    left_join(as.data.frame(temp_alight) %>% select(unique_ID, temp_alight_tap, temp_dist = distance), by = "unique_ID") %>%
-    mutate(alight_tap = ifelse(!is.na(temp_alight_tap), temp_alight_tap, alight_tap),
-           distance = ifelse(!is.na(temp_dist), temp_dist, distance)) %>%
-    select(-temp_alight_tap, -temp_dist)
+st_geometry(bad_survey_coords_spatial) <- NULL
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  select(-match, -dist) %>% 
+  rename(dist_maz = maz)
 
+survey_coords_spatial <- survey_coords_spatial %>%
+  left_join(bad_survey_coords_spatial, by = c("unique_ID", "variable")) %>%
+  mutate(maz = ifelse(is.na(maz), dist_maz, maz)) %>%
+  select(-dist_maz, -match)
 ```
 
 
