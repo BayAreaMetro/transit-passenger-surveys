@@ -824,7 +824,8 @@ bart_station_df <- canonical_station_shp %>%
   mutate(canonical_name = str_replace_all(canonical_name, " *- *", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, "/", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, " +", " ")) %>%
-  mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%  
+  mutate(canonical_name = str_replace_all(canonical_name, "\\s", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, "'", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, " {2,9}", " ")) %>%
@@ -865,6 +866,7 @@ caltrain_station_df <- canonical_station_shp %>%
   mutate(canonical_name = str_replace_all(canonical_name, "/", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, " +", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, "\\.", "")) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "\\s", " ")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, "'", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, " $", "")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, " {2,9}", " ")) %>%

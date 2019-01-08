@@ -1373,7 +1373,8 @@ survey_coords_spatial <- survey_coords_spatial %>%
   st_join(maz_shp, join = st_within)
 
 bad_survey_coords_spatial <- survey_coords_spatial %>%
-  filter(is.na(maz))
+  filter(is.na(maz)) %>%
+  select(-taz)
 
 bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
   mutate(maz_index = st_nearest_feature(bad_survey_coords_spatial, maz_shp))
@@ -1412,38 +1413,34 @@ survey_coords_spatial <- survey_coords_spatial %>%
 
 ```{r geocode-addit}
 # Bring in the geocoding results
+st_geometry(survey_coords_spatial) <- NULL
 
-geocoded_spatial_places <- geocoded_spatial_places %>% 
-  rename(unique_ID = Unique_ID) %>%
-  select(-x_coord, -y_coord)
+survey_coords_spatial_taz <- survey_coords_spatial %>%
+  select(-maz) %>%
+  spread(variable, taz) %>% 
+  rename(dest_taz = dest, home_taz = home, orig_taz = orig,
+         school_taz = school, workplace_taz = workplace)
 
-geo_spatial_maz <- geocoded_spatial_places %>%
-  select(-TAZ1454) %>%
-  spread(variable, MAZ_ORIGINAL) %>%
-  select(unique_ID, dest_maz = dest, home_maz = home, orig_maz = orig, 
+survey_coords_spatial_maz <- survey_coords_spatial %>%
+  select(-taz) %>%
+  spread(variable, maz) %>% 
+  rename(dest_maz = dest, home_maz = home, orig_maz = orig,
          school_maz = school, workplace_maz = workplace)
 
-geo_spatial_taz <- geocoded_spatial_places %>%
-  select(-MAZ_ORIGINAL) %>%
-  spread(variable, TAZ1454) %>%
-  select(unique_ID, dest_taz = dest, home_taz = home, orig_taz = orig, 
-         school_taz = school, workplace_taz = workplace) 
-
-geo_transit_tap <- geocoded_transit_places %>%
-  select(unique_ID = Unique_ID, first_board_tap = board_tap, 
-         last_alight_tap = alight_tap)
+board_alight_tap <- board_alight_tap %>%
+  select(unique_ID, board_tap, alight_tap)
 
 # Joins
 survey_standard <- survey_standard %>% 
-  left_join(geo_spatial_maz, by = c("unique_ID")) %>%
-  left_join(geo_spatial_taz, by = c("unique_ID")) %>%
-  left_join(geo_transit_tap, by = c("unique_ID"))
+  left_join(survey_coords_spatial_taz, by = c("unique_ID")) %>%
+  left_join(survey_coords_spatial_maz, by = c("unique_ID")) %>%
+  left_join(board_alight_tap, by = c("unique_ID"))
 
-remove(geocoded_spatial_places, 
-       geocoded_transit_places, 
-       geo_spatial_maz, 
-       geo_spatial_taz, 
-       geo_transit_tap)
+remove(board_alight_tap,
+       survey_coords,
+       survey_coords_spatial,
+       survey_coords_spatial_taz,
+       survey_coords_spatial_maz)
 ```
 
 ### Clean up data types
