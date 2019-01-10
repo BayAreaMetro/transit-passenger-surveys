@@ -396,7 +396,7 @@ bart_routes_df <- bart_raw_df %>%
   mutate(canonical_name = str_replace(canonical_name, "North Burlingame shuttle", "North Burlingame Shuttle")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "Burlingame"), "CALTRAIN", canonical_operator)) %>%
   
-  mutate(canonical_name = str_replace(canonical_name, "^Caltrain.*", "CALTRAIN___MISSING___MISSING")) %>%
+  mutate(canonical_name = str_replace(canonical_name, "^Caltrain.*", paste0("CALTRAIN", OP_DELIMITER, "MISSING", ROUTE_DELIMITER, "MISSING"))) %>%
   mutate(canonical_name = str_replace(canonical_name, "^CALTRAIN___", "")) %>%
   mutate(canonical_name = str_replace(canonical_name, "Bayhill Shuttle.*", "Bayhill San Bruno Shuttle")) %>% 
   mutate(canonical_name = str_replace(canonical_name, "(?<=Mariners Island ).*", "PCA Employer Shuttle")) %>%
@@ -580,7 +580,7 @@ caltrain_routes_df <- caltrain_raw_df %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^Angel Island"), "SF BAY FERRY", canonical_operator)) %>%
   
   mutate(canonical_name = str_replace_all(canonical_name, "^BART[A-Z ]* ", "BART___")) %>%
-  mutate(canonical_name = str_replace_all(canonical_name, "(?<=BART[_A-Za-z /]{1,50}) [Tt]o ", OP_DELIMITER)) %>%
+  mutate(canonical_name = str_replace_all(canonical_name, "(?<=BART[_A-Za-z /]{1,50}) [Tt]o ", ROUTE_DELIMITER)) %>%
   mutate(canonical_name = str_replace_all(canonical_name, "BART___", "")) %>%
   mutate(canonical_name = str_replace_all(canonical_name, "^BART ", "")) %>%
   mutate(canonical_operator = ifelse(str_detect(survey_name, "^BART"), "BART", canonical_operator)) %>%

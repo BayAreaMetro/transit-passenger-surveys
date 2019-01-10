@@ -1110,10 +1110,10 @@ survey_standard <- survey_standard %>%
   # create a time_start (in hours) for day_part
   mutate(time_start = as.numeric(format(survey_time_posix,"%H"))) %>%
   mutate(day_part = 'EVENING') %>%
-  mutate(day_part = ifelse(time_start > 2  & time_start < 6,  'EARLY AM', day_part)) %>%
-  mutate(day_part = ifelse(time_start > 5  & time_start < 11, 'AM PEAK' , day_part)) %>%
-  mutate(day_part = ifelse(time_start > 10 & time_start < 15, 'MIDDAY'  , day_part)) %>%
-  mutate(day_part = ifelse(time_start > 14 & time_start < 19, 'PM PEAK' , day_part)) %>%
+  mutate(day_part = ifelse(time_start >= 3  & time_start < 6,  'EARLY AM', day_part)) %>%
+  mutate(day_part = ifelse(time_start >= 6  & time_start < 11, 'AM PEAK' , day_part)) %>%
+  mutate(day_part = ifelse(time_start >= 11 & time_start < 15, 'MIDDAY'  , day_part)) %>%
+  mutate(day_part = ifelse(time_start >= 15 & time_start < 19, 'PM PEAK' , day_part)) %>%
   # keep survey_time to output
   mutate(survey_time=format(survey_time_posix, format="%H:%M:%S"))
 
