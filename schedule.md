@@ -19,40 +19,42 @@ CONTENTS
 |:---------------------------------|:--------------------------------------------------------------------------------------------------|:-----------------------|
 | 2012                             | [County Connection](https://mtcdrive.app.box.com/v/onboard-survey-reports/folder/4229005757)      | AC Transit             |
 |                                  | Petaluma Transit                                                                                  |                        |
-|                                  | Santa Rosa CityBus     |                        |
-|                                  | Sonoma County Transit  |                        |
-|                                  |                        |                        |
-| 2013                             | Union City Transit     | Golden Gate Transit    |
-|                                  | SamTrans               | WETA Ferries           |
-| 				   |                        | Wheels (LAVTA)         |
-|                                  |                        |	                     |
-| 2014                             | ACE                    | Caltrain               |
-|                                  | Tri Delta Transit      |                        |
-|                                  | Napa Vine Transit      |                        |
-|                                  |                        |	                     |
-| 2015                             | BART                   |                        |
-|                                  |                        |                        |
-| 2016                             |                        | Muni                   |
-|                                  |                        | VTA                    |
-|                                  |                        |                        |
-| 2017                             | Muni (continued)       | AC Transit             |
-|                                  | VTA (continued)        | Dumbarton Express      |
-|                                  | FAST                   | Union City Transit     |
-|                                  | SolTrans               | WestCAT                |
-| 				   | Rio Vista Delta Breeze |                        |
-| 				   | Vacaville City Coach   |                        |
-|                                  | Marin Transit          |	                     |
-|                                  |                        |	                     |
-| 2018                             | Golden Gate Ferries    | Wheels (LAVTA)         |
-|                                  | Golden Gate Transit    | WETA Ferries           |
-|                                  | Petaluma Transit       |                        |
-|                                  | Sonoma County Transit  |	                     |
-|                                  | Santa Rosa CityBus     |	                     |
-|                                  | SMART                  |                        |	
-|                                  |                        |	                     |
-[here](https://mtcdrive.box.com/v/onboard-survey-reports)
+|                                  | Santa Rosa CityBus                                                                                |                        |
+|                                  | Sonoma County Transit                                                                             |                        |
+|                                  |                                                                                                   |                        |
+| 2013                             | Union City Transit                                                                                | Golden Gate Transit    |
+|                                  | SamTrans                                                                                          | WETA Ferries           |
+| 				   |                                                                                                   | Wheels (LAVTA)         |
+|                                  |                                                                                                   |	                |
+| 2014                             | ACE                                                                                               | Caltrain               |
+|                                  | Tri Delta Transit                                                                                 |                        |
+|                                  | Napa Vine Transit                                                                                 |                        |
+|                                  |                                                                                                   |                        |
+| 2015                             | BART                                                                                              |                        |
+|                                  |                                                                                                   |                        |
+| 2016                             |                                                                                                   | Muni                   |
+|                                  |                                                                                                   | VTA                    |
+|                                  |                                                                                                   |                        |
+| 2017                             | Muni (continued)                                                                                  | AC Transit             |
+|                                  | VTA (continued)                                                                                   | Dumbarton Express      |
+|                                  | FAST                                                                                              | Union City Transit     |
+|                                  | SolTrans                                                                                          | WestCAT                |
+| 				   | Rio Vista Delta Breeze                                                                            |                        |
+| 				   | Vacaville City Coach                                                                              |                        |
+|                                  | Marin Transit                                                                                     |	                |
+|                                  |                                                                                                   |                        |
+| 2018                             | Golden Gate Ferries                                                                               | Wheels (LAVTA)         |
+|                                  | Golden Gate Transit                                                                               | WETA Ferries           |
+|                                  | Petaluma Transit                                                                                  |                        |
+|                                  | Sonoma County Transit                                                                             |	                |
+|                                  | Santa Rosa CityBus                                                                                |	                |
+|                                  | SMART                                                                                             |                        |	
+|                                  |                                                                                                   |	                |
+
 
 <br/>
+
+[here](https://mtcdrive.box.com/v/onboard-survey-reports)
 
 ## Tentative Future Schedule
 
