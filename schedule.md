@@ -48,7 +48,6 @@ CONTENTS
 |                | [Petaluma Transit](https://mtcdrive.app.box.com/folder/75144036250)                               |                                                                       |
 |                | [Sonoma County Transit](https://mtcdrive.app.box.com/folder/75144036250)                          |	                                                                     |
 |                | [Santa Rosa CityBus](https://mtcdrive.app.box.com/folder/75144036250)                             |	                                                                     |
-|                |                                                                                                   |                                                                       |	
 
 
 <br/>
