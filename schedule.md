@@ -60,10 +60,6 @@ CONTENTS
 
 | **Survey Year**                  | **Spring**             | **Fall**               |
 |:---------------------------------|:-----------------------|:-----------------------|
-| 2019                             | ACE                    | SamTrans               |
-|                                  | Napa VINE Transit      | County Connection      |
-|                                  | Tri Delta Transit      |                        |
-|                                  |                        |	                     |
 | 2020                             | BART                   | BART (continued)       |
 |                                  |                        | Caltrain               |
 |                                  |                        |	                     |
