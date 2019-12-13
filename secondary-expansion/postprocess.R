@@ -16,7 +16,7 @@ seed_households <- read.csv(file.path(POPSIM_Dir, "data", "seed_households.csv")
 popSim_weights <- read.csv(file.path(POPSIM_Dir, "output", "GEOID_weights.csv"), stringsAsFactors = FALSE)
 
 # Read in target boardings for 2015
-boarding_targets <- read.csv(file.path(Targets_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE)
+boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE)
 boarding_targets$technology[boarding_targets$technology=="Ferry"] <- "FR"
 
 
