@@ -61,7 +61,7 @@ CONTENTS
 
 | **Survey Year**                  | **Spring**             | **Fall**               |
 |:---------------------------------|:-----------------------|:-----------------------|
-| 2020                             | BART                   | BART (continued)       |
+| 2020                             | SamTrans (continued)   | BART       |
 |                                  |                        | Caltrain               |
 |                                  |                        |	                     |
 | 2021                             | BART (continued)       |	                     |
