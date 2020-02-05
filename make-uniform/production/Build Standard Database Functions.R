@@ -94,7 +94,7 @@ get_rail_names <- function(station_names_shp,
   filter_expression <- paste0(route_name, " == '", operator, "'")
   
   number_of_relevant_records <- survey_records_df %>%
-    filter_(filter_expression) %>%
+    filter(filter_expression) %>%
     nrow()
   
   if(number_of_relevant_records > 0) {
@@ -114,14 +114,14 @@ get_rail_names <- function(station_names_shp,
     
     temp_df <- survey_records_df %>%
       left_join(combined_names, by = "id") %>%
-      mutate_(full_name = mutate_exp) %>%
+      mutate(full_name = mutate_exp) %>%
       select(id, full_name)
     
     return_df <- survey_records_df %>% 
       left_join(temp_df, by = "id") %>%
       mutate(!!route_name := full_name) %>% 
       select(-full_name)
-  
+    
   } else {
     return_df <- survey_records_df
   }
@@ -182,7 +182,7 @@ read_operator <- function(name,
   # variable_dictionary <- dictionary_all
   # rail_names_df <- rail_names_inputs_df
   # canonical_shp <- canonical_station_shp
-
+  
   variables_vector <- variable_dictionary %>%
     filter(operator == name) %>%
     .$survey_variable %>%
