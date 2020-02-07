@@ -274,8 +274,8 @@ survey_combine <- bind_rows(
 remove(
        #ac_transit_df, 
        bart_df, 
-       caltrain_df, 
-       muni_df, 
+       caltrain_df,
+#      muni_df,
        napa_vine_df, 
        vta_df
       )
@@ -1199,6 +1199,7 @@ taps_coords <- read.csv(f_taps_coords_path) %>%
 # CRS = 2230 sets the projection for NAD 1983 California Zone 6 in US Feet
 taps_spatial <- st_as_sf(taps_coords, coords = c("lon", "lat"), crs = 4236)
 taps_spatial <- st_transform(taps_spatial, crs = 2230)
+survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "first_board_lat"), crs = 4236)
 survey_board_spatial <- st_transform(survey_board_spatial, crs = 2230)
 survey_alight_spatial <- st_as_sf(survey_alight, coords = c("last_alight_lon", "last_alight_lat"), crs = 4236)
 survey_alight_spatial <- st_transform(survey_alight_spatial, crs = 2230)
@@ -1322,7 +1323,6 @@ remove(alight_coords, board_coords,
 ```{r geocode_other}
 survey_coords_spatial <- st_as_sf(survey_coords, coords = c("x_coord", "y_coord"), crs = 4236)
 survey_coords_spatial <- st_transform(survey_coords_spatial, crs = 2230)
-survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "first_board_lat"), crs = 4236)
 
 taz_shp <- st_read(f_taz_shp_path) %>%
   select(taz = TAZ_ORIGIN) 
