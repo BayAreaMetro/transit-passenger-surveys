@@ -46,7 +46,7 @@ for (p in list_of_packages){
   library(p, character.only = TRUE)
 }
 
-source("make-uniform/production/Build Standard Database Functions.R")
+source("Build Standard Database Functions.R")
 
 ```
 
@@ -102,11 +102,11 @@ f_taz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/tazs.shp")
 
 f_maz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/mazs.shp")
 
-f_rail_names_inputs_path <- "rail_names_inputs.csv"
+f_rail_names_inputs_path <- "rail_names_inputs_20200210.csv"
 
 f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
 
-f_canonical_routes_path <- "canonical_route_crosswalk.csv"
+f_canonical_routes_path <- "canonical_route_crosswalk_20200210.csv"
 
 #f_actransit_survey_path <- paste0(dir_path,
 #  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv")
@@ -157,7 +157,7 @@ dictionary *should* explicate the expected task.
 
 ## Prepare dictionaries
 ```{r prepare-dictionary}
-dictionary_all <- read.csv('make-uniform/production/Dictionary for Standard Database.csv', 
+dictionary_all <- read.csv('Dictionary for Standard Database.csv', 
                            header = TRUE) %>%
   rename_all(tolower)
 
@@ -193,7 +193,7 @@ to other surveys.
 
 ## Add canonical station locations and crosswalk for recode
 ```{r}
-rail_names_inputs_df <- read.csv('make-uniform/production/rail_names_inputs.csv')
+rail_names_inputs_df <- read.csv('rail_names_inputs.csv')
 canonical_station_shp <- st_read(f_canonical_station_path)
 
 # Create index of stations
@@ -202,7 +202,7 @@ canonical_station_shp <- canonical_station_shp %>%
   mutate(index = 1:nrow(canonical_station_shp)) 
 
 # Add canonical route crosswalk
-canonical_routes_crosswalk <- read.csv('make-uniform/production/canonical_route_crosswalk.csv')
+canonical_routes_crosswalk <- read.csv(f_canonical_routes_path)
 ```
 
 ## Add surveys
@@ -271,14 +271,16 @@ survey_combine <- bind_rows(
   vta_df
   )
 
-remove(
+dup1 <- survey_combine[duplicated(survey_combine),]
+
+#remove(
        #ac_transit_df, 
-       bart_df, 
-       caltrain_df,
-#      muni_df,
-       napa_vine_df, 
-       vta_df
-      )
+#       bart_df, 
+#       caltrain_df,
+#       muni_df,
+#       napa_vine_df, 
+#       vta_df
+#      )
 
 ```
 
@@ -317,6 +319,8 @@ survey_flat <- bind_rows(survey_cat, survey_non) %>%
   mutate(route = ifelse(!is.na(canonical_name), canonical_name, route)) %>%
   select(-canonical_name)
 
+dup2 <- survey_flat[duplicated(survey_flat),]
+
 remove(survey_cat, 
        survey_non)
 
@@ -335,6 +339,8 @@ must be updated manually.
 survey_flat <- survey_flat %>% 
   left_join(canonical_routes_crosswalk %>% select(-survey_name) %>% unique(), 
             by = c("operator" = "survey", "route" = "canonical_name", "survey_year"))
+
+dup3 <- survey_flat[duplicated(survey_flat),]
 
 ```
 
@@ -357,6 +363,8 @@ survey_standard <- survey_flat %>%
                             year_born_four_digit)) %>%
   mutate(year_born = ifelse(is.na(year_born), NA, as.numeric(year_born))) %>%
   select(-year_born_four_digit)
+
+dup4 <- survey_standard[duplicated(survey_standard),]
 
 # Manual fixes to year born
 survey_standard <- survey_standard %>%
@@ -389,6 +397,8 @@ survey_standard <- survey_standard %>%
   mutate(at_work_after_dest_purp = ifelse(is.na(at_work_after_dest_purp), 'not relevant', at_work_after_dest_purp)) %>%
   mutate(at_school_prior_to_orig_purp = ifelse(is.na(at_school_prior_to_orig_purp), 'not relevant', at_school_prior_to_orig_purp)) %>%
   mutate(at_school_after_dest_purp = ifelse(is.na(at_school_after_dest_purp), 'not relevant', at_school_after_dest_purp))
+
+dup5 <- survey_standard[duplicated(survey_standard),]
 
 # Refine school purpose
 survey_standard <- survey_standard %>%
@@ -562,6 +572,8 @@ survey_standard <- survey_standard %>%
            
 table(survey_standard$tour_purp)
 
+dup6 <- survey_standard[duplicated(survey_standard),]
+
 # Step 3:  Update Key locations and Status Flags
 # -------------------------------------------------------------------------------------
 
@@ -676,6 +688,7 @@ table(survey_standard$auto_suff)
 remove(vehicles_dictionary, 
        workers_dictionary)
 
+dup7 <- survey_standard[duplicated(survey_standard),]
 
 # Step 5:  Operator and Technology sequence
 # -------------------------------------------------------------------------------------
@@ -711,6 +724,8 @@ survey_standard <- survey_standard %>%
          first_after_operator   = str_extract(first_route_after_survey_alight,  "^[A-z -]+?(?=_)"),
          second_after_operator  = str_extract(second_route_after_survey_alight, "^[A-z -]+?(?=_)"),
          third_after_operator   = str_extract(third_route_after_survey_alight,  "^[A-z -]+?(?=_)"))
+
+dup8 <- survey_standard[duplicated(survey_standard),]
 
 ```
 
@@ -770,6 +785,8 @@ survey_standard <- survey_standard %>%
                                   "third_after_operator" = "canonical_operator",
                                   "third_route_after_survey_alight" = "canonical_name")) %>%
   rename(third_after_technology = temp_tech)
+
+dup9 <- survey_standard[duplicated(survey_standard),]
 
 table(survey_standard$first_before_technology)
 
@@ -870,6 +887,8 @@ survey_standard <- survey_standard %>%
            second_after_technology == helper_relevant_tech |
            third_after_technology == helper_relevant_tech)
 
+dup10<- survey_standard[duplicated(survey_standard),]
+
 table(survey_standard$commuter_rail_present)
 
 helper_relevant_tech <- 'heavy rail'
@@ -938,7 +957,9 @@ survey_standard <- survey_standard %>%
   mutate(path_label = paste(path_access, path_line_haul, path_egress, sep = "-"))
 
 table(survey_standard$path_label)
-           
+
+dup11 <- survey_standard[duplicated(survey_standard),]           
+
 # Boardings
 survey_standard <- survey_standard %>%
   mutate(boardings = 1L) %>%
@@ -1140,6 +1161,8 @@ survey_standard <- survey_standard %>%
 survey_standard <- survey_standard %>%
   mutate(unique_ID = paste(ID, operator, survey_year, sep = "___"))
 
+dup12 <- survey_standard[duplicated(survey_standard),] 
+
 survey_lat <- survey_standard %>%
   select(unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat, 
          school = school_lat, workplace = workplace_lat)
@@ -1156,7 +1179,7 @@ survey_lon <- survey_lon %>%
 
 survey_coords <- left_join(survey_lat, survey_lon, by = c("unique_ID", "variable"))
 
-survey_coords <- survey_coords %>%
+survey_coords <- survey_coords %>%                  # remove records with no lat/lon
   mutate(x_coord = as.numeric(x_coord)) %>%
   mutate(y_coord = as.numeric(y_coord)) %>%
   filter(!is.na(x_coord)) %>%
