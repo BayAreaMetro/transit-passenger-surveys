@@ -11,7 +11,7 @@
 * Run the "Build Standard Database.Rmd" file. Note: update file directories, operator dictionary, etc. as specified in the script.
 
 
-### Index files
+### Reference files
 ["canonical_route_crosswalk.csv"](https://github.com/BayAreaMetro/onboard-surveys/blob/master/make-uniform/production/canonical_route_crosswalk.csv): maps transit route names used in different 
 surveys (*"survey name"*) to standard transit route names (*"canonical_name"*), operator names (*"canonical_operator"*), and *"technology"* - heavy rail, local bus, express, light rail, ferry, etc.
 Need to update when new surveys are added.
