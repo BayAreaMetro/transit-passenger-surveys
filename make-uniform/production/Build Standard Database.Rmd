@@ -796,11 +796,11 @@ table(survey_standard$first_before_technology)
 # Transfer to and from
 survey_standard <- survey_standard %>%
   mutate(transfer_from = as.character(first_before_operator)) %>%
-  mutate(transfer_from = ifelse(second_before_operator != 'None', 
+  mutate(transfer_from = ifelse(!is.na(second_before_operator), 
                                 as.character(second_before_operator), 
                                 transfer_from)) %>%
   
-  mutate(transfer_from = ifelse(third_before_operator  != 'None', 
+  mutate(transfer_from = ifelse(!is.na(third_before_operator), 
                                 as.character(third_before_operator),
                                 transfer_from)) %>%
   
