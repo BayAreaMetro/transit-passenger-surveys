@@ -93,6 +93,8 @@ dir_path <- user_list %>%
   filter(user == Sys.getenv("USERNAME")) %>%
   .$path
 
+f_dict_standard <- "Dictionary for Standard Database.csv"
+
 f_canonical_station_path <- paste0(dir_path,
   "Geography Files/Passenger_Railway_Stations_2018.shp")
 
@@ -102,11 +104,11 @@ f_taz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/tazs.shp")
 
 f_maz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/mazs.shp")
 
-f_rail_names_inputs_path <- "rail_names_inputs_20200210.csv"
+f_rail_names_inputs_path <- "rail_names_inputs.csv"
 
 f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
 
-f_canonical_routes_path <- "canonical_route_crosswalk_20200210.csv"
+f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 
 #f_actransit_survey_path <- paste0(dir_path,
 #  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv")
@@ -157,7 +159,7 @@ dictionary *should* explicate the expected task.
 
 ## Prepare dictionaries
 ```{r prepare-dictionary}
-dictionary_all <- read.csv('Dictionary for Standard Database.csv', 
+dictionary_all <- read.csv(f_dict_standard, 
                            header = TRUE) %>%
   rename_all(tolower)
 
@@ -193,7 +195,7 @@ to other surveys.
 
 ## Add canonical station locations and crosswalk for recode
 ```{r}
-rail_names_inputs_df <- read.csv('rail_names_inputs.csv')
+rail_names_inputs_df <- read.csv(f_rail_names_inputs_path)
 canonical_station_shp <- st_read(f_canonical_station_path)
 
 # Create index of stations
