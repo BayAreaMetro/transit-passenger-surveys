@@ -172,7 +172,7 @@ read_operator <- function(name,
                           default_tech, 
                           file_path, 
                           variable_dictionary, 
-                          rail_names_df,
+  #                        rail_names_df,
                           canonical_shp) {
   # 
   # name <- 'AC Transit'
@@ -192,23 +192,23 @@ read_operator <- function(name,
   
   updated_df <- input_df
   
-  if (name %in% rail_names_df$survey_name) {
-    
-    relevant_rail_names_df <- rail_names_df %>% 
-      filter(survey_name == name)
-    
-    for (i in 1:nrow(relevant_rail_names_df)) {
-      
-      updated_df <- get_rail_names(canonical_shp, 
-                                   updated_df,
-                                   relevant_rail_names_df$operator_string[[i]],
-                                   relevant_rail_names_df$route_string[[i]],
-                                   relevant_rail_names_df$board_lat[[i]],
-                                   relevant_rail_names_df$board_lon[[i]],
-                                   relevant_rail_names_df$alight_lat[[i]],
-                                   relevant_rail_names_df$alight_lon[[i]])
-    }
-  } 
+  #if (name %in% rail_names_df$survey_name) {
+  #  
+  #  relevant_rail_names_df <- rail_names_df %>% 
+  #    filter(survey_name == name)
+  #  
+  #  for (i in 1:nrow(relevant_rail_names_df)) {
+  #    
+  #    updated_df <- get_rail_names(canonical_shp, 
+  #                                 updated_df,
+  #                                 relevant_rail_names_df$operator_string[[i]],
+  #                                 relevant_rail_names_df$route_string[[i]],
+  #                                 relevant_rail_names_df$board_lat[[i]],
+  #                                 relevant_rail_names_df$board_lon[[i]],
+  #                                 relevant_rail_names_df$alight_lat[[i]],
+  #                                 relevant_rail_names_df$alight_lon[[i]])
+  #  }
+  #} 
   
   df_variable_levels <- updated_df %>%
     gather(survey_variable, survey_response) %>%
