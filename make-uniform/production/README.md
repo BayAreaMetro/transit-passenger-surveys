@@ -31,6 +31,3 @@ Don't need to update now.
 ["mazs.shp"](https://mtcdrive.app.box.com/file/325995833087): MAZs inventory with geometry metrics.
 Don't need to update now.
 
-
-### Other notes
-
