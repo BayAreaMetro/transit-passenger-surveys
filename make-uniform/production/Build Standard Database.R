@@ -30,7 +30,7 @@ for (p in list_of_packages){
   library(p, character.only = TRUE)
 }
 
-source("Build Standard Database Functions_test.R")
+source("Build Standard Database Functions.R")
 
 #### Parameters
 OPERATOR_DELIMITER = "___"
@@ -49,7 +49,6 @@ user_list <- data.frame(
            "Yuqi Wang"), 
   path = c("~/GitHub/onboard-surveys/Data and Reports/",
            "C:/data/documents/MTC/Mine/2_OnboardSurvey/OnboardSurvey_chk_202002_yq/Data and Reports/"
-#           "C:/Users/Yuqi Wang/Box/Modeling and Surveys/Onboard Surveys/Data and Reports"
   )
 )
 
@@ -100,9 +99,8 @@ f_output_decom_csv_path <- paste0(dir_path,
 
 # _User Intervention_
 # When adding a new operator, the user must update the dictionary files that translate
-# the usually-bespoke survey coding to the standard coding. Edits to the dictionary can be made in
-# the Excel file `Dictionary for Standard Database.xlsx`. The Excel file needs to 
-# be exported to `csv`; the code reads in the CSV file. The existing entries in the
+# the usually-bespoke survey coding to the standard coding. Edits to the dictionary should be made in
+# the file `Dictionary for Standard Database.csv`. The existing entries in the
 # dictionary *should* explicate the expected task. 
 
 ## Prepare dictionaries
@@ -126,12 +124,6 @@ dictionary_cat <- dictionary_all %>%
 # names from a survey being added to the `canonical` route names. These route names
 # are used to assign technologies to each of the routes collected in the survey,
 # which allows travel model path labels to be assigned to each trip. 
-# 
-# For transfers to BART and Caltrain, the software geo-codes the transfer locations
-# to the nearest BART or Caltrain station. To facilitate this process, the user must 
-# add the relevant variable names from the original surevy data to the `rail_names_inputs.csv`.
-# This is necessary because this information is not carried through to the standard
-# survey outcomes. 
 # 
 # Please note that the `canonical` station names for BART and Caltrain are stored
 # in the `f_canonical_station_path` shape file and appended via spatial matching
@@ -162,7 +154,6 @@ canonical_routes_crosswalk <- read.csv(f_canonical_routes_path)
 #                               'local bus',
 #                               f_actransit_survey_path,
 #                               dictionary_all,
-#                               rail_names_inputs_df,
 #                               canonical_station_shp)
 
 bart_df <- read_operator('BART',
