@@ -105,8 +105,7 @@ read_operator <- function(name,
                           year, 
                           default_tech, 
                           file_path, 
-                          variable_dictionary, 
-  #                        rail_names_df,
+                          variable_dictionary,
                           canonical_shp) {
   # 
   # name <- 'AC Transit'
