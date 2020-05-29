@@ -34,7 +34,7 @@ final <- onboard %>%
 
 # Write out final CSV files
 
-write.csv(final,"Big7_Auto_Sufficiency.csv",row.names = FALSE)
+write.csv(final,"Big7_Auto_Sufficiency 052920.csv",row.names = FALSE)
 
 
 
