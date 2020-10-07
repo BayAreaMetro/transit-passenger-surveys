@@ -67,7 +67,7 @@ GGT_race <- GGT %>%
 # Write out final CSV files
 
 write.csv(GGT_income,"GGT_income.csv",row.names = FALSE)
-write.csv(GGT_income,"GGT_race.csv",row.names = FALSE)
+write.csv(GGT_race,"GGT_race.csv",row.names = FALSE)
 
 
 
