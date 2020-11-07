@@ -620,6 +620,8 @@ workers_dictionary <- data.frame(
 
 survey_standard <- left_join(survey_standard, vehicles_dictionary, by = c("vehicles"))
 survey_standard <- left_join(survey_standard, workers_dictionary, by = c("workers"))
+# some surveys have numeric values in 'vehicles_other' and 'workers_other' fields that cannot join with the
+# count dictionary, therefore fill in the na using the raw numeric value
 survey_standard <- survey_standard %>%
   mutate(vehicle_numeric_cat = ifelse(is.na(vehicle_numeric_cat), vehicles, vehicle_numeric_cat)) %>%
   mutate(worker_numeric_cat = ifelse(is.na(worker_numeric_cat), workers, worker_numeric_cat))
