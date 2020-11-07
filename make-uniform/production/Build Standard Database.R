@@ -115,7 +115,7 @@ dictionary_all <- read.csv(f_dict_standard,
 # Prepare separate dictionaries for categorical and non-categorical variables
 dictionary_non <- dictionary_all %>%
   filter(generic_response == 'NONCATEGORICAL') %>%
-  select(operator, survey_variable, generic_variable)
+  select(operator, survey_year, survey_variable, generic_variable)
 
 dictionary_cat <- dictionary_all %>%
   filter(generic_response != 'NONCATEGORICAL') %>%
@@ -236,7 +236,7 @@ dup1 <- survey_combine[duplicated(survey_combine),]
 
 # Join the dictionary and prepare the categorical variables
 survey_cat <- survey_combine %>%
-  left_join(dictionary_cat, by = c("operator", "survey_variable", "survey_response")) %>%
+  left_join(dictionary_cat, by = c("operator", "survey_year", "survey_variable", "survey_response")) %>%
   filter(!is.na(generic_variable))
 
 # Join the dictionary and prepare the non-categorical variables
@@ -245,7 +245,7 @@ rail_crosswalk_df <- canonical_routes_crosswalk %>%
   select(survey_name, canonical_name)
 
 survey_non <- survey_combine %>%
-  left_join(dictionary_non, by = c("operator", "survey_variable")) %>%
+  left_join(dictionary_non, by = c("operator", "survey_year", "survey_variable")) %>%
   filter(!is.na(generic_variable)) %>%
   mutate(generic_response = survey_response) %>%
   left_join(canonical_routes_crosswalk %>% select(-technology), by = c("operator" = "survey", "survey_year", "survey_response" = "survey_name")) %>%
