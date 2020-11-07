@@ -358,12 +358,12 @@ survey_standard <- survey_standard %>%
   # workers -- simple
   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
                               orig_purp == 'home' & 
-                              dest_purp == 'work', 
+                              (dest_purp == 'work' | dest_purp == 'work-related'), 
                             'work', 
                             tour_purp)) %>%
   
   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
-                              orig_purp == 'work' & 
+                              (orig_purp == 'work' | orig_purp == 'work-related') & 
                               dest_purp == 'home', 
                             'work', 
                             tour_purp)) %>%
@@ -477,20 +477,20 @@ survey_standard <- survey_standard %>%
   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
                               at_work_prior_to_orig_purp == 'not at work before surveyed trip' & 
                               at_work_after_dest_purp == 'not at work after surveyed trip' & 
-                              (orig_purp == 'work' | dest_purp == 'work'), 
+                              (orig_purp == 'work' | dest_purp == 'work' | orig_purp == 'work-related' | dest_purp == 'work-related'), 
                             'work', 
                             tour_purp)) %>%
   
   # at work tours
   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
                               at_work_prior_to_orig_purp == 'at work before surveyed trip' & 
-                              dest_purp == 'work', 
+                              (dest_purp == 'work' | dest_purp == 'work-related'), 
                             'at work', 
                             tour_purp) ) %>%
   
   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
                               at_work_after_dest_purp == 'at work after surveyed trip' & 
-                              orig_purp == 'work', 
+                              (orig_purp == 'work' | orig_purp == 'work-related'), 
                             'at work', 
                             tour_purp)) %>%
 
@@ -538,16 +538,16 @@ survey_standard <- survey_standard %>%
                            home_lon) ) %>%
   
   # Work
-  mutate(workplace_lat = ifelse(orig_purp == 'work' & is.na(workplace_lat), 
+  mutate(workplace_lat = ifelse((orig_purp == 'work' | orig_purp == 'work-related') & is.na(workplace_lat), 
                                 orig_lat, 
                                 workplace_lat)) %>%
-  mutate(workplace_lon = ifelse(orig_purp == 'work' & is.na(workplace_lon), 
+  mutate(workplace_lon = ifelse((orig_purp == 'work' | orig_purp == 'work-related') & is.na(workplace_lon), 
                                 orig_lon, 
                                 workplace_lon)) %>%
-  mutate(workplace_lat = ifelse(dest_purp == 'work' & is.na(workplace_lat), 
+  mutate(workplace_lat = ifelse((dest_purp == 'work' | dest_purp == 'work-related') & is.na(workplace_lat), 
                                 dest_lat, 
                                 workplace_lat)) %>%
-  mutate(workplace_lon = ifelse(dest_purp == 'work' & is.na(workplace_lon), 
+  mutate(workplace_lon = ifelse((dest_purp == 'work' | dest_purp == 'work-related') & is.na(workplace_lon), 
                                 dest_lon, 
                                 workplace_lon)) %>%
   
@@ -571,7 +571,7 @@ survey_standard <- survey_standard %>%
 
 # Work and Student status
 survey_standard <- survey_standard %>%
-  mutate(work_status = ifelse(orig_purp == 'work' | dest_purp == 'work', 
+  mutate(work_status = ifelse(orig_purp == 'work' | dest_purp == 'work' | orig_purp == 'work-related' | dest_purp == 'work-related', 
                               'full- or part-time', 
                               work_status)) %>%
   mutate(student_status = ifelse(orig_purp == 'grade school' | 
