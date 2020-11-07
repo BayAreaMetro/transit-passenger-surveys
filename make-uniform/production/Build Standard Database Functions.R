@@ -176,7 +176,7 @@ read_operator <- function(name,
   # canonical_shp <- canonical_station_shp
   
   variables_vector <- variable_dictionary %>%
-    filter(operator == name) %>%
+    filter((operator == name) & (survey_year == year)) %>%
     .$survey_variable %>%
     unique()
   
