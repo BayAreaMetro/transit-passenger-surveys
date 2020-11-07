@@ -595,8 +595,14 @@ table(survey_standard$student_status)
 
 # Transform vehicles and workers to standard scale
 survey_standard <- survey_standard %>%
-  mutate(vehicles = ifelse(vehicles == 'other', vehicles_additional_info, vehicles)) %>%
-  mutate(workers = ifelse(workers == 'other', workers_additional_info,  workers))
+  mutate(vehicles = ifelse((vehicles == 'other' & 'vehicles_additional_info' %in% colnames(survey_standard)), 
+                              vehicles_additional_info, vehicles)) %>%
+  mutate(vehicles = ifelse((vehicles == 'other' & 'vehicles_other' %in% colnames(survey_standard)), 
+                              vehicles_other, vehicles)) %>%
+  mutate(workers = ifelse((workers == 'other' & 'workers_additional_info' %in% colnames(survey_standard)), 
+                              workers_additional_info,  workers)) %>%
+  mutate(workers = ifelse((workers == 'other' & 'workers_other' %in% colnames(survey_standard)), 
+                          workers_other,  workers))
 
 table(survey_standard$vehicles)
 table(survey_standard$workers)
@@ -614,6 +620,9 @@ workers_dictionary <- data.frame(
 
 survey_standard <- left_join(survey_standard, vehicles_dictionary, by = c("vehicles"))
 survey_standard <- left_join(survey_standard, workers_dictionary, by = c("workers"))
+survey_standard <- survey_standard %>%
+  mutate(vehicle_numeric_cat = ifelse(is.na(vehicle_numeric_cat), vehicles, vehicle_numeric_cat)) %>%
+  mutate(worker_numeric_cat = ifelse(is.na(worker_numeric_cat), workers, worker_numeric_cat))
 
 survey_standard <- survey_standard %>%
   mutate(auto_suff = ifelse(vehicle_numeric_cat == 0, 'zero autos', 'missing')) %>%
