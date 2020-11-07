@@ -345,7 +345,11 @@ dup5 <- survey_standard[duplicated(survey_standard),]
 survey_standard <- survey_standard %>%
   mutate(orig_purp = ifelse(orig_purp == "school", "high school", orig_purp)) %>%
   mutate(orig_purp = ifelse(orig_purp == "school" & approximate_age < 14, 
-                            "grade_school", orig_purp))
+                            "grade_school", orig_purp)) %>%
+  mutate(dest_purp = ifelse(dest_purp == "school", "high school", dest_purp)) %>%
+  mutate(dest_purp = ifelse(dest_purp == "school" & approximate_age < 14, 
+                            "grade_school", dest_purp))
+
 
 # (Approximate) Tour purpose
 survey_standard <- survey_standard %>%
