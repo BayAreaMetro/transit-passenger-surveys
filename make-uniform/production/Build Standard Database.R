@@ -496,8 +496,8 @@ survey_standard <- survey_standard %>%
 
   # if still left and work before or after the trip, assume work tour
   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
-                              at_work_after_dest_purp == 'at work after surveyed trip' & 
-                              at_work_prior_to_orig_purp == 'at work before surveyed trip', 
+                              (at_work_after_dest_purp == 'at work after surveyed trip' | 
+                               at_work_prior_to_orig_purp == 'at work before surveyed trip'), 
                             'work', 
                             tour_purp)) %>%
   
