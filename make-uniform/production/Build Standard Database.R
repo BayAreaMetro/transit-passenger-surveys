@@ -46,9 +46,9 @@ ROUTE_DELIMITER = "&&&"
 #### Remote file names
 user_list <- data.frame(
   user = c("helseljw", 
-           "Yuqi Wang"), 
+           "ywang"), 
   path = c("~/GitHub/onboard-surveys/Data and Reports/",
-           "C:/data/documents/MTC/Mine/2_OnboardSurvey/OnboardSurvey_chk_202002_yq/Data and Reports/"
+           "C:/Users/ywang/Documents/R/OnboardSurvey_2020Oct_yq/Data and Reports/"
   )
 )
 
@@ -69,32 +69,36 @@ f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
 f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 
 f_actransit_survey_path <- paste0(dir_path,
-                                  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv")
-f_bart_survey_path <- paste0(dir_path,
-                             "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
-f_caltrain_survey_path <- paste0(dir_path, 
-                                 "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
-f_marin_survey_path <- paste0(dir_path,
-                              "Marin Transit/Final Data/marin transit_data file_finalreweighted043018.csv")
+                                  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode) NO POUND OR SINGLE QUOTE.csv")
+# f_bart_survey_path <- paste0(dir_path,
+#                              "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
+# f_caltrain_survey_path <- paste0(dir_path, 
+#                                  "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
+# f_marin_survey_path <- paste0(dir_path,
+#                               "Marin Transit/Final Data/marin transit_data file_finalreweighted043018.csv")
 f_muni_survey_path <- paste0(dir_path, 
                              "Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
-f_napa_survey_path <- paste0(dir_path, 
-                             "Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
-f_vta_survey_path <- paste0(dir_path, 
-                            "VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
+# f_napa_survey_path <- paste0(dir_path, 
+#                              "Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
+# f_vta_survey_path <- paste0(dir_path, 
+#                             "VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
+# f_fast_survey_path <- paste0(dir_path, 
+#                             "Solano County/As CSV/FAST_Data NO POUND OR SINGLE QUOTE.csv")
+f_ace_survey_path <- paste0(dir_path,
+                             "ACE/2019/ACE19_Final Data Add New Route and Time Columns NO POUND OR SINGLE QUOTE.csv")
 
 f_output_rds_path <- paste0(dir_path, 
-                            "_data Standardized/survey_standard_202002_yq.RDS")
+                            "_data Standardized/survey_standard_202010_yq.RDS")
 f_output_csv_path <- paste0(dir_path, 
-                            "_data Standardized/survey_standard_202002_yq.csv")
+                            "_data Standardized/survey_standard_202010_yq.csv")
 f_ancillary_output_rdata_path <- paste0(dir_path, 
-                                        "_data Standardized/ancillary_variable_202002_yqs.RDS")
+                                        "_data Standardized/ancillary_variable_202010_yq.RDS")
 f_ancillary_output_csv_path <- paste0(dir_path, 
-                                      "_data Standardized/ancillary_variables_202002_yq.csv")
+                                      "_data Standardized/ancillary_variables_202010_yq.csv")
 f_output_decom_rdata_path <- paste0(dir_path, 
-                                    "_data Standardized/decomposition_202002_yq/survey_decomposition.RDS")
+                                    "_data Standardized/decomposition_202010_yq/survey_decomposition.RDS")
 f_output_decom_csv_path <- paste0(dir_path, 
-                                  "_data Standardized/decomposition_202002_yq/survey_decomposition.csv")
+                                  "_data Standardized/decomposition_202010_yq/survey_decomposition.csv")
 
 
 # _User Intervention_
@@ -149,26 +153,26 @@ canonical_routes_crosswalk <- read.csv(f_canonical_routes_path)
 # across multiple technologies, enter the dominant technology here and add route-specific
 # changes to the `canonical` route database (e.g., SF Muni Metro routes are `light rail`)
 
-#ac_transit_df <- read_operator('AC Transit',
-#                               2018,
-#                               'local bus',
-#                               f_actransit_survey_path,
-#                               dictionary_all,
-#                               canonical_station_shp)
+ac_transit_df <- read_operator('AC Transit',
+                               2018,
+                               'local bus',
+                               f_actransit_survey_path,
+                               dictionary_all,
+                               canonical_station_shp)
 
-bart_df <- read_operator('BART',
-                         2015,
-                         'heavy rail',
-                         f_bart_survey_path,
-                         dictionary_all,
-                         canonical_station_shp)
+#bart_df <- read_operator('BART',
+#                         2015,
+#                         'heavy rail',
+#                         f_bart_survey_path,
+#                         dictionary_all,
+#                         canonical_station_shp)
 
-caltrain_df <- read_operator('Caltrain',
-                             2014,
-                             'commuter rail',
-                             f_caltrain_survey_path,
-                             dictionary_all,
-                             canonical_station_shp)
+#caltrain_df <- read_operator('Caltrain',
+#                             2014,
+#                             'commuter rail',
+#                             f_caltrain_survey_path,
+#                             dictionary_all,
+#                             canonical_station_shp)
 
 muni_df <- read_operator('SF Muni',
                          2017,
@@ -177,27 +181,43 @@ muni_df <- read_operator('SF Muni',
                          dictionary_all,
                          canonical_station_shp)
 
-napa_vine_df <- read_operator('Napa Vine',
-                              2014,
-                              'local bus',
-                              f_napa_survey_path,
-                              dictionary_all,
-                              canonical_station_shp)
+#napa_vine_df <- read_operator('Napa Vine',
+#                              2014,
+#                              'local bus',
+#                              f_napa_survey_path,
+#                              dictionary_all,
+#                              canonical_station_shp)
 
-vta_df <- read_operator('VTA',
-                        2017,
-                        'local bus',
-                        f_vta_survey_path,
-                        dictionary_all,
-                        canonical_station_shp)
+#vta_df <- read_operator('VTA',
+#                        2017,
+#                        'local bus',
+#                        f_vta_survey_path,
+#                        dictionary_all,
+#                        canonical_station_shp)
+
+# fast_df <- read_operator('FAST',
+#                         2017,
+#                         'local bus',
+#                         f_fast_survey_path,
+#                         dictionary_all,
+#                         canonical_station_shp)
+
+ace_df <- read_operator('ACE',
+                         2019,
+                         'heavy rail',
+                         f_ace_survey_path,
+                         dictionary_all,
+                         canonical_station_shp)
 
 survey_combine <- bind_rows(
-  #ac_transit_df,
-  bart_df,
-  caltrain_df,
+  ac_transit_df,
+  #bart_df,
+  #caltrain_df,
   muni_df,
-  napa_vine_df,
-  vta_df
+  #napa_vine_df,
+  #vta_df,
+  #fast_df,
+  ace_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
@@ -224,10 +244,10 @@ rail_crosswalk_df <- canonical_routes_crosswalk %>%
   filter(survey == "GEOCODE") %>%
   select(survey_name, canonical_name)
 
-survey_non <- survey_combine %>% 
+survey_non <- survey_combine %>%
   left_join(dictionary_non, by = c("operator", "survey_variable")) %>%
   filter(!is.na(generic_variable)) %>%
-  mutate(generic_response = survey_response) %>% 
+  mutate(generic_response = survey_response) %>%
   left_join(canonical_routes_crosswalk %>% select(-technology), by = c("operator" = "survey", "survey_year", "survey_response" = "survey_name")) %>%
   mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response)) %>%
   select(-canonical_name, -canonical_operator) %>%
@@ -275,7 +295,7 @@ dup3 <- survey_flat[duplicated(survey_flat),]
 
 ## Build standard variables
 
-# Step 1:  Age-related transformations ------------------------------------------------------
+# Step 1:  Age-related transformations ----
 
 # Standardize year born
 survey_standard <- survey_flat %>%
@@ -343,7 +363,7 @@ survey_standard <- survey_standard %>%
                               dest_purp == 'home', 
                             'work', 
                             tour_purp)) %>%
-  
+
   # students -- simple
   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
                               (orig_purp == 'grade school' | dest_purp == 'grade school'), 
@@ -469,7 +489,7 @@ survey_standard <- survey_standard %>%
                               orig_purp == 'work', 
                             'at work', 
                             tour_purp)) %>%
-  
+
   # if still left and work before or after the trip, assume work tour
   mutate(tour_purp = ifelse(tour_purp == 'missing' & 
                               at_work_after_dest_purp == 'at work after surveyed trip' & 
@@ -705,7 +725,7 @@ survey_standard <- survey_standard %>%
 
 dup9 <- survey_standard[duplicated(survey_standard),]
 
-table(survey_standard$first_before_technology)
+table(survey_standard$first_before_technology)  #### check if there is "Missing"
 
 
 # Step 6:  Travel Model One path details -----------------------------------------------
