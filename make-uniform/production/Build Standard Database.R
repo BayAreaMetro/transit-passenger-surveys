@@ -950,6 +950,13 @@ survey_standard <- survey_standard %>%
 table(survey_standard$boardings, survey_standard$survey_boardings)
 
 # Build debug data frame to find odds and ends
+# Ideally, debug_transfers has 0 record. When it's not empty, examine if the transfer routes, transfer operator,
+# and transfer technology are coded correctly. 
+# One caveat (Nov 10, 2020): the calculation of "survey_boarding" is based on "number_transfers_orig_board" and "number_transfers_alight_dest";
+# Muni survey tracks 4 transfers before and after the surveyed route, therefore "number_transfers_orig_board"/"number_transfers_alight_dest"
+# maxes at 4, but this script only tracks 3 transfers before and after, so the sum of transfers before or after maxes at 3, causing inconsistency
+# between boardings and survey_boardings. Currently there are only two such records and they are captured in debug_transfer.
+
 debug_transfers <- survey_standard %>%
   filter(!(boardings == survey_boardings)) %>%
   select(ID, operator, route, direction,
