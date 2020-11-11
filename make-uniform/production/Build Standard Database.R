@@ -792,10 +792,13 @@ survey_standard <- survey_standard %>%
   mutate(path_access = ifelse(access_mode == "walk", "W", path_access)) %>%
   mutate(path_access = ifelse(access_mode == "pnr" , "D", path_access)) %>%
   mutate(path_access = ifelse(access_mode == "knr" , "D", path_access)) %>%
-  mutate(path_access = ifelse(access_mode == "bike", "D", path_access)) %>%
-  mutate(path_access = ifelse(is.na(access_mode), "X", path_access))
+  mutate(path_access = ifelse(access_mode == "bike", "B", path_access)) %>%
+  mutate(path_access = ifelse(is.na(access_mode), "X", path_access)) %>%
+  # another categorization approach which combines "bike" and "D" as "D"
+  mutate(path_access_comb = ifelse(path_access == "B", "D", path_access))
 
 table(survey_standard$path_access)
+table(survey_standard$path_access_comb)
 
 # -- Egress
 survey_standard <- survey_standard %>%
@@ -803,10 +806,13 @@ survey_standard <- survey_standard %>%
   mutate(path_egress = ifelse(egress_mode == "walk", "W", path_egress)) %>%
   mutate(path_egress = ifelse(egress_mode == "pnr" , "D", path_egress)) %>%
   mutate(path_egress = ifelse(egress_mode == "knr" , "D", path_egress)) %>%
-  mutate(path_egress = ifelse(egress_mode == "bike", "D", path_egress)) %>%
-  mutate(path_egress = ifelse(is.na(egress_mode), "X", path_egress))
+  mutate(path_egress = ifelse(egress_mode == "bike", "B", path_egress)) %>%
+  mutate(path_egress = ifelse(is.na(egress_mode), "X", path_egress)) %>%
+  # another categorization approach which combines "bike" and "D" as "D"
+  mutate(path_egress_comb = ifelse(path_egress == "B", "D", path_egress))
 
 table(survey_standard$path_egress)
+table(survey_standard$path_egress_comb)
 
 # -- Line haul
 # --- Technology present calculations
@@ -907,9 +913,11 @@ survey_standard <- survey_standard %>%
                                  "HVY", 
                                  path_line_haul)) %>%
   mutate(path_line_haul = ifelse(commuter_rail_present, "COM", path_line_haul)) %>%
-  mutate(path_label = paste(path_access, path_line_haul, path_egress, sep = "-"))
+  mutate(path_label = paste(path_access, path_line_haul, path_egress, sep = "-")) %>%
+  mutate(path_label_comb = paste(path_access_comb, path_line_haul, path_egress_comb, sep = "-"))
 
 table(survey_standard$path_label)
+table(survey_standard$path_label_comb)
 
 dup11 <- survey_standard[duplicated(survey_standard),] 
 
