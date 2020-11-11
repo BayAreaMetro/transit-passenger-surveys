@@ -975,6 +975,13 @@ survey_standard <- survey_standard %>%
 
 
 # Step 7:  Standardize Demographics ----------------------------------------------------
+
+# fill n/a in race columns with 0 so that they won't affect race_dmy_sum calculation
+survey_standard[c('race_dmy_ind', 'race_dmy_asn', 'race_dmy_blk', 'race_dmy_hwi', 'race_dmy_wht',
+                  'race_dmy_mdl_estn', 'race_dmy')][is.na(survey_standard[c('race_dmy_ind', 'race_dmy_asn', 
+                                                                            'race_dmy_blk', 'race_dmy_hwi', 'race_dmy_wht',
+                                                                            'race_dmy_mdl_estn', 'race_dmy')])] <- 0
+
 survey_standard <- survey_standard %>%
   
   # Race
@@ -983,15 +990,17 @@ survey_standard <- survey_standard %>%
   mutate(race_dmy_blk = as.numeric(race_dmy_blk)) %>%
   mutate(race_dmy_hwi = as.numeric(race_dmy_hwi)) %>%
   mutate(race_dmy_wht = as.numeric(race_dmy_wht)) %>%
+  mutate(race_dmy_mdl_estn = as.numeric(race_dmy_mdl_estn)) %>%
   mutate(race_dmy_oth = ifelse(str_length(as.character(race_other_string)) > 2, 1L, 0L)) %>%
-  mutate(race_dmy_sum = race_dmy_ind + race_dmy_asn + race_dmy_blk + race_dmy_hwi + race_dmy_wht + race_dmy_oth) %>%
+  mutate(race_dmy_categories = ifelse(race_dmy == 0, 0L, 1L)) %>%
+  mutate(race_dmy_sum = race_dmy_ind + race_dmy_asn + race_dmy_blk + race_dmy_hwi + race_dmy_wht + race_dmy_mdl_estn + race_dmy_oth + race_dmy_categories) %>%
   
   mutate(race = 'OTHER') %>%
   mutate(race = ifelse(race_dmy_sum == 1 & race_dmy_ind == 1, 'OTHER', race)) %>%
-  mutate(race = ifelse((race_dmy_sum == 1 & race_dmy_asn == 1) | race_dmy == 'ASIAN', 'ASIAN', race)) %>%
-  mutate(race = ifelse((race_dmy_sum == 1 & race_dmy_blk == 1) | race_dmy == 'BLACK', 'BLACK', race)) %>%
+  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_asn == 1 | race_dmy == 'ASIAN'), 'ASIAN', race)) %>%
+  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_blk == 1 | race_dmy == 'BLACK'), 'BLACK', race)) %>%
   mutate(race = ifelse(race_dmy_sum == 1 & race_dmy_hwi == 1, 'OTHER', race)) %>%
-  mutate(race = ifelse((race_dmy_sum == 1 & race_dmy_wht == 1) | race_dmy == 'WHITE', 'WHITE', race)) %>%
+  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_wht == 1 | race_dmy == 'WHITE'), 'WHITE', race)) %>%
   mutate(race = ifelse(race_dmy_sum == 1 & race_dmy_oth == 1, 'OTHER', race)) %>%
   
   # Language at home
