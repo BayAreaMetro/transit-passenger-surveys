@@ -1043,7 +1043,10 @@ survey_standard <- survey_standard %>%
 survey_standard <- survey_standard %>%
   mutate(date_string = ifelse(date_string == "Missing - Dummy Record", NA, date_string)) %>%
   mutate(date_string = ifelse(date_string == "Missing - Question Not Asked", NA, date_string)) %>%
-  mutate(weekpart = ifelse(is.na(date_string), "WEEKDAY", weekpart))
+  # first, label survey responses that are missing date_string data
+  mutate(weekpart = ifelse(is.na(date_string), "Missing", weekpart))
+  mutate(weekpart = ifelse((is.na(date_string) & operator == "BART"), "WEEKDAY", weekpart))
+
 
 table(survey_standard$date_string)
 table(survey_standard$time_string)
@@ -1051,7 +1054,8 @@ table(survey_standard$time_string)
 # Get day of the week from date
 survey_standard <- survey_standard %>%
   mutate(date = as.Date(date_string, format = "%m/%d/%Y")) %>%
-  mutate(day_of_the_week = toupper(weekdays(date)))
+  mutate(day_of_the_week = toupper(weekdays(date))) %>%
+  mutate(day_of_the_week = ifelse(is.na(date), "Missing", day_of_the_week))
 
 table(survey_standard$operator, survey_standard$day_of_the_week)
 
