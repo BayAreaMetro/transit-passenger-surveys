@@ -70,10 +70,10 @@ f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 
 f_actransit_survey_path <- paste0(dir_path,
                                   "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode) NO POUND OR SINGLE QUOTE.csv")
-# f_bart_survey_path <- paste0(dir_path,
-#                              "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
-# f_caltrain_survey_path <- paste0(dir_path, 
-#                                  "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
+f_bart_survey_path <- paste0(dir_path,
+                             "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
+f_caltrain_survey_path <- paste0(dir_path, 
+                                 "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
 # f_marin_survey_path <- paste0(dir_path,
 #                               "Marin Transit/Final Data/marin transit_data file_finalreweighted043018.csv")
 f_muni_survey_path <- paste0(dir_path, 
@@ -160,19 +160,19 @@ ac_transit_df <- read_operator('AC Transit',
                                dictionary_all,
                                canonical_station_shp)
 
-#bart_df <- read_operator('BART',
-#                         2015,
-#                         'heavy rail',
-#                         f_bart_survey_path,
-#                         dictionary_all,
-#                         canonical_station_shp)
+bart_df <- read_operator('BART',
+                         2015,
+                         'heavy rail',
+                         f_bart_survey_path,
+                         dictionary_all,
+                         canonical_station_shp)
 
-#caltrain_df <- read_operator('Caltrain',
-#                             2014,
-#                             'commuter rail',
-#                             f_caltrain_survey_path,
-#                             dictionary_all,
-#                             canonical_station_shp)
+caltrain_df <- read_operator('Caltrain',
+                             2014,
+                             'commuter rail',
+                             f_caltrain_survey_path,
+                             dictionary_all,
+                             canonical_station_shp)
 
 muni_df <- read_operator('SF Muni',
                          2017,
@@ -211,8 +211,8 @@ ace_df <- read_operator('ACE',
 
 survey_combine <- bind_rows(
   ac_transit_df,
-  #bart_df,
-  #caltrain_df,
+  bart_df,
+  caltrain_df,
   muni_df,
   #napa_vine_df,
   #vta_df,
@@ -625,6 +625,9 @@ survey_standard <- left_join(survey_standard, workers_dictionary, by = c("worker
 survey_standard <- survey_standard %>%
   mutate(vehicle_numeric_cat = ifelse(is.na(vehicle_numeric_cat), vehicles, vehicle_numeric_cat)) %>%
   mutate(worker_numeric_cat = ifelse(is.na(worker_numeric_cat), workers, worker_numeric_cat))
+
+table(survey_standard$vehicle_numeric_cat)
+table(survey_standard$worker_numeric_cat)
 
 survey_standard <- survey_standard %>%
   mutate(auto_suff = ifelse(vehicle_numeric_cat == 0, 'zero autos', 'missing')) %>%
@@ -1369,6 +1372,7 @@ survey_coords_spatial <- survey_coords_spatial %>%
 bad_survey_coords_spatial <- survey_coords_spatial %>%
   filter(is.na(maz)) %>%
   select(-taz)
+
 
 bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
   mutate(maz_index = st_nearest_feature(bad_survey_coords_spatial, maz_shp))
