@@ -1406,6 +1406,9 @@ survey_coords_spatial <- survey_coords_spatial %>%
 # check there is no duplicated unique_ID+variable
 # "chk" should have 0 record
 chk = survey_coords_spatial[duplicated(survey_coords_spatial[,1:2]), ]
+# (Nov 11, 2020) One Muni record is joined to two maz zones, creating duplicates.
+# Temporarily manually drop the duplicates
+survey_coords_spatial <- survey_coords_spatial[!duplicated(survey_coords_spatial[,1:2]), ]
 
 # Bring in the geocoding results
 st_geometry(survey_coords_spatial) <- NULL
