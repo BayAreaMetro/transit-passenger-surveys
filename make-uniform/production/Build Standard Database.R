@@ -1588,7 +1588,7 @@ survey_standard_cols <- survey_standard %>%
   select(-survey_time) %>% 
   colnames()
 survey_standard <- survey_standard %>%
-  select(survey_standard_cols, survey_time)
+  select(all_of(survey_standard_cols), survey_time)
 
 saveRDS(survey_standard, file = f_output_rds_path)
 saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
