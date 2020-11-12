@@ -1358,6 +1358,10 @@ survey_coords_spatial <- survey_coords_spatial %>%
   mutate(taz = ifelse(is.na(taz), dist_taz, taz)) %>%
   select(-dist_taz, -match)
 
+# check there is no duplicated unique_ID+variable
+# "chk" should have 0 record
+chk = survey_coords_spatial[duplicated(survey_coords_spatial[,1:2]), ]
+
 # Find nearest MAZ within 1/4 mile (else NA)
 survey_coords_spatial <- survey_coords_spatial %>%
   st_join(maz_shp, join = st_within)
@@ -1398,6 +1402,10 @@ survey_coords_spatial <- survey_coords_spatial %>%
   left_join(bad_survey_coords_spatial, by = c("unique_ID", "variable")) %>%
   mutate(maz = ifelse(is.na(maz), dist_maz, maz)) %>%
   select(-dist_maz, -match)
+
+# check there is no duplicated unique_ID+variable
+# "chk" should have 0 record
+chk = survey_coords_spatial[duplicated(survey_coords_spatial[,1:2]), ]
 
 # Bring in the geocoding results
 st_geometry(survey_coords_spatial) <- NULL
