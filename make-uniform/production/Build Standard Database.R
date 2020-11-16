@@ -85,7 +85,7 @@ f_muni_survey_path <- paste0(dir_path,
 # f_fast_survey_path <- paste0(dir_path, 
 #                             "Solano County/As CSV/FAST_Data NO POUND OR SINGLE QUOTE.csv")
 f_ace_survey_path <- paste0(dir_path,
-                             "ACE/2019/ACE19_Final Data Add New Route and Time Columns NO POUND OR SINGLE QUOTE.csv")
+                             "ACE/2019/ACE19_Final Data Add New Route Date Time Columns NO POUND OR SINGLE QUOTE.csv")
 
 f_output_rds_path <- paste0(dir_path, 
                             "_data Standardized/survey_standard_202010_yq.RDS")
@@ -1064,7 +1064,16 @@ table(survey_standard$time_string)
 
 # Get day of the week from date
 survey_standard <- survey_standard %>%
-  mutate(date = as.Date(date_string, format = "%m/%d/%Y")) %>%
+  mutate(date1 = as.Date(date_string, format = "%m/%d/%Y")) %>%
+  mutate(date2 = as.Date(date_string, format = "%Y-%m-%d")) %>%
+  mutate(date = as.Date(ifelse(!is.na(date1), date1,
+                                              ifelse(!is.na(date2), date2, NA)),
+                        origin="1970-01-01"))
+
+%>%
+  mutate(date = as.Date(date_temp, format = "%Y-%m-%d"))
+
+%>%
   mutate(day_of_the_week = toupper(weekdays(date))) %>%
   mutate(day_of_the_week = ifelse(is.na(date), "Missing", day_of_the_week))
 
