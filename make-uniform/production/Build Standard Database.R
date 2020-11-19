@@ -72,18 +72,24 @@ f_actransit_survey_path <- paste0(dir_path,
                                   "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode) NO POUND OR SINGLE QUOTE.csv")
 f_bart_survey_path <- paste0(dir_path,
                              "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
-f_caltrain_survey_path <- paste0(dir_path, 
+f_caltrain_survey_path <- paste0(dir_path,
                                  "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
 # f_marin_survey_path <- paste0(dir_path,
 #                               "Marin Transit/Final Data/marin transit_data file_finalreweighted043018.csv")
-f_muni_survey_path <- paste0(dir_path, 
+f_muni_survey_path <- paste0(dir_path,
                              "Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 # f_napa_survey_path <- paste0(dir_path, 
 #                              "Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
 # f_vta_survey_path <- paste0(dir_path, 
 #                             "VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
-# f_fast_survey_path <- paste0(dir_path, 
-#                             "Solano County/As CSV/FAST_Data NO POUND OR SINGLE QUOTE.csv")
+f_fast_survey_path <- paste0(dir_path,
+                            "Solano County/As CSV/FAST_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
+f_rvdb_survey_path <- paste0(dir_path,
+                             "Solano County/As CSV/Rio Vista Delta Breeze_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
+f_vcc_survey_path <- paste0(dir_path,
+                             "Solano County/As CSV/Vacaville City Coach_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
+f_soltrans_survey_path <- paste0(dir_path,
+                             "Solano County/As CSV/SolTrans_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
 f_ace_survey_path <- paste0(dir_path,
                              "ACE/2019/ACE19_Final Data Add New Route Date Time Columns NO POUND OR SINGLE QUOTE.csv")
 
@@ -195,12 +201,33 @@ muni_df <- read_operator('SF Muni',
 #                        dictionary_all,
 #                        canonical_station_shp)
 
-# fast_df <- read_operator('FAST',
-#                         2017,
-#                         'local bus',
-#                         f_fast_survey_path,
-#                         dictionary_all,
-#                         canonical_station_shp)
+fast_df <- read_operator('FAST',
+                         2017,
+                         'local bus',
+                         f_fast_survey_path,
+                         dictionary_all,
+                         canonical_station_shp)
+
+rvdb_df <- read_operator('Delta Breeze',
+                         2017,
+                         'local bus',
+                         f_rvdb_survey_path,
+                         dictionary_all,
+                         canonical_station_shp)
+
+vcc_df <- read_operator('City Coach',
+                        2017,
+                        'local bus',
+                        f_vcc_survey_path,
+                        dictionary_all,
+                        canonical_station_shp)
+
+soltrans_df <- read_operator('Soltrans',
+                             2017,
+                             'local bus',
+                             f_soltrans_survey_path,
+                             dictionary_all,
+                             canonical_station_shp)
 
 ace_df <- read_operator('ACE',
                          2019,
@@ -214,9 +241,12 @@ survey_combine <- bind_rows(
   bart_df,
   caltrain_df,
   muni_df,
-  #napa_vine_df,
-  #vta_df,
-  #fast_df,
+  # napa_vine_df,
+  # vta_df,
+  fast_df,
+  rvdb_df,
+  vcc_df,
+  soltrans_df,
   ace_df
 )
 
@@ -579,7 +609,7 @@ survey_standard <- survey_standard %>%
                                  'full- or part-time', 
                                  student_status)) %>%
   mutate(student_status = ifelse(orig_purp == 'high school' | 
-                                   dest_purp == 'high school', 
+                                   dest_purp == 'high school',
                                  'full- or part-time', 
                                  student_status)) %>%
   mutate(student_status = ifelse(orig_purp == 'college' | 
@@ -967,6 +997,10 @@ table(survey_standard$boardings, survey_standard$survey_boardings)
 # Muni survey tracks 4 transfers before and after the surveyed route, therefore "number_transfers_orig_board"/"number_transfers_alight_dest"
 # maxes at 4, but this script only tracks 3 transfers before and after, so the sum of transfers before or after maxes at 3, causing inconsistency
 # between boardings and survey_boardings. Currently there are only two such records and they are captured in debug_transfer.
+# Another situation where debug_transfers contains records: the survey data comes with "number_transfers_alight_dest" and	"number_transfers_orig_board"
+# columns, but one or more of the transfers are routes that are "Missing" operator, e.g. unspecified private shuttle. In this case, "survey_boarding"
+# is larger than "boardings".
+
 
 debug_transfers <- survey_standard %>%
   filter(!(boardings == survey_boardings)) %>%
@@ -989,7 +1023,7 @@ survey_standard <- survey_standard %>%
 
 # fill n/a in race columns with 0 so that they won't affect race_dmy_sum calculation
 survey_standard[c('race_dmy_ind', 'race_dmy_asn', 'race_dmy_blk', 'race_dmy_hwi', 'race_dmy_wht',
-                  'race_dmy_mdl_estn', 'race_dmy')][is.na(survey_standard[c('race_dmy_ind', 'race_dmy_asn', 
+                  'race_dmy_mdl_estn', 'race_dmy')][is.na(survey_standard[c('race_dmy_ind', 'race_dmy_asn',
                                                                             'race_dmy_blk', 'race_dmy_hwi', 'race_dmy_wht',
                                                                             'race_dmy_mdl_estn', 'race_dmy')])] <- 0
 
@@ -1068,12 +1102,7 @@ survey_standard <- survey_standard %>%
   mutate(date2 = as.Date(date_string, format = "%Y-%m-%d")) %>%
   mutate(date = as.Date(ifelse(!is.na(date1), date1,
                                               ifelse(!is.na(date2), date2, NA)),
-                        origin="1970-01-01"))
-
-%>%
-  mutate(date = as.Date(date_temp, format = "%Y-%m-%d"))
-
-%>%
+                        origin="1970-01-01")) %>%
   mutate(day_of_the_week = toupper(weekdays(date))) %>%
   mutate(day_of_the_week = ifelse(is.na(date), "Missing", day_of_the_week))
 
