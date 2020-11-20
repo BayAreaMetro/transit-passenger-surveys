@@ -93,18 +93,19 @@ f_soltrans_survey_path <- paste0(dir_path,
 f_ace_survey_path <- paste0(dir_path,
                              "ACE/2019/ACE19_Final Data Add New Route Date Time Columns NO POUND OR SINGLE QUOTE.csv")
 
+today = Sys.Date()
 f_output_rds_path <- paste0(dir_path, 
-                            "_data Standardized/survey_standard_202010_yq.RDS")
+                            "_data Standardized/survey_standard_", today, ".RDS")
 f_output_csv_path <- paste0(dir_path, 
-                            "_data Standardized/survey_standard_202010_yq.csv")
+                            "_data Standardized/survey_standard_", today, ".csv")
 f_ancillary_output_rdata_path <- paste0(dir_path, 
-                                        "_data Standardized/ancillary_variable_202010_yq.RDS")
+                                        "_data Standardized/ancillary_variable_", today, ".RDS")
 f_ancillary_output_csv_path <- paste0(dir_path, 
-                                      "_data Standardized/ancillary_variables_202010_yq.csv")
+                                      "_data Standardized/ancillary_variables_", today, ".csv")
 f_output_decom_rdata_path <- paste0(dir_path, 
-                                    "_data Standardized/decomposition_202010_yq/survey_decomposition.RDS")
+                                    "_data Standardized/decomposition/survey_decomposition_", today, ".RDS")
 f_output_decom_csv_path <- paste0(dir_path, 
-                                  "_data Standardized/decomposition_202010_yq/survey_decomposition.csv")
+                                  "_data Standardized/decomposition/survey_decomposition_", today, ".csv")
 
 
 # _User Intervention_
