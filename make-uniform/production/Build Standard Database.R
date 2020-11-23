@@ -92,6 +92,8 @@ f_soltrans_survey_path <- paste0(dir_path,
                              "Solano County/As CSV/SolTrans_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
 f_ace_survey_path <- paste0(dir_path,
                              "ACE/2019/ACE19_Final Data Add New Route Date Time Columns NO POUND OR SINGLE QUOTE.csv")
+f_unioncity_survey_path <- paste0(dir_path,
+                                  "Union City/2017/Union City Transit_fix_error_add_time_route_NO POUND OR SINGLE QUOTE.csv")
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path, 
@@ -231,11 +233,18 @@ soltrans_df <- read_operator('Soltrans',
                              canonical_station_shp)
 
 ace_df <- read_operator('ACE',
-                         2019,
-                         'heavy rail',
-                         f_ace_survey_path,
-                         dictionary_all,
-                         canonical_station_shp)
+                        2019,
+                        'heavy rail',
+                        f_ace_survey_path,
+                        dictionary_all,
+                        canonical_station_shp)
+
+unioncity_df <- read_operator('Union City Transit',
+                              2017,
+                              'local bus',
+                              f_unioncity_survey_path,
+                              dictionary_all,
+                              canonical_station_shp)
 
 survey_combine <- bind_rows(
   ac_transit_df,
@@ -248,19 +257,20 @@ survey_combine <- bind_rows(
   rvdb_df,
   vcc_df,
   soltrans_df,
-  ace_df
+  ace_df,
+  unioncity_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
 
-#remove(
-#ac_transit_df, 
-#       bart_df, 
-#       caltrain_df,
-#       muni_df,
-#       napa_vine_df, 
-#       vta_df
-#      )
+# remove(
+#        ac_transit_df,
+#        bart_df,
+#        caltrain_df,
+#        muni_df,
+#        napa_vine_df,
+#        vta_df
+#       )
 
 
 ## Flatten
