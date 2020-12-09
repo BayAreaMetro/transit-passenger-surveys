@@ -361,8 +361,9 @@ dup3 <- survey_flat[duplicated(survey_flat),]
 # Standardize year born
 survey_standard <- survey_flat %>%
   mutate(year_born = ifelse(
-    str_detect(year_born_four_digit,"Missing") | str_detect(year_born_four_digit,"Not Provided"), NA, 
-      year_born_four_digit)) %>%
+    str_detect(year_born_four_digit,"Missing") | str_detect(year_born_four_digit,"Not Provided") | str_detect(year_born_four_digit,'REFUSED'),
+    NA, 
+    year_born_four_digit)) %>%
   mutate(year_born = ifelse(is.na(year_born), NA, as.numeric(year_born))) %>%
   select(-year_born_four_digit)
 
