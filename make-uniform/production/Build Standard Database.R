@@ -96,7 +96,8 @@ f_unioncity_survey_path <- paste0(dir_path,
                                   "Union City/2017/Union City Transit_fix_error_add_time_route_NO POUND OR SINGLE QUOTE.csv")
 f_sonomact_survey_path <- paste0(dir_path,
                                  "Sonoma County/2018/As CSV/sc transit_data file_final_spring 2018_addRoutesCols NO POUND NO SINGLE QUOTE.csv")
-
+f_smart_survey_path <- paste0(dir_path,
+                              "SMART/As CSV/SMART Standardized Final Data_addRouteCols_NO POUND NO SINGLE QUOTE.csv")
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path, 
@@ -256,6 +257,13 @@ sonomact_df <- read_operator('Sonoma County Transit',
                               dictionary_all,
                               canonical_station_shp)
 
+smart_df <- read_operator('Sonoma-Marin Area Rail Transit',
+                          2018,
+                          'local bus',
+                          f_smart_survey_path,
+                          dictionary_all,
+                          canonical_station_shp)
+
 survey_combine <- bind_rows(
   ac_transit_df,
   bart_df,
@@ -269,7 +277,8 @@ survey_combine <- bind_rows(
   soltrans_df,
   ace_df,
   unioncity_df,
-  sonomact_df
+  sonomact_df,
+  smart_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
