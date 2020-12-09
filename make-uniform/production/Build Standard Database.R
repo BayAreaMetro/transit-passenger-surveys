@@ -575,7 +575,11 @@ survey_standard <- survey_standard %>%
                             tour_purp)) %>%
   
   # if still left, pick the orig_purp
-  mutate(tour_purp = ifelse(tour_purp == 'missing', orig_purp, tour_purp))
+  mutate(tour_purp = ifelse(tour_purp == 'missing', orig_purp, tour_purp)) %>%
+
+  # finally, if work-related, categorize as work
+  mutate(tour_purp = ifelse(tour_purp == 'work-related', 'work', tour_purp))
+
 
 table(survey_standard$tour_purp)
 
