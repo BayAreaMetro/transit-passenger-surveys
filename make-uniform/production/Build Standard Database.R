@@ -718,6 +718,9 @@ survey_standard <- survey_standard %>%
                               worker_numeric_cat >= 0 & 
                               worker_numeric_cat <= vehicle_numeric_cat, 
                             'auto sufficient', 
+                            auto_suff)) %>%
+  mutate(auto_suff = ifelse((vehicle_numeric_cat == 'missing') | (worker_numeric_cat == 'missing'), 
+                            'missing',
                             auto_suff))
 
 table(survey_standard$auto_suff)
