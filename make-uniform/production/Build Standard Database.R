@@ -685,8 +685,10 @@ table(survey_standard$workers)
 
 vehicles_dictionary <- data.frame(
   vehicles = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 
-               'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more'), 
-  vehicle_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
+               'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more',
+               '5', '6', '7', '8', '9', '10'), 
+  vehicle_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+                          4, 4, 4, 4, 4, 4))
 
 workers_dictionary <- data.frame(
   workers = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 
