@@ -98,6 +98,8 @@ f_sonomact_survey_path <- paste0(dir_path,
                                  "Sonoma County/2018/As CSV/sc transit_data file_final_spring 2018_addRoutesCols NO POUND NO SINGLE QUOTE.csv")
 f_smart_survey_path <- paste0(dir_path,
                               "SMART/As CSV/SMART Standardized Final Data_addRouteCols_NO POUND NO SINGLE QUOTE.csv")
+f_weta_survey_path <- paste0(dir_path,
+                             "WETA/WETA 2018/WETA-Final Weighted Data-Standardized_addCols_NO POUND OR SINGLE QUOTE.csv")
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path, 
@@ -264,6 +266,13 @@ smart_df <- read_operator('Sonoma-Marin Area Rail Transit',
                           dictionary_all,
                           canonical_station_shp)
 
+weta_df <- read_operator('WETA',
+                          2019,
+                          'ferry',
+                          f_weta_survey_path,
+                          dictionary_all,
+                          canonical_station_shp)
+
 survey_combine <- bind_rows(
   ac_transit_df,
   bart_df,
@@ -278,7 +287,8 @@ survey_combine <- bind_rows(
   ace_df,
   unioncity_df,
   sonomact_df,
-  smart_df
+  smart_df,
+  weta_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
