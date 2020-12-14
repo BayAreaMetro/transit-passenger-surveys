@@ -522,7 +522,7 @@ survey_standard <- survey_standard %>%
                               at_school_after_dest_purp == 'at school after surveyed trip' & 
                               approximate_age > 18 & 
                               orig_purp == 'home', 
-                            'college', 
+                            'university',
                             tour_purp)) %>%
   
   # if non-worker, school before trip and home after, 14 to 18, high school tour
