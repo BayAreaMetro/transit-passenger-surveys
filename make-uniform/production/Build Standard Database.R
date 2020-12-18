@@ -100,6 +100,8 @@ f_smart_survey_path <- paste0(dir_path,
                               "SMART/As CSV/SMART Standardized Final Data_addRouteCols_NO POUND NO SINGLE QUOTE.csv")
 f_weta_survey_path <- paste0(dir_path,
                              "WETA/WETA 2018/WETA-Final Weighted Data-Standardized_addCols_NO POUND OR SINGLE QUOTE.csv")
+f_westcat_survey_path <- paste0(dir_path,
+                                "WestCAT/As CSV/WestCAT_addCols_NO POUND OR SINGLE QUOTE.csv")
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path, 
@@ -273,6 +275,13 @@ weta_df <- read_operator('WETA',
                           dictionary_all,
                           canonical_station_shp)
 
+westcat_df <- read_operator('WestCAT',
+                             2017,
+                             'local bus',
+                             f_westcat_survey_path,
+                             dictionary_all,
+                             canonical_station_shp)
+
 survey_combine <- bind_rows(
   ac_transit_df,
   bart_df,
@@ -288,7 +297,8 @@ survey_combine <- bind_rows(
   unioncity_df,
   sonomact_df,
   smart_df,
-  weta_df
+  weta_df,
+  westcat_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
@@ -719,7 +729,7 @@ survey_standard <- survey_standard %>%
                               worker_numeric_cat <= vehicle_numeric_cat, 
                             'auto sufficient', 
                             auto_suff)) %>%
-  mutate(auto_suff = ifelse((vehicle_numeric_cat == 'missing') | (worker_numeric_cat == 'missing'), 
+  mutate(auto_suff = ifelse((vehicle_numeric_cat == 'missing') | (worker_numeric_cat == 'missing') | (vehicle_numeric_cat == 'Ref') | (worker_numeric_cat == 'Ref'), 
                             'missing',
                             auto_suff))
 
@@ -1048,9 +1058,10 @@ table(survey_standard$boardings, survey_standard$survey_boardings)
 # Muni survey tracks 4 transfers before and after the surveyed route, therefore "number_transfers_orig_board"/"number_transfers_alight_dest"
 # maxes at 4, but this script only tracks 3 transfers before and after, so the sum of transfers before or after maxes at 3, causing inconsistency
 # between boardings and survey_boardings. Currently there are only two such records and they are captured in debug_transfer.
+
 # Another situation where debug_transfers contains records: the survey data comes with "number_transfers_alight_dest" and	"number_transfers_orig_board"
 # columns, but one or more of the transfers are routes that are "Missing" operator, e.g. unspecified private shuttle. In this case, "survey_boarding"
-# is larger than "boardings".
+# is larger than "boardings". This occurs in WestCAT 2017 survey (ID 181, 229, 304, 391, 709)
 
 
 debug_transfers <- survey_standard %>%
@@ -1111,7 +1122,7 @@ survey_standard <- survey_standard %>%
          -race_dmy_oth, 
          -race_dmy_sum, 
          -race_other_string)
-
+df <- survey_standard[which(is.na(survey_standard$race)),]
 # Update fare medium for surveys with clipper detail
 survey_standard <- survey_standard %>%
   mutate(fare_medium = ifelse(is.na(clipper_detail), fare_medium, clipper_detail)) %>%
