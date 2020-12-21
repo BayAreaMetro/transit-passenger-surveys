@@ -703,8 +703,10 @@ vehicles_dictionary <- data.frame(
 workers_dictionary <- data.frame(
   workers = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 
               'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 
-              'fifteen', 'six or more'), 
-  worker_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
+              'fifteen', 'six or more',
+              '7', '8', '9', '10', '11'), 
+  worker_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+                         4, 4, 4, 4, 4))
 
 survey_standard <- left_join(survey_standard, vehicles_dictionary, by = c("vehicles"))
 survey_standard <- left_join(survey_standard, workers_dictionary, by = c("workers"))
@@ -729,7 +731,12 @@ survey_standard <- survey_standard %>%
                               worker_numeric_cat <= vehicle_numeric_cat, 
                             'auto sufficient', 
                             auto_suff)) %>%
-  mutate(auto_suff = ifelse((vehicle_numeric_cat == 'missing') | (worker_numeric_cat == 'missing') | (vehicle_numeric_cat == 'Ref') | (worker_numeric_cat == 'Ref'), 
+  mutate(auto_suff = ifelse((vehicle_numeric_cat == 'missing') | (
+                               worker_numeric_cat == 'missing') | (
+                               vehicle_numeric_cat == 'Ref') | (
+                               worker_numeric_cat == 'Ref') | (
+                               vehicle_numeric_cat == "DON'T KNOW") | (
+                               worker_numeric_cat == "DON'T KNOW"), 
                             'missing',
                             auto_suff))
 
