@@ -1064,11 +1064,12 @@ table(survey_standard$boardings, survey_standard$survey_boardings)
 # One caveat (Nov 10, 2020): the calculation of "survey_boarding" is based on "number_transfers_orig_board" and "number_transfers_alight_dest";
 # Muni survey tracks 4 transfers before and after the surveyed route, therefore "number_transfers_orig_board"/"number_transfers_alight_dest"
 # maxes at 4, but this script only tracks 3 transfers before and after, so the sum of transfers before or after maxes at 3, causing inconsistency
-# between boardings and survey_boardings. Currently there are only two such records and they are captured in debug_transfer.
+# between boardings and survey_boardings. Currently there are only two such records and they are captured in debug_transfer (ID 25955, 31474).
 
 # Another situation where debug_transfers contains records: the survey data comes with "number_transfers_alight_dest" and	"number_transfers_orig_board"
 # columns, but one or more of the transfers are routes that are "Missing" operator, e.g. unspecified private shuttle. In this case, "survey_boarding"
-# is larger than "boardings". This occurs in WestCAT 2017 survey (ID 181, 229, 304, 391, 709)
+# is larger than "boardings". This occurs in WestCAT 2017 survey (ID 181, 229, 304, 391, 709), Solano County 2017 Survey (FAST ID 1071, 1576; 
+# Soltrans ID 1107, 1453).
 
 
 debug_transfers <- survey_standard %>%
