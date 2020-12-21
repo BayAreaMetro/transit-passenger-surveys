@@ -1092,10 +1092,10 @@ survey_standard <- survey_standard %>%
 # Step 7:  Standardize Demographics ----------------------------------------------------
 
 # fill n/a in race columns with 0 so that they won't affect race_dmy_sum calculation
-survey_standard[c('race_dmy_ind', 'race_dmy_asn', 'race_dmy_blk', 'race_dmy_hwi', 'race_dmy_wht',
-                  'race_dmy_mdl_estn', 'race_dmy')][is.na(survey_standard[c('race_dmy_ind', 'race_dmy_asn',
-                                                                            'race_dmy_blk', 'race_dmy_hwi', 'race_dmy_wht',
-                                                                            'race_dmy_mdl_estn', 'race_dmy')])] <- 0
+survey_standard[c('race_dmy_ind', 'race_dmy_asn', 'race_dmy_blk', 'race_dmy_hwi', 'race_dmy_wht', 'race_dmy_mdl_estn',
+                  'race_other_string', 'race_cat')][is.na(survey_standard[c('race_dmy_ind', 'race_dmy_asn', 'race_dmy_blk',
+                                                                            'race_dmy_hwi', 'race_dmy_wht', 'race_dmy_mdl_estn', 
+                                                                            'race_other_string', 'race_cat')])] <- 0
 
 survey_standard <- survey_standard %>%
   
@@ -1107,13 +1107,13 @@ survey_standard <- survey_standard %>%
   mutate(race_dmy_wht = as.numeric(race_dmy_wht)) %>%
   mutate(race_dmy_mdl_estn = as.numeric(race_dmy_mdl_estn)) %>%
   mutate(race_dmy_oth = ifelse(str_length(as.character(race_other_string)) > 2, 1L, 0L)) %>%
-  mutate(race_dmy_categories = ifelse(race_dmy == 0, 0L, 1L)) %>%
-  mutate(race_dmy_sum = race_dmy_ind + race_dmy_asn + race_dmy_blk + race_dmy_hwi + race_dmy_wht + race_dmy_mdl_estn + race_dmy_oth + race_dmy_categories) %>%
+  mutate(race_categories = ifelse(str_length(as.character(race_cat)) > 2, 1L, 0L)) %>%
+  mutate(race_dmy_sum = race_dmy_ind + race_dmy_asn + race_dmy_blk + race_dmy_hwi + race_dmy_wht + race_dmy_mdl_estn + race_dmy_oth + race_categories) %>%
   
   mutate(race = 'OTHER') %>%
-  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_asn == 1 | race_dmy == 'ASIAN'), 'ASIAN', race)) %>%
-  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_blk == 1 | race_dmy == 'BLACK'), 'BLACK', race)) %>%
-  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_wht == 1 | race_dmy == 'WHITE'), 'WHITE', race)) %>%
+  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_asn == 1 | race_cat == 'ASIAN'), 'ASIAN', race)) %>%
+  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_blk == 1 | race_cat == 'BLACK'), 'BLACK', race)) %>%
+  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_wht == 1 | race_cat == 'WHITE'), 'WHITE', race)) %>%
   
   # Language at home
   mutate(language_at_home = ifelse(as.character(language_at_home_binary) == 'OTHER', 
@@ -1130,7 +1130,10 @@ survey_standard <- survey_standard %>%
          -race_dmy_oth, 
          -race_dmy_sum, 
          -race_other_string)
-df <- survey_standard[which(is.na(survey_standard$race)),]
+
+# check if all records have the "race" variable filled, race_chk should be empty
+race_chk <- survey_standard[which(is.na(survey_standard$race)),]
+
 # Update fare medium for surveys with clipper detail
 survey_standard <- survey_standard %>%
   mutate(fare_medium = ifelse(is.na(clipper_detail), fare_medium, clipper_detail)) %>%
