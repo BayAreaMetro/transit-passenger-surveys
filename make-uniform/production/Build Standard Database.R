@@ -102,6 +102,8 @@ f_weta_survey_path <- paste0(dir_path,
                              "WETA/WETA 2018/WETA-Final Weighted Data-Standardized_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_westcat_survey_path <- paste0(dir_path,
                                 "WestCAT/As CSV/WestCAT_addCols_NO POUND OR SINGLE QUOTE.csv")
+f_lavta_survey_path <- paste0(dir_path,
+                              "LAVTA/2018/OD_20181207_LAVTA_Submittal_FINAL_addCols_NO POUND OR SINGLE QUOTE.csv")
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path, 
@@ -282,6 +284,13 @@ westcat_df <- read_operator('WestCAT',
                              dictionary_all,
                              canonical_station_shp)
 
+lavta_df <- read_operator('LAVTA',
+                          2018,
+                          'local bus',
+                          f_lavta_survey_path,
+                          dictionary_all,
+                          canonical_station_shp)
+
 survey_combine <- bind_rows(
   ac_transit_df,
   bart_df,
@@ -298,7 +307,8 @@ survey_combine <- bind_rows(
   sonomact_df,
   smart_df,
   weta_df,
-  westcat_df
+  westcat_df,
+  lavta_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
