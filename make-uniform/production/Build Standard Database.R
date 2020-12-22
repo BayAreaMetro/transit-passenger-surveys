@@ -104,6 +104,8 @@ f_westcat_survey_path <- paste0(dir_path,
                                 "WestCAT/As CSV/WestCAT_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_lavta_survey_path <- paste0(dir_path,
                               "LAVTA/2018/OD_20181207_LAVTA_Submittal_FINAL_addCols_NO POUND OR SINGLE QUOTE.csv")
+f_tridelta2019_survey_path <- paste0(dir_path,
+                                     "Tri Delta/2019/TriDelta_ODSurvey_Dataset_Weights_03272019_FinalDeliv_addCols_NO POUND OR SINGLE QUOTE.csv")
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path, 
@@ -291,6 +293,13 @@ lavta_df <- read_operator('LAVTA',
                           dictionary_all,
                           canonical_station_shp)
 
+tridelta2019_df <- read_operator('TriDelta',
+                                 2019,
+                                 'local bus',
+                                 f_tridelta2019_survey_path,
+                                 dictionary_all,
+                                 canonical_station_shp)
+
 survey_combine <- bind_rows(
   ac_transit_df,
   bart_df,
@@ -308,7 +317,8 @@ survey_combine <- bind_rows(
   smart_df,
   weta_df,
   westcat_df,
-  lavta_df
+  lavta_df,
+  tridelta2019_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
