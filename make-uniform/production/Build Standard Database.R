@@ -1201,8 +1201,9 @@ survey_standard <- survey_standard %>%
 survey_standard <- survey_standard %>%
   mutate(date_string = ifelse(date_string == "Missing - Dummy Record", NA, date_string)) %>%
   mutate(date_string = ifelse(date_string == "Missing - Question Not Asked", NA, date_string)) %>%
-  # first, label survey responses that are missing date_string data
-  mutate(weekpart = ifelse(is.na(date_string), "Missing", weekpart)) %>%
+  # first, label survey responses that are missing both 'date_string' and 'weekpart' values
+  mutate(weekpart = ifelse((is.na(date_string)) & (is.na(weekpart)), "Missing", weekpart)) %>%
+  # second, add fixing for BART
   mutate(weekpart = ifelse((is.na(date_string) & operator == "BART"), "WEEKDAY", weekpart))
 
 
