@@ -108,6 +108,8 @@ f_tridelta2019_survey_path <- paste0(dir_path,
                                      "Tri Delta/2019/TriDelta_ODSurvey_Dataset_Weights_03272019_FinalDeliv_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_cccta2019_survey_path <- paste0(dir_path,
                                   "County Connection/2019/OD_20191105_CCCTA_Submittal_FINAL Expanded_addCols_NO POUND OR SINGLE QUOTE.csv")
+f_ggtransit_survey_path <- paste0(dir_path,
+                                  "Golden Gate Transit/2018/As CSV/20180907_OD_GoldenGate_allDays_addCols_NO POUND OR SINGLE QUOTE.csv")
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path, 
@@ -309,6 +311,13 @@ cccta2019_df <- read_operator('County Connection',
                               dictionary_all,
                               canonical_station_shp)
 
+ggtransit_df <- read_operator('Golden Gate Transit',
+                              2018,
+                              'local bus',
+                              f_ggtransit_survey_path,
+                              dictionary_all,
+                              canonical_station_shp)
+
 survey_combine <- bind_rows(
   ac_transit_df,
   bart_df,
@@ -328,7 +337,8 @@ survey_combine <- bind_rows(
   westcat_df,
   lavta_df,
   tridelta2019_df,
-  cccta2019_df
+  cccta2019_df,
+  ggtransit_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
