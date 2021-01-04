@@ -110,6 +110,8 @@ f_cccta2019_survey_path <- paste0(dir_path,
                                   "County Connection/2019/OD_20191105_CCCTA_Submittal_FINAL Expanded_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_ggtransit_survey_path <- paste0(dir_path,
                                   "Golden Gate Transit/2018/As CSV/20180907_OD_GoldenGate_allDays_addCols_NO POUND OR SINGLE QUOTE.csv")
+f_napavine2019_survey_path <- paste0(dir_path,
+                                     "Napa Vine/2019/Napa Vine_FINAL Data_addCols_NO POUND OR SINGLE QUOTE.csv")
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path, 
@@ -318,6 +320,13 @@ ggtransit_df <- read_operator('Golden Gate Transit',
                               dictionary_all,
                               canonical_station_shp)
 
+napavine2019_df <- read_operator('Napa Vine',
+                                 2019,
+                                 'local bus',
+                                 f_napavine2019_survey_path,
+                                 dictionary_all,
+                                 canonical_station_shp)
+
 survey_combine <- bind_rows(
   ac_transit_df,
   bart_df,
@@ -338,7 +347,8 @@ survey_combine <- bind_rows(
   lavta_df,
   tridelta2019_df,
   cccta2019_df,
-  ggtransit_df
+  ggtransit_df,
+  napavine2019_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
@@ -1110,6 +1120,9 @@ table(survey_standard$boardings, survey_standard$survey_boardings)
 # columns, but one or more of the transfers are routes that are "Missing" operator, e.g. unspecified private shuttle. In this case, "survey_boarding"
 # is larger than "boardings". This occurs in WestCAT 2017 survey (ID 181, 229, 304, 391, 709), Solano County 2017 Survey (FAST ID 1071, 1576; 
 # Soltrans ID 1107, 1453).
+
+# Napa Vine 2019 has cases where the "number_transfers_orig_board" or "number_transfers_alight_dest" values in the raw data were wrong, resulting in
+# inconsistency between 'boardings' and 'survey_boardings': ID 14, 77, 306, 9142, 9216.
 
 
 debug_transfers <- survey_standard %>%
