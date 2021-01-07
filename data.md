@@ -14,7 +14,6 @@ CONTENTS
 
 ## Available Data
 
-*	Interactive data summaries are available [here](http://analytics.mtc.ca.gov/foswiki/Sandbox/OnBoardSurveys) (log-in required);
 *	To gain access to the data summaries or the raw data, please contact Shimon Israel at SIsrael@bayareametro.gov or 415-778-5239. 
 
 ## Available Reports
