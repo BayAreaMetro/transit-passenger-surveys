@@ -81,95 +81,112 @@ AC <- read.csv(ACT_in, stringsAsFactors = FALSE) %>% mutate(
 
 #ACE
 
-GGT_origin <- GGT %>%
-  select(id,final_orig_lat,final_orig_lon) %>%
-  filter(!is.na(final_orig_lat))
+ACE_origin <- ACE %>% 
+  select(ID,Origin_lat,Origin_lon) %>% 
+  filter(!is.na(Origin_lat))
 
-GGT_destination <- GGT %>%
-  select(id,final_dest_lat,final_dest_lon)%>%
-  filter(!is.na(final_dest_lat))
+ACE_destination <- ACE %>% 
+  select(ID,Destination_lat,Destination_lon) %>% 
+  filter(!is.na(Destination_lat))
+
+ACE_home <- ACE %>% 
+  select(ID,Home_lat,Home_lon) %>% 
+  filter(!is.na(Home_lat))
+
+ACE_work <- ACE %>% 
+  select(ID,Work_lat,Work_lon) %>% 
+  filter(!is.na(Work_lat))
+
+ACE_school <- ACE %>% 
+  select(ID,School_lat,School_lon) %>% 
+  filter(!is.na(School_lat))
 
 #Union City
 
-Petaluma_origin <- Petaluma %>%
-  select(id,final_origin_lat,final_origin_lon) %>%
-  filter(!is.na(final_origin_lat))
+UC_origin <- UC %>% 
+  select(id,startlat, startlon) %>% 
+  filter(!is.na(startlat))
 
-Petaluma_destination <- Petaluma %>%
-  select(id,final_destin_lat,final_destin_lon)%>%
-  filter(!is.na(final_destin_lat))
+UC_destination <- UC %>% 
+  select(id,endlat,endlon) %>% 
+  filter(!is.na(endlat))
+
+UC_home <- UC %>% 
+  select(id,homelat,homelon) %>% 
+  filter(!is.na(homelat))
+
+UC_work <- UC %>% 
+  select(id,worklat,worklon) %>% 
+  filter(!is.na(Work_lat))
+
+UC_school <- UC %>% 
+  select(id,school_lat,school_lon) %>% 
+  filter(!is.na(school_lat))
 
 #AC Transit
 
-SMART_origin <- SMART %>%
-  select(CCGID,origlat,origlon) %>%
-  filter(!is.na(origlat))
-
-SMART_destination <- SMART %>%
-  select(CCGID,endlat,endlon)%>%
-  filter(!is.na(endlat))
-
-#Sonoma
-
-Sonoma_origin <- Sonoma %>%
-  select(CCGID,orig_lat,orig_lon) %>%
+AC_origin <- AC %>% 
+  select(id,orig_lat,orig_lon) %>% 
   filter(!is.na(orig_lat))
 
-Sonoma_destination <- Sonoma %>%
-  select(CCGID,ENDLAT,ENDLON)%>%
-  filter(!is.na(ENDLAT))
+AC_destination <- AC %>% 
+  select(id,dest_lat,dest_lon) %>% 
+  filter(!is.na(dest_lat))
 
-#SRCB
+AC_home <- AC %>% 
+  select(id,home_lat,home_lon) %>% 
+  filter(!is.na(home_lat))
 
-SRCB_origin <- SRCB %>%
-  select(id,final_origin_lat,final_origin_lon) %>%
-  filter(!is.na(final_origin_lat))
+AC_work <- AC %>% 
+  select(id,workplace_lat,workplace_lon) %>% 
+  filter(!is.na(workplace_lat))
 
-SRCB_destination <- SRCB %>%
-  select(id,final_destin_lat,final_destin_lon)%>%
-  filter(!is.na(final_destin_lat))
+AC_school <- AC %>% 
+  select(id,school_lat,school_lon) %>% 
+  filter(!is.na(school_lat))
 
-# Assign projection for origin/destination and then convert projection into what's used in Bay Area - NAD83 / UTM zone 10N
+# CRS = 4326 sets the lat/long coordinates in the WGS1984 geographic survey
+# CRS = 2230 sets the projection for NAD 1983 California Zone 6 in US Feet
 
-#GGT
+#ACE
 
-GGT_origin_space <- st_as_sf(GGT_origin, coords = c("final_orig_lon", "final_orig_lat"), crs = 4326)
-GGT_origin_space <- st_transform(GGT_origin_space,crs = 26910)
+ACE_origin_space <- st_as_sf(ACE_origin, coords = c("final_orig_lon", "final_orig_lat"), crs = 4326)
+ACE_origin_space <- st_transform(ACE_origin_space,crs = 2230)
 
-GGT_destination_space <- st_as_sf(GGT_destination, coords = c("final_dest_lon", "final_dest_lat"), crs = 4326)
-GGT_destination_space <- st_transform(GGT_destination_space,crs = 26910)
+ACE_destination_space <- st_as_sf(ACE_destination, coords = c("final_dest_lon", "final_dest_lat"), crs = 4326)
+ACE_destination_space <- st_transform(ACE_destination_space,crs = 2230)
 
 # Petaluma
 
 Petaluma_origin_space <- st_as_sf(Petaluma_origin, coords = c("final_origin_lon", "final_origin_lat"), crs = 4326)
-Petaluma_origin_space <- st_transform(Petaluma_origin_space,crs = 26910)
+Petaluma_origin_space <- st_transform(Petaluma_origin_space,crs = 2230)
 
 Petaluma_destination_space <- st_as_sf(Petaluma_destination, coords = c("final_destin_lon", "final_destin_lat"), crs = 4326)
-Petaluma_destination_space <- st_transform(Petaluma_destination_space,crs = 26910)
+Petaluma_destination_space <- st_transform(Petaluma_destination_space,crs = 2230)
 
 # SMART
 
 SMART_origin_space <- st_as_sf(SMART_origin, coords = c("origlon", "origlat"), crs = 4326)
-SMART_origin_space <- st_transform(SMART_origin_space,crs = 26910)
+SMART_origin_space <- st_transform(SMART_origin_space,crs = 2230)
 
 SMART_destination_space <- st_as_sf(SMART_destination, coords = c("endlon", "endlat"), crs = 4326)
-SMART_destination_space <- st_transform(SMART_destination_space,crs = 26910)
+SMART_destination_space <- st_transform(SMART_destination_space,crs = 2230)
 
 # Sonoma
 
 Sonoma_origin_space <- st_as_sf(Sonoma_origin, coords = c("orig_lon", "orig_lat"), crs = 4326)
-Sonoma_origin_space <- st_transform(Sonoma_origin_space,crs = 26910)
+Sonoma_origin_space <- st_transform(Sonoma_origin_space,crs = 2230)
 
 Sonoma_destination_space <- st_as_sf(Sonoma_destination, coords = c("ENDLON", "ENDLAT"), crs = 4326)
-Sonoma_destination_space <- st_transform(Sonoma_destination_space,crs = 26910)
+Sonoma_destination_space <- st_transform(Sonoma_destination_space,crs = 2230)
 
 # SRCB
 
 SRCB_origin_space <- st_as_sf(SRCB_origin, coords = c("final_origin_lon", "final_origin_lat"), crs = 4326)
-SRCB_origin_space <- st_transform(SRCB_origin_space,crs = 26910)
+SRCB_origin_space <- st_transform(SRCB_origin_space,crs = 2230)
 
 SRCB_destination_space <- st_as_sf(SRCB_destination, coords = c("final_destin_lon", "final_destin_lat"), crs = 4326)
-SRCB_destination_space <- st_transform(SRCB_destination_space,crs = 26910)
+SRCB_destination_space <- st_transform(SRCB_destination_space,crs = 2230)
 
 # Convert TAZ shape to same project as GGT (and all successive transit files)
 
