@@ -117,7 +117,7 @@ UC_home <- UC %>%
 
 UC_work <- UC %>% 
   select(id,worklat,worklon) %>% 
-  filter(!is.na(Work_lat))
+  filter(!is.na(worklat))
 
 UC_school <- UC %>% 
   select(id,school_lat,school_lon) %>% 
@@ -214,40 +214,79 @@ ACE_origin2 <- st_join(ACE_origin_space,TAZ_shape, join=st_within,left=TRUE)%>%
   rename(Origin_MAZ=MAZ)
 
 ACE_destination2 <- st_join(ACE_destination_space,TAZ_shape, join=st_within,left=TRUE)%>%
-  rename(Destination_TAZ=TAZ)
+  rename(Destination_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Destination_MAZ=MAZ)
 
-#Petaluma
+ACE_home2 <- st_join(ACE_home_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Home_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Home_MAZ=MAZ)
 
-Petaluma_origin2 <- st_join(Petaluma_origin_space,TAZ_shape, join=st_within,left=TRUE)%>%
-  rename(Origin_TAZ=TAZ)
+ACE_work2 <- st_join(ACE_work_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Work_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Work_MAZ=MAZ)
 
-Petaluma_destination2 <- st_join(Petaluma_destination_space,TAZ_shape, join=st_within,left=TRUE)%>%
-  rename(Destination_TAZ=TAZ) 
+ACE_school2 <- st_join(ACE_school_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(School_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(School_MAZ=MAZ)
 
-# SMART
+# Union City
 
-SMART_origin2 <- st_join(SMART_origin_space,TAZ_shape, join=st_within,left=TRUE)%>%
-  rename(Origin_TAZ=TAZ)
+UC_origin2 <- st_join(UC_origin_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Origin_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Origin_MAZ=MAZ)
 
-SMART_destination2 <- st_join(SMART_destination_space,TAZ_shape, join=st_within,left=TRUE)%>%
-  rename(Destination_TAZ=TAZ) 
+UC_destination2 <- st_join(UC_destination_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Destination_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Destination_MAZ=MAZ)
 
-# Sonoma
+UC_home2 <- st_join(UC_home_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Home_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Home_MAZ=MAZ)
 
-Sonoma_origin2 <- st_join(Sonoma_origin_space,TAZ_shape, join=st_within,left=TRUE)%>%
-  rename(Origin_TAZ=TAZ)
+UC_work2 <- st_join(UC_work_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Work_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Work_MAZ=MAZ)
 
-Sonoma_destination2 <- st_join(Sonoma_destination_space,TAZ_shape, join=st_within,left=TRUE)%>%
-  rename(Destination_TAZ=TAZ) 
+UC_school2 <- st_join(UC_school_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(School_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(School_MAZ=MAZ)
 
-# SRCB
 
-SRCB_origin2 <- st_join(SRCB_origin_space,TAZ_shape, join=st_within,left=TRUE)%>%
-  rename(Origin_TAZ=TAZ)
+# AC Transit
 
-SRCB_destination2 <- st_join(SRCB_destination_space,TAZ_shape, join=st_within,left=TRUE)%>%
-  rename(Destination_TAZ=TAZ) 
+AC_origin2 <- st_join(AC_origin_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Origin_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Origin_MAZ=MAZ)
 
+AC_destination2 <- st_join(AC_destination_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Destination_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Destination_MAZ=MAZ)
+
+AC_home2 <- st_join(AC_home_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Home_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Home_MAZ=MAZ)
+
+AC_work2 <- st_join(AC_work_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Work_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Work_MAZ=MAZ)
+
+AC_school2 <- st_join(AC_school_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(School_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(School_MAZ=MAZ)
 
 # Remove geometry columns from origin/destination for join
 
