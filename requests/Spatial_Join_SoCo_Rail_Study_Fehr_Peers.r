@@ -17,18 +17,18 @@ UC_in   <- paste0(Onboard,"Union City/2017/Union City Transit_fix_error_add_time
 ACT_in  <- paste0(Onboard,"AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode) NO POUND OR SINGLE QUOTE.csv")
 
 
-TAZ     <- "M:/Data/GIS layers/Travel_Analysis_Zones_(TAZ1454)/Travel Analysis Zones.shp"
-MAZ     <- paste0(Onboard,"_geocoding Standardized/TM2_Zones/mazs.shp")
+TAZ_in     <- "M:/Data/GIS layers/Travel_Analysis_Zones_(TAZ1454)/Travel Analysis Zones.shp"
+MAZ_in     <- paste0(Onboard,"_geocoding Standardized/TM2_Zones/mazs.shp")
 
 username        <- Sys.getenv("USERNAME")
 output_location <-paste0("C:/Users/",username,"/Box/Modeling and Surveys/Share Data/Protected Data/Fehr_Peers/")
 
 # Bring in shapefiles and select TAZs and geometry columns
 
-TAZ <- st_read(TAZ) %>%
+TAZ <- st_read(TAZ_in) %>%
   select(TAZ=TAZ1454,geometry)
 
-MAZ <- st_read(MAZ) %>%
+MAZ <- st_read(MAZ_in) %>%
   select(MAZ=MAZ_ORIGIN,geometry)
   
 # Bring in operator files, ensuring origin and destination lat/long format is numeric
@@ -54,8 +54,8 @@ UC <- read.csv(UC_in, stringsAsFactors = FALSE) %>% mutate(
   startlon = as.numeric(startlon),
   endlat = as.numeric(endlat),
   endlon = as.numeric(endlon),
-  homelat = as.numeric(Home_lat),
-  homelon = as.numeric(Home_lon),
+  homelat = as.numeric(homelat),
+  homelon = as.numeric(homelon),
   worklat = as.numeric(worklat),
   worklon = as.numeric(worklon),
   school_lat = as.numeric(school_lat),
@@ -150,56 +150,70 @@ AC_school <- AC %>%
 
 #ACE
 
-ACE_origin_space <- st_as_sf(ACE_origin, coords = c("final_orig_lon", "final_orig_lat"), crs = 4326)
+ACE_origin_space <- st_as_sf(ACE_origin, coords = c("Origin_lon", "Origin_lat"), crs = 4326)
 ACE_origin_space <- st_transform(ACE_origin_space,crs = 2230)
 
-ACE_destination_space <- st_as_sf(ACE_destination, coords = c("final_dest_lon", "final_dest_lat"), crs = 4326)
+ACE_destination_space <- st_as_sf(ACE_destination, coords = c("Destination_lon", "Destination_lat"), crs = 4326)
 ACE_destination_space <- st_transform(ACE_destination_space,crs = 2230)
 
-# Petaluma
+ACE_home_space <- st_as_sf(ACE_home, coords = c("Home_lon", "Home_lat"), crs = 4326)
+ACE_home_space <- st_transform(ACE_home_space,crs = 2230)
 
-Petaluma_origin_space <- st_as_sf(Petaluma_origin, coords = c("final_origin_lon", "final_origin_lat"), crs = 4326)
-Petaluma_origin_space <- st_transform(Petaluma_origin_space,crs = 2230)
+ACE_work_space <- st_as_sf(ACE_work, coords = c("Work_lon", "Work_lat"), crs = 4326)
+ACE_work_space <- st_transform(ACE_work_space,crs = 2230)
 
-Petaluma_destination_space <- st_as_sf(Petaluma_destination, coords = c("final_destin_lon", "final_destin_lat"), crs = 4326)
-Petaluma_destination_space <- st_transform(Petaluma_destination_space,crs = 2230)
+ACE_school_space <- st_as_sf(ACE_school, coords = c("School_lon", "School_lat"), crs = 4326)
+ACE_school_space <- st_transform(ACE_school_space,crs = 2230)
 
-# SMART
+# Union City
 
-SMART_origin_space <- st_as_sf(SMART_origin, coords = c("origlon", "origlat"), crs = 4326)
-SMART_origin_space <- st_transform(SMART_origin_space,crs = 2230)
+UC_origin_space <- st_as_sf(UC_origin, coords = c("startlon", "startlat"), crs = 4326)
+UC_origin_space <- st_transform(UC_origin_space,crs = 2230)
 
-SMART_destination_space <- st_as_sf(SMART_destination, coords = c("endlon", "endlat"), crs = 4326)
-SMART_destination_space <- st_transform(SMART_destination_space,crs = 2230)
+UC_destination_space <- st_as_sf(UC_destination, coords = c("endlon", "endlat"), crs = 4326)
+UC_destination_space <- st_transform(UC_destination_space,crs = 2230)
 
-# Sonoma
+UC_home_space <- st_as_sf(UC_home, coords = c("homelon", "homelat"), crs = 4326)
+UC_home_space <- st_transform(UC_home_space,crs = 2230)
 
-Sonoma_origin_space <- st_as_sf(Sonoma_origin, coords = c("orig_lon", "orig_lat"), crs = 4326)
-Sonoma_origin_space <- st_transform(Sonoma_origin_space,crs = 2230)
+UC_work_space <- st_as_sf(UC_work, coords = c("worklon", "worklat"), crs = 4326)
+UC_work_space <- st_transform(UC_work_space,crs = 2230)
 
-Sonoma_destination_space <- st_as_sf(Sonoma_destination, coords = c("ENDLON", "ENDLAT"), crs = 4326)
-Sonoma_destination_space <- st_transform(Sonoma_destination_space,crs = 2230)
+UC_school_space <- st_as_sf(UC_school, coords = c("school_lon", "school_lat"), crs = 4326)
+UC_school_space <- st_transform(UC_school_space,crs = 2230)
 
-# SRCB
+# AC Transit
 
-SRCB_origin_space <- st_as_sf(SRCB_origin, coords = c("final_origin_lon", "final_origin_lat"), crs = 4326)
-SRCB_origin_space <- st_transform(SRCB_origin_space,crs = 2230)
+AC_origin_space <- st_as_sf(AC_origin, coords = c("orig_lon", "orig_lat"), crs = 4326)
+AC_origin_space <- st_transform(AC_origin_space,crs = 2230)
 
-SRCB_destination_space <- st_as_sf(SRCB_destination, coords = c("final_destin_lon", "final_destin_lat"), crs = 4326)
-SRCB_destination_space <- st_transform(SRCB_destination_space,crs = 2230)
+AC_destination_space <- st_as_sf(AC_destination, coords = c("dest_lon", "dest_lat"), crs = 4326)
+AC_destination_space <- st_transform(AC_destination_space,crs = 2230)
+
+AC_home_space <- st_as_sf(AC_home, coords = c("home_lon", "home_lat"), crs = 4326)
+AC_home_space <- st_transform(AC_home_space,crs = 2230)
+
+AC_work_space <- st_as_sf(AC_work, coords = c("workplace_lon", "workplace_lat"), crs = 4326)
+AC_work_space <- st_transform(AC_work_space,crs = 2230)
+
+AC_school_space <- st_as_sf(AC_school, coords = c("school_lon", "school_lat"), crs = 4326)
+AC_school_space <- st_transform(AC_school_space,crs = 2230)
 
 # Convert TAZ shape to same project as GGT (and all successive transit files)
 
-TAZ_shape <- st_transform(TAZ,crs = st_crs(GGT_origin_space))
+TAZ_shape <- st_transform(TAZ,crs = st_crs(ACE_origin_space))
+MAZ_shape <- st_transform(MAZ,crs = st_crs(ACE_origin_space))
 
-# Spatially join origin and destination to shapefile
+# Spatially join origin, destination, home, work, and school to shapefile
 
-# GGT
+# ACE
 
-GGT_origin2 <- st_join(GGT_origin_space,TAZ_shape, join=st_within,left=TRUE)%>%
-  rename(Origin_TAZ=TAZ) 
+ACE_origin2 <- st_join(ACE_origin_space,TAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Origin_TAZ=TAZ) %>% 
+  st_join(.,MAZ_shape, join=st_within,left=TRUE)%>%
+  rename(Origin_MAZ=MAZ)
 
-GGT_destination2 <- st_join(GGT_destination_space,TAZ_shape, join=st_within,left=TRUE)%>%
+ACE_destination2 <- st_join(ACE_destination_space,TAZ_shape, join=st_within,left=TRUE)%>%
   rename(Destination_TAZ=TAZ)
 
 #Petaluma
