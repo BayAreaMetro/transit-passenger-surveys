@@ -65,8 +65,8 @@ UC <- read.csv(UC_in, stringsAsFactors = FALSE) %>% mutate(
 # AC Transit
 
 AC <- read.csv(ACT_in, stringsAsFactors = FALSE) %>% mutate(
-  final_orig_lat = as.numeric(final_orig_lat),
-  final_orig_lon = as.numeric(final_orig_lon),
+  final_origin_lat = as.numeric(final_origin_lat),
+  final_origin_lon = as.numeric(final_origin_lon),
   final_destin_lat = as.numeric(final_destin_lat),
   final_destin_lon = as.numeric(final_destin_lon),
   home_lat = as.numeric(home_lat),
@@ -128,12 +128,12 @@ UC_school <- UC %>%
 #AC Transit
 
 AC_origin <- AC %>% 
-  select(id,final_orig_lat,final_orig_lon) %>% 
-  filter(!is.na(orig_lat))
+  select(id,final_origin_lat,final_origin_lon) %>% 
+  filter(!is.na(final_origin_lat))
 
 AC_destination <- AC %>% 
   select(id,final_destin_lat,final_destin_lon) %>% 
-  filter(!is.na(dest_lat))
+  filter(!is.na(final_destin_lat))
 
 AC_home <- AC %>% 
   select(id,home_lat,home_lon) %>% 
@@ -190,7 +190,7 @@ UC_school_space <- st_transform(UC_school_space,crs = 2230)
 
 # AC Transit
 
-AC_origin_space <- st_as_sf(AC_origin, coords = c("final_orig_lon", "final_orig_lat"), crs = 4326)
+AC_origin_space <- st_as_sf(AC_origin, coords = c("final_origin_lon", "final_origin_lat"), crs = 4326)
 AC_origin_space <- st_transform(AC_origin_space,crs = 2230)
 
 AC_destination_space <- st_as_sf(AC_destination, coords = c("final_destin_lon", "final_destin_lat"), crs = 4326)
