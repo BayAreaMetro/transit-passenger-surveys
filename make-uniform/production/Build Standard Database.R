@@ -1130,13 +1130,13 @@ taps_coords <- read.csv(f_taps_coords_path) %>%
                        `1` = "local bus", `2` = "express bus", `3` = "ferry", 
                        `4` = "light rail", `5` = "heavy rail", `6` = "commuter rail"))
 
-# CRS = 4236 sets the lat/long coordinates in the WGS1984 geographic survey
+# CRS = 4326 sets the lat/long coordinates in the WGS1984 geographic survey
 # CRS = 2230 sets the projection for NAD 1983 California Zone 6 in US Feet
-taps_spatial <- st_as_sf(taps_coords, coords = c("lon", "lat"), crs = 4236)
+taps_spatial <- st_as_sf(taps_coords, coords = c("lon", "lat"), crs = 4326)
 taps_spatial <- st_transform(taps_spatial, crs = 2230)
-survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "first_board_lat"), crs = 4236)
+survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "first_board_lat"), crs = 4326)
 survey_board_spatial <- st_transform(survey_board_spatial, crs = 2230)
-survey_alight_spatial <- st_as_sf(survey_alight, coords = c("last_alight_lon", "last_alight_lat"), crs = 4236)
+survey_alight_spatial <- st_as_sf(survey_alight, coords = c("last_alight_lon", "last_alight_lat"), crs = 4326)
 survey_alight_spatial <- st_transform(survey_alight_spatial, crs = 2230)
 
 survey_board_spatial <- survey_board_spatial %>%
@@ -1247,7 +1247,7 @@ board_alight_tap <- survey_board_spatial %>%
 
 ## Geocode Other Locations
 
-survey_coords_spatial <- st_as_sf(survey_coords, coords = c("x_coord", "y_coord"), crs = 4236)
+survey_coords_spatial <- st_as_sf(survey_coords, coords = c("x_coord", "y_coord"), crs = 4326)
 survey_coords_spatial <- st_transform(survey_coords_spatial, crs = 2230)
 
 taz_shp <- st_read(f_taz_shp_path) %>%
