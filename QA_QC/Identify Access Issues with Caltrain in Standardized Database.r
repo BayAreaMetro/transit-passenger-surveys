@@ -27,15 +27,8 @@ suspect_records <- caltrain %>%
   filter(onoff_enter_station=="San Francisco" & access_mode=="pnr") %>% 
   arrange(.,by="ID")
 
-# Check dictionary code
 
-dictionary_all <- read.csv(f_dict_standard, 
-                           header = TRUE) %>%
-  rename_all(tolower)
 
-# Write out final CSV files
-
-write.csv(final,paste0(output_location,"MTC_Onboard_Survey_Consolidated.csv"),row.names = FALSE,quote=T)
 
 
 
