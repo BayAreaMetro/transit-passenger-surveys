@@ -76,8 +76,8 @@ f_bart_survey_path <- paste0(dir_path,
                              "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
 f_caltrain_survey_path <- paste0(dir_path,
                                  "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
-# f_marin_survey_path <- paste0(dir_path,
-#                               "Marin Transit/Final Data/marin transit_data file_finalreweighted043018.csv")
+f_marin_survey_path <- paste0(dir_path,
+                              "Marin Transit/Final Data/marin transit_data file_final01222021_NO POUND OR SINGLE QUOTE.csv")
 f_muni_survey_path <- paste0(dir_path,
                              "Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 # f_napa_survey_path <- paste0(dir_path,
@@ -210,6 +210,13 @@ muni_df <- read_operator('SF Muni',
                          dictionary_all,
                          canonical_station_shp)
 
+marin_df <- read_operator('Marin Transit',
+                          2017,
+                          'local bus',
+                          f_marin_survey_path,
+                          dictionary_all,
+                          canonical_station_shp)
+
 #napa_vine_df <- read_operator('Napa Vine',
 #                              2014,
 #                              'local bus',
@@ -334,8 +341,9 @@ survey_combine <- bind_rows(
   bart_df,
   caltrain_df,
   muni_df,
-  # napa_vine_df,
-  # vta_df,
+  marin_df,
+  # # napa_vine_df,
+  # # vta_df,
   fast_df,
   rvdb_df,
   vcc_df,
