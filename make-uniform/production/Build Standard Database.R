@@ -46,10 +46,10 @@ ROUTE_DELIMITER = "&&&"
 #### Remote file names
 user_list <- data.frame(
   user = c("helseljw",
-           "Yuqi Wang",
+           "ywang",
            "SIsrael"),
   path = c("~/GitHub/onboard-surveys/Data and Reports/",
-           "C:/data/documents/MTC/Mine/2_OnboardSurvey/OnboardSurvey_chk_202002_yq/Data and Reports/",
+           "C:/Users/ywang/Documents/R/OnboardSurvey_2020Oct_yq/Data and Reports/",
            "M:/Data/OnBoard/Data and Reports/"
   )
 )
