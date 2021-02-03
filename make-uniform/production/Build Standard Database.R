@@ -116,6 +116,8 @@ f_napavine2019_survey_path <- paste0(dir_path,
                                      "Napa Vine/2019/Napa Vine_FINAL Data_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_petaluma2018_survey_path <- paste0(dir_path,
                                      "Petaluma/2018/As CSV/20180530_OD_Petaluma_Submittal_addCols_FINAL NO POUND NO SINGLE QUOTE.csv")
+f_SantaRosaCityBus2018_survey_path <- paste0(dir_path,
+                                             "Santa Rosa CityBus/2018/As CSV/20180522_OD_SantaRosa_Submittal_addCols_FINAL NO POUND NO SINGLE QUOTE.csv")
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path,
@@ -345,6 +347,13 @@ petaluma2018_df <- read_operator('Petaluma Transit',
                                  dictionary_all,
                                  canonical_station_shp)
 
+SantaRosaCityBus2018_df <- read_operator('Santa Rosa CityBus',
+                                         2018,
+                                         'local bus',
+                                         f_SantaRosaCityBus2018_survey_path,
+                                         dictionary_all,
+                                         canonical_station_shp)
+
 survey_combine <- bind_rows(
   ac_transit_df,
   bart_df,
@@ -368,7 +377,8 @@ survey_combine <- bind_rows(
   cccta2019_df,
   ggtransit_df,
   napavine2019_df,
-  petaluma2018_df
+  petaluma2018_df,
+  SantaRosaCityBus2018_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
