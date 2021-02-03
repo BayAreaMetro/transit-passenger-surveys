@@ -954,12 +954,15 @@ survey_standard <- survey_standard %>%
   mutate(path_access = ifelse(access_mode == "pnr" , "D", path_access)) %>%
   mutate(path_access = ifelse(access_mode == "knr" , "D", path_access)) %>%
   mutate(path_access = ifelse(access_mode == "bike", "B", path_access)) %>%
+  mutate(path_access = ifelse(access_mode == "tnc",  "T", path_access)) %>%
   mutate(path_access = ifelse(is.na(access_mode), "X", path_access)) %>%
-  # another categorization approach which combines "bike" and "D" as "D"
-  mutate(path_access_comb = ifelse(path_access == "B", "D", path_access))
+  # consider "bike" as "D"
+  mutate(path_access_recode = ifelse(path_access == "B", "D", path_access)) %>%
+  # consider "TNC" as "D"
+  mutate(path_access_recode = ifelse(path_access_recode == "T", "D", path_access_recode))
 
 table(survey_standard$path_access)
-table(survey_standard$path_access_comb)
+table(survey_standard$path_access_recode)
 
 # -- Egress
 survey_standard <- survey_standard %>%
@@ -968,12 +971,15 @@ survey_standard <- survey_standard %>%
   mutate(path_egress = ifelse(egress_mode == "pnr" , "D", path_egress)) %>%
   mutate(path_egress = ifelse(egress_mode == "knr" , "D", path_egress)) %>%
   mutate(path_egress = ifelse(egress_mode == "bike", "B", path_egress)) %>%
+  mutate(path_egress = ifelse(egress_mode == "tnc", "T", path_egress)) %>%
   mutate(path_egress = ifelse(is.na(egress_mode), "X", path_egress)) %>%
-  # another categorization approach which combines "bike" and "D" as "D"
-  mutate(path_egress_comb = ifelse(path_egress == "B", "D", path_egress))
+  # consider "bike" as "D"
+  mutate(path_egress_recode = ifelse(path_egress == "B", "D", path_egress)) %>%
+  # consider "TNC" as "D"
+  mutate(path_egress_recode = ifelse(path_egress_recode == "T", "D", path_egress_recode))
 
 table(survey_standard$path_egress)
-table(survey_standard$path_egress_comb)
+table(survey_standard$path_egress_recode)
 
 # -- Line haul
 # --- Technology present calculations
@@ -1224,6 +1230,9 @@ survey_standard <- survey_standard %>%
 survey_standard <- survey_standard %>%
   mutate(date_string = ifelse(date_string == "Missing - Dummy Record", NA, date_string)) %>%
   mutate(date_string = ifelse(date_string == "Missing - Question Not Asked", NA, date_string)) %>%
+  mutate(date_string = ifelse(date_string == "Paper Survey", NA, date_string)) %>%
+  mutate(date_string = ifelse(date_string == "Unknown", NA, date_string)) %>%
+  mutate(date_string = ifelse(date_string == "UNKNOWN", NA, date_string)) %>%
   # first, label survey responses that are missing both 'date_string' and 'weekpart' values
   mutate(weekpart = ifelse((is.na(date_string)) & (is.na(weekpart)), "Missing", weekpart)) %>%
   # second, add fixing for BART
@@ -1693,9 +1702,9 @@ survey_decomposition <- survey_standard %>%
          first_board_tech,
          last_alight_tech,
          path_access,
-         path_access_comb,
+         path_access_recode,
          path_egress,
-         path_egress_comb,
+         path_egress_recode,
          path_line_haul,
          path_label,
          boardings,
