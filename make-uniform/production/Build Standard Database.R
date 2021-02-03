@@ -114,6 +114,8 @@ f_ggtransit_survey_path <- paste0(dir_path,
                                   "Golden Gate Transit/2018/As CSV/20180907_OD_GoldenGate_allDays_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_napavine2019_survey_path <- paste0(dir_path,
                                      "Napa Vine/2019/Napa Vine_FINAL Data_addCols_NO POUND OR SINGLE QUOTE.csv")
+f_petaluma2018_survey_path <- paste0(dir_path,
+                                     "Petaluma/2018/As CSV/20180530_OD_Petaluma_Submittal_addCols_FINAL NO POUND NO SINGLE QUOTE.csv")
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path,
@@ -336,6 +338,13 @@ napavine2019_df <- read_operator('Napa Vine',
                                  dictionary_all,
                                  canonical_station_shp)
 
+petaluma2018_df <- read_operator('Petaluma Transit',
+                                 2018,
+                                 'local bus',
+                                 f_petaluma2018_survey_path,
+                                 dictionary_all,
+                                 canonical_station_shp)
+
 survey_combine <- bind_rows(
   ac_transit_df,
   bart_df,
@@ -358,7 +367,8 @@ survey_combine <- bind_rows(
   tridelta2019_df,
   cccta2019_df,
   ggtransit_df,
-  napavine2019_df
+  napavine2019_df,
+  petaluma2018_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
@@ -1081,10 +1091,10 @@ survey_standard <- survey_standard %>%
                                  path_line_haul)) %>%
   mutate(path_line_haul = ifelse(commuter_rail_present, "COM", path_line_haul)) %>%
   mutate(path_label = paste(path_access, path_line_haul, path_egress, sep = "-")) %>%
-  mutate(path_label_comb = paste(path_access_comb, path_line_haul, path_egress_comb, sep = "-"))
+  mutate(path_label_recode = paste(path_access_recode, path_line_haul, path_egress_recode, sep = "-"))
 
 table(survey_standard$path_label)
-table(survey_standard$path_label_comb)
+table(survey_standard$path_label_recode)
 
 dup11 <- survey_standard[duplicated(survey_standard),]
 
