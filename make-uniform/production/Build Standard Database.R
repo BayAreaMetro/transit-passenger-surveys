@@ -1218,6 +1218,10 @@ survey_standard <- survey_standard %>%
   mutate(fare_medium = ifelse(is.na(clipper_detail), fare_medium, clipper_detail)) %>%
   select(-clipper_detail)
 
+# consolidate missing household income into 'missing' 
+survey_standard <- survey_standard %>%
+  mutate(household_income = ifelse(household_income == "DON'T KNOW", "Missing", household_income))
+
 table(survey_standard$work_status)
 table(survey_standard$student_status)
 table(survey_standard$fare_medium)
