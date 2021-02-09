@@ -833,24 +833,24 @@ dup7 <- survey_standard[duplicated(survey_standard),]
 # Set operator for each of six legs (three before, three after)
 # - remove Dummy Records
 survey_standard <- survey_standard %>%
-  mutate(first_route_before_survey_board = ifelse(str_detect(first_route_before_survey_board, "Missing___"),
+  mutate(first_route_before_survey_board = ifelse(first_route_before_survey_board == "Missing___Missing Dummy Record",
                                                   "",
                                                   first_route_before_survey_board)) %>%
-  mutate(second_route_before_survey_board = ifelse(str_detect(second_route_before_survey_board, "Missing___"),
+  mutate(second_route_before_survey_board = ifelse(second_route_before_survey_board == "Missing___Missing Dummy Record",
                                                    "",
                                                    second_route_before_survey_board)) %>%
-  mutate(third_route_before_survey_board = ifelse(str_detect(third_route_before_survey_board, "Missing___"),
+  mutate(third_route_before_survey_board = ifelse(third_route_before_survey_board == "Missing___Missing Dummy Record",
                                                   "",
                                                   third_route_before_survey_board))
 
 survey_standard <- survey_standard %>%
-  mutate(first_route_after_survey_alight = ifelse(str_detect(first_route_after_survey_alight, "Missing___"),
+  mutate(first_route_after_survey_alight = ifelse(first_route_after_survey_alight == "Missing___Missing Dummy Record",
                                                   "",
                                                   first_route_after_survey_alight)) %>%
-  mutate(second_route_after_survey_alight = ifelse(str_detect(second_route_after_survey_alight, "Missing___"),
+  mutate(second_route_after_survey_alight = ifelse(second_route_after_survey_alight == "Missing___Missing Dummy Record",
                                                    "",
                                                    second_route_after_survey_alight)) %>%
-  mutate(third_route_after_survey_alight = ifelse(str_detect(third_route_after_survey_alight, "Missing___"),
+  mutate(third_route_after_survey_alight = ifelse(third_route_after_survey_alight == "Missing___Missing Dummy Record",
                                                   "",
                                                   third_route_after_survey_alight))
 
