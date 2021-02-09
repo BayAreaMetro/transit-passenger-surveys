@@ -157,7 +157,7 @@ dictionary_cat <- dictionary_all %>%
 
 # _User Intervention_
 # Each route in the Bay Area has a `canonical` or reference name. This name is stored
-# in the database referenced in `f_canonical_path`. The user must match the route
+# in the database referenced in `f_canonical_routes_path`. The user must match the route
 # names from a survey being added to the `canonical` route names. These route names
 # are used to assign technologies to each of the routes collected in the survey,
 # which allows travel model path labels to be assigned to each trip.
