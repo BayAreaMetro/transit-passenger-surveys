@@ -761,32 +761,45 @@ table(survey_standard$student_status)
 
 # Transform vehicles and workers to standard scale
 survey_standard <- survey_standard %>%
-  mutate(vehicles = ifelse((vehicles == 'other' & 'vehicles_additional_info' %in% colnames(survey_standard)),
-                              vehicles_additional_info, vehicles)) %>%
   mutate(vehicles = ifelse((vehicles == 'other' & 'vehicles_other' %in% colnames(survey_standard)),
-                              vehicles_other, vehicles)) %>%
-  mutate(workers = ifelse((workers == 'other' & 'workers_additional_info' %in% colnames(survey_standard)),
-                              workers_additional_info,  workers)) %>%
+                            vehicles_other, vehicles)) %>%
   mutate(workers = ifelse((workers == 'other' & 'workers_other' %in% colnames(survey_standard)),
-                          workers_other,  workers))
+                           workers_other,  workers)) %>%
+  mutate(persons = ifelse((persons == 'other' & 'persons_other' %in% colnames(survey_standard)),
+                           persons_other,  persons))
 
 table(survey_standard$vehicles)
 table(survey_standard$workers)
+table(survey_standard$persons)
 
+# consolidate categorical and noncategorical values for 'persons', 'vehicles' and 'workers' - the values originally from
+# the 'persons'/'vehicles'/'workers' fields are categorical (one, two, etc.) whereas the values originally from 'persons_other'/
+# 'vehicles_other'/'workers_other' are numeric (5, 6, etc.). Convert the latter to the former's format
+survey_standard <- survey_standard %>%
+  mutate(persons = ifelse(persons == 7, 'seven', 
+                          ifelse(persons == 8, 'eight', 
+                                 persons))) %>%
+
+  mutate(vehicles = ifelse(vehicles == 5, 'five', 
+                          ifelse(vehicles == 6, 'six',
+                                 ifelse(vehicles == 7, 'seven',
+                                        ifelse(vehicles == 10, 'ten', vehicles))))) %>%
+
+  mutate(workers = ifelse(workers == 7, 'seven',
+                          ifelse(workers == 11, 'eleven',
+                                 workers)))
+
+# map vehicles and workers counts to numeric values in order to calculate auto-sufficiency
 vehicles_dictionary <- data.frame(
   vehicles = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
-               'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more',
-               '5', '6', '7', '8', '9', '10'),
-  vehicle_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-                          4, 4, 4, 4, 4, 4))
+               'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more'),
+  vehicle_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
 
 workers_dictionary <- data.frame(
   workers = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
               'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen',
-              'fifteen', 'six or more',
-              '7', '8', '9', '10', '11'),
-  worker_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-                         4, 4, 4, 4, 4))
+              'fifteen', 'six or more'),
+  worker_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
 
 survey_standard <- left_join(survey_standard, vehicles_dictionary, by = c("vehicles"))
 survey_standard <- left_join(survey_standard, workers_dictionary, by = c("workers"))
@@ -824,6 +837,7 @@ table(survey_standard$auto_suff)
 
 remove(vehicles_dictionary,
        workers_dictionary)
+
 
 dup7 <- survey_standard[duplicated(survey_standard),]
 
