@@ -477,14 +477,14 @@ survey_standard <- survey_standard %>%
   mutate(year_born = ifelse(year_born == 3884, 1984, year_born)) %>%
   mutate(year_born = ifelse(year_born == 1899, NA, year_born))
 
-table(survey_standard$year_born)
+table(survey_standard$year_born, useNA = 'ifany')
 
 # Compute approximate respondent age
 survey_standard <- survey_standard %>%
   mutate(approximate_age = ifelse(!is.na(year_born) & survey_year >= year_born, survey_year - year_born, NA)) %>%
   mutate(approximate_age = ifelse(approximate_age == 0, NA, approximate_age))
 
-table(survey_standard$approximate_age)
+table(survey_standard$approximate_age, useNA = 'ifany')
 
 
 # Step 2:  Trip- and tour-purpose-related transformations ------------------------------
@@ -681,7 +681,7 @@ survey_standard <- survey_standard %>%
   mutate(tour_purp = ifelse(tour_purp == 'work-related', 'other maintenance', tour_purp))
 
 
-table(survey_standard$tour_purp)
+table(survey_standard$tour_purp, useNA = 'ifany')
 
 dup6 <- survey_standard[duplicated(survey_standard),]
 
@@ -753,8 +753,8 @@ survey_standard <- survey_standard %>%
                                  'full- or part-time',
                                  student_status))
 
-table(survey_standard$work_status)
-table(survey_standard$student_status)
+table(survey_standard$work_status, useNA = 'ifany')
+table(survey_standard$student_status, useNA = 'ifany')
 
 
 # Step 4:  Automobile Sufficiency ------------------------------------------------------
@@ -768,9 +768,9 @@ survey_standard <- survey_standard %>%
   mutate(persons = ifelse((persons == 'other' & 'persons_other' %in% colnames(survey_standard)),
                            persons_other,  persons))
 
-table(survey_standard$vehicles)
-table(survey_standard$workers)
-table(survey_standard$persons)
+table(survey_standard$vehicles, useNA = 'ifany')
+table(survey_standard$workers, useNA = 'ifany')
+table(survey_standard$persons, useNA = 'ifany')
 
 # consolidate categorical and noncategorical values for 'persons', 'vehicles' and 'workers' - the values originally from
 # the 'persons'/'vehicles'/'workers' fields are categorical (one, two, etc.) whereas the values originally from 'persons_other'/
@@ -809,8 +809,8 @@ survey_standard <- survey_standard %>%
   mutate(vehicle_numeric_cat = ifelse(is.na(vehicle_numeric_cat), vehicles, vehicle_numeric_cat)) %>%
   mutate(worker_numeric_cat = ifelse(is.na(worker_numeric_cat), workers, worker_numeric_cat))
 
-table(survey_standard$vehicle_numeric_cat)
-table(survey_standard$worker_numeric_cat)
+table(survey_standard$vehicle_numeric_cat, useNA = 'ifany')
+table(survey_standard$worker_numeric_cat, useNA = 'ifany')
 
 survey_standard <- survey_standard %>%
   mutate(auto_suff = ifelse(vehicle_numeric_cat == 0, 'zero autos', 'missing')) %>%
@@ -833,7 +833,7 @@ survey_standard <- survey_standard %>%
                             'missing',
                             auto_suff))
 
-table(survey_standard$auto_suff)
+table(survey_standard$auto_suff, useNA = 'ifany')
 
 remove(vehicles_dictionary,
        workers_dictionary)
@@ -935,7 +935,7 @@ survey_standard <- survey_standard %>%
 
 dup9 <- survey_standard[duplicated(survey_standard),]
 
-table(survey_standard$first_before_technology)  #### check if there is "Missing"
+table(survey_standard$first_before_technology, useNA = 'ifany')  #### check if there is "Missing"
 
 
 # Step 6:  Travel Model One path details -----------------------------------------------
@@ -973,11 +973,11 @@ survey_standard <- survey_standard %>%
                                    third_after_technology,
                                    last_alight_tech))
 
-table(survey_standard$transfer_from)
-table(survey_standard$transfer_to)
-table(survey_standard$survey_tech)
-table(survey_standard$first_board_tech)
-table(survey_standard$last_alight_tech)
+table(survey_standard$transfer_from, useNA = 'ifany')
+table(survey_standard$transfer_to, useNA = 'ifany')
+table(survey_standard$survey_tech, useNA = 'ifany')
+table(survey_standard$first_board_tech, useNA = 'ifany')
+table(survey_standard$last_alight_tech, useNA = 'ifany')
 
 
 # Travel Model One path (re-write to acknowledge NA explicitly)
@@ -995,8 +995,8 @@ survey_standard <- survey_standard %>%
   # consider "TNC" as "D"
   mutate(path_access_recode = ifelse(path_access_recode == "T", "D", path_access_recode))
 
-table(survey_standard$path_access)
-table(survey_standard$path_access_recode)
+table(survey_standard$path_access, useNA = 'ifany')
+table(survey_standard$path_access_recode, useNA = 'ifany')
 
 # -- Egress
 survey_standard <- survey_standard %>%
@@ -1012,8 +1012,8 @@ survey_standard <- survey_standard %>%
   # consider "TNC" as "D"
   mutate(path_egress_recode = ifelse(path_egress_recode == "T", "D", path_egress_recode))
 
-table(survey_standard$path_egress)
-table(survey_standard$path_egress_recode)
+table(survey_standard$path_egress, useNA = 'ifany')
+table(survey_standard$path_egress_recode, useNA = 'ifany')
 
 # -- Line haul
 # --- Technology present calculations
@@ -1049,7 +1049,7 @@ survey_standard <- survey_standard %>%
 
 dup10<- survey_standard[duplicated(survey_standard),]
 
-table(survey_standard$commuter_rail_present)
+table(survey_standard$commuter_rail_present, useNA = 'ifany')
 
 helper_relevant_tech <- 'heavy rail'
 survey_standard <- survey_standard %>%
@@ -1061,7 +1061,7 @@ survey_standard <- survey_standard %>%
            second_after_technology == helper_relevant_tech |
            third_after_technology == helper_relevant_tech)
 
-table(survey_standard$heavy_rail_present)
+table(survey_standard$heavy_rail_present, useNA = 'ifany')
 
 helper_relevant_tech <- 'express bus'
 survey_standard <- survey_standard %>%
@@ -1073,7 +1073,7 @@ survey_standard <- survey_standard %>%
            second_after_technology == helper_relevant_tech |
            third_after_technology == helper_relevant_tech)
 
-table(survey_standard$express_bus_present)
+table(survey_standard$express_bus_present, useNA = 'ifany')
 
 helper_relevant_tech <- 'ferry'
 survey_standard <- survey_standard %>%
@@ -1085,7 +1085,7 @@ survey_standard <- survey_standard %>%
            second_after_technology == helper_relevant_tech |
            third_after_technology == helper_relevant_tech)
 
-table(survey_standard$ferry_present)
+table(survey_standard$ferry_present, useNA = 'ifany')
 
 helper_relevant_tech <- 'light rail'
 survey_standard <- survey_standard %>%
@@ -1097,7 +1097,7 @@ survey_standard <- survey_standard %>%
            second_after_technology == helper_relevant_tech |
            third_after_technology == helper_relevant_tech)
 
-table(survey_standard$light_rail_present)
+table(survey_standard$light_rail_present, useNA = 'ifany')
 
 survey_standard <- survey_standard %>%
   mutate(path_line_haul = "LOC") %>%
@@ -1117,8 +1117,8 @@ survey_standard <- survey_standard %>%
   mutate(path_label = paste(path_access, path_line_haul, path_egress, sep = "-")) %>%
   mutate(path_label_recode = paste(path_access_recode, path_line_haul, path_egress_recode, sep = "-"))
 
-table(survey_standard$path_label)
-table(survey_standard$path_label_recode)
+table(survey_standard$path_label, useNA = 'ifany')
+table(survey_standard$path_label_recode, useNA = 'ifany')
 
 dup11 <- survey_standard[duplicated(survey_standard),]
 
@@ -1132,7 +1132,7 @@ survey_standard <- survey_standard %>%
   mutate(boardings = ifelse(!(second_after_technology  == "Missing"), boardings + 1, boardings)) %>%
   mutate(boardings = ifelse(!(third_after_technology   == "Missing"), boardings + 1, boardings))
 
-table(survey_standard$boardings)
+table(survey_standard$boardings, useNA = 'ifany')
 
 # If missing, compute number_transfers_orig_board and number_transfers_alight_dest
 survey_standard <- survey_standard %>%
@@ -1148,15 +1148,15 @@ survey_standard <- survey_standard %>%
                                                first + second + third, number_transfers_alight_dest)) %>%
   select(-first, -second, -third)
 
-table(survey_standard$number_transfers_orig_board)
-table(survey_standard$number_transfers_alight_dest)
+table(survey_standard$number_transfers_orig_board, useNA = 'ifany')
+table(survey_standard$number_transfers_alight_dest, useNA = 'ifany')
 
 survey_standard <- survey_standard %>%
   mutate(survey_boardings = 1L +
            as.numeric(number_transfers_orig_board) +
            as.numeric(number_transfers_alight_dest) )
 
-table(survey_standard$boardings, survey_standard$survey_boardings)
+table(survey_standard$boardings, survey_standard$survey_boardings, useNA = 'ifany')
 
 # Build debug data frame to find odds and ends
 # Ideally, debug_transfers has 0 record. When it's not empty, examine if the transfer routes, transfer operator,
@@ -1246,15 +1246,15 @@ survey_standard <- survey_standard %>%
 survey_standard <- survey_standard %>%
   mutate(household_income = ifelse(household_income == "DON'T KNOW", "Missing", household_income))
 
-table(survey_standard$work_status)
-table(survey_standard$student_status)
-table(survey_standard$fare_medium)
-table(survey_standard$fare_category)
-table(survey_standard$hispanic)
-table(survey_standard$race)
-table(survey_standard$language_at_home)
-table(survey_standard$household_income)
-table(survey_standard$eng_proficient)
+table(survey_standard$work_status, useNA = 'ifany')
+table(survey_standard$student_status, useNA = 'ifany')
+table(survey_standard$fare_medium, useNA = 'ifany')
+table(survey_standard$fare_category, useNA = 'ifany')
+table(survey_standard$hispanic, useNA = 'ifany')
+table(survey_standard$race, useNA = 'ifany')
+table(survey_standard$language_at_home, useNA = 'ifany')
+table(survey_standard$household_income, useNA = 'ifany')
+table(survey_standard$eng_proficient, useNA = 'ifany')
 
 
 # Step 8:  Set dates and times ---------------------------------------------------------
@@ -1277,8 +1277,8 @@ survey_standard <- survey_standard %>%
   mutate(weekpart = ifelse((is.na(date_string) & operator == "BART"), "WEEKDAY", weekpart))
 
 
-table(survey_standard$date_string)
-table(survey_standard$time_string)
+table(survey_standard$date_string, useNA = 'ifany')
+table(survey_standard$time_string, useNA = 'ifany')
 
 # Get day of the week from date
 survey_standard <- survey_standard %>%
@@ -1290,7 +1290,7 @@ survey_standard <- survey_standard %>%
   mutate(day_of_the_week = toupper(weekdays(date))) %>%
   mutate(day_of_the_week = ifelse(is.na(date), "Missing", day_of_the_week))
 
-table(survey_standard$operator, survey_standard$day_of_the_week)
+table(survey_standard$operator, survey_standard$day_of_the_week, useNA = 'ifany')
 
 # Fill in missing weekpart
 survey_standard <- survey_standard %>%
@@ -1302,7 +1302,7 @@ survey_standard <- survey_standard %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "FRIDAY",   "WEEKDAY", weekpart)) %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "SATURDAY", "WEEKEND", weekpart))
 
-table(survey_standard$operator,survey_standard$weekpart)
+table(survey_standard$operator,survey_standard$weekpart, useNA = 'ifany')
 
 # Get field dates from date
 field_dates <- survey_standard %>%
@@ -1341,11 +1341,11 @@ survey_standard <- survey_standard %>%
   # keep survey_time to output
   mutate(survey_time=format(survey_time_posix, format="%H:%M:%S"))
 
-table(survey_standard$field_start)
-table(survey_standard$field_end)
-table(survey_standard$time_start)
-table(survey_standard$day_part)
-table(survey_standard$day_of_the_week)
+table(survey_standard$field_start, useNA = 'ifany')
+table(survey_standard$field_end, useNA = 'ifany')
+table(survey_standard$time_start, useNA = 'ifany')
+table(survey_standard$day_part, useNA = 'ifany')
+table(survey_standard$day_of_the_week, useNA = 'ifany')
 
 survey_standard <- survey_standard %>%
   select(-date_string, -time_string, -time1, -time2,
