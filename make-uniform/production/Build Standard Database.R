@@ -265,7 +265,7 @@ soltrans_df <- read_operator('Soltrans',
 
 ace_df <- read_operator('ACE',
                         2019,
-                        'heavy rail',
+                        'commuter rail',
                         f_ace_survey_path,
                         dictionary_all,
                         canonical_station_shp)
@@ -286,7 +286,7 @@ sonomact_df <- read_operator('Sonoma County Transit',
 
 smart_df <- read_operator('Sonoma-Marin Area Rail Transit',
                           2018,
-                          'local bus',
+                          'commuter rail',
                           f_smart_survey_path,
                           dictionary_all,
                           canonical_station_shp)
@@ -328,7 +328,7 @@ cccta2019_df <- read_operator('County Connection',
 
 ggtransit_df <- read_operator('Golden Gate Transit',
                               2018,
-                              'local bus',
+                              'express bus',
                               f_ggtransit_survey_path,
                               dictionary_all,
                               canonical_station_shp)
