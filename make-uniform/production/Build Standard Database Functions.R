@@ -241,3 +241,38 @@ set_operator_name <- function(input_vector) {
     mutate(output_field = "None") %>%
     mutate(output_field = str_extract(input_field, "^[A-Za-z- ]*"))
 }
+
+
+## Function to add a labeling column indicating if certain technology 
+## is present in each tour of the survey
+technology_present <- function(survey_data_df,
+                               technology,
+                               new_col_name) {
+  
+  # input: - dataframe of survey responses
+  #        - technology string
+  #        - name of the new column in string format
+  # output: updated dateframe with a new column indicating
+  #         if the technology is available
+  
+  transfer_tech_cols = c('first_before_technology',
+                         'second_before_technology',
+                         'third_before_technology', 
+                         'first_after_technology',
+                         'second_after_technology',
+                         'third_after_technology')
+  
+  survey_data_df[new_col_name] = FALSE
+  
+  for (i in transfer_tech_cols){
+    # check if the transfer technology column exists
+    stopifnot(i %in% colnames(survey_data_df))
+    
+    # update the value of the labeling to "TRUE" if the technology exisit
+    survey_data_df[new_col_name][survey_data_df[i] == technology] = TRUE 
+  }
+  
+  print(table(survey_data_df[new_col_name], useNA = 'ifany'))
+  
+  return(survey_data_df)
+}
