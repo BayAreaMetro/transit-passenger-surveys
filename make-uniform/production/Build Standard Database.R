@@ -1037,67 +1037,19 @@ survey_standard <- survey_standard %>%
                                          "Missing",
                                          third_after_technology))
 
-helper_relevant_tech <- 'commuter rail'
-survey_standard <- survey_standard %>%
-  mutate(commuter_rail_present = FALSE) %>%
-  mutate(commuter_rail_present = first_before_technology == helper_relevant_tech |
-           second_before_technology == helper_relevant_tech |
-           third_before_technology == helper_relevant_tech |
-           first_after_technology == helper_relevant_tech |
-           second_after_technology == helper_relevant_tech |
-           third_after_technology == helper_relevant_tech)
+technology_exist_labels = list('commuter rail' = 'commuter_rail_present', 
+                               'heavy rail' = 'heavy_rail_present',
+                               'express bus' = 'express_bus_present',
+                               'ferry' = 'ferry_present',
+                               'light rail' = 'light_rail_present')
 
-dup10<- survey_standard[duplicated(survey_standard),]
-
-table(survey_standard$commuter_rail_present, useNA = 'ifany')
-
-helper_relevant_tech <- 'heavy rail'
-survey_standard <- survey_standard %>%
-  mutate(heavy_rail_present = FALSE) %>%
-  mutate(heavy_rail_present = first_before_technology == helper_relevant_tech |
-           second_before_technology == helper_relevant_tech |
-           third_before_technology == helper_relevant_tech |
-           first_after_technology == helper_relevant_tech |
-           second_after_technology == helper_relevant_tech |
-           third_after_technology == helper_relevant_tech)
-
-table(survey_standard$heavy_rail_present, useNA = 'ifany')
-
-helper_relevant_tech <- 'express bus'
-survey_standard <- survey_standard %>%
-  mutate(express_bus_present = FALSE) %>%
-  mutate(express_bus_present = first_before_technology == helper_relevant_tech |
-           second_before_technology == helper_relevant_tech |
-           third_before_technology == helper_relevant_tech |
-           first_after_technology == helper_relevant_tech |
-           second_after_technology == helper_relevant_tech |
-           third_after_technology == helper_relevant_tech)
-
-table(survey_standard$express_bus_present, useNA = 'ifany')
-
-helper_relevant_tech <- 'ferry'
-survey_standard <- survey_standard %>%
-  mutate(ferry_present = FALSE) %>%
-  mutate(ferry_present = first_before_technology == helper_relevant_tech |
-           second_before_technology == helper_relevant_tech |
-           third_before_technology == helper_relevant_tech |
-           first_after_technology == helper_relevant_tech |
-           second_after_technology == helper_relevant_tech |
-           third_after_technology == helper_relevant_tech)
-
-table(survey_standard$ferry_present, useNA = 'ifany')
-
-helper_relevant_tech <- 'light rail'
-survey_standard <- survey_standard %>%
-  mutate(light_rail_present = FALSE) %>%
-  mutate(light_rail_present = first_before_technology == helper_relevant_tech |
-           second_before_technology == helper_relevant_tech |
-           third_before_technology == helper_relevant_tech |
-           first_after_technology == helper_relevant_tech |
-           second_after_technology == helper_relevant_tech |
-           third_after_technology == helper_relevant_tech)
-
-table(survey_standard$light_rail_present, useNA = 'ifany')
+for (technology_type in names(technology_exist_labels)) {
+  print(paste0('technology present for: ', technology_type))
+  new_col_name <- technology_exist_labels[[technology_type]]
+  survey_standard <- technology_present(survey_standard,
+                                        technology_type,
+                                        new_col_name)
+}
 
 survey_standard <- survey_standard %>%
   mutate(path_line_haul = "LOC") %>%
