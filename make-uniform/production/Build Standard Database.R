@@ -936,9 +936,10 @@ survey_standard <- survey_standard %>%
 dup9 <- survey_standard[duplicated(survey_standard),]
 
 table(survey_standard$first_before_technology, useNA = 'ifany')  #### check if there is "Missing"
+table(survey_standard$first_after_technology, useNA = 'ifany')
 
 
-# Step 6:  Travel Model One path details -----------------------------------------------
+# Step 6:  Transfer details -----------------------------------------------
 
 # Transfer to and from
 survey_standard <- survey_standard %>%
@@ -980,43 +981,7 @@ table(survey_standard$first_board_tech, useNA = 'ifany')
 table(survey_standard$last_alight_tech, useNA = 'ifany')
 
 
-# Travel Model One path (re-write to acknowledge NA explicitly)
-# -- Access
-survey_standard <- survey_standard %>%
-  mutate(path_access = "X") %>%
-  mutate(path_access = ifelse(access_mode == "walk", "W", path_access)) %>%
-  mutate(path_access = ifelse(access_mode == "pnr" , "D", path_access)) %>%
-  mutate(path_access = ifelse(access_mode == "knr" , "D", path_access)) %>%
-  mutate(path_access = ifelse(access_mode == "bike", "B", path_access)) %>%
-  mutate(path_access = ifelse(access_mode == "tnc",  "T", path_access)) %>%
-  mutate(path_access = ifelse(is.na(access_mode), "X", path_access)) %>%
-  # consider "bike" as "D"
-  mutate(path_access_recode = ifelse(path_access == "B", "D", path_access)) %>%
-  # consider "TNC" as "D"
-  mutate(path_access_recode = ifelse(path_access_recode == "T", "D", path_access_recode))
-
-table(survey_standard$path_access, useNA = 'ifany')
-table(survey_standard$path_access_recode, useNA = 'ifany')
-
-# -- Egress
-survey_standard <- survey_standard %>%
-  mutate(path_egress = "X") %>%
-  mutate(path_egress = ifelse(egress_mode == "walk", "W", path_egress)) %>%
-  mutate(path_egress = ifelse(egress_mode == "pnr" , "D", path_egress)) %>%
-  mutate(path_egress = ifelse(egress_mode == "knr" , "D", path_egress)) %>%
-  mutate(path_egress = ifelse(egress_mode == "bike", "B", path_egress)) %>%
-  mutate(path_egress = ifelse(egress_mode == "tnc", "T", path_egress)) %>%
-  mutate(path_egress = ifelse(is.na(egress_mode), "X", path_egress)) %>%
-  # consider "bike" as "D"
-  mutate(path_egress_recode = ifelse(path_egress == "B", "D", path_egress)) %>%
-  # consider "TNC" as "D"
-  mutate(path_egress_recode = ifelse(path_egress_recode == "T", "D", path_egress_recode))
-
-table(survey_standard$path_egress, useNA = 'ifany')
-table(survey_standard$path_egress_recode, useNA = 'ifany')
-
-# -- Line haul
-# --- Technology present calculations
+# Technology present calculations
 survey_standard <- survey_standard %>%
   mutate(first_before_technology = ifelse(is.na(first_before_technology),
                                           "Missing",
@@ -1051,28 +1016,6 @@ for (technology_type in names(technology_exist_labels)) {
                                         new_col_name)
 }
 
-survey_standard <- survey_standard %>%
-  mutate(path_line_haul = "LOC") %>%
-  mutate(path_line_haul = ifelse(light_rail_present,
-                                 "LRF",
-                                 path_line_haul)) %>%
-  mutate(path_line_haul = ifelse(ferry_present,
-                                 "LRF",
-                                 path_line_haul)) %>%
-  mutate(path_line_haul = ifelse(express_bus_present,
-                                 "EXP",
-                                 path_line_haul)) %>%
-  mutate(path_line_haul = ifelse(heavy_rail_present,
-                                 "HVY",
-                                 path_line_haul)) %>%
-  mutate(path_line_haul = ifelse(commuter_rail_present, "COM", path_line_haul)) %>%
-  mutate(path_label = paste(path_access, path_line_haul, path_egress, sep = "-")) %>%
-  mutate(path_label_recode = paste(path_access_recode, path_line_haul, path_egress_recode, sep = "-"))
-
-table(survey_standard$path_label, useNA = 'ifany')
-table(survey_standard$path_label_recode, useNA = 'ifany')
-
-dup11 <- survey_standard[duplicated(survey_standard),]
 
 # Boardings
 survey_standard <- survey_standard %>%
@@ -1691,12 +1634,6 @@ survey_decomposition <- survey_standard %>%
          transfer_to,
          first_board_tech,
          last_alight_tech,
-         path_access,
-         path_access_recode,
-         path_egress,
-         path_egress_recode,
-         path_line_haul,
-         path_label,
          boardings,
          day_of_the_week,
          field_start,
