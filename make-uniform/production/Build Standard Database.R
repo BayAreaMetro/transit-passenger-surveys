@@ -80,10 +80,10 @@ f_marin_survey_path <- paste0(dir_path,
                               "Marin Transit/Final Data/marin transit_data file_final01222021_NO POUND OR SINGLE QUOTE.csv")
 f_muni_survey_path <- paste0(dir_path,
                              "Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
-# f_napa_survey_path <- paste0(dir_path,
-#                              "Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
-# f_vta_survey_path <- paste0(dir_path,
-#                             "VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
+f_napa_survey_path <- paste0(dir_path,
+                             "Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
+f_vta_survey_path <- paste0(dir_path,
+                            "VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
 f_fast_survey_path <- paste0(dir_path,
                             "Solano County/As CSV/FAST_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
 f_rvdb_survey_path <- paste0(dir_path,
@@ -221,19 +221,19 @@ marin_df <- read_operator('Marin Transit',
                           dictionary_all,
                           canonical_station_shp)
 
-#napa_vine_df <- read_operator('Napa Vine',
-#                              2014,
-#                              'local bus',
-#                              f_napa_survey_path,
-#                              dictionary_all,
-#                              canonical_station_shp)
+napa_vine_df <- read_operator('Napa Vine',
+                              2014,
+                              'local bus',
+                              f_napa_survey_path,
+                              dictionary_all,
+                              canonical_station_shp)
 
-#vta_df <- read_operator('VTA',
-#                        2017,
-#                        'local bus',
-#                        f_vta_survey_path,
-#                        dictionary_all,
-#                        canonical_station_shp)
+vta_df <- read_operator('VTA',
+                        2017,
+                        'local bus',
+                        f_vta_survey_path,
+                        dictionary_all,
+                        canonical_station_shp)
 
 fast_df <- read_operator('FAST',
                          2017,
@@ -776,18 +776,14 @@ table(survey_standard$persons, useNA = 'ifany')
 # the 'persons'/'vehicles'/'workers' fields are categorical (one, two, etc.) whereas the values originally from 'persons_other'/
 # 'vehicles_other'/'workers_other' are numeric (5, 6, etc.). Convert the latter to the former's format
 survey_standard <- survey_standard %>%
-  mutate(persons = ifelse(persons == 7, 'seven', 
-                          ifelse(persons == 8, 'eight', 
-                                 persons))) %>%
-
-  mutate(vehicles = ifelse(vehicles == 5, 'five', 
-                          ifelse(vehicles == 6, 'six',
-                                 ifelse(vehicles == 7, 'seven',
-                                        ifelse(vehicles == 10, 'ten', vehicles))))) %>%
-
-  mutate(workers = ifelse(workers == 7, 'seven',
-                          ifelse(workers == 11, 'eleven',
-                                 workers)))
+  mutate(vehicles = recode(vehicles,
+                           '5' = "five", '6' = "six", '7' = "seven",
+                           '8' = "eight", '9' = "nine", '10' = "ten")) %>%
+  mutate(workers = recode(workers,
+                          '7' = "seven", '11' = "eleven")) %>%
+  mutate(persons = recode(persons,
+                          '7' = "seven", '8' = "eight", '9' = "nine",
+                          '10' = "ten", '11' = 'eleven', '27' = 'twenty-seven'))
 
 # map vehicles and workers counts to numeric values in order to calculate auto-sufficiency
 vehicles_dictionary <- data.frame(
@@ -825,11 +821,13 @@ survey_standard <- survey_standard %>%
                             'auto sufficient',
                             auto_suff)) %>%
   mutate(auto_suff = ifelse((vehicle_numeric_cat == 'missing') | (
-                               worker_numeric_cat == 'missing') | (
-                               vehicle_numeric_cat == 'Ref') | (
-                               worker_numeric_cat == 'Ref') | (
-                               vehicle_numeric_cat == "DON'T KNOW") | (
-                               worker_numeric_cat == "DON'T KNOW"),
+                             worker_numeric_cat == 'missing') | (
+                             vehicle_numeric_cat == 'Missing') | (
+                             worker_numeric_cat == 'Missing') | (
+                             vehicle_numeric_cat == 'Ref') | (
+                             worker_numeric_cat == 'Ref') | (
+                             vehicle_numeric_cat == "DON'T KNOW") | (
+                             worker_numeric_cat == "DON'T KNOW"),
                             'missing',
                             auto_suff))
 
