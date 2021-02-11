@@ -1224,21 +1224,44 @@ survey_standard <- survey_standard %>%
                                                              time4))),
                                         origin="1970-01-01")
   ) %>%
-  # create a time_start (in hours) for day_part
+  # create a time_start (in hours) for day_part_temp
   mutate(time_start = as.numeric(format(survey_time_posix,"%H"))) %>%
-  mutate(day_part = 'EVENING') %>%
-  mutate(day_part = ifelse(time_start >= 3  & time_start < 6,  'EARLY AM', day_part)) %>%
-  mutate(day_part = ifelse(time_start >= 6  & time_start < 10, 'AM PEAK' , day_part)) %>%
-  mutate(day_part = ifelse(time_start >= 10 & time_start < 15, 'MIDDAY'  , day_part)) %>%
-  mutate(day_part = ifelse(time_start >= 15 & time_start < 19, 'PM PEAK' , day_part)) %>%
+  mutate(day_part_temp = 'EVENING') %>%
+  mutate(day_part_temp = ifelse(time_start >= 3  & time_start < 6,  'EARLY AM', day_part_temp)) %>%
+  mutate(day_part_temp = ifelse(time_start >= 6  & time_start < 10, 'AM PEAK' , day_part_temp)) %>%
+  mutate(day_part_temp = ifelse(time_start >= 10 & time_start < 15, 'MIDDAY'  , day_part_temp)) %>%
+  mutate(day_part_temp = ifelse(time_start >= 15 & time_start < 19, 'PM PEAK' , day_part_temp)) %>%
   # keep survey_time to output
   mutate(survey_time=format(survey_time_posix, format="%H:%M:%S"))
 
 table(survey_standard$field_start, useNA = 'ifany')
 table(survey_standard$field_end, useNA = 'ifany')
 table(survey_standard$time_start, useNA = 'ifany')
-table(survey_standard$day_part, useNA = 'ifany')
+# table(survey_standard$day_part_temp, useNA = 'ifany')
 table(survey_standard$day_of_the_week, useNA = 'ifany')
+
+# examine 'time_period(strata)' data
+# first, standardize the time_period name
+survey_standard <- survey_standard %>%
+  mutate(time_period = ifelse(time_period == "Missing - Dummy Record", NA, time_period)) %>%
+  mutate(time_period = recode(time_period,
+                              'Early AM'='EARLY AM', 'VERY EARLY'   ='EARLY AM', 'AMO'         ='EARLY AM',
+                              'AM Peak' ='AM PEAK',  'AMP'          ='AM PEAK',  'AM COMMUTE'  ='AM PEAK',
+                              'Midday'  ='MIDDAY',   'MID'          ='MIDDAY',   'Mid'         ='MIDDAY',
+                              'PM Peak' ='PM PEAK',  'PMP'          ='PM PEAK',  'PM COMMUTE'  ='PM PEAK', 'Pm Peak'='PM PEAK',
+                              'Evening' ='EVENING',  'Early Evening'='EVENING',  'Late Evening'='EVENING',
+                              'Owl'     ='EVENING',  'LATE NIGHT'   ='EVENING',  'PMO'         ='EVENING',
+                              'SAT'     ='WEEKEND',  'SUN'          ='WEEKEND'))
+
+# compare time_period (based on 'strata') and day_part_temp (based on 'time_string') values 
+table(survey_standard$operator, survey_standard$time_period, useNA = 'ifany')
+table(survey_standard$operator, survey_standard$day_part_temp, useNA = 'ifany')
+
+# the final 'day_part' variable defaults to time_period/strata, and use day_part_temp when time_period is na
+survey_standard <- survey_standard %>%
+  mutate(day_part = ifelse(is.na(time_period), day_part_temp, time_period))
+
+table(survey_standard$operator, survey_standard$day_part, useNA = 'ifany')
 
 survey_standard <- survey_standard %>%
   select(-date_string, -time_string, -time1, -time2,
