@@ -514,171 +514,105 @@ survey_standard <- survey_standard %>%
 
 
 # (Approximate) Tour purpose
-survey_standard <- survey_standard %>%
-  mutate(tour_purp = 'missing') %>%
+# Create temporary tour purpose variable that includes both (approximate) tour purpose and imputation name
+# Tour purpose and imputation name are separated by "_"
+# Then separate into two fields and delete the temporary variable at last step
+# 'a'=after, 'b'=before, 'b+a'=before and after, 'o'=origin, 'd'=destination, 'o/d'=origin or destination, 'nw'=non-worker, 'w'=worker or missing
 
-  # workers -- simple
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              orig_purp == 'home' &
-                              dest_purp == 'work',
-                            'work',
-                            tour_purp)) %>%
+survey_standard <- survey_standard %>% mutate(
+  temp_tour=case_when(
+    orig_purp == 'home' & dest_purp == 'work'                            ~ 'work_home to work',                      # Work, H to W
+    
+    orig_purp == 'work' & dest_purp == 'home'                            ~ 'work_work to home',                      # Work, W to H
+    
+    orig_purp == 'grade school' | dest_purp == 'grade school'            ~ 'grade school_grade school o or d',       # Grade school
+    
+    orig_purp == 'high school' | dest_purp == 'high school'              ~ 'high school_high school o or d',         # High school
+    
+    work_status == 'non-worker' &
+      (orig_purp == 'college' | dest_purp == 'college')                  ~ 'university_non-worker university o or d',# Non-worker university origin or destination
+    
+    work_status == 'non-worker' & 
+      student_status == 'non-student' &
+      orig_purp == 'home'                                                ~ paste0(dest_purp,'_home to destination nw'), # Home to destination, non-worker
+    
+    work_status == 'non-worker' & 
+      student_status == 'non-student' & 
+      dest_purp == 'home'                                                ~ paste0(orig_purp,'_origin to home nw'),      # Origin to home, non-worker
+    
+    work_status == 'non-worker' & 
+      student_status == 'non-student' & 
+      orig_purp == dest_purp                                             ~ paste0(orig_purp,'_orig=destination'),    # Origin=destination
+    
+    work_status == 'non-worker' & 
+      student_status == 'non-student' & 
+      (orig_purp == 'escorting' | dest_purp == 'escorting')              ~ 'escorting_non-home escorting o or d',    # Non-home-based escorting 
+    
+    at_work_prior_to_orig_purp == 'not at work before surveyed trip' & 
+      at_work_after_dest_purp == 'not at work after surveyed trip' & 
+      (orig_purp == 'college' | dest_purp == 'college')                  ~ 'university_univ present, no work b+a',   # University present, no work
+    
+    at_work_prior_to_orig_purp == 'at work before surveyed trip' & 
+      dest_purp == 'home'                                                ~ 'work_work before, home destination',     # Work before trip, home after
+    
+    at_work_after_dest_purp == 'at work after surveyed trip' & 
+      orig_purp == 'home'                                                ~ 'work_home origin, work after',           # Home before, work after
+    
+    work_status == 'non-worker' & 
+      at_school_prior_to_orig_purp == 'at school before surveyed trip' & 
+      approximate_age > 18 & 
+      dest_purp == 'home'                                               ~ 'university_non-wrkr, school b, home d',   # Non-worker, school before trip, home destination, >18
+    
+    work_status == 'non-worker' & 
+      at_school_after_dest_purp == 'at school after surveyed trip' & 
+      approximate_age > 18 & 
+      orig_purp == 'home'                                               ~ 'university_non-wrkr, school a, home o',   # Non-worker, school after trip, home origin, >18
+    
+    work_status == 'non-worker' & 
+      at_school_prior_to_orig_purp == 'at school before surveyed trip' & 
+      approximate_age <= 18 & 
+      approximate_age >= 14 & 
+      dest_purp == 'home'                                               ~ 'high school_non-wrkr, 14-18, school b, home d', # Non-worker, school before trip, home destination, 14-18
+    
+    work_status == 'non-worker' & 
+      at_school_after_dest_purp == 'at school after surveyed trip' &  
+      approximate_age <= 18 & 
+      approximate_age >= 14 & 
+      orig_purp == 'home'                                               ~ 'high school_non-wrkr, 14-18, school a, home o', # Non-worker, school after trip, home origin, 14-18
+    
+    at_work_prior_to_orig_purp == 'not at work before surveyed trip' & 
+      at_work_after_dest_purp == 'not at work after surveyed trip' & 
+      (orig_purp == 'work' | dest_purp == 'work')                       ~ 'work_work o or d',                        # Work origin or destination, not before or after
+    
+    at_work_prior_to_orig_purp == 'at work before surveyed trip' & 
+      dest_purp == 'work'                                               ~ 'at work_at work subtour work b, work d',  # Work before origin and work destination
+    
+    at_work_after_dest_purp == 'at work after surveyed trip' & 
+      orig_purp == 'work'                                               ~ 'at work_at work subtour work a, work o',  # Work after destination and work origin
+    
+    at_work_after_dest_purp == 'at work after surveyed trip' & 
+      at_work_prior_to_orig_purp == 'at work before surveyed trip'      ~ 'work_at work subtour work a, work b',     # Work before origin and work after destination
+    
+    orig_purp == 'home'                                                 ~ paste0(dest_purp,'_home to destination w'),# Home to destination, worker or missing information
+    
+    dest_purp == 'home'                                                 ~ paste(orig_purp,'_origin to home w'),      # Origin to home, worker or missing information                                                                            
+    
+    TRUE                                                                ~ 'missing_missing')) %>%                    # Missing cases
+  
+  # Now separate tour purpose and tour purpose case designation into two columns, trim leading and trailing white space
 
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              orig_purp == 'work' &
-                              dest_purp == 'home',
-                            'work',
-                            tour_purp)) %>%
+  separate(temp_tour,c("tour_purp", "tour_purp_case"), sep="_") %>% mutate(
+    tour_purp=str_trim(tour_purp))
+      
+table(survey_standard$tour_purp, useNA = 'ifany')
 
-  # students -- simple
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              (orig_purp == 'grade school' | dest_purp == 'grade school'),
-                            'grade school',
-                            tour_purp)) %>%
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              (orig_purp == 'high school' | dest_purp == 'high school'),
-                            'high school', tour_purp)) %>%
-
-  # non-working university students
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              work_status == 'non-worker' &
-                              (orig_purp == 'college'  | dest_purp == 'college'),
-                            'university',
-                            tour_purp) ) %>%
-
-  # non-workers, non-students, home-based travel
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              work_status == 'non-worker' &
-                              student_status == 'non-student' &
-                              orig_purp == 'home',
-                            dest_purp, tour_purp)) %>%
-
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              work_status == 'non-worker' &
-                              student_status == 'non-student' &
-                              dest_purp == 'home',
-                            orig_purp,
-                            tour_purp)) %>%
-
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              work_status == 'non-worker' &
-                              student_status == 'non-student' &
-                              orig_purp == dest_purp,
-                            orig_purp,
-                            tour_purp)) %>%
-
-  # non-workers, non-students, non-home-based (which we know from above implementation) escorting travel
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              work_status == 'non-worker' &
-                              student_status == 'non-student' &
-                              (orig_purp == 'escorting' | dest_purp == 'escorting'),
-                            'escorting',
-                            tour_purp)) %>%
-
-  # university is present, but work is not, then university
-  mutate(tour_purp = ifelse(tour_purp == 'missing'
-                            & at_work_prior_to_orig_purp == 'not at work before surveyed trip'
-                            & at_work_after_dest_purp == 'not at work after surveyed trip' &
-                              (orig_purp == 'college' | dest_purp == 'college'),
-                            'university',
-                            tour_purp)) %>%
-
-  # if work before trip and home after, assume work tour
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              at_work_prior_to_orig_purp == 'at work before surveyed trip' &
-                              dest_purp == 'home',
-                            'work',
-                            tour_purp)) %>%
-
-  # if work after trip and home before, assume work tour
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              at_work_after_dest_purp == 'at work after surveyed trip' &
-                              orig_purp == 'home',
-                            'work',
-                            tour_purp)) %>%
-
-  # if non-worker, school before trip and home after, over 18, university tour
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              work_status == 'non-worker' &
-                              at_school_prior_to_orig_purp == 'at school before surveyed trip' &
-                              approximate_age > 18 &
-                              dest_purp == 'home',
-                            'university',
-                            tour_purp)) %>%
-
-  # if non-worker, school after trip and home before, over 18, university tour
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              work_status == 'non-worker' &
-                              at_school_after_dest_purp == 'at school after surveyed trip' &
-                              approximate_age > 18 &
-                              orig_purp == 'home',
-                            'university',
-                            tour_purp)) %>%
-
-  # if non-worker, school before trip and home after, 14 to 18, high school tour
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              work_status == 'non-worker' &
-                              at_school_prior_to_orig_purp == 'at school before surveyed trip' &
-                              approximate_age <= 18 &
-                              approximate_age >= 14 &
-                              dest_purp == 'home',
-                            'high school',
-                            tour_purp)) %>%
-
-  # if non-worker, school after trip and home before, 14 to 18, high school tour
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              work_status == 'non-worker' &
-                              at_school_after_dest_purp == 'at school after surveyed trip' &
-                              approximate_age <= 18 &
-                              approximate_age >= 14 &
-                              orig_purp == 'home',
-                            'high school',
-                            tour_purp)) %>%
-
-  # if no work before or after, but work is a leg, assume a work tour
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              at_work_prior_to_orig_purp == 'not at work before surveyed trip' &
-                              at_work_after_dest_purp == 'not at work after surveyed trip' &
-                              (orig_purp == 'work' | dest_purp == 'work'),
-                            'work',
-                            tour_purp)) %>%
-
-  # at work tours
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              at_work_prior_to_orig_purp == 'at work before surveyed trip' &
-                              dest_purp == 'work',
-                            'at work',
-                            tour_purp) ) %>%
-
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              at_work_after_dest_purp == 'at work after surveyed trip' &
-                              orig_purp == 'work',
-                            'at work',
-                            tour_purp)) %>%
-
-  # if still left and work before or after the trip, assume work tour
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              (at_work_after_dest_purp == 'at work after surveyed trip' |
-                               at_work_prior_to_orig_purp == 'at work before surveyed trip'),
-                            'work',
-                            tour_purp)) %>%
-
-  # if still left and home is one end, chose the other as the purpose
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              orig_purp == 'home',
-                            dest_purp,
-                            tour_purp)) %>%
-
-  mutate(tour_purp = ifelse(tour_purp == 'missing' &
-                              dest_purp == 'home',
-                            orig_purp,
-                            tour_purp)) %>%
-
+-----------------------------------------------------------
+  
   # if still left, pick the orig_purp
   mutate(tour_purp = ifelse(tour_purp == 'missing', orig_purp, tour_purp)) %>%
 
   # finally, if work-related, categorize as 'other maintenance'
-  mutate(tour_purp = ifelse(tour_purp == 'work-related', 'other maintenance', tour_purp))
+  mutate(tour_purp = ifelse(tour_purp %in% c('work-related','business apt'), 'other maintenance', tour_purp))
 
 
 table(survey_standard$tour_purp, useNA = 'ifany')
