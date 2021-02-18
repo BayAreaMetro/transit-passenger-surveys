@@ -30,6 +30,13 @@ for (p in list_of_packages){
   library(p, character.only = TRUE)
 }
 
+# The working directory is set as the location of the script. All other paths will be relative.
+
+wd <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
+setwd(wd)
+
+# Run standard database functions
+
 source("Build Standard Database Functions.R")
 
 #### Parameters
