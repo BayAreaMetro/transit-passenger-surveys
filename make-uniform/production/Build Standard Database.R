@@ -607,12 +607,13 @@ survey_standard <- survey_standard %>% mutate(
 
   mutate(tour_purp = ifelse(tour_purp %in% c('work-related','business apt'), 'other maintenance', tour_purp))
       
+# Output frequency file, test file to review missing cases, and test of duplicates
+
 table(survey_standard$tour_purp, useNA = 'ifany')
 
-test_df <- survey_standard %>% filter(tour_purp=='missing') %>% select(orig_purp,dest_purp,at_school_after_dest_purp,at_school_prior_to_orig_purp,at_work_after_dest_purp,at_work_prior_to_orig_purp,approximate_age)
+missing_tour_df <- survey_standard %>% filter(tour_purp=='missing') %>% select(orig_purp,dest_purp,at_school_after_dest_purp,at_school_prior_to_orig_purp,at_work_after_dest_purp,at_work_prior_to_orig_purp,approximate_age)
 
 dup6 <- survey_standard[duplicated(survey_standard),]
-
 
 # Step 3:  Update Key locations and Status Flags --------------------------------------
 
