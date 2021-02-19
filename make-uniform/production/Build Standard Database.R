@@ -71,7 +71,7 @@ dir_path <- user_list %>%
 
 f_dict_standard <- "Dictionary for Standard Database.csv"
 f_canonical_station_path <- paste0(dir_path,"Geography Files/Passenger_Railway_Stations_2018.shp")
-f_taps_coords_path <- paste0(dir_path, "_geocoding Standardized/TAPs/taps_lat_long.csv")
+f_taps_coords_path <- paste0(dir_path, "_geocoding Standardized/TAPs/TM2 TAPS/TM2 tap_node.csv")
 f_taz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/tazs.shp")
 f_maz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/mazs.shp")
 f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
@@ -1258,12 +1258,10 @@ survey_alight <- survey_standard %>%
 
 ## Geocode Transit Locations
 
-taps_coords <- read.csv(f_taps_coords_path) %>%
+taps_coords <- read.csv(f_taps_coords_path, stringsAsFactors = FALSE) %>%
   rename_all(tolower) %>%
-  select(n, mode, lat, lon = long) %>%
-  mutate(mode = recode(mode,
-                       `1` = "local bus", `2` = "express bus", `3` = "ferry",
-                       `4` = "light rail", `5` = "heavy rail", `6` = "commuter rail"))
+  rowwise %>% mutate(mode=as.list(strsplit(mode_recode,","))) %>%                 # Create a list of tap modes for each row
+  select(n, mode, lat, lon = long)
 
 # CRS = 4326 sets the lat/long coordinates in the WGS1984 geographic survey
 # CRS = 2230 sets the projection for NAD 1983 California Zone 6 in US Feet
@@ -1281,9 +1279,9 @@ survey_alight_spatial <- survey_alight_spatial %>%
   mutate(alight_tap = NA)#,
 # distance = NA)
 
-for (item in unique(taps_spatial$mode)) {
+for (item in unique(unlist(taps_spatial$mode))) {
   temp_tap_spatial <- taps_spatial %>%
-    filter(mode == item)
+    filter(item %in% mode)
   temp_tap_spatial <- temp_tap_spatial %>%
     bind_cols(match = 1:nrow(temp_tap_spatial))
 
