@@ -1,6 +1,6 @@
 This folder contains scripts to preprocess raw survey data.
 
-Each "[operator] preprocessing.ipynb" file creates the following outputs:
+Each "preprocessing_[operator].ipynb" file creates the following outputs:
 * "[survey_data_file_name] NO POUND OR SINGLE QUOTE.csv" - the clean .csv file as input of 'Build Standard Database.R'
 * "vars_for_standard_dictionary.csv" - variable dictionary which will be added to 'Dictionary for Standard Database.csv'
 * "all_routes_raw.csv" - a dataset of all transfer routes that occurred in a survey, which is then manually modified to "all_routes_canonical.csv" by adding canonical route names, canonical operator names, and technologies. "all_routes_canonical.csv" will be added to 'canonical_route_crosswalk.csv'
