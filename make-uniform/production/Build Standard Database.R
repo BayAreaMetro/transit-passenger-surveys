@@ -367,8 +367,8 @@ survey_combine <- bind_rows(
   caltrain_df,
   muni_df,
   marin_df,
-  # # napa_vine_df,
-  # # vta_df,
+  napa_vine_df,
+  vta_df,
   fast_df,
   rvdb_df,
   vcc_df,
@@ -403,14 +403,23 @@ dup1 <- survey_combine[duplicated(survey_combine),]
 ## Flatten
 
 # Join the dictionary and prepare the categorical variables
-survey_cat <- survey_combine %>%
-  left_join(dictionary_cat, by = c("operator", "survey_year", "survey_variable", "survey_response")) %>%
-  filter(!is.na(generic_variable))
 
-# Join the dictionary and prepare the non-categorical variables
 rail_crosswalk_df <- canonical_routes_crosswalk %>%
   filter(survey == "GEOCODE") %>%
   select(survey_name, canonical_name)
+
+survey_cat <- survey_combine %>%
+  left_join(dictionary_cat, by = c("operator", "survey_year", "survey_variable", "survey_response")) %>%
+  filter(!is.na(generic_variable)) %>%
+  mutate(generic_response = survey_response) %>%
+  left_join(canonical_routes_crosswalk %>% select(-technology), by = c("operator" = "survey", "survey_year", "survey_response" = "survey_name")) %>%
+  mutate(generic_response = ifelse((generic_variable == "route") & !is.na(canonical_name), canonical_name, generic_response)) %>%
+  select(-canonical_name, -canonical_operator) %>%
+  left_join(rail_crosswalk_df, by = c("generic_response" = "survey_name")) %>%
+  mutate(generic_response = ifelse(!is.na(canonical_name), canonical_name, generic_response)) %>%
+  select(-canonical_name)
+
+# Join the dictionary and prepare the non-categorical variables
 
 survey_non <- survey_combine %>%
   left_join(dictionary_non, by = c("operator", "survey_year", "survey_variable")) %>%
@@ -451,6 +460,21 @@ dup2 <- survey_flat[duplicated(survey_flat),]
 survey_flat <- survey_flat %>%
   left_join(canonical_routes_crosswalk %>% select(-survey_name) %>% unique(),
             by = c("operator" = "survey", "route" = "canonical_name", "survey_year"))
+
+# for multi-tech operators, survey_tech = technology
+survey_flat <- survey_flat %>%
+  mutate(survey_tech = ifelse(((operator == 'AC Transit') & (survey_year == 2018)) | (
+                               (operator == 'FAST') & (survey_year == 2017)) | (
+                               (operator == 'Golden Gate Transit') & (survey_year == 2018)) | (
+                               (operator == 'Napa Vine') & (survey_year == 2019)) | (
+                               (operator == 'Napa Vine') & (survey_year == 2014)) | (
+                               (operator == 'SF Muni') & (survey_year == 2017)) | (
+                               (operator == 'VTA') & (survey_year == 2017)) | (
+                               (operator == 'WestCAT') & (survey_year == 2017)), 
+                              technology,
+                              survey_tech))
+
+table(survey_flat$operator, survey_flat$survey_tech, useNA = 'ifany')
 
 dup3 <- survey_flat[duplicated(survey_flat),]
 
