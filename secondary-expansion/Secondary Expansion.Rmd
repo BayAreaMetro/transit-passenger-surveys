@@ -1,0 +1,64 @@
+---
+title: "Secondary Expansion"
+output: html_notebook
+---
+
+# R Overhead
+```{r overhead, include = FALSE}
+packages_vector <- c("tidyverse",
+                     "reticulate",
+                     "reshape",
+                     "reshape2",
+                     "ggplot2",
+                     "scales",
+                     "plotly",
+                     "htmlwidgets")
+
+need_to_install <- packages_vector[!(packages_vector %in% installed.packages()[,"Package"])]
+
+if (length(need_to_install)) install.packages(need_to_install)
+
+for (package in packages_vector){
+  library(package, character.only = TRUE)
+}
+
+```
+
+# Python Overhead - Conda config (only need to run once)
+```{bash}
+conda create -n mtc_obs python=3.7
+conda install cytoolz numpy pandas psutil pytables future
+conda activate mtc_obs 
+conda install cytoolz numpy pandas psutil pytables future
+pip install activitysim 
+pip install https://github.com/RSGInc/populationsim/zipball/master
+```
+
+# Python Overhead - Conda activation Config
+```{r python-config}
+use_condaenv("mtc_obs")
+```
+
+
+# User Intervention
+```{r user-intervention}
+box_sync_dir <- "/Users/wsp/Box Sync"
+```
+
+# Execute procedures
+```{r pre-game}
+POPSIM_Dir      <- "."
+
+OBS_Dir         <- file.path(box_sync_dir, "Survey_Database_122717")
+BOX_TM2_Dir     <- file.path(box_sync_dir, "Travel Model Two Development")
+OBS_Anc_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Onboard Survey", "Data")
+TARGETS_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Scaled Transit Ridership Targets")
+VALIDATION_Dir  <- file.path(POPSIM_Dir, "validation")
+
+source("preprocess.R")
+
+py_run_file("run_populationsim.py", local = FALSE, convert = TRUE)
+
+source("postprocess.R")
+```
+

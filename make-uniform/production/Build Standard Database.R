@@ -78,7 +78,7 @@ f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
 f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 
 f_actransit_survey_path <- paste0(dir_path,
-                                  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode) NO POUND OR SINGLE QUOTE.csv")
+                                  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_fixTransfers_NO POUND OR SINGLE QUOTE.csv")
 f_bart_survey_path <- paste0(dir_path,
                              "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
 f_caltrain_survey_path <- paste0(dir_path,
@@ -86,7 +86,7 @@ f_caltrain_survey_path <- paste0(dir_path,
 f_marin_survey_path <- paste0(dir_path,
                               "Marin Transit/Final Data/marin transit_data file_final01222021_NO POUND OR SINGLE QUOTE.csv")
 f_muni_survey_path <- paste0(dir_path,
-                             "Muni/As CSV/MUNI_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
+                             "Muni/As CSV/MUNI_DRAFTFINAL_20171114_fixedTransferNum_NO POUND OR SINGLE QUOTE.csv")
 f_napa_survey_path <- paste0(dir_path,
                              "Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
 f_vta_survey_path <- paste0(dir_path,
@@ -100,7 +100,7 @@ f_vcc_survey_path <- paste0(dir_path,
 f_soltrans_survey_path <- paste0(dir_path,
                              "Solano County/As CSV/SolTrans_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
 f_ace_survey_path <- paste0(dir_path,
-                             "ACE/2019/ACE19_Final Data Add New Route Date Time Columns NO POUND OR SINGLE QUOTE.csv")
+                             "ACE/2019/ACE19_Final Data_AddCols_RecodeRoute_NO POUND OR SINGLE QUOTE.csv")
 f_unioncity_survey_path <- paste0(dir_path,
                                   "Union City/2017/Union City Transit_fix_error_add_time_route_NO POUND OR SINGLE QUOTE.csv")
 f_sonomact_survey_path <- paste0(dir_path,
@@ -110,7 +110,7 @@ f_smart_survey_path <- paste0(dir_path,
 f_weta_survey_path <- paste0(dir_path,
                              "WETA/WETA 2018/WETA-Final Weighted Data-Standardized_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_westcat_survey_path <- paste0(dir_path,
-                                "WestCAT/As CSV/WestCAT_addCols_NO POUND OR SINGLE QUOTE.csv")
+                                "WestCAT/As CSV/WestCAT_addCols_recodeRoute_NO POUND OR SINGLE QUOTE.csv")
 f_lavta_survey_path <- paste0(dir_path,
                               "LAVTA/2018/OD_20181207_LAVTA_Submittal_FINAL_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_tridelta2019_survey_path <- paste0(dir_path,
@@ -367,8 +367,8 @@ survey_combine <- bind_rows(
   caltrain_df,
   muni_df,
   marin_df,
-  # # napa_vine_df,
-  # # vta_df,
+  napa_vine_df,
+  vta_df,
   fast_df,
   rvdb_df,
   vcc_df,
@@ -403,11 +403,13 @@ dup1 <- survey_combine[duplicated(survey_combine),]
 ## Flatten
 
 # Join the dictionary and prepare the categorical variables
+
 survey_cat <- survey_combine %>%
   left_join(dictionary_cat, by = c("operator", "survey_year", "survey_variable", "survey_response")) %>%
   filter(!is.na(generic_variable))
 
 # Join the dictionary and prepare the non-categorical variables
+
 rail_crosswalk_df <- canonical_routes_crosswalk %>%
   filter(survey == "GEOCODE") %>%
   select(survey_name, canonical_name)
@@ -451,6 +453,21 @@ dup2 <- survey_flat[duplicated(survey_flat),]
 survey_flat <- survey_flat %>%
   left_join(canonical_routes_crosswalk %>% select(-survey_name) %>% unique(),
             by = c("operator" = "survey", "route" = "canonical_name", "survey_year"))
+
+# for multi-tech operators, survey_tech = technology
+survey_flat <- survey_flat %>%
+  mutate(survey_tech = ifelse(((operator == 'AC Transit') & (survey_year == 2018)) | (
+                               (operator == 'FAST') & (survey_year == 2017)) | (
+                               (operator == 'Golden Gate Transit') & (survey_year == 2018)) | (
+                               (operator == 'Napa Vine') & (survey_year == 2019)) | (
+                               (operator == 'Napa Vine') & (survey_year == 2014)) | (
+                               (operator == 'SF Muni') & (survey_year == 2017)) | (
+                               (operator == 'VTA') & (survey_year == 2017)) | (
+                               (operator == 'WestCAT') & (survey_year == 2017)), 
+                              technology,
+                              survey_tech))
+
+table(survey_flat$operator, survey_flat$survey_tech, useNA = 'ifany')
 
 dup3 <- survey_flat[duplicated(survey_flat),]
 
@@ -991,9 +1008,10 @@ table(survey_standard$boardings, survey_standard$survey_boardings, useNA = 'ifan
 # Ideally, debug_transfers has 0 record. When it's not empty, examine if the transfer routes, transfer operator,
 # and transfer technology are coded correctly.
 # One caveat (Nov 10, 2020): the calculation of "survey_boarding" is based on "number_transfers_orig_board" and "number_transfers_alight_dest";
-# Muni survey tracks 4 transfers before and after the surveyed route, therefore "number_transfers_orig_board"/"number_transfers_alight_dest"
+# Muni survey and AC Transit survey track 4 transfers before and after the surveyed route, therefore "number_transfers_orig_board"/"number_transfers_alight_dest"
 # maxes at 4, but this script only tracks 3 transfers before and after, so the sum of transfers before or after maxes at 3, causing inconsistency
-# between boardings and survey_boardings. Currently there are only two such records and they are captured in debug_transfer (ID 25955, 31474).
+# between boardings and survey_boardings. Currently there are only two such records and they are captured in debug_transfer (Muni survey ID 25955, 31474; 
+# AC Transit survey ID 959). - Note (Feb 22, 2021): the .csv survey data for Muni and AC Transit was modified to change "number_transfers_alight_dest == 4" to 3
 
 # Another situation where debug_transfers contains records: the survey data comes with "number_transfers_alight_dest" and	"number_transfers_orig_board"
 # columns, but one or more of the transfers are routes that are "Missing" operator, e.g. unspecified private shuttle. In this case, "survey_boarding"
