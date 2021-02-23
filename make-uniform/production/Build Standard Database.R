@@ -110,7 +110,7 @@ f_smart_survey_path <- paste0(dir_path,
 f_weta_survey_path <- paste0(dir_path,
                              "WETA/WETA 2018/WETA-Final Weighted Data-Standardized_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_westcat_survey_path <- paste0(dir_path,
-                                "WestCAT/As CSV/WestCAT_addCols_NO POUND OR SINGLE QUOTE.csv")
+                                "WestCAT/As CSV/WestCAT_addCols_recodeRoute_NO POUND OR SINGLE QUOTE.csv")
 f_lavta_survey_path <- paste0(dir_path,
                               "LAVTA/2018/OD_20181207_LAVTA_Submittal_FINAL_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_tridelta2019_survey_path <- paste0(dir_path,
