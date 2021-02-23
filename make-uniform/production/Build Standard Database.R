@@ -100,7 +100,7 @@ f_vcc_survey_path <- paste0(dir_path,
 f_soltrans_survey_path <- paste0(dir_path,
                              "Solano County/As CSV/SolTrans_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
 f_ace_survey_path <- paste0(dir_path,
-                             "ACE/2019/ACE19_Final Data Add New Route Date Time Columns NO POUND OR SINGLE QUOTE.csv")
+                             "ACE/2019/ACE19_Final Data_AddCols_RecodeRoute_NO POUND OR SINGLE QUOTE.csv")
 f_unioncity_survey_path <- paste0(dir_path,
                                   "Union City/2017/Union City Transit_fix_error_add_time_route_NO POUND OR SINGLE QUOTE.csv")
 f_sonomact_survey_path <- paste0(dir_path,
@@ -404,22 +404,15 @@ dup1 <- survey_combine[duplicated(survey_combine),]
 
 # Join the dictionary and prepare the categorical variables
 
+survey_cat <- survey_combine %>%
+  left_join(dictionary_cat, by = c("operator", "survey_year", "survey_variable", "survey_response")) %>%
+  filter(!is.na(generic_variable))
+
+# Join the dictionary and prepare the non-categorical variables
+
 rail_crosswalk_df <- canonical_routes_crosswalk %>%
   filter(survey == "GEOCODE") %>%
   select(survey_name, canonical_name)
-
-survey_cat <- survey_combine %>%
-  left_join(dictionary_cat, by = c("operator", "survey_year", "survey_variable", "survey_response")) %>%
-  filter(!is.na(generic_variable)) %>%
-  mutate(generic_response = survey_response) %>%
-  left_join(canonical_routes_crosswalk %>% select(-technology), by = c("operator" = "survey", "survey_year", "survey_response" = "survey_name")) %>%
-  mutate(generic_response = ifelse((generic_variable == "route") & !is.na(canonical_name), canonical_name, generic_response)) %>%
-  select(-canonical_name, -canonical_operator) %>%
-  left_join(rail_crosswalk_df, by = c("generic_response" = "survey_name")) %>%
-  mutate(generic_response = ifelse(!is.na(canonical_name), canonical_name, generic_response)) %>%
-  select(-canonical_name)
-
-# Join the dictionary and prepare the non-categorical variables
 
 survey_non <- survey_combine %>%
   left_join(dictionary_non, by = c("operator", "survey_year", "survey_variable")) %>%
