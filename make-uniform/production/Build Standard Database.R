@@ -150,7 +150,8 @@ f_output_decom_csv_path <- paste0(dir_path,
 ## Prepare dictionaries
 dictionary_all <- read.csv(f_dict_standard,
                            header = TRUE) %>%
-  rename_all(tolower)
+  rename_all(tolower) %>% 
+  mutate(generic_variable=str_trim(generic_variable))        # Remove outside whitespace
 
 # Prepare separate dictionaries for categorical and non-categorical variables
 dictionary_non <- dictionary_all %>%
