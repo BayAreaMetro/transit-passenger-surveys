@@ -140,6 +140,11 @@ f_output_decom_rdata_path <- paste0(dir_path,
 f_output_decom_csv_path <- paste0(dir_path,
                                   "_data Standardized/decomposition/survey_decomposition_", today, ".csv")
 
+# Setup the log file
+run_log <- file(sprintf("%s_data Standardized/Build_Standard_Database_%s.log",dir_path,today))
+sink(run_log, append=TRUE, type = 'output')
+sink(run_log, append=TRUE, type = "message")
+
 
 # _User Intervention_
 # When adding a new operator, the user must update the dictionary files that translate
