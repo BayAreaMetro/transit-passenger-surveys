@@ -4,23 +4,25 @@
 ### Author: Binny M Paul, July 2019
 ###########################################################################################################################
 oldw <- getOption("warn")
-options(warn = -1)
+options(warn = -1)                      # Ignore all warnings
 
 #=========================================================================================================================
 # READ INPUTS
 #=========================================================================================================================
 
-# Read OBS dataset
+# Read OBS dataset survey data and ancillary variables
 load(file.path(OBS_Dir,     "survey.rdata"))
 load(file.path(OBS_Anc_Dir, "ancillary_variables.rdata"))
 
-# Read in target boardings for 2015
+# Read in target boardings for 2015, with directory coming from Secondary Expansion.Rmd file
 boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE)
 boarding_targets$technology[boarding_targets$technology=="Ferry"] <- "FR"
 
 #=========================================================================================================================
 # DEFINITIONS
 #=========================================================================================================================
+
+# Create operator equivalency with technology
 
 operator = c("ACE",               "AC TRANSIT",        "AIR BART",         "AMTRAK",              "BART",             
              "CALTRAIN",          "COUNTY CONNECTION", "FAIRFIELD-SUISUN", "GOLDEN GATE TRANSIT", "GOLDEN GATE FERRY", 
@@ -87,15 +89,19 @@ OBS <- OBS %>%
 
 # Access/Egress Modes
 #-------------------------
-# replace bike access mode with pnr
-OBS$access_mode[OBS$access_mode=="bike"] <- 'pnr'
-OBS$egress_mode[OBS$egress_mode=="bike"] <- 'pnr'
-OBS$access_mode[OBS$access_mode=="bie"] <- 'pnr'
-OBS$egress_mode[OBS$egress_mode=="bie"] <- 'pnr'
+# Code "bie" to "bike"
+OBS$access_mode[OBS$access_mode=="bie"] <- 'bike'
+OBS$egress_mode[OBS$egress_mode=="bie"] <- 'bike'
+
+# replace bike access mode with knr
+OBS$access_mode[OBS$access_mode=="bike"] <- 'knr'
+OBS$egress_mode[OBS$egress_mode=="bike"] <- 'knr'
 
 # Code missing access/egress mode
 OBS$access_mode[OBS$access_mode=="."] <- "missing"
 OBS$egress_mode[OBS$egress_mode=="."] <- "missing"
+
+# Summarize operator by access mode
 
 OBS <- OBS %>%
   mutate(access_mode = ifelse(is.na(access_mode), "missing", access_mode))
@@ -103,12 +109,17 @@ operator_access_mode <- xtabs(trip_weight~operator+access_mode, data = OBS[OBS$a
 operator_access_mode <- data.frame(operator_access_mode)
 molten <- melt(operator_access_mode, id = c("operator", "access_mode"))
 operator_access_mode <- dcast(molten, operator~access_mode, sum)
+
+# Create additional access mode variables (totals and shares) for later application
+
 operator_access_mode$tot <- operator_access_mode$walk+operator_access_mode$knr+operator_access_mode$pnr
 operator_access_mode$w <- operator_access_mode$walk/operator_access_mode$tot
 operator_access_mode$k <- operator_access_mode$knr/operator_access_mode$tot
 operator_access_mode$p <- operator_access_mode$pnr/operator_access_mode$tot
 operator_access_mode$c1 <- operator_access_mode$w
 operator_access_mode$c2 <- operator_access_mode$w+operator_access_mode$k
+
+# Create simple imputation for missing access mode values based on random number generation and prevailing access modes 
 
 returnAccessMode <- function(op)
 {
@@ -119,7 +130,9 @@ returnAccessMode <- function(op)
 }
 
 OBS$access_mode[OBS$access_mode=="missing"] <- sapply(as.character(OBS$operator[OBS$access_mode=="missing"]),function(x) {returnAccessMode(x)} )
-#-------------------------------------------------------------------------------------
+
+# Now do the same thing for egress modes as is done above for access modes
+
 OBS <- OBS %>%
   mutate(egress_mode = ifelse(is.na(egress_mode), "missing", egress_mode))
 operator_egress_mode <- xtabs(trip_weight~operator+egress_mode, data = OBS[OBS$egress_mode!="missing", ])
@@ -145,7 +158,8 @@ OBS$egress_mode[OBS$egress_mode=="missing"] <- sapply(as.character(OBS$operator[
 
 # Auto Sufficiency
 #-----------------
-# Code missing auto sufficiency
+# Code missing auto sufficiency, including imputation for missing values
+
 OBS <- OBS %>%
   mutate(auto_suff = ifelse(is.na(auto_suff), "missing", auto_suff))
 operator_autoSuff <- xtabs(trip_weight~operator+auto_suff, data = OBS[OBS$auto_suff!="missing", ])
@@ -169,7 +183,7 @@ returnAS <- function(op)
 
 OBS$auto_suff[OBS$auto_suff=="missing" | OBS$auto_suff=="Missing"] <- sapply(as.character(OBS$operator[OBS$auto_suff=="missing" | OBS$auto_suff=="Missing"]),function(x) {returnAS(x)} )
 
-# Transform survey_tech
+# Transform survey_tech into simplified values for survey_tech, first_board tech, and last_alight tech
 #-----------------------------
 OBS$survey_tech <- survey_tech_df$survey_tech_short[match(OBS$survey_tech, survey_tech_df$survey_tech)]
 OBS$first_board_tech <- survey_tech_df$survey_tech_short[match(OBS$first_board_tech, survey_tech_df$survey_tech)]
