@@ -236,24 +236,24 @@ OBS <- OBS[OBS$agg_tour_purp>0,]
 # Factor weights to match 2015 targets for surveyed operators
 #-------------------------------------------------------------
 
-# OBS boards by operator
+# Sum survey OBS boardings by operator
 obs_operator_totals <- aggregate(OBS$weight, by = list(operator = OBS$operator), sum)
 obs_operator_totals <- data.frame(obs_operator_totals)
 colnames(obs_operator_totals) <- c("operator", "boardWeight")
 
-# Target 2015 boards by operator
+# Sum target 2015 boards by operator
 target_operator_totals <- aggregate(boarding_targets$targets2015, by = list(operator = boarding_targets$operator), sum)
 target_operator_totals <- data.frame(target_operator_totals)
 colnames(target_operator_totals) <- c("operator", "targetBoardings")
 
-# Compute expansion factors
+# Append target totals to operator totals into new data frame and calculate expansion factor
 expansion_factors <- obs_operator_totals
 expansion_factors$targetBoardings <- target_operator_totals$targetBoardings[match(expansion_factors$operator, target_operator_totals$operator)]
 
 expansion_factors <- expansion_factors %>%
   mutate(exp_factor = targetBoardings/boardWeight) 
 
-# Compute 2015 factored weights
+# Append expansion factor and create new board weight and trip weight variables based on this value
 OBS$exp_factor <- expansion_factors$exp_factor[match(OBS$operator, expansion_factors$operator)]
 OBS$boardWeight_2015 <- OBS$weight * OBS$exp_factor
 OBS$tripWeight_2015 <- OBS$trip_weight * OBS$exp_factor
@@ -294,17 +294,24 @@ OBS$tripWeight_2015 <- OBS$trip_weight * OBS$exp_factor
 # CODE VARIABLES FOR PopulatoinSim WEIGHTING
 #=========================================================================================================================
 
-# Number of transfers
+# Number of transfers (boardings minus 1)
 #------------------------
 OBS$nTransfers <- OBS$boardings - 1
 
-# Time period
+# Time period (commented out version from previous iteration)
 #----------------
-OBS$period[OBS$depart_hour<6] <- "EA"
-OBS$period[OBS$depart_hour>=6 & OBS$depart_hour<9] <- "AM"
-OBS$period[OBS$depart_hour>=9 & OBS$depart_hour<15] <- "MD"
-OBS$period[OBS$depart_hour>=15 & OBS$depart_hour<19] <- "PM"
-OBS$period[OBS$depart_hour>=19] <- "EV"
+#OBS$period[OBS$depart_hour<6] <- "EA"
+#OBS$period[OBS$depart_hour>=6 & OBS$depart_hour<9] <- "AM"
+#OBS$period[OBS$depart_hour>=9 & OBS$depart_hour<15] <- "MD"
+#OBS$period[OBS$depart_hour>=15 & OBS$depart_hour<19] <- "PM"
+#OBS$period[OBS$depart_hour>=19] <- "EV"
+
+OBS$period[OBS$day_part=="EARLY AM"] <- "EA"
+OBS$period[OBS$day_part=="AM PEAK"]  <- "AM"
+OBS$period[OBS$day_part=="MIDDAY"]   <- "MD"
+OBS$period[OBS$day_part=="PM PEAK"]  <- "PM"
+OBS$period[OBS$day_part=="EVENING"]  <- "EV"
+
 
 
 # BEST Mode
