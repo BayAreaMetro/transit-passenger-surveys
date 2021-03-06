@@ -314,7 +314,7 @@ OBS$period[OBS$day_part=="EVENING"]  <- "EV"
 
 
 
-# BEST Mode
+# BEST Mode for transfer_from and transfer_to tech
 #--------------------
 OBS$transfer_from_tech <- opTechXWalk$technology[match(OBS$transfer_from, opTechXWalk$operator)]
 OBS$transfer_to_tech <- opTechXWalk$technology[match(OBS$transfer_to, opTechXWalk$operator)]
@@ -322,7 +322,7 @@ OBS$transfer_to_tech <- opTechXWalk$technology[match(OBS$transfer_to, opTechXWal
 OBS$transfer_from_tech[OBS$transfer_from=="WHEELS (LAVTA)" | OBS$transfer_from=="MODESTO TRANSIT"] <- "LB"
 OBS$transfer_to_tech[OBS$transfer_to=="WHEELS (LAVTA)" | OBS$transfer_to=="MODESTO TRANSIT"] <- "LB"
 
-# Code Mode Set Type
+# Code Mode Set Type, creating dummy values (1) for each technology used
 OBS <- OBS %>%
   mutate(usedLB = ifelse(first_board_tech=="LB" 
                          | transfer_from_tech=="LB"
@@ -355,7 +355,7 @@ OBS <- OBS %>%
                          | transfer_to_tech=="FR"
                          | last_alight_tech=="FR",1,0))
 
-# recode used fields based on path line haul code
+# Input zero values for NAs
 OBS$usedLB[is.na(OBS$usedLB)] <- 0
 OBS$usedEB[is.na(OBS$usedEB)] <- 0
 OBS$usedLR[is.na(OBS$usedLR)] <- 0
@@ -363,7 +363,11 @@ OBS$usedFR[is.na(OBS$usedFR)] <- 0
 OBS$usedHR[is.na(OBS$usedHR)] <- 0
 OBS$usedCR[is.na(OBS$usedCR)] <- 0
 
+# Total technologies used
+
 OBS$usedTotal <- OBS$usedLB+OBS$usedEB+OBS$usedLR+OBS$usedFR+OBS$usedHR+OBS$usedCR
+
+# Recode used fields based on path line haul variable code
 
 OBS$usedLB[OBS$usedTotal==0 & OBS$path_line_haul=="LOC"] <- 1
 OBS$usedEB[OBS$usedTotal==0 & OBS$path_line_haul=="EXP"] <- 1
@@ -373,6 +377,8 @@ OBS$usedCR[OBS$usedTotal==0 & OBS$path_line_haul=="COM"] <- 1
 
 OBS$usedTotal <- OBS$usedLB+OBS$usedEB+OBS$usedLR+OBS$usedFR+OBS$usedHR+OBS$usedCR
 
+# Hierarchy of local bus through commuter rail
+
 OBS$BEST_MODE <- "LB"
 OBS$BEST_MODE[OBS$usedEB==1] <- "EB"
 OBS$BEST_MODE[OBS$usedFR==1] <- "FR"
@@ -381,7 +387,7 @@ OBS$BEST_MODE[OBS$usedHR==1] <- "HR"
 OBS$BEST_MODE[OBS$usedCR==1] <- "CR"
 
 
-#Transfer Types [across all surveys]
+#Transfer Types [across all surveys], creating dummy for all types of transfers, applying mode hierarchy
 #----------------------
 
 OBS <- OBS %>%
@@ -451,7 +457,7 @@ names(OBS)[names(OBS)=="survey_tech"] <- "SURVEY_MODE"
 #--------------------
 marginalControls <- data.frame(GEOID = SeedIDs)
 
-# Boardings by operator
+# Create a matrix of boarding targets by operator
 boardingsTargets <- data.frame(xtabs(boardWeight_2015~operator, data = OBS))
 boardingsTargets <- data.frame(t(boardingsTargets), stringsAsFactors = F)
 colnames(boardingsTargets) <- boardingsTargets[1,]
@@ -459,6 +465,8 @@ boardingsTargets <- boardingsTargets[2,]
 for (col in names(boardingsTargets)){
   boardingsTargets[[col]] <- as.integer(boardingsTargets[[col]])
 }
+
+# Rename column names to convert blank spaces and hyphens to underscores
 colnames(boardingsTargets) <- unlist(lapply(colnames(boardingsTargets), function(x)(gsub(" ", "_", x))))
 colnames(boardingsTargets) <- unlist(lapply(colnames(boardingsTargets), function(x)(gsub("-", "_", x))))
 
@@ -469,7 +477,7 @@ marginalControls <- cbind(marginalControls, boardingsTargets)
 totalLinkedTrips <- sum(OBS$tripWeight_2015)
 marginalControls$totalLinkedTrips <- totalLinkedTrips
 
-# Boardings by transfer type
+# Sum boardings by suvey_mode and transfer type
 
 linkedtrips_best_mode_xfer <- OBS %>%
   group_by(SURVEY_MODE) %>%
@@ -495,10 +503,10 @@ linkedtrips_best_mode_xfer <- OBS %>%
             HR_HR = sum(HR_HR * boardWeight_2015), 
             CR_CR = sum(CR_CR * boardWeight_2015))
 
-linkedtrips_best_mode_xfer <- data.frame(t(linkedtrips_best_mode_xfer), stringsAsFactors = F)
-colnames(linkedtrips_best_mode_xfer) <- linkedtrips_best_mode_xfer[c(1),]
-linkedtrips_best_mode_xfer <- linkedtrips_best_mode_xfer[-c(1),]
-linkedtrips_best_mode_xfer <- cbind(TRANSFER_TYPE = row.names(linkedtrips_best_mode_xfer), linkedtrips_best_mode_xfer)
+linkedtrips_best_mode_xfer <- data.frame(t(linkedtrips_best_mode_xfer), stringsAsFactors = F)  # Transpose data frame
+colnames(linkedtrips_best_mode_xfer) <- linkedtrips_best_mode_xfer[c(1),]                      # Use names from first row
+linkedtrips_best_mode_xfer <- linkedtrips_best_mode_xfer[-c(1),]                               # Delete first row
+linkedtrips_best_mode_xfer <- cbind(TRANSFER_TYPE = row.names(linkedtrips_best_mode_xfer), linkedtrips_best_mode_xfer) # Append first column using row names
 
 # transfer targets must be from the survey reporting the maximum transfers
 #marginalControls$XFERS_LB_EB <- as.integer(max(sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LB_EB" & OBS$SURVEY_MODE=="EB"]), 
