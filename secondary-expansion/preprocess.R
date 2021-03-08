@@ -477,7 +477,7 @@ marginalControls <- cbind(marginalControls, boardingsTargets)
 totalLinkedTrips <- sum(OBS$tripWeight_2015)
 marginalControls$totalLinkedTrips <- totalLinkedTrips
 
-# Sum boardings by suvey_mode and transfer type
+# Sum boardings by suvey_mode and transfer combination type
 
 linkedtrips_best_mode_xfer <- OBS %>%
   group_by(SURVEY_MODE) %>%
@@ -524,6 +524,9 @@ linkedtrips_best_mode_xfer <- cbind(TRANSFER_TYPE = row.names(linkedtrips_best_m
 #marginalControls$XFERS_HR_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="HR_CR" & OBS$SURVEY_MODE=="CR"]), 
 #                                               sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="HR_CR" & OBS$SURVEY_MODE=="HR"])))
 
+# Creating a new variable in the marginal controls data frame with the max sum of 2015 boarding weight between each mode of a transfer combination
+
+
 marginalControls$XFERS_LB_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$LB_CR==1 & OBS$SURVEY_MODE=="CR"]), 
                                                sum(OBS$boardWeight_2015[OBS$LB_CR==1 & OBS$SURVEY_MODE=="LB"])))
 marginalControls$XFERS_LB_HR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$LB_HR==1 & OBS$SURVEY_MODE=="HR"]), 
@@ -568,7 +571,7 @@ marginalControls$XFERS_CR_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$CR_C
                                                sum(OBS$boardWeight_2015[OBS$CR_CR==1 & OBS$SURVEY_MODE=="CR"])))
 
 
-# SEED HOUSEHOLD
+# Create SEED HOUSEHOLD dataset, including only records with a non-zero trip weight
 #--------------------
 
 # Select variables [exclude records with zero weight]
@@ -577,7 +580,7 @@ seed_households <- OBS[OBS$tripWeight_2015>0,c("Unique_ID", "SURVEY_MODE", "oper
                                                "LB_LB", "EB_CR", "EB_HR", "EB_LR", "EB_FR", "EB_EB", "FR_CR", "FR_HR", "FR_LR", "FR_FR", "LR_CR", 
                                                "LR_HR", "LR_LR", "HR_CR", "HR_HR", "CR_CR")]
 
-# Rename fields
+# Rename fields to make it ready for PopSim
 names(seed_households)[names(seed_households)=="Unique_ID"] <- "UNIQUE_ID"
 names(seed_households)[names(seed_households)=="operator"] <- "OPERATOR"
 names(seed_households)[names(seed_households)=="route"] <- "ROUTE"
@@ -592,7 +595,8 @@ seed_households$HHNUM <- seq(1, nrow(seed_households))
 seed_households$GEOID <- 1
 
 
-# SEED PERSON
+# Create SEED PERSON dataset, creating a new "person" (actually boarding record) for n# of boardings
+# "Person number" becomes a unique row number within each "HH" representing each boarding within a survey record
 #--------------------
 seed_persons <- seed_households[rep(seed_households$HHNUM,seed_households$BOARDINGS),] %>%
   group_by(HHNUM) %>%
