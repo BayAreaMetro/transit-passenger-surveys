@@ -56,7 +56,7 @@ user_list <- data.frame(
            "ywang",
            "SIsrael"),
   path = c("~/GitHub/onboard-surveys/Data and Reports/",
-           "C:/Users/ywang/Documents/R/OnboardSurvey_2020Oct_yq/Data and Reports/",
+           "M:/Data/OnBoard/Data and Reports/",
            "M:/Data/OnBoard/Data and Reports/"
   )
 )
@@ -78,13 +78,13 @@ f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
 f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 
 f_actransit_survey_path <- paste0(dir_path,
-                                  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_fixTransfers_NO POUND OR SINGLE QUOTE.csv")
+                                  "AC Transit/2018/As CSV/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_fixTransfers_NO POUND OR SINGLE QUOTE.csv")
 f_bart_survey_path <- paste0(dir_path,
                              "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
 f_caltrain_survey_path <- paste0(dir_path,
                                  "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
 f_marin_survey_path <- paste0(dir_path,
-                              "Marin Transit/Final Data/marin transit_data file_final01222021_NO POUND OR SINGLE QUOTE.csv")
+                              "Marin Transit/As CSV/marin transit_data file_final01222021_NO POUND OR SINGLE QUOTE.csv")
 f_muni_survey_path <- paste0(dir_path,
                              "Muni/As CSV/MUNI_DRAFTFINAL_20171114_fixedTransferNum_NO POUND OR SINGLE QUOTE.csv")
 f_napa_survey_path <- paste0(dir_path,
@@ -100,27 +100,27 @@ f_vcc_survey_path <- paste0(dir_path,
 f_soltrans_survey_path <- paste0(dir_path,
                              "Solano County/As CSV/SolTrans_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
 f_ace_survey_path <- paste0(dir_path,
-                             "ACE/2019/ACE19_Final Data_AddCols_RecodeRoute_NO POUND OR SINGLE QUOTE.csv")
+                             "ACE/2019/As CSV/ACE19_Final Data_AddCols_RecodeRoute_NO POUND OR SINGLE QUOTE.csv")
 f_unioncity_survey_path <- paste0(dir_path,
-                                  "Union City/2017/Union City Transit_fix_error_add_time_route_NO POUND OR SINGLE QUOTE.csv")
+                                  "Union City/2017/As CSV/Union City Transit_fix_error_add_time_route_NO POUND OR SINGLE QUOTE.csv")
 f_sonomact_survey_path <- paste0(dir_path,
                                  "Sonoma County/2018/As CSV/sc transit_data file_final_spring 2018_addRoutesCols NO POUND NO SINGLE QUOTE.csv")
 f_smart_survey_path <- paste0(dir_path,
                               "SMART/As CSV/SMART Standardized Final Data_addRouteCols_NO POUND NO SINGLE QUOTE.csv")
 f_weta_survey_path <- paste0(dir_path,
-                             "WETA/WETA 2018/WETA-Final Weighted Data-Standardized_addCols_NO POUND OR SINGLE QUOTE.csv")
+                             "WETA/WETA 2018/As CSV/WETA-Final Weighted Data-Standardized_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_westcat_survey_path <- paste0(dir_path,
                                 "WestCAT/As CSV/WestCAT_addCols_recodeRoute_NO POUND OR SINGLE QUOTE.csv")
 f_lavta_survey_path <- paste0(dir_path,
-                              "LAVTA/2018/OD_20181207_LAVTA_Submittal_FINAL_addCols_NO POUND OR SINGLE QUOTE.csv")
+                              "LAVTA/2018/As CSV/OD_20181207_LAVTA_Submittal_FINAL_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_tridelta2019_survey_path <- paste0(dir_path,
-                                     "Tri Delta/2019/TriDelta_ODSurvey_Dataset_Weights_03272019_FinalDeliv_addCols_NO POUND OR SINGLE QUOTE.csv")
+                                     "Tri Delta/2019/As CSV/TriDelta_ODSurvey_Dataset_Weights_03272019_FinalDeliv_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_cccta2019_survey_path <- paste0(dir_path,
-                                  "County Connection/2019/OD_20191105_CCCTA_Submittal_FINAL Expanded_addCols_NO POUND OR SINGLE QUOTE.csv")
+                                  "County Connection/2019/As CSV/OD_20191105_CCCTA_Submittal_FINAL Expanded_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_ggtransit_survey_path <- paste0(dir_path,
                                   "Golden Gate Transit/2018/As CSV/20180907_OD_GoldenGate_allDays_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_napavine2019_survey_path <- paste0(dir_path,
-                                     "Napa Vine/2019/Napa Vine_FINAL Data_addCols_NO POUND OR SINGLE QUOTE.csv")
+                                     "Napa Vine/2019/As CSV/Napa Vine_FINAL Data_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_petaluma2018_survey_path <- paste0(dir_path,
                                      "Petaluma/2018/As CSV/20180530_OD_Petaluma_Submittal_addCols_FINAL NO POUND NO SINGLE QUOTE.csv")
 f_SantaRosaCityBus2018_survey_path <- paste0(dir_path,
@@ -725,7 +725,10 @@ survey_standard <- survey_standard %>%
   mutate(workers = ifelse((workers == 'other' & 'workers_other' %in% colnames(survey_standard)),
                            workers_other,  workers)) %>%
   mutate(persons = ifelse((persons == 'other' & 'persons_other' %in% colnames(survey_standard)),
-                           persons_other,  persons))
+                           persons_other,  persons)) %>%
+  select(-person_other,
+         -vehicles_other,
+         -workers_other)
 
 table(survey_standard$vehicles, useNA = 'ifany')
 table(survey_standard$workers, useNA = 'ifany')
@@ -1040,8 +1043,7 @@ debug_transfers <- survey_standard %>%
          third_route_after_survey_alight,  third_after_operator,  third_after_technology)
 
 survey_standard <- survey_standard %>%
-  select(-survey_boardings, -commuter_rail_present, -heavy_rail_present,
-         -ferry_present, -light_rail_present, -express_bus_present)
+  select(-survey_boardings)
 
 
 
@@ -1075,16 +1077,23 @@ survey_standard <- survey_standard %>%
   mutate(language_at_home = ifelse(as.character(language_at_home_binary) == 'OTHER',
                                    as.character(language_at_home_detail),
                                    as.character(language_at_home_binary))) %>%
+  mutate(language_at_home = ifelse(as.character(language_at_home) == 'other',
+                                   as.character(language_at_home_detail_other),
+                                   as.character(language_at_home))) %>%
   mutate(language_at_home = toupper(language_at_home)) %>%
   select(-language_at_home_binary,
          -language_at_home_detail,
+         -language_at_home_detail_other,
          -race_dmy_ind,
          -race_dmy_asn,
          -race_dmy_blk,
          -race_dmy_hwi,
          -race_dmy_wht,
+         -race_dmy_mdl_estn,
          -race_dmy_oth,
          -race_dmy_sum,
+         -race_cat,
+         -race_categories,
          -race_other_string)
 
 # check if all records have the "race" variable filled, race_chk should be empty
@@ -1094,6 +1103,13 @@ race_chk <- survey_standard[which(is.na(survey_standard$race)),]
 survey_standard <- survey_standard %>%
   mutate(fare_medium = ifelse(is.na(clipper_detail), fare_medium, clipper_detail)) %>%
   select(-clipper_detail)
+
+# consolidate 'fare_medium' with 'fare_medium_other', and 'fare_category' with 'fare_category_other'
+survey_standard <- survey_standard %>%
+  mutate(fare_medium = ifelse(fare_medium == 'other', fare_medium_other, fare_medium)) %>%
+  mutate(fare_category = ifelse(fare_category == 'other', fare_category_other, fare_category)) %>%
+  select(-fare_medium_other,
+         -fare_category_other)
 
 # consolidate missing household income into 'missing' 
 survey_standard <- survey_standard %>%
@@ -1630,9 +1646,10 @@ survey_standard <- survey_standard %>%
          -at_work_after_dest_purp,
          -at_work_prior_to_orig_purp,
          -date,
+         -date1,
+         -date2,
          -time_start,
-         -vehicle_numeric_cat,
-         -worker_numeric_cat,
+         -day_part_temp,
          -year_born,
          -number_transfers_alight_dest,
          -number_transfers_orig_board,
