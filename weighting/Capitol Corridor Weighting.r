@@ -94,12 +94,14 @@ station_sum <- capco %>%
   group_by(boarding_station,alighting_station) %>% 
   summarize(num_surveys=n())
 
-# Now join ridership to summed survey file to divide ridership by number of survey records
+# Now join ridership to summed survey file to divide ridership by number of survey records, calculating initial weights
 
 joined <- left_join(station_sum,station_ridership_rc,by=c("boarding_station","alighting_station")) %>% 
   mutate(weight=avg_weekday/num_surveys) 
 
 # Calculate a weighted mean for of the weights to apply to surveys missing a boarding station, alighting station, or both
+# Zero out weights for weekend surveys
+# Recode unknown Oakland station to Jack London and unknown Santa Clara station to Great America for joining
 
 weighted_mean <- weighted.mean(joined$weight,joined$num_surveys, na.rm = TRUE)
 
@@ -116,7 +118,7 @@ temp <- left_join(interim_final_capco,interim_final_weights,by=c("boarding_stati
   mutate(weight=if_else(PERIOD==2,0,weight)) %>% 
   select(-boarding_station,-alighting_station)
 
-# Final scaling to bring dataset up to average weekday ridership, apply to final dataset
+# Final scaling to bring dataset up to average weekday ridership, apply to final dataset, and export
 
 scalar <- average_weekday/sum(temp$weight)
 
