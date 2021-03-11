@@ -30,13 +30,13 @@ library(readxl)
 
 # Set up input and output directories
 
-CAPCO_data_in   <- file.path(wd,"As CSV","CAPCO19 Data-For MTC_NO POUND OR SINGLE QUOTE.csv")
+CAPCO_data_in   <- file.path(wd,"CAPCO19 Data-For MTC.xlsx")
 ridership_in    <- file.path(wd,"Weighting","MTC_2019_Summary_Capitol_Corridor_Station_Summary.xlsx")
 write_directory <- file.path(wd,"Weighting","Capitol_Corridor_Weights.csv")
 
 # Bring in data and shunt to data frames
 
-capco             <- read.csv (file=CAPCO_data_in,stringsAsFactors = FALSE) %>% 
+capco             <- read_excel (CAPCO_data_in,sheet = "Data") %>% 
   mutate_at(.,vars(BOARD,ALIGHT),~str_trim(.))                            # Remove outside whitespace for later joining
 avg_ridership     <- read_excel (ridership_in,sheet="Average_Ridership")
 station_ridership <- read_excel (ridership_in,sheet="Station_to_Station") 
@@ -124,6 +124,6 @@ scalar <- average_weekday/sum(temp$weight)
 
 final <- temp %>% 
   mutate(weight=weight*scalar) %>% 
-  select(ID,weight)
+  select(CCGID,weight)
 
 write.csv(final,write_directory,row.names = FALSE)
