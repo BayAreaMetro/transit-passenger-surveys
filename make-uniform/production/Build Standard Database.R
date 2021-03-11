@@ -125,6 +125,8 @@ f_petaluma2018_survey_path <- paste0(dir_path,
                                      "Petaluma/2018/As CSV/20180530_OD_Petaluma_Submittal_addCols_FINAL NO POUND NO SINGLE QUOTE.csv")
 f_SantaRosaCityBus2018_survey_path <- paste0(dir_path,
                                              "Santa Rosa CityBus/2018/As CSV/20180522_OD_SantaRosa_Submittal_addCols_FINAL NO POUND NO SINGLE QUOTE.csv")
+f_capitolcorridor2019_survey_path <- paste0(dir_path,
+                                             "Capitol Corridor/OD Survey 2019/As CSV/CAPCO19 Data-For MTC_NO POUND OR SINGLE QUOTE.csv")
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path,
@@ -367,6 +369,13 @@ SantaRosaCityBus2018_df <- read_operator('Santa Rosa CityBus',
                                          dictionary_all,
                                          canonical_station_shp)
 
+capitolcorridor2019_df <- read_operator('Capitol Corridor',
+                                        2019,
+                                        'commuter rail',
+                                        f_capitolcorridor2019_survey_path,
+                                        dictionary_all,
+                                        canonical_station_shp)
+
 survey_combine <- bind_rows(
   ac_transit_df,
   bart_df,
@@ -391,7 +400,8 @@ survey_combine <- bind_rows(
   ggtransit_df,
   napavine2019_df,
   petaluma2018_df,
-  SantaRosaCityBus2018_df
+  SantaRosaCityBus2018_df,
+  capitolcorridor2019_df
 )
 
 dup1 <- survey_combine[duplicated(survey_combine),]
@@ -540,8 +550,14 @@ survey_standard <- survey_standard %>%
                             "grade_school", orig_purp)) %>%
   mutate(dest_purp = ifelse(dest_purp == "school", "high school", dest_purp)) %>%
   mutate(dest_purp = ifelse(dest_purp == "school" & approximate_age < 14,
-                            "grade_school", dest_purp))
+                            "grade_school", dest_purp)) %>%
 
+  # for Capitol Corridor 2019 survey, use 'trip_purp'
+  mutate(trip_purp = ifelse(trip_purp == "school", "high school", trip_purp)) %>%
+  mutate(trip_purp = ifelse(trip_purp == "school" & approximate_age < 14,
+                            "grade_school", trip_purp)) %>%
+  mutate(trip_purp = ifelse(trip_purp == "school" & approximate_age > 18,
+                            "college", trip_purp))
 
 # (Approximate) Tour purpose
 # Create temporary tour purpose variable that includes both (approximate) tour purpose and imputation name
@@ -631,7 +647,11 @@ survey_standard <- survey_standard %>% mutate(
   
 # Now separate tour purpose and tour purpose case designation into two columns
 
-  separate(temp_tour,c("tour_purp", "tour_purp_case"), sep="_") %>% 
+  separate(temp_tour,c("tour_purp", "tour_purp_case"), sep="_") %>%
+
+# for Capitol Corridor 2019 survey, use 'trip_purp' instead of 'orig/dest_purp'
+  mutate(tour_purp = ifelse(operator == 'Capitol Corridor', trip_purp, tour_purp)) %>%
+  mutate(tour_purp_case = ifelse(operator == 'Capitol Corridor', 'CC trip_purp', tour_purp_case)) %>%
   
 # finally, if work-related or business apt, categorize as 'other maintenance'
 
@@ -641,7 +661,7 @@ survey_standard <- survey_standard %>% mutate(
 
 table(survey_standard$tour_purp, useNA = 'ifany')
 
-missing_tour_df <- survey_standard %>% filter(tour_purp=='missing') %>% select(orig_purp,dest_purp,at_school_after_dest_purp,at_school_prior_to_orig_purp,at_work_after_dest_purp,at_work_prior_to_orig_purp,approximate_age)
+missing_tour_df <- survey_standard %>% filter(tour_purp=='missing') %>% select(operator, survey_year, ID, orig_purp,dest_purp,tour_purp,at_school_after_dest_purp,at_school_prior_to_orig_purp,at_work_after_dest_purp,at_work_prior_to_orig_purp,approximate_age)
 
 dup6 <- survey_standard[duplicated(survey_standard),]
 
@@ -726,7 +746,7 @@ survey_standard <- survey_standard %>%
                            workers_other,  workers)) %>%
   mutate(persons = ifelse((persons == 'other' & 'persons_other' %in% colnames(survey_standard)),
                            persons_other,  persons)) %>%
-  select(-person_other,
+  select(-persons_other,
          -vehicles_other,
          -workers_other)
 
