@@ -97,8 +97,10 @@ write.table(linkedtrips_best_mode, file.path(VALIDATION_Dir, "PopSim_Summaries_P
 write.table("linkedtrips_best_mode_xfer", file.path(VALIDATION_Dir, "PopSim_Summaries_Paste.csv"), sep = ",", append = T)
 write.table(linkedtrips_best_mode_xfer, file.path(VALIDATION_Dir, "PopSim_Summaries_Paste.csv"), sep = ",", append = T, row.names = F)
 
-# EF Distribution by Survey Mode
-#----------------------------------------
+# Expansion Factor Distribution by Survey Mode
+# Puts values into intervals
+# Plot values
+
 uniformity <- OBS[,c("SURVEY_MODE", "final_expansionFactor")] %>%
   mutate(EFBIN = cut(final_expansionFactor,c(0.25,0.5,0.75, 0.85,0.95,1.05,1.15, 1.25,1.5,2,3,5,10),right=FALSE, include.lowest=FALSE))
 
@@ -146,7 +148,7 @@ ggsave(file.path(VALIDATION_Dir, "EF-Distribution.png"), width=15,height=10)
 #---------------------------------------------
 weights_comparison <- OBS[,c("Unique_ID", "hh_id", "SURVEY_MODE", "operator", "route", "onoff_enter_station", "onoff_exit_station", 
                              "final_boardWeight_2015", "boardWeight_2015", "final_expansionFactor")]
-weights_comparison_no_outlier <- weights_comparison[weights_comparison$boardWeight_2015<200,]
+weights_comparison_no_outlier <- weights_comparison[weights_comparison$boardWeight_2015<200,]   # Create a variable that constrains weight to <200
 
 # Scatter plot
 p1 <- ggplot(weights_comparison, aes(x=boardWeight_2015, y=final_boardWeight_2015, color=SURVEY_MODE)) + 
