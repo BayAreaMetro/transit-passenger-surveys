@@ -102,7 +102,7 @@ joined <- left_join(station_sum,station_ridership_rc,by=c("boarding_station","al
 
 # Calculate a weighted mean for of the weights to apply to surveys missing a boarding station, alighting station, or both
 # Zero out weights for weekend surveys
-# Recode unknown Oakland station to Jack London and unknown Santa Clara station to Great America for joining
+# Recode unknown Oakland station to Jack London and unknown Santa Clara station to Great America for joining. Fairfield to Fairfield-Suisun.
 
 weighted_mean <- weighted.mean(joined$weight,joined$num_surveys, na.rm = TRUE)
 
