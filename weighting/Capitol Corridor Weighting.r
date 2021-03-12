@@ -89,7 +89,8 @@ station_ridership_rc <- station_ridership_rc %>%
 
 station_sum <- capco %>% 
   rename(boarding_station=BOARD,alighting_station=ALIGHT) %>% 
-  mutate(boarding_station=recode(boarding_station,"OAKLAND (UNSPECIFIED)"="OAKLAND-JLS","SANTA CLARA (UNSPECIFIED)"="SANTA CLARA-GREAT AMERICA")) %>% 
+  mutate(boarding_station=recode(boarding_station,"OAKLAND (UNSPECIFIED)"="OAKLAND-JLS","SANTA CLARA (UNSPECIFIED)"="SANTA CLARA-GREAT AMERICA",
+                                 "FAIRFIELD (UNSPECIFIED)"="FAIRFIELD-SUISUN")) %>% 
   filter(PERIOD==1) %>%                              # Weekday only
   group_by(boarding_station,alighting_station) %>% 
   summarize(num_surveys=n())
@@ -112,7 +113,8 @@ interim_final_weights <- joined %>%
 interim_final_capco <- capco %>% 
   mutate(boarding_station=BOARD,
          alighting_station=ALIGHT,
-         boarding_station=recode(BOARD,"OAKLAND (UNSPECIFIED)"="OAKLAND-JLS","SANTA CLARA (UNSPECIFIED)"="SANTA CLARA-GREAT AMERICA")) # Create new variables for joining
+         boarding_station=recode(BOARD,"OAKLAND (UNSPECIFIED)"="OAKLAND-JLS","SANTA CLARA (UNSPECIFIED)"="SANTA CLARA-GREAT AMERICA",
+                                 "FAIRFIELD (UNSPECIFIED)"="FAIRFIELD-SUISUN")) # Create new variables for joining
                                                                                                                                        # Impute specific Oakland and SC stations where missing
 temp <- left_join(interim_final_capco,interim_final_weights,by=c("boarding_station","alighting_station")) %>% 
   mutate(weight=if_else(PERIOD==2,0,weight)) %>% 
