@@ -63,6 +63,64 @@ get_nearest_station <- function(station_names_df, survey_records_df, operator_ke
 }
 
 
+# get_rail_names <- function(station_names_shp, 
+#                            survey_records_df, 
+#                            operator, 
+#                            route_name,
+#                            board_lat, 
+#                            board_lon, 
+#                            alight_lat, 
+#                            alight_lon) {
+#   
+#   
+#   # station_names_shp <- canonical_station_shp
+#   # operator <- "BART"
+#   # survey_records_df <- input_df
+#   # route_name <- "final_trip_first_route"
+#   # board_lat <- "final_transfer_from_first_boarding_lat"
+#   # board_lon <- "final_transfer_from_first_boarding_lon"
+#   # alight_lat <- "final_transfer_from_first_alighting_lat"
+#   # alight_lon <- "final_transfer_from_first_alighting_lon"
+#   
+#   filter_expression <- paste0(route_name, " == '", operator, "'")
+#   
+#   number_of_relevant_records <- survey_records_df %>%
+#     filter(eval(parse(text = filter_expression))) %>%
+#     nrow()
+#   
+#   if(number_of_relevant_records > 0) {
+#     
+#     board_names <- get_nearest_station(station_names_shp, survey_records_df, operator, 
+#                                        route_name, board_lat, board_lon)  
+#     
+#     alight_names <- get_nearest_station(station_names_shp, survey_records_df, operator,
+#                                         route_name, alight_lat, alight_lon)  
+#     
+#     combined_names <- board_names %>% 
+#       left_join(alight_names, by = "id") %>% 
+#       mutate(full_name = paste0(operator, OPERATOR_DELIMITER, station_na.x, ROUTE_DELIMITER, station_na.y)) %>%
+#       select(id, full_name)
+#     
+#     mutate_exp <- paste0("ifelse(", route_name, " == '", operator, "', full_name, ", route_name, ")")
+#     
+#     temp_df <- survey_records_df %>%
+#       left_join(combined_names, by = "id") %>%
+#       mutate(full_name = eval(parse(text = mutate_exp))) %>%
+#       select(id, full_name)
+#     
+#     return_df <- survey_records_df %>% 
+#       left_join(temp_df, by = "id") %>%
+#       mutate(!!route_name := full_name) %>% 
+#       select(-full_name)
+#     
+#   } else {
+#     return_df <- survey_records_df
+#   }
+#   
+#   return(return_df)
+# }
+
+
 # Read Survey Functions
 check_dropped_variables <- function(operator_variables_df, external_variables_df) {
   
@@ -106,6 +164,7 @@ read_operator <- function(name,
                           default_tech, 
                           file_path, 
                           variable_dictionary,
+                         # rail_names_df,
                           canonical_shp) {
   # 
   # name <- 'AC Transit'
@@ -117,7 +176,7 @@ read_operator <- function(name,
   # canonical_shp <- canonical_station_shp
   
   variables_vector <- variable_dictionary %>%
-    filter(operator == name) %>%
+    filter((operator == name) & (survey_year == year)) %>%
     .$survey_variable %>%
     unique()
   
@@ -125,6 +184,24 @@ read_operator <- function(name,
   
   updated_df <- input_df
   
+  # if (name %in% rail_names_df$survey_name) {
+  #   
+  #   relevant_rail_names_df <- rail_names_df %>% 
+  #     filter(survey_name == name)
+  #   
+  #   for (i in 1:nrow(relevant_rail_names_df)) {
+  #     
+  #     updated_df <- get_rail_names(canonical_shp, 
+  #                                  updated_df,
+  #                                  relevant_rail_names_df$operator_string[[i]],
+  #                                  relevant_rail_names_df$route_string[[i]],
+  #                                  relevant_rail_names_df$board_lat[[i]],
+  #                                  relevant_rail_names_df$board_lon[[i]],
+  #                                  relevant_rail_names_df$alight_lat[[i]],
+  #                                  relevant_rail_names_df$alight_lon[[i]])
+  #   }
+  # } 
+  # 
   df_variable_levels <- updated_df %>%
     gather(survey_variable, survey_response) %>%
     group_by(survey_variable, survey_response) %>%
@@ -153,6 +230,7 @@ read_operator <- function(name,
   
 }
 
+
 ## Method library for standardization
 # Set Operator Name
 set_operator_name <- function(input_vector) {
@@ -162,4 +240,39 @@ set_operator_name <- function(input_vector) {
   output_df <- input_df %>%
     mutate(output_field = "None") %>%
     mutate(output_field = str_extract(input_field, "^[A-Za-z- ]*"))
+}
+
+
+## Function to add a labeling column indicating if certain technology 
+## is present in each tour of the survey
+technology_present <- function(survey_data_df,
+                               technology,
+                               new_col_name) {
+  
+  # input: - dataframe of survey responses
+  #        - technology string
+  #        - name of the new column in string format
+  # output: updated dateframe with a new column indicating
+  #         if the technology is available
+  
+  transfer_tech_cols = c('first_before_technology',
+                         'second_before_technology',
+                         'third_before_technology', 
+                         'first_after_technology',
+                         'second_after_technology',
+                         'third_after_technology')
+  
+  survey_data_df[new_col_name] = FALSE
+  
+  for (i in transfer_tech_cols){
+    # check if the transfer technology column exists
+    stopifnot(i %in% colnames(survey_data_df))
+    
+    # update the value of the labeling to "TRUE" if the technology exisit
+    survey_data_df[new_col_name][survey_data_df[i] == technology] = TRUE 
+  }
+  
+  print(table(survey_data_df[new_col_name], useNA = 'ifany'))
+  
+  return(survey_data_df)
 }
