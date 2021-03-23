@@ -80,7 +80,7 @@ f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 f_actransit_survey_path <- paste0(dir_path,
                                   "AC Transit/2018/As CSV/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_fixTransfers_NO POUND OR SINGLE QUOTE.csv")
 f_bart_survey_path <- paste0(dir_path,
-                             "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
+                             "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight_fixColname NO POUND OR SINGLE QUOTE.csv")
 f_caltrain_survey_path <- paste0(dir_path,
                                  "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
 f_marin_survey_path <- paste0(dir_path,
@@ -770,8 +770,8 @@ survey_standard <- survey_standard %>%
 # map vehicles and workers counts to numeric values in order to calculate auto-sufficiency
 vehicles_dictionary <- data.frame(
   vehicles = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
-               'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more'),
-  vehicle_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
+               'eight', 'nine', 'ten', 'eleven', 'twelve', 'four or more', 'six or more'),
+  vehicle_numeric_cat = c(0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4))
 
 workers_dictionary <- data.frame(
   workers = c('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
@@ -809,7 +809,9 @@ survey_standard <- survey_standard %>%
                              vehicle_numeric_cat == 'Ref') | (
                              worker_numeric_cat == 'Ref') | (
                              vehicle_numeric_cat == "DON'T KNOW") | (
-                             worker_numeric_cat == "DON'T KNOW"),
+                             worker_numeric_cat == "DON'T KNOW") | (
+                             is.na(vehicle_numeric_cat)) | (
+                             is.na(worker_numeric_cat)),
                             'missing',
                             auto_suff))
 
