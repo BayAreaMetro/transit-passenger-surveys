@@ -1094,6 +1094,9 @@ survey_standard <- survey_standard %>%
   mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_asn == 1 | race_cat == 'ASIAN'), 'ASIAN', race)) %>%
   mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_blk == 1 | race_cat == 'BLACK'), 'BLACK', race)) %>%
   mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_wht == 1 | race_cat == 'WHITE'), 'WHITE', race)) %>%
+  mutate(race = ifelse(race_dmy_sum == 1 & race_dmy_mdl_estn == 1, 'WHITE', race)) %>%
+  mutate(race = ifelse(race_dmy_sum == 2 & (
+         race_dmy_wht == 1 | race_cat == 'WHITE') & (race_dmy_mdl_estn == 1), 'WHITE', race)) %>%
 
   # Language at home
   mutate(language_at_home = ifelse(as.character(language_at_home_binary) == 'OTHER',
