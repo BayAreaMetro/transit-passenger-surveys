@@ -130,15 +130,15 @@ f_capitolcorridor2019_survey_path <- paste0(dir_path,
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path,
-                            "_data Standardized/survey_standard_", today, ".RDS")
+                            "_data Standardized/survey_standard_", today, ".RData")
 f_output_csv_path <- paste0(dir_path,
                             "_data Standardized/survey_standard_", today, ".csv")
 f_ancillary_output_rdata_path <- paste0(dir_path,
-                                        "_data Standardized/ancillary_variable_", today, ".RDS")
+                                        "_data Standardized/ancillary_variable_", today, ".RData")
 f_ancillary_output_csv_path <- paste0(dir_path,
                                       "_data Standardized/ancillary_variables_", today, ".csv")
 f_output_decom_rdata_path <- paste0(dir_path,
-                                    "_data Standardized/decomposition/survey_decomposition_", today, ".RDS")
+                                    "_data Standardized/decomposition/survey_decomposition_", today, ".RData")
 f_output_decom_csv_path <- paste0(dir_path,
                                   "_data Standardized/decomposition/survey_decomposition_", today, ".csv")
 
