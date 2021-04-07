@@ -405,16 +405,33 @@ survey_combine <- bind_rows(
   capitolcorridor2019_df
 )
 
-dup1 <- survey_combine[duplicated(survey_combine),]
-
-# remove(
-#        ac_transit_df,
-#        bart_df,
-#        caltrain_df,
-#        muni_df,
-#        napa_vine_df,
-#        vta_df
-#       )
+remove(
+       ac_transit_df,
+       bart_df,
+       caltrain_df,
+       muni_df,
+       marin_df,
+       napa_vine_df,
+       vta_df,
+       fast_df,
+       rvdb_df,
+       vcc_df,
+       soltrans_df,
+       ace_df,
+       unioncity_df,
+       sonomact_df,
+       smart_df,
+       weta_df,
+       westcat_df,
+       lavta_df,
+       tridelta2019_df,
+       cccta2019_df,
+       ggtransit_df,
+       napavine2019_df,
+       petaluma2018_df,
+       SantaRosaCityBus2018_df,
+       capitolcorridor2019_df
+      )
 
 
 ## Flatten
@@ -453,10 +470,8 @@ survey_flat <- bind_rows(survey_cat, survey_non) %>%
   mutate(route = ifelse(!is.na(canonical_name), canonical_name, route)) %>%
   select(-canonical_name)
 
-dup2 <- survey_flat[duplicated(survey_flat),]
-
-#remove(survey_cat,
-#       survey_non)
+remove(survey_cat,
+       survey_non)
 
 
 ## Update survey technology
@@ -486,8 +501,6 @@ survey_flat <- survey_flat %>%
 
 table(survey_flat$operator, survey_flat$survey_tech, useNA = 'ifany')
 
-dup3 <- survey_flat[duplicated(survey_flat),]
-
 
 # _User Intervention_
 # User should run each of the `Steps` below individually and make sure the results make sense.
@@ -508,7 +521,6 @@ survey_standard <- survey_flat %>%
   mutate(year_born = ifelse(is.na(year_born), NA, as.numeric(year_born))) %>%
   select(-year_born_four_digit)
 
-dup4 <- survey_standard[duplicated(survey_standard),]
 
 # Manual fixes to year born
 survey_standard <- survey_standard %>%
@@ -542,7 +554,6 @@ survey_standard <- survey_standard %>%
   mutate(at_school_prior_to_orig_purp = ifelse(is.na(at_school_prior_to_orig_purp), 'not relevant', at_school_prior_to_orig_purp)) %>%
   mutate(at_school_after_dest_purp = ifelse(is.na(at_school_after_dest_purp), 'not relevant', at_school_after_dest_purp))
 
-dup5 <- survey_standard[duplicated(survey_standard),]
 
 # Refine school purpose
 survey_standard <- survey_standard %>%
@@ -664,7 +675,6 @@ table(survey_standard$tour_purp, useNA = 'ifany')
 
 missing_tour_df <- survey_standard %>% filter(tour_purp=='missing') %>% select(operator, survey_year, ID, orig_purp,dest_purp,tour_purp,at_school_after_dest_purp,at_school_prior_to_orig_purp,at_work_after_dest_purp,at_work_prior_to_orig_purp,approximate_age)
 
-dup6 <- survey_standard[duplicated(survey_standard),]
 
 # Step 3:  Update Key locations and Status Flags --------------------------------------
 
@@ -822,9 +832,6 @@ remove(vehicles_dictionary,
        workers_dictionary)
 
 
-dup7 <- survey_standard[duplicated(survey_standard),]
-
-
 # Step 5:  Operator and Technology sequence --------------------------------------------
 
 # Set operator for each of six legs (three before, three after)
@@ -859,7 +866,6 @@ survey_standard <- survey_standard %>%
          second_after_operator  = str_extract(second_route_after_survey_alight, "^[A-z -]+?(?=_)"),
          third_after_operator   = str_extract(third_route_after_survey_alight,  "^[A-z -]+?(?=_)"))
 
-dup8 <- survey_standard[duplicated(survey_standard),]
 
 # Set the technology for each of the six legs
 tech_crosswalk_df <- canonical_routes_crosswalk %>%
@@ -883,7 +889,7 @@ tech_crosswalk_df <- tech_crosswalk_df %>%
   bind_rows(tech_crosswalk_expansion_df) %>%
   filter(survey != "GEOCODE")
 
-#remove(tech_crosswalk_expansion_df, tech_crosswalk_expansion_list)
+remove(tech_crosswalk_expansion_df, tech_crosswalk_expansion_list)
 
 survey_standard <- survey_standard %>%
   left_join(tech_crosswalk_df, by =c("operator" = "survey", "survey_year",
@@ -915,8 +921,6 @@ survey_standard <- survey_standard %>%
                                      "third_after_operator" = "canonical_operator",
                                      "third_route_after_survey_alight" = "canonical_name")) %>%
   rename(third_after_technology = temp_tech)
-
-dup9 <- survey_standard[duplicated(survey_standard),]
 
 table(survey_standard$first_before_technology, useNA = 'ifany')  #### check if there is "Missing"
 table(survey_standard$first_after_technology, useNA = 'ifany')
@@ -1276,8 +1280,6 @@ survey_standard <- survey_standard %>%
 survey_standard <- survey_standard %>%
   mutate(unique_ID = paste(ID, operator, survey_year, sep = "___"))
 
-dup12 <- survey_standard[duplicated(survey_standard),]
-
 survey_lat <- survey_standard %>%
   select(unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat,
          school = school_lat, workplace = workplace_lat)
@@ -1323,7 +1325,7 @@ survey_alight <- survey_standard %>%
   filter(!is.na(last_alight_lat)) %>%
   filter(!is.na(last_alight_lon))
 
-# remove(survey_lat, survey_lon)
+remove(survey_lat, survey_lon)
 
 ## Geocode Transit Locations
 
@@ -1442,9 +1444,9 @@ st_geometry(survey_alight_spatial) <- NULL
 board_alight_tap <- survey_board_spatial %>%
   left_join(survey_alight_spatial, by = c("unique_ID"))
 
-# remove(alight_coords, board_coords,
-#       survey_board_spatial, survey_alight_spatial,
-#       taps_coords, taps_spatial)
+remove(alight_coords, board_coords,
+       survey_board_spatial, survey_alight_spatial,
+       taps_coords, taps_spatial)
 
 
 ## Geocode Other Locations
@@ -1653,8 +1655,6 @@ survey_standard <- survey_standard %>%
   left_join(survey_coords_spatial_tm2_taz, by = c("unique_ID")) %>%
   left_join(survey_coords_spatial_tm2_maz, by = c("unique_ID")) %>%
   left_join(board_alight_tap, by = c("unique_ID"))
-
-dup20 <- survey_standard[duplicated(survey_standard),]
 
 remove(board_alight_tap,
        survey_coords,
