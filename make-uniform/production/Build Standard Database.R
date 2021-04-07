@@ -72,8 +72,9 @@ dir_path <- user_list %>%
 f_dict_standard <- "Dictionary for Standard Database.csv"
 f_canonical_station_path <- paste0(dir_path,"Geography Files/Passenger_Railway_Stations_2018.shp")
 f_taps_coords_path <- paste0(dir_path, "_geocoding Standardized/TAPs/TM2 TAPS/TM2 tap_node.csv")
-f_taz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/tazs.shp")
-f_maz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/mazs.shp")
+f_tm1_taz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM1_taz/bayarea_rtaz1454_rev1_WGS84.shp")
+f_tm2_taz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/tazs.shp")
+f_tm2_maz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/mazs.shp")
 f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
 f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 
@@ -1293,6 +1294,9 @@ survey_lon <- survey_lon %>%
 
 survey_coords <- left_join(survey_lat, survey_lon, by = c("unique_ID", "variable"))
 
+# check duplicates
+dup_survey_coords <- survey_coords[duplicated(survey_coords),]
+
 survey_coords <- survey_coords %>%                  # remove records with no lat/lon
   mutate(x_coord = as.numeric(x_coord)) %>%
   mutate(y_coord = as.numeric(y_coord)) %>%
@@ -1448,37 +1452,42 @@ board_alight_tap <- survey_board_spatial %>%
 survey_coords_spatial <- st_as_sf(survey_coords, coords = c("x_coord", "y_coord"), crs = 4326)
 survey_coords_spatial <- st_transform(survey_coords_spatial, crs = 2230)
 
-taz_shp <- st_read(f_taz_shp_path) %>%
-  select(taz = TAZ_ORIGIN)
-taz_shp <- bind_cols(taz_shp, match = 1:nrow(taz_shp))
-taz_shp <- st_set_crs(taz_shp, 2230)
+tm1_taz_shp <- st_read(f_tm1_taz_shp_path, crs = 4326)%>%
+  select(tm1_taz = TAZ1454)
+tm1_taz_shp <- bind_cols(tm1_taz_shp, match = 1:nrow(tm1_taz_shp))
+tm1_taz_shp <- st_transform(tm1_taz_shp, 2230)
 
-maz_shp <- st_read(f_maz_shp_path) %>%
-  select(maz = MAZ_ORIGIN)
-maz_shp <- bind_cols(maz_shp, match = 1:nrow(maz_shp))
-maz_shp <- st_set_crs(maz_shp, 2230)
+tm2_taz_shp <- st_read(f_tm2_taz_shp_path) %>%
+  select(tm2_taz = TAZ_ORIGIN)
+tm2_taz_shp <- bind_cols(tm2_taz_shp, match = 1:nrow(tm2_taz_shp))
+tm2_taz_shp <- st_transform(tm2_taz_shp, 2230)
 
-#### Find nearest TAZ (within 1/4 mile, else NA)
+tm2_maz_shp <- st_read(f_tm2_maz_shp_path) %>%
+  select(tm2_maz = MAZ_ORIGIN)
+tm2_maz_shp <- bind_cols(tm2_maz_shp, match = 1:nrow(tm2_maz_shp))
+tm2_maz_shp <- st_transform(tm2_maz_shp, 2230)
+
+#### Find nearest TM1 TAZ (within 1/4 mile, else NA)
 survey_coords_spatial <- survey_coords_spatial %>%
-  st_join(taz_shp, join = st_within)
+  st_join(tm1_taz_shp, join = st_within)
 
 bad_survey_coords_spatial <- survey_coords_spatial %>%
-  filter(is.na(taz))
+  filter(is.na(tm1_taz))
 
 bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(taz_index = st_nearest_feature(bad_survey_coords_spatial, taz_shp))
+  mutate(taz_index = st_nearest_feature(bad_survey_coords_spatial, tm1_taz_shp))
 
-bad_survey_coords_dist <- taz_shp %>%
+bad_survey_coords_dist <- tm1_taz_shp %>%
   right_join(data.frame(match = bad_survey_coords_spatial$taz_index), by = "match")  %>%
-  rename(bad_taz = taz)
+  rename(bad_taz = tm1_taz)
 bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
   mutate(dist = st_distance(bad_survey_coords_spatial, bad_survey_coords_dist, by_element = TRUE))
 
-# If there is no TAZ within 1/4 mile, the TAZ is replaced with NA to indicate a failure
+# If there is no TM1 TAZ within 1/4 mile, the TM1 TAZ is replaced with NA to indicate a failure
 bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(taz = bad_survey_coords_dist$bad_taz) %>%
+  mutate(tm1_taz = bad_survey_coords_dist$bad_taz) %>%
   select(-taz_index) %>%
-  mutate(taz = ifelse(as.numeric(dist) / 5280 <= 0.25, taz, NA))
+  mutate(tm1_taz = ifelse(as.numeric(dist) / 5280 <= 0.25, tm1_taz, NA))
 
 # Plot distribution of distance between locations and TAZ where location not in TAZ
 # Plot distribution of distance between boarding/alighting locations and TAP
@@ -1491,40 +1500,96 @@ bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
 st_geometry(bad_survey_coords_spatial) <- NULL
 bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
   select(-match, -dist) %>%
-  rename(dist_taz = taz)
+  rename(dist_taz = tm1_taz)
 
 survey_coords_spatial <- survey_coords_spatial %>%
   left_join(bad_survey_coords_spatial, by = c("unique_ID", "variable")) %>%
-  mutate(taz = ifelse(is.na(taz), dist_taz, taz)) %>%
+  mutate(tm1_taz = ifelse(is.na(tm1_taz), dist_taz, tm1_taz)) %>%
   select(-dist_taz, -match)
 
-# check there is no duplicated unique_ID+variable
+# check for duplicated unique_ID+variable
 # "chk" should have 0 record
-chk = survey_coords_spatial[duplicated(survey_coords_spatial[,1:2]), ]
+chk_tm1_taz = survey_coords_spatial[duplicated(survey_coords_spatial[,1:2]), ]
 
-# Find nearest MAZ within 1/4 mile (else NA)
+
+#### Find nearest TM2 TAZ (within 1/4 mile, else NA)
 survey_coords_spatial <- survey_coords_spatial %>%
-  st_join(maz_shp, join = st_within)
+  st_join(tm2_taz_shp, join = st_within)
 
 bad_survey_coords_spatial <- survey_coords_spatial %>%
-  filter(is.na(maz)) %>%
-  select(-taz)
-
+  filter(is.na(tm2_taz)) %>%
+  select(-tm1_taz)
 
 bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(maz_index = st_nearest_feature(bad_survey_coords_spatial, maz_shp))
+  mutate(taz_index = st_nearest_feature(bad_survey_coords_spatial, tm2_taz_shp))
 
-bad_survey_coords_dist <- maz_shp %>%
+bad_survey_coords_dist <- tm2_taz_shp %>%
+  right_join(data.frame(match = bad_survey_coords_spatial$taz_index), by = "match")  %>%
+  rename(bad_taz = tm2_taz)
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  mutate(dist = st_distance(bad_survey_coords_spatial, bad_survey_coords_dist, by_element = TRUE))
+
+# If there is no TM2 TAZ within 1/4 mile, the TM2 TAZ is replaced with NA to indicate a failure
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  mutate(tm2_taz = bad_survey_coords_dist$bad_taz) %>%
+  select(-taz_index) %>%
+  mutate(tm2_taz = ifelse(as.numeric(dist) / 5280 <= 0.25, tm2_taz, NA))
+
+# Plot distribution of distance between locations and TAZ where location not in TAZ
+# Plot distribution of distance between boarding/alighting locations and TAP
+# qplot(as.numeric(bad_survey_coords_spatial$dist),
+#       geom = "histogram",
+#       main = "Distribution of distance between \ncoordinates and TAZ",
+#       xlab = "Distance (m)",
+#       binwidth = 10)
+
+st_geometry(bad_survey_coords_spatial) <- NULL
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  select(-match, -dist) %>%
+  rename(dist_taz = tm2_taz)
+
+survey_coords_spatial <- survey_coords_spatial %>%
+  left_join(bad_survey_coords_spatial, by = c("unique_ID", "variable")) %>%
+  mutate(tm2_taz = ifelse(is.na(tm2_taz), dist_taz, tm2_taz)) %>%
+  select(-dist_taz, -match)
+
+# check for duplicated unique_ID+variable
+# "chk" should have 0 record
+chk_tm2_taz = survey_coords_spatial[duplicated(survey_coords_spatial[,1:2]), ]
+
+# (April 6, 2021) The following lat/lon points are located at or too close to the boundary of two TM2 TAZs,
+# therefore were joined to two TM2 TAZs
+#     40113___BART___2015, dest_lat/lon	38.0815140, -122.2400470
+#     40113___BART___2015, home_lat/lon	38.0815140, -122.2400470
+#     1204___Caltrain___2014, home_lat/lon	37.761126, -122.399303
+#     1204___Caltrain___2014, orig_lat/lon	37.761126, -122.399303
+#     23645___SF Muni___2017, home_lat/lon  38.081514, -122.240047
+
+# Temporarily manually drop the duplicates
+survey_coords_spatial <- survey_coords_spatial[!duplicated(survey_coords_spatial[,1:2]), ]
+
+#### Find nearest MAZ within 1/4 mile (else NA)
+survey_coords_spatial <- survey_coords_spatial %>%
+  st_join(tm2_maz_shp, join = st_within)
+
+bad_survey_coords_spatial <- survey_coords_spatial %>%
+  filter(is.na(tm2_maz)) %>%
+  select(-tm1_taz, -tm2_taz)
+
+bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
+  mutate(maz_index = st_nearest_feature(bad_survey_coords_spatial, tm2_maz_shp))
+
+bad_survey_coords_dist <- tm2_maz_shp %>%
   right_join(data.frame(match = bad_survey_coords_spatial$maz_index), by = "match")  %>%
-  rename(bad_maz = maz)
+  rename(bad_maz = tm2_maz)
 bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
   mutate(dist = st_distance(bad_survey_coords_spatial, bad_survey_coords_dist, by_element = TRUE))
 
 # If there is no maz within 1/4 mile, the maz is replaced with NA to indicate a failure
 bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(maz = bad_survey_coords_dist$bad_maz) %>%
+  mutate(tm2_maz = bad_survey_coords_dist$bad_maz) %>%
   select(-maz_index) %>%
-  mutate(maz = ifelse(as.numeric(dist) / 5280 <= 0.25, maz, NA))
+  mutate(tm2_maz = ifelse(as.numeric(dist) / 5280 <= 0.25, tm2_maz, NA))
 
 # Plot distribution of distance between locations and maz where location not in maz
 # Plot distribution of distance between boarding/alighting locations and TAP
@@ -1537,49 +1602,66 @@ bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
 st_geometry(bad_survey_coords_spatial) <- NULL
 bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
   select(-match, -dist) %>%
-  rename(dist_maz = maz)
+  rename(dist_maz = tm2_maz)
 
 survey_coords_spatial <- survey_coords_spatial %>%
   left_join(bad_survey_coords_spatial, by = c("unique_ID", "variable")) %>%
-  mutate(maz = ifelse(is.na(maz), dist_maz, maz)) %>%
+  mutate(tm2_maz = ifelse(is.na(tm2_maz), dist_maz, tm2_maz)) %>%
   select(-dist_maz, -match)
 
-# check there is no duplicated unique_ID+variable
+# check for duplicated unique_ID+variable
 # "chk" should have 0 record
-chk = survey_coords_spatial[duplicated(survey_coords_spatial[,1:2]), ]
-# (Nov 11, 2020) One Muni 2017 survey record (ID 21120) is joined to two maz zones, creating duplicates.
+chk_tm2_maz = survey_coords_spatial[duplicated(survey_coords_spatial[,1:2]), ]
+
+# (April 6, 2021) The following lat/lon points are located at the boundary of two TM2 TAZs,
+# therefore were joined to two TM2 MAZs
+#     1204___Caltrain___2014, home_lat/lon 	 37.761126, -122.399303
+#     1204___Caltrain___2014, orig_lat/lon   37.761126, -122.399303
+#     31___Napa Vine___2019, home_lat/lon    38.161992,	-122.260128
+#     31___Napa Vine___2019, dest_lat/lon    38.161992,	-122.260128
+#     1226___Napa Vine___2014, orig_lat/lon  37.72195, -122.478136
 # Temporarily manually drop the duplicates
 survey_coords_spatial <- survey_coords_spatial[!duplicated(survey_coords_spatial[,1:2]), ]
 
 # Bring in the geocoding results
 st_geometry(survey_coords_spatial) <- NULL
 
-survey_coords_spatial_taz <- survey_coords_spatial %>%
-  select(-maz) %>%
-  spread(variable, taz) %>%
-  rename(dest_taz = dest, home_taz = home, orig_taz = orig,
-         school_taz = school, workplace_taz = workplace)
+survey_coords_spatial_tm1_taz <- survey_coords_spatial %>%
+  select(-tm2_taz, -tm2_maz) %>%
+  spread(variable, tm1_taz) %>%
+  rename(dest_tm1_taz = dest, home_tm1_taz = home, orig_tm1_taz = orig,
+         school_tm1_taz = school, workplace_tm1_taz = workplace)
 
-survey_coords_spatial_maz <- survey_coords_spatial %>%
-  select(-taz) %>%
-  spread(variable, maz) %>%
-  rename(dest_maz = dest, home_maz = home, orig_maz = orig,
-         school_maz = school, workplace_maz = workplace)
+survey_coords_spatial_tm2_taz <- survey_coords_spatial %>%
+  select(-tm1_taz, -tm2_maz) %>%
+  spread(variable, tm2_taz) %>%
+  rename(dest_tm2_taz = dest, home_tm2_taz = home, orig_tm2_taz = orig,
+         school_tm2_taz = school, workplace_tm2_taz = workplace)
+
+survey_coords_spatial_tm2_maz <- survey_coords_spatial %>%
+  select(-tm1_taz, -tm2_taz) %>%
+  spread(variable, tm2_maz) %>%
+  rename(dest_tm2_maz = dest, home_tm2_maz = home, orig_tm2_maz = orig,
+         school_tm2_maz = school, workplace_tm2_maz = workplace)
 
 board_alight_tap <- board_alight_tap %>%
   select(unique_ID, board_tap, alight_tap)
 
 # Joins
 survey_standard <- survey_standard %>%
-  left_join(survey_coords_spatial_taz, by = c("unique_ID")) %>%
-  left_join(survey_coords_spatial_maz, by = c("unique_ID")) %>%
+  left_join(survey_coords_spatial_tm1_taz, by = c("unique_ID")) %>%
+  left_join(survey_coords_spatial_tm2_taz, by = c("unique_ID")) %>%
+  left_join(survey_coords_spatial_tm2_maz, by = c("unique_ID")) %>%
   left_join(board_alight_tap, by = c("unique_ID"))
+
+dup20 <- survey_standard[duplicated(survey_standard),]
 
 remove(board_alight_tap,
        survey_coords,
        survey_coords_spatial,
-       survey_coords_spatial_taz,
-       survey_coords_spatial_maz)
+       survey_coords_spatial_tm1_taz,
+       survey_coords_spatial_tm2_taz,
+       survey_coords_spatial_tm2_maz)
 
 
 ### Clean up data types
