@@ -144,9 +144,9 @@ f_output_decom_csv_path <- paste0(dir_path,
                                   "_data Standardized/decomposition/survey_decomposition_", today, ".csv")
 
 # Setup the log file
-run_log <- file(sprintf("%s_data Standardized/Build_Standard_Database_%s.log",dir_path,today))
-sink(run_log, append=TRUE, type = 'output')
-sink(run_log, append=TRUE, type = "message")
+# run_log <- file(sprintf("%s_data Standardized/Build_Standard_Database_%s.log",dir_path,today))
+# sink(run_log, append=TRUE, type = 'output')
+# sink(run_log, append=TRUE, type = "message")
 
 
 # _User Intervention_
@@ -1243,7 +1243,6 @@ survey_standard <- survey_standard %>%
 table(survey_standard$field_start, useNA = 'ifany')
 table(survey_standard$field_end, useNA = 'ifany')
 table(survey_standard$time_start, useNA = 'ifany')
-# table(survey_standard$day_part_temp, useNA = 'ifany')
 table(survey_standard$day_of_the_week, useNA = 'ifany')
 
 # examine 'time_period(strata)' data
@@ -1269,9 +1268,25 @@ survey_standard <- survey_standard %>%
 
 table(survey_standard$operator, survey_standard$day_part, useNA = 'ifany')
 
+# recode 'depart_time/return_time' of ACE 2019 survey to 'depart_hour/return_hour'
+# to be consistent with other surveys
+survey_standard <- survey_standard %>%
+  mutate(depart_time_stamp = as.POSIXct(strptime(depart_time, format = "%l:%M:%S %p"))) %>%
+  mutate(depart_hour_ace = as.numeric(format(depart_time_stamp,"%H"))) %>%
+  mutate(depart_hour = ifelse(operator == 'ACE',         # ACE 2019 generates 'depart_hour' from 'depart_time' 
+                              depart_hour_ace,
+                              depart_hour)) %>%
+  mutate(return_time_stamp = as.POSIXct(strptime(return_time, format = "%l:%M:%S %p"))) %>%
+  mutate(return_hour_ace = as.numeric(format(return_time_stamp,"%H"))) %>%
+  mutate(return_hour = ifelse(operator == 'ACE',         # ACE 2019 generates 'return_hour' from 'return_time' 
+                              return_hour_ace,
+                              return_hour))
+
 survey_standard <- survey_standard %>%
   select(-date_string, -time_string, -time1, -time2,
-         -time3, -time4, -survey_time_posix)
+         -time3, -time4, -survey_time_posix,
+         -depart_time_stamp, -return_time_stamp,
+         -depart_hour_ace, -return_hour_ace)
 
 
 ## Geocode XY to travel model geographies
@@ -1813,3 +1828,4 @@ saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
 
 write.csv(survey_standard, file = f_output_csv_path, row.names = FALSE)
 write.csv(ancillary_df, file = f_ancillary_output_csv_path, row.names = FALSE)
+
