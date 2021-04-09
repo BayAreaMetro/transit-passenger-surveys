@@ -144,9 +144,9 @@ f_output_decom_csv_path <- paste0(dir_path,
                                   "_data Standardized/decomposition/survey_decomposition_", today, ".csv")
 
 # Setup the log file
-# run_log <- file(sprintf("%s_data Standardized/Build_Standard_Database_%s.log",dir_path,today))
-# sink(run_log, append=TRUE, type = 'output')
-# sink(run_log, append=TRUE, type = "message")
+run_log <- file(sprintf("%s_data Standardized/Build_Standard_Database_%s.log",dir_path,today))
+sink(run_log, append=TRUE, type = 'output')
+sink(run_log, append=TRUE, type = "message")
 
 
 # _User Intervention_
@@ -195,6 +195,7 @@ canonical_station_shp <- canonical_station_shp %>%
 canonical_routes_crosswalk <- read.csv(f_canonical_routes_path)
 
 ## Add surveys
+print('Read and combine survey raw data from multiple operators')
 
 # _User Intervention_
 # When adding a new operator, create a `read_operator` call and add the resulting
@@ -435,6 +436,7 @@ remove(
 
 
 ## Flatten
+print('Join standard_variable and standard_response to raw data')
 
 # Join the dictionary and prepare the categorical variables
 
@@ -475,6 +477,7 @@ remove(survey_cat,
 
 
 ## Update survey technology
+print('Update technology for multiple-tech operators')
 
 # _User Intervention_
 # As noted above, when the operator data is read in, it assumes every route in the survey uses
@@ -499,6 +502,7 @@ survey_flat <- survey_flat %>%
                               technology,
                               survey_tech))
 
+print('Stats on technology by operator:')
 table(survey_flat$operator, survey_flat$survey_tech, useNA = 'ifany')
 
 
@@ -511,6 +515,7 @@ table(survey_flat$operator, survey_flat$survey_tech, useNA = 'ifany')
 ## Build standard variables
 
 # Step 1:  Age-related transformations ----
+print('Clean up age-related info')
 
 # Standardize year born
 survey_standard <- survey_flat %>%
@@ -530,6 +535,7 @@ survey_standard <- survey_standard %>%
   mutate(year_born = ifelse(year_born == 3884, 1984, year_born)) %>%
   mutate(year_born = ifelse(year_born == 1899, NA, year_born))
 
+print('Stats on year_born:')
 table(survey_standard$year_born, useNA = 'ifany')
 
 # Compute approximate respondent age
@@ -537,10 +543,12 @@ survey_standard <- survey_standard %>%
   mutate(approximate_age = ifelse(!is.na(year_born) & survey_year >= year_born, survey_year - year_born, NA)) %>%
   mutate(approximate_age = ifelse(approximate_age == 0, NA, approximate_age))
 
+print('Stats on approximate_age:')
 table(survey_standard$approximate_age, useNA = 'ifany')
 
 
 # Step 2:  Trip- and tour-purpose-related transformations ------------------------------
+print('Build tour purpose variable')
 
 # Recode key variables from NA to 'missing'
 survey_standard <- survey_standard %>%
@@ -671,12 +679,15 @@ survey_standard <- survey_standard %>% mutate(
       
 # Output frequency file, test file to review missing cases, and test of duplicates
 
+print('Stats on tour_purp:')
 table(survey_standard$tour_purp, useNA = 'ifany')
 
+print('Examine interim output "missing_tour_df" for records with missing tour_purp')
 missing_tour_df <- survey_standard %>% filter(tour_purp=='missing') %>% select(operator, survey_year, ID, orig_purp,dest_purp,tour_purp,at_school_after_dest_purp,at_school_prior_to_orig_purp,at_work_after_dest_purp,at_work_prior_to_orig_purp,approximate_age)
 
 
 # Step 3:  Update Key locations and Status Flags --------------------------------------
+print('Clean up work/student status info')
 
 # Home
 survey_standard <- survey_standard %>%
@@ -743,11 +754,14 @@ survey_standard <- survey_standard %>%
                                  'full- or part-time',
                                  student_status))
 
+print('Stats on work_status')
 table(survey_standard$work_status, useNA = 'ifany')
+print('Stats on student_status')
 table(survey_standard$student_status, useNA = 'ifany')
 
 
 # Step 4:  Automobile Sufficiency ------------------------------------------------------
+print('Calculate automobile sufficiency')
 
 # Transform vehicles and workers to standard scale
 survey_standard <- survey_standard %>%
@@ -761,6 +775,7 @@ survey_standard <- survey_standard %>%
          -vehicles_other,
          -workers_other)
 
+print('Stats on vehicles/workers/persons for debug:')
 table(survey_standard$vehicles, useNA = 'ifany')
 table(survey_standard$workers, useNA = 'ifany')
 table(survey_standard$persons, useNA = 'ifany')
@@ -798,6 +813,7 @@ survey_standard <- survey_standard %>%
   mutate(vehicle_numeric_cat = ifelse(is.na(vehicle_numeric_cat), vehicles, vehicle_numeric_cat)) %>%
   mutate(worker_numeric_cat = ifelse(is.na(worker_numeric_cat), workers, worker_numeric_cat))
 
+print('Stats on vehicle_numeric_cat/worker_numeric_cat for debug:s')
 table(survey_standard$vehicle_numeric_cat, useNA = 'ifany')
 table(survey_standard$worker_numeric_cat, useNA = 'ifany')
 
@@ -826,6 +842,7 @@ survey_standard <- survey_standard %>%
                             'missing',
                             auto_suff))
 
+print('Stats on auto_suff:')
 table(survey_standard$auto_suff, useNA = 'ifany')
 
 remove(vehicles_dictionary,
@@ -833,6 +850,7 @@ remove(vehicles_dictionary,
 
 
 # Step 5:  Operator and Technology sequence --------------------------------------------
+print('Configure operator and technology for transfer routes')
 
 # Set operator for each of six legs (three before, three after)
 # - remove Dummy Records
@@ -922,6 +940,7 @@ survey_standard <- survey_standard %>%
                                      "third_route_after_survey_alight" = "canonical_name")) %>%
   rename(third_after_technology = temp_tech)
 
+print('Stats on first_before_technology/first_after_technology for debug:')
 table(survey_standard$first_before_technology, useNA = 'ifany')  #### check if there is "Missing"
 table(survey_standard$first_after_technology, useNA = 'ifany')
 
@@ -961,10 +980,15 @@ survey_standard <- survey_standard %>%
                                    third_after_technology,
                                    last_alight_tech))
 
+print('Stats on transfer_from:')
 table(survey_standard$transfer_from, useNA = 'ifany')
+print('Stats on transfer_to:')
 table(survey_standard$transfer_to, useNA = 'ifany')
+print('Stats on survey_tech:')
 table(survey_standard$survey_tech, useNA = 'ifany')
+print('Stats on first_board_tech:')
 table(survey_standard$first_board_tech, useNA = 'ifany')
+print('Stats on last_alight_tech:')
 table(survey_standard$last_alight_tech, useNA = 'ifany')
 
 
@@ -1014,6 +1038,7 @@ survey_standard <- survey_standard %>%
   mutate(boardings = ifelse(!(second_after_technology  == "Missing"), boardings + 1, boardings)) %>%
   mutate(boardings = ifelse(!(third_after_technology   == "Missing"), boardings + 1, boardings))
 
+print('Stats on number of boardings:')
 table(survey_standard$boardings, useNA = 'ifany')
 
 # If missing, compute number_transfers_orig_board and number_transfers_alight_dest
@@ -1030,7 +1055,9 @@ survey_standard <- survey_standard %>%
                                                first + second + third, number_transfers_alight_dest)) %>%
   select(-first, -second, -third)
 
+print('Stats on number_transfers_orig_board:')
 table(survey_standard$number_transfers_orig_board, useNA = 'ifany')
+print('Stats on number_transfers_alight_dest:')
 table(survey_standard$number_transfers_alight_dest, useNA = 'ifany')
 
 survey_standard <- survey_standard %>%
@@ -1038,6 +1065,7 @@ survey_standard <- survey_standard %>%
            as.numeric(number_transfers_orig_board) +
            as.numeric(number_transfers_alight_dest) )
 
+print('Stats on boardings/survey_boardings for debug:')
 table(survey_standard$boardings, survey_standard$survey_boardings, useNA = 'ifany')
 
 # Build debug data frame to find odds and ends
@@ -1068,6 +1096,7 @@ debug_transfers <- survey_standard %>%
          first_route_after_survey_alight,   first_after_operator,  first_after_technology,
          second_route_after_survey_alight, second_after_operator, second_after_technology,
          third_route_after_survey_alight,  third_after_operator,  third_after_technology)
+print('Examine interim output "debug_transfers" for records with boardings/survey_boardings mismatch')
 
 survey_standard <- survey_standard %>%
   select(-survey_boardings)
@@ -1075,6 +1104,7 @@ survey_standard <- survey_standard %>%
 
 
 # Step 7:  Standardize Demographics ----------------------------------------------------
+print('Configure demographic variables')
 
 # fill n/a in race columns with 0 so that they won't affect race_dmy_sum calculation
 survey_standard[c('race_dmy_ind', 'race_dmy_asn', 'race_dmy_blk', 'race_dmy_hwi', 'race_dmy_wht', 'race_dmy_mdl_estn',
@@ -1145,18 +1175,28 @@ survey_standard <- survey_standard %>%
 survey_standard <- survey_standard %>%
   mutate(household_income = ifelse(household_income == "DON'T KNOW", "Missing", household_income))
 
+print('Stats on work_status:')
 table(survey_standard$work_status, useNA = 'ifany')
+print('Stats on student_status:')
 table(survey_standard$student_status, useNA = 'ifany')
+print('Stats on fare_medium:')
 table(survey_standard$fare_medium, useNA = 'ifany')
+print('Stats on fare_category:')
 table(survey_standard$fare_category, useNA = 'ifany')
+print('Stats on hispanic:')
 table(survey_standard$hispanic, useNA = 'ifany')
+print('Stats on race:')
 table(survey_standard$race, useNA = 'ifany')
+print('Stats on language_at_home:')
 table(survey_standard$language_at_home, useNA = 'ifany')
+print('Stats on household_income:')
 table(survey_standard$household_income, useNA = 'ifany')
+print('Stats on eng_proficient:')
 table(survey_standard$eng_proficient, useNA = 'ifany')
 
 
 # Step 8:  Set dates and times ---------------------------------------------------------
+print('Configure date- and time-related variables')
 
 # Deal with date and time
 survey_standard <- survey_standard %>%
@@ -1175,7 +1215,7 @@ survey_standard <- survey_standard %>%
   # second, add fixing for BART
   mutate(weekpart = ifelse((is.na(date_string) & operator == "BART"), "WEEKDAY", weekpart))
 
-
+print('Stats on date_string and time_string for debug:')
 table(survey_standard$date_string, useNA = 'ifany')
 table(survey_standard$time_string, useNA = 'ifany')
 
@@ -1189,6 +1229,7 @@ survey_standard <- survey_standard %>%
   mutate(day_of_the_week = toupper(weekdays(date))) %>%
   mutate(day_of_the_week = ifelse(is.na(date), "Missing", day_of_the_week))
 
+print('Stats on day_of_the_week for debug:')
 table(survey_standard$operator, survey_standard$day_of_the_week, useNA = 'ifany')
 
 # Fill in missing weekpart
@@ -1201,6 +1242,7 @@ survey_standard <- survey_standard %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "FRIDAY",   "WEEKDAY", weekpart)) %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "SATURDAY", "WEEKEND", weekpart))
 
+print('Stats on final weekpart:')
 table(survey_standard$operator,survey_standard$weekpart, useNA = 'ifany')
 
 # Get field dates from date
@@ -1240,10 +1282,9 @@ survey_standard <- survey_standard %>%
   # keep survey_time to output
   mutate(survey_time=format(survey_time_posix, format="%H:%M:%S"))
 
-table(survey_standard$field_start, useNA = 'ifany')
-table(survey_standard$field_end, useNA = 'ifany')
-table(survey_standard$time_start, useNA = 'ifany')
-table(survey_standard$day_of_the_week, useNA = 'ifany')
+# table(survey_standard$field_start, useNA = 'ifany')
+# table(survey_standard$field_end, useNA = 'ifany')
+# table(survey_standard$time_start, useNA = 'ifany')
 
 # examine 'time_period(strata)' data
 # first, standardize the time_period name
@@ -1258,7 +1299,8 @@ survey_standard <- survey_standard %>%
                               'Owl'     ='EVENING',  'LATE NIGHT'   ='EVENING',  'PMO'         ='EVENING',
                               'SAT'     ='WEEKEND',  'SUN'          ='WEEKEND'))
 
-# compare time_period (based on 'strata') and day_part_temp (based on 'time_string') values 
+# compare time_period (based on 'strata') and day_part_temp (based on 'time_string') values
+print('Examine time_period and day_part_temp variables to debug:')
 table(survey_standard$operator, survey_standard$time_period, useNA = 'ifany')
 table(survey_standard$operator, survey_standard$day_part_temp, useNA = 'ifany')
 
@@ -1266,6 +1308,7 @@ table(survey_standard$operator, survey_standard$day_part_temp, useNA = 'ifany')
 survey_standard <- survey_standard %>%
   mutate(day_part = ifelse(is.na(time_period), day_part_temp, time_period))
 
+print('Stats on final day_part variable:')
 table(survey_standard$operator, survey_standard$day_part, useNA = 'ifany')
 
 # recode 'depart_time/return_time' of ACE 2019 survey to 'depart_hour/return_hour'
@@ -1290,6 +1333,7 @@ survey_standard <- survey_standard %>%
 
 
 ## Geocode XY to travel model geographies
+print('Geocode XY')
 
 # Prepare and write locations that need to be geo-coded to disk
 survey_standard <- survey_standard %>%
@@ -1680,6 +1724,7 @@ remove(board_alight_tap,
 
 
 ### Clean up data types
+print('Final cleanup')
 
 # Cast all factors to numeric or string
 survey_standard <- survey_standard %>%
@@ -1758,6 +1803,7 @@ survey_decomposition <- survey_standard %>%
          day_part,
          trip_weight)
 
+print('Export survey_decomposition data')
 saveRDS(survey_decomposition, file = f_output_decom_rdata_path)
 write.csv(survey_decomposition, file = f_output_decom_csv_path,  row.names = FALSE)
 
@@ -1823,9 +1869,9 @@ survey_standard_cols <- survey_standard %>%
 survey_standard <- survey_standard %>%
   select(all_of(survey_standard_cols), survey_time)
 
+print('Export survey_standard and ancillary data')
 saveRDS(survey_standard, file = f_output_rds_path)
 saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
 
 write.csv(survey_standard, file = f_output_csv_path, row.names = FALSE)
 write.csv(ancillary_df, file = f_ancillary_output_csv_path, row.names = FALSE)
-
