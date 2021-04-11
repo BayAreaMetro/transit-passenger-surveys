@@ -1162,12 +1162,16 @@ race_chk <- survey_standard[which(is.na(survey_standard$race)),]
 # Update fare medium for surveys with clipper detail
 survey_standard <- survey_standard %>%
   mutate(fare_medium = ifelse(is.na(clipper_detail), fare_medium, clipper_detail)) %>%
+  # conver all to lower case
+  mutate(fare_medium = tolower(fare_medium)) %>%
   select(-clipper_detail)
 
 # consolidate 'fare_medium' with 'fare_medium_other', and 'fare_category' with 'fare_category_other'
 survey_standard <- survey_standard %>%
   mutate(fare_medium = ifelse(fare_medium == 'other', fare_medium_other, fare_medium)) %>%
   mutate(fare_category = ifelse(fare_category == 'other', fare_category_other, fare_category)) %>%
+  # conver all to lower case
+  mutate(fare_category = tolower(fare_category)) %>%
   select(-fare_medium_other,
          -fare_category_other)
 
@@ -1328,6 +1332,7 @@ survey_standard <- survey_standard %>%
 survey_standard <- survey_standard %>%
   select(-date_string, -time_string, -time1, -time2,
          -time3, -time4, -survey_time_posix,
+         -depart_time, -return_time,
          -depart_time_stamp, -return_time_stamp,
          -depart_hour_ace, -return_hour_ace)
 
