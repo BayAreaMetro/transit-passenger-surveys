@@ -27,7 +27,7 @@ F_COMBINED_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data
 
 D_OUTPUT_TABLEAU = "M:/Data/OnBoard/Data and Reports/_data Standardized/tableau/"
 F_TABLEAU_CSV  = paste0(D_OUTPUT_TABLEAU, 'survey_for_tableau_2021-04-10.csv')
-F_TAZ_CSV      = paste0(D_OUTPUT_TABLEAU, 'survey_TAZ_for_tableau_2021-04-10.csv')
+F_TAZ_CSV      = paste0(D_OUTPUT_TABLEAU, 'survey_TM1_TAZ_for_tableau_2021-04-10.csv')
 
 
 ######## Combine Legacy and Standard data ########
@@ -169,7 +169,6 @@ for (colname in c('race', 'hispanic', 'household_income', 'approximate_age',
 
 ## summarize access and egress modes
 df$access_egress_modes <- paste0(df$access_mode, '-', df$egress_mode)
-# display(df.access_egress_modes.value_counts())
 
 df <- df %>%
   mutate(access_egress_modes = recode(access_egress_modes,
@@ -401,20 +400,20 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 
 
 # merge all group_by dataframes
-all_tm1_taz <- df_groupby_orig %>% 
-  full_join(df_groupby_dest,
+all_tm1_taz <- as.data.frame(df_groupby_orig) %>% 
+  full_join(as.data.frame(df_groupby_dest),
             by = c('operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
-  full_join(df_groupby_home,
+  full_join(as.data.frame(df_groupby_home),
             by = c('operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
-  full_join(df_groupby_workplace,
+  full_join(as.data.frame(df_groupby_workplace),
             by = c('operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
-  full_join(df_groupby_school,
+  full_join(as.data.frame(df_groupby_school),
             by = c('operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ'))
@@ -438,6 +437,18 @@ for (colname in c('TM1_TAZ', 'SD_id')) {
 print(nrow(all_tm1_taz[which(is.na(all_tm1_taz$SD_name)),]))
 all_tm1_taz$SD_name[is.na(all_tm1_taz$SD_name)] <- 'missing'
 print(nrow(all_tm1_taz[which(is.na(all_tm1_taz$SD_name)),]))
+
+# finally, make sure all 'trip_weight' and 'weight' fields are float
+for (colname in c('weight_by_orig_taz', 'trip_weight_by_orig_taz',
+                  'weight_by_dest_taz', 'trip_weight_by_dest_taz',
+                  'weight_by_home_taz', 'trip_weight_by_home_taz',
+                  'weight_by_work_taz', 'trip_weight_by_work_taz',
+                  'weight_by_school_taz', 'trip_weight_by_school_taz')) {
+  all_tm1_taz[,colname] <- as.numeric(all_tm1_taz[,colname])
+}
+
+# check datatypes
+str(all_tm1_taz)
 
 write.csv(all_tm1_taz, F_TAZ_CSV, row.names = FALSE)
 
