@@ -90,13 +90,16 @@ data.ready <- data.ready %>%
 
 # Make operator name consistent
 data.ready <- data.ready %>%
-  # standard data has 'Golden Gate Transit' whereas legacy data has 'Golden Gate Transit (bus)'
-  # and 'Golden Gate Transit (ferry)'; standard data has 'TriDelta' whereas legacy data has
-  # 'Tri-Delta' -> modify legacy data to be consistent with standard data
+  # revise operator names in legacy data to be consistent with standard data;
+  # also abbreviate 'Sonoma-Marin Area Rail Transit' to 'SMART' 
   mutate(operator = recode(operator,
-                           'Golden Gate Transit (ferry)' = 'Golden Gate Transit',
-                           'Golden Gate Transit (bus)'   = 'Golden Gate Transit',
-                           'Tri-Delta'                   = 'TriDelta'))
+                           'Golden Gate Transit (ferry)'    = 'Golden Gate Transit',
+                           'Golden Gate Transit (bus)'      = 'Golden Gate Transit',
+                           'Tri-Delta'                      = 'TriDelta',
+                           'Union City'                     = 'Union City Transit',
+                           'Sonoma County'                  = 'Sonoma County Transit',
+                           'Sonoma-Marin Area Rail Transit' = 'SMART',
+                           'Petaluma'                       = 'Petaluma Transit'))
 
 # export combined data
 write.csv(data.ready, F_COMBINED_CSV, row.names = FALSE)
@@ -113,6 +116,22 @@ df$operator_survey_year <- paste0(df$operator, ' - ', df$survey_year)
 sprintf('Read %d rows including the following surveys:', nrow(df))
 print(count(df, operator_survey_year))
 
+## create a field to represent survey versions
+df$survey_version <- 'new'
+df$survey_version[(df$operator_survey_year == 'AC Transit - 2012') | (
+                   df$operator_survey_year == 'ACE - 2014') | (
+                   df$operator_survey_year == 'County Connection - 2012') | (
+                   df$operator_survey_year == 'Golden Gate Transit - 2013') | (
+                   df$operator_survey_year == 'LAVTA - 2013') | (
+                   df$operator_survey_year == 'Napa Vine - 2014') | (
+                   df$operator_survey_year == 'Petaluma Transit - 2012') | (
+                   df$operator_survey_year == 'Santa Rosa CityBus - 2012') | (
+                   df$operator_survey_year == 'Sonoma County Transit - 2012') | (
+                   df$operator_survey_year == 'TriDelta - 2014') | (
+                   df$operator_survey_year == 'Union City Transit - 2013') ] <- 'old'
+
+print('Double-check the survey version:')
+print(table(df$operator_survey_year, df$survey_version))
 
 ## summarize fare medium and fare category into fewer categories
 # use standard value dictionary
@@ -159,7 +178,8 @@ for (colname in c('race', 'hispanic', 'household_income', 'approximate_age',
                df[colname] == 'SKIP - PAPER SURVEY') | (
                df[colname] == 'do not know') | (
                df[colname] == '.') | (
-               df[colname] == '') | is.na(df[colname])] <- 'missing'
+               df[colname] == '') | (
+               df[colname] == 'refused')| is.na(df[colname])] <- 'missing'
   missing_cnt = nrow(df[which(df[colname] == 'missing'),])
   info <- sprintf('%s missing data in %d rows, %.2f of total', colname, missing_cnt, missing_cnt/tot_cnt)
   print(eval(info))
@@ -278,7 +298,8 @@ print(count(df, race_ethnicity))
 
 
 ## export needed fields for Tableau
-basic_info = c('operator_survey_year', 'weekpart', 'day_part', 'trip_weight', 'weight')
+basic_info = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
+               'weekpart', 'day_part', 'trip_weight', 'weight')
 
 trip_info = c('access_egress_modes', 'access_mode', 'egress_mode', 'tour_purp', 'boardings',
               'fare_category_summary', 'fare_medium_summary',
@@ -329,7 +350,7 @@ for (colname in c('orig_tm1_taz', 'dest_tm1_taz', 'home_tm1_taz', 'workplace_tm1
 }
 
 df_groupby_orig <- df %>%
-  dplyr::group_by(operator_survey_year, weekpart, day_part, access_egress_modes,
+  dplyr::group_by(survey_version, operator_survey_year, weekpart, day_part, access_egress_modes,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, orig_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight)) %>%
@@ -343,7 +364,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
         (length(unique(df_groupby_orig$TM1_TAZ))-1)/length(unique(TM1_taz_sd$TAZ1454)))
 
 df_groupby_dest <- df %>%
-  dplyr::group_by(operator_survey_year, weekpart, day_part, access_egress_modes,
+  dplyr::group_by(survey_version, operator_survey_year, weekpart, day_part, access_egress_modes,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, dest_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight)) %>%
@@ -357,7 +378,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
         (length(unique(df_groupby_dest$TM1_TAZ))-1)/length(unique(TM1_taz_sd$TAZ1454)))
 
 df_groupby_home <- df %>%
-  dplyr::group_by(operator_survey_year, weekpart, day_part, access_egress_modes,
+  dplyr::group_by(survey_version, operator_survey_year, weekpart, day_part, access_egress_modes,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, home_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight)) %>%
@@ -371,7 +392,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
         (length(unique(df_groupby_home$TM1_TAZ))-1)/length(unique(TM1_taz_sd$TAZ1454)))
 
 df_groupby_workplace <- df %>%
-  dplyr::group_by(operator_survey_year, weekpart, day_part, access_egress_modes,
+  dplyr::group_by(survey_version, operator_survey_year, weekpart, day_part, access_egress_modes,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, workplace_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight)) %>%
@@ -385,7 +406,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
         (length(unique(df_groupby_workplace$TM1_TAZ))-1)/length(unique(TM1_taz_sd$TAZ1454)))
 
 df_groupby_school <- df %>%
-  dplyr::group_by(operator_survey_year, weekpart, day_part, access_egress_modes,
+  dplyr::group_by(survey_version, operator_survey_year, weekpart, day_part, access_egress_modes,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, school_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight)) %>%
@@ -402,19 +423,19 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 # merge all group_by dataframes
 all_tm1_taz <- as.data.frame(df_groupby_orig) %>% 
   full_join(as.data.frame(df_groupby_dest),
-            by = c('operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
+            by = c('survey_version', 'operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_home),
-            by = c('operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
+            by = c('survey_version', 'operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_workplace),
-            by = c('operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
+            by = c('survey_version', 'operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_school),
-            by = c('operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
+            by = c('survey_version', 'operator_survey_year', 'weekpart', 'day_part', 'access_egress_modes',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ'))
 
