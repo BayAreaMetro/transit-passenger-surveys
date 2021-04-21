@@ -81,9 +81,9 @@ f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 f_actransit_survey_path <- paste0(dir_path,
                                   "AC Transit/2018/As CSV/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_fixTransfers_NO POUND OR SINGLE QUOTE.csv")
 f_bart_survey_path <- paste0(dir_path,
-                             "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight_fixColname NO POUND OR SINGLE QUOTE.csv")
+                             "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight_fixColname_modifyTransfer_NO POUND OR SINGLE QUOTE.csv")
 f_caltrain_survey_path <- paste0(dir_path,
-                                 "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
+                                 "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE_modifyTransfer_NO POUND OR SINGLE QUOTE.csv")
 f_marin_survey_path <- paste0(dir_path,
                               "Marin Transit/As CSV/marin transit_data file_final01222021_NO POUND OR SINGLE QUOTE.csv")
 f_muni_survey_path <- paste0(dir_path,
@@ -119,7 +119,7 @@ f_tridelta2019_survey_path <- paste0(dir_path,
 f_cccta2019_survey_path <- paste0(dir_path,
                                   "County Connection/2019/As CSV/OD_20191105_CCCTA_Submittal_FINAL Expanded_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_ggtransit_survey_path <- paste0(dir_path,
-                                  "Golden Gate Transit/2018/As CSV/20180907_OD_GoldenGate_allDays_addCols_NO POUND OR SINGLE QUOTE.csv")
+                                  "Golden Gate Transit/2018/As CSV/20180907_OD_GoldenGate_allDays_addCols_modifyTransfer_NO POUND OR SINGLE QUOTE.csv")
 f_napavine2019_survey_path <- paste0(dir_path,
                                      "Napa Vine/2019/As CSV/Napa Vine_FINAL Data_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_petaluma2018_survey_path <- paste0(dir_path,
@@ -454,7 +454,8 @@ survey_non <- survey_combine %>%
   left_join(dictionary_non, by = c("operator", "survey_year", "survey_variable")) %>%
   filter(!is.na(generic_variable)) %>%
   mutate(generic_response = survey_response) %>%
-  left_join(canonical_routes_crosswalk %>% select(-technology), by = c("operator" = "survey", "survey_year", "survey_response" = "survey_name")) %>%
+  left_join(canonical_routes_crosswalk %>% select(-technology, -technology_detail, -operator_detail),
+            by = c("operator" = "survey", "survey_year", "survey_response" = "survey_name")) %>%
   mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response)) %>%
   select(-canonical_name, -canonical_operator) %>%
   left_join(rail_crosswalk_df, by = c("generic_response" = "survey_name")) %>%
@@ -486,7 +487,7 @@ print('Update technology for multiple-tech operators')
 # in the `canonical route name database` and must be updated manually.
 
 survey_flat <- survey_flat %>%
-  left_join(canonical_routes_crosswalk %>% select(-survey_name) %>% unique(),
+  left_join(canonical_routes_crosswalk %>% select(-survey_name, -technology_detail) %>% unique(),
             by = c("operator" = "survey", "route" = "canonical_name", "survey_year"))
 
 # for multi-tech operators, survey_tech = technology
@@ -877,12 +878,55 @@ survey_standard <- survey_standard %>%
                                                   third_route_after_survey_alight))
 
 survey_standard <- survey_standard %>%
-  mutate(first_before_operator  = str_extract(first_route_before_survey_board,  "^[A-z -]+?(?=_)"),
-         second_before_operator = str_extract(second_route_before_survey_board, "^[A-z -]+?(?=_)"),
-         third_before_operator  = str_extract(third_route_before_survey_board,  "^[A-z -]+?(?=_)"),
-         first_after_operator   = str_extract(first_route_after_survey_alight,  "^[A-z -]+?(?=_)"),
-         second_after_operator  = str_extract(second_route_after_survey_alight, "^[A-z -]+?(?=_)"),
-         third_after_operator   = str_extract(third_route_after_survey_alight,  "^[A-z -]+?(?=_)"))
+  mutate(first_before_operator_detail  = str_extract(first_route_before_survey_board,  "^[A-z -]+?(?=_)"),
+         second_before_operator_detail = str_extract(second_route_before_survey_board, "^[A-z -]+?(?=_)"),
+         third_before_operator_detail  = str_extract(third_route_before_survey_board,  "^[A-z -]+?(?=_)"),
+         first_after_operator_detail   = str_extract(first_route_after_survey_alight,  "^[A-z -]+?(?=_)"),
+         second_after_operator_detail  = str_extract(second_route_after_survey_alight, "^[A-z -]+?(?=_)"),
+         third_after_operator_detail   = str_extract(third_route_after_survey_alight,  "^[A-z -]+?(?=_)"))
+
+# convert detailed transfer operator to less granular categories
+operator_canonical_detail_crosswalk <- canonical_routes_crosswalk %>%
+  select(canonical_name, canonical_operator, operator_detail) %>%
+  unique() %>%
+  rename(transfer_route_name = canonical_name,
+         transfer_operator_canonical = canonical_operator,
+         transfer_operator_detail = operator_detail)
+
+survey_standard <- survey_standard %>%
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('first_route_before_survey_board' = 'transfer_route_name',
+                   'first_before_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(first_before_operator = transfer_operator_canonical) %>%
+  
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('second_route_before_survey_board' = 'transfer_route_name',
+                   'second_before_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(second_before_operator = transfer_operator_canonical) %>%
+  
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('third_route_before_survey_board' = 'transfer_route_name',
+                   'third_before_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(third_before_operator = transfer_operator_canonical) %>%
+  
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('first_route_after_survey_alight' = 'transfer_route_name',
+                   'first_after_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(first_after_operator = transfer_operator_canonical) %>%
+  
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('second_route_after_survey_alight' = 'transfer_route_name',
+                   'second_after_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(second_after_operator = transfer_operator_canonical) %>%
+  
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('third_route_after_survey_alight' = 'transfer_route_name',
+                   'third_after_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(third_after_operator = transfer_operator_canonical)
+
+# %>%
+#   select(-first_before_operator_detail, -second_before_operator_detail, -third_before_operator_detail,
+#          -first_after_operator_detail,  -second_after_operator_detail,  -third_after_operator_detail)
 
 
 # Set the technology for each of the six legs
@@ -905,7 +949,8 @@ tech_crosswalk_expansion_df <- tech_crosswalk_expansion_list %>%
 
 tech_crosswalk_df <- tech_crosswalk_df %>%
   bind_rows(tech_crosswalk_expansion_df) %>%
-  filter(survey != "GEOCODE")
+  filter(survey != "GEOCODE") %>%
+  select(-operator_detail, -technology_detail)
 
 remove(tech_crosswalk_expansion_df, tech_crosswalk_expansion_list)
 
@@ -1069,22 +1114,25 @@ print('Stats on boardings/survey_boardings for debug:')
 table(survey_standard$boardings, survey_standard$survey_boardings, useNA = 'ifany')
 
 # Build debug data frame to find odds and ends
-# Ideally, debug_transfers has 0 record. When it's not empty, examine if the transfer routes, transfer operator,
-# and transfer technology are coded correctly.
-# One caveat (Nov 10, 2020): the calculation of "survey_boarding" is based on "number_transfers_orig_board" and "number_transfers_alight_dest";
-# Muni survey and AC Transit survey track 4 transfers before and after the surveyed route, therefore "number_transfers_orig_board"/"number_transfers_alight_dest"
-# maxes at 4, but this script only tracks 3 transfers before and after, so the sum of transfers before or after maxes at 3, causing inconsistency
-# between boardings and survey_boardings. Currently there are only two such records and they are captured in debug_transfer (Muni survey ID 25955, 31474; 
-# AC Transit survey ID 959). - Note (Feb 22, 2021): the .csv survey data for Muni and AC Transit was modified to change "number_transfers_alight_dest == 4" to 3
+# "boardings" is calculated from transfer technologies. "survey_boarding" is calclated from
+# "number_transfers_orig_board" and "number_transfers_alight_dest"; some surveys contain these two variables
+# in the raw data, others have them calculated based on detailed transfer routes.
+# Ideally, debug_transfers has 0 record. However, there are outliers, where 'boarding' and 'survey_boardings' are different.
 
-# Another situation where debug_transfers contains records: the survey data comes with "number_transfers_alight_dest" and	"number_transfers_orig_board"
-# columns, but one or more of the transfers are routes that are "Missing" operator, e.g. unspecified private shuttle. In this case, "survey_boarding"
-# is larger than "boardings". This occurs in WestCAT 2017 survey (ID 181, 229, 304, 391, 709), Solano County 2017 Survey (FAST ID 1071, 1576;
-# Soltrans ID 1107, 1453).
+#   CASE 1: (Nov 10, 2020): SF Muni 2017 survey (ID 25955, 31474) and AC Transit 2018 survey (ID 959) track 4 transfers
+#   before and after the surveyed route, therefore "number_transfers_orig_board"/"number_transfers_alight_dest"
+#   maxes at 4, and but the standard database only tracks 3 before/after transfers, so transfer technology counts
+#   maxes at 3 on each end, causing inconsistency between boardings and survey_boardings.
+#   (Feb 22, 2021): the .csv survey data for Muni and AC Transit was modified to change "number_transfers_alight_dest == 4" to 3
 
-# Napa Vine 2019 has cases where the "number_transfers_orig_board" or "number_transfers_alight_dest" values in the raw data were wrong, resulting in
-# inconsistency between 'boardings' and 'survey_boardings': ID 14, 77, 306, 9142, 9216.
+#   CASE 2: one or more of the transfers are routes with "Missing" canonical operator, e.g. "Missing___missing",
+#   then "survey_boarding" is larger than "boardings". This occurs in WestCAT 2017 survey (ID 391).
 
+#   CASE 3: The "number_transfers_orig_board" or "number_transfers_alight_dest" values in the raw data
+#   are inconsistent with the detailed transfer routes. Napa Vine 2019 (ID 14, 77, 306, 9142, 9216), VTA 2017 (ID 44469).
+
+#   CASE 4: Capitol Corridor (2019) survey doesn't have detailed transfer operator/route information except for BART,
+#   Caltrain, Amtrak.
 
 debug_transfers <- survey_standard %>%
   filter(!(boardings == survey_boardings)) %>%
