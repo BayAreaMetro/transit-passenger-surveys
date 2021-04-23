@@ -1856,7 +1856,11 @@ survey_decomposition <- survey_standard %>%
          day_part,
          trip_weight)
 
-print('Export survey_decomposition data')
+sprintf('Export %d rows and %d columns of survey_decomposition data to %s and %s',
+        nrow(survey_decomposition),
+        ncol(survey_decomposition),
+        f_output_decom_rdata_path,
+        f_output_decom_csv_path)
 saveRDS(survey_decomposition, file = f_output_decom_rdata_path)
 write.csv(survey_decomposition, file = f_output_decom_csv_path,  row.names = FALSE)
 
@@ -1922,9 +1926,19 @@ survey_standard_cols <- survey_standard %>%
 survey_standard <- survey_standard %>%
   select(all_of(survey_standard_cols), survey_time)
 
-print('Export survey_standard and ancillary data')
+sprintf('Export %d rows and %d columns of survey_standard data to %s and %s',
+        nrow(survey_standard),
+        ncol(survey_standard),
+        f_output_rds_path,
+        f_output_csv_path)
 saveRDS(survey_standard, file = f_output_rds_path)
-saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
-
 write.csv(survey_standard, file = f_output_csv_path, row.names = FALSE)
+
+sprintf('Export %d rows and %d columns of ancillary data to %s and %s',
+        nrow(ancillary_df),
+        ncol(ancillary_df),
+        f_ancillary_output_rdata_path,
+        f_ancillary_output_csv_path)
+
+saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
 write.csv(ancillary_df, file = f_ancillary_output_csv_path, row.names = FALSE)
