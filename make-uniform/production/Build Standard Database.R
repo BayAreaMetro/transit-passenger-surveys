@@ -81,9 +81,9 @@ f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 f_actransit_survey_path <- paste0(dir_path,
                                   "AC Transit/2018/As CSV/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_fixTransfers_NO POUND OR SINGLE QUOTE.csv")
 f_bart_survey_path <- paste0(dir_path,
-                             "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight_fixColname NO POUND OR SINGLE QUOTE.csv")
+                             "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight_fixColname_modifyTransfer_NO POUND OR SINGLE QUOTE.csv")
 f_caltrain_survey_path <- paste0(dir_path,
-                                 "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE NO POUND OR SINGLE QUOTE.csv")
+                                 "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE_modifyTransfer_NO POUND OR SINGLE QUOTE.csv")
 f_marin_survey_path <- paste0(dir_path,
                               "Marin Transit/As CSV/marin transit_data file_final01222021_NO POUND OR SINGLE QUOTE.csv")
 f_muni_survey_path <- paste0(dir_path,
@@ -119,7 +119,7 @@ f_tridelta2019_survey_path <- paste0(dir_path,
 f_cccta2019_survey_path <- paste0(dir_path,
                                   "County Connection/2019/As CSV/OD_20191105_CCCTA_Submittal_FINAL Expanded_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_ggtransit_survey_path <- paste0(dir_path,
-                                  "Golden Gate Transit/2018/As CSV/20180907_OD_GoldenGate_allDays_addCols_NO POUND OR SINGLE QUOTE.csv")
+                                  "Golden Gate Transit/2018/As CSV/20180907_OD_GoldenGate_allDays_addCols_modifyTransfer_NO POUND OR SINGLE QUOTE.csv")
 f_napavine2019_survey_path <- paste0(dir_path,
                                      "Napa Vine/2019/As CSV/Napa Vine_FINAL Data_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_petaluma2018_survey_path <- paste0(dir_path,
@@ -131,15 +131,15 @@ f_capitolcorridor2019_survey_path <- paste0(dir_path,
 
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path,
-                            "_data Standardized/survey_standard_", today, ".RData")
+                            "_data Standardized/survey_standard_", today, ".RDS")
 f_output_csv_path <- paste0(dir_path,
                             "_data Standardized/survey_standard_", today, ".csv")
 f_ancillary_output_rdata_path <- paste0(dir_path,
-                                        "_data Standardized/ancillary_variable_", today, ".RData")
+                                        "_data Standardized/ancillary_variable_", today, ".RDS")
 f_ancillary_output_csv_path <- paste0(dir_path,
                                       "_data Standardized/ancillary_variables_", today, ".csv")
 f_output_decom_rdata_path <- paste0(dir_path,
-                                    "_data Standardized/decomposition/survey_decomposition_", today, ".RData")
+                                    "_data Standardized/decomposition/survey_decomposition_", today, ".RDS")
 f_output_decom_csv_path <- paste0(dir_path,
                                   "_data Standardized/decomposition/survey_decomposition_", today, ".csv")
 
@@ -195,6 +195,7 @@ canonical_station_shp <- canonical_station_shp %>%
 canonical_routes_crosswalk <- read.csv(f_canonical_routes_path)
 
 ## Add surveys
+print('Read and combine survey raw data from multiple operators')
 
 # _User Intervention_
 # When adding a new operator, create a `read_operator` call and add the resulting
@@ -435,6 +436,7 @@ remove(
 
 
 ## Flatten
+print('Join standard_variable and standard_response to raw data')
 
 # Join the dictionary and prepare the categorical variables
 
@@ -452,7 +454,8 @@ survey_non <- survey_combine %>%
   left_join(dictionary_non, by = c("operator", "survey_year", "survey_variable")) %>%
   filter(!is.na(generic_variable)) %>%
   mutate(generic_response = survey_response) %>%
-  left_join(canonical_routes_crosswalk %>% select(-technology), by = c("operator" = "survey", "survey_year", "survey_response" = "survey_name")) %>%
+  left_join(canonical_routes_crosswalk %>% select(-technology, -technology_detail, -operator_detail),
+            by = c("operator" = "survey", "survey_year", "survey_response" = "survey_name")) %>%
   mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response)) %>%
   select(-canonical_name, -canonical_operator) %>%
   left_join(rail_crosswalk_df, by = c("generic_response" = "survey_name")) %>%
@@ -475,6 +478,7 @@ remove(survey_cat,
 
 
 ## Update survey technology
+print('Update technology for multiple-tech operators')
 
 # _User Intervention_
 # As noted above, when the operator data is read in, it assumes every route in the survey uses
@@ -483,7 +487,7 @@ remove(survey_cat,
 # in the `canonical route name database` and must be updated manually.
 
 survey_flat <- survey_flat %>%
-  left_join(canonical_routes_crosswalk %>% select(-survey_name) %>% unique(),
+  left_join(canonical_routes_crosswalk %>% select(-survey_name, -technology_detail) %>% unique(),
             by = c("operator" = "survey", "route" = "canonical_name", "survey_year"))
 
 # for multi-tech operators, survey_tech = technology
@@ -499,6 +503,7 @@ survey_flat <- survey_flat %>%
                               technology,
                               survey_tech))
 
+print('Stats on technology by operator:')
 table(survey_flat$operator, survey_flat$survey_tech, useNA = 'ifany')
 
 
@@ -511,6 +516,7 @@ table(survey_flat$operator, survey_flat$survey_tech, useNA = 'ifany')
 ## Build standard variables
 
 # Step 1:  Age-related transformations ----
+print('Clean up age-related info')
 
 # Standardize year born
 survey_standard <- survey_flat %>%
@@ -530,6 +536,7 @@ survey_standard <- survey_standard %>%
   mutate(year_born = ifelse(year_born == 3884, 1984, year_born)) %>%
   mutate(year_born = ifelse(year_born == 1899, NA, year_born))
 
+print('Stats on year_born:')
 table(survey_standard$year_born, useNA = 'ifany')
 
 # Compute approximate respondent age
@@ -537,10 +544,12 @@ survey_standard <- survey_standard %>%
   mutate(approximate_age = ifelse(!is.na(year_born) & survey_year >= year_born, survey_year - year_born, NA)) %>%
   mutate(approximate_age = ifelse(approximate_age == 0, NA, approximate_age))
 
+print('Stats on approximate_age:')
 table(survey_standard$approximate_age, useNA = 'ifany')
 
 
 # Step 2:  Trip- and tour-purpose-related transformations ------------------------------
+print('Build tour purpose variable')
 
 # Recode key variables from NA to 'missing'
 survey_standard <- survey_standard %>%
@@ -671,12 +680,15 @@ survey_standard <- survey_standard %>% mutate(
       
 # Output frequency file, test file to review missing cases, and test of duplicates
 
+print('Stats on tour_purp:')
 table(survey_standard$tour_purp, useNA = 'ifany')
 
+print('Examine interim output "missing_tour_df" for records with missing tour_purp')
 missing_tour_df <- survey_standard %>% filter(tour_purp=='missing') %>% select(operator, survey_year, ID, orig_purp,dest_purp,tour_purp,at_school_after_dest_purp,at_school_prior_to_orig_purp,at_work_after_dest_purp,at_work_prior_to_orig_purp,approximate_age)
 
 
 # Step 3:  Update Key locations and Status Flags --------------------------------------
+print('Clean up work/student status info')
 
 # Home
 survey_standard <- survey_standard %>%
@@ -743,11 +755,14 @@ survey_standard <- survey_standard %>%
                                  'full- or part-time',
                                  student_status))
 
+print('Stats on work_status')
 table(survey_standard$work_status, useNA = 'ifany')
+print('Stats on student_status')
 table(survey_standard$student_status, useNA = 'ifany')
 
 
 # Step 4:  Automobile Sufficiency ------------------------------------------------------
+print('Calculate automobile sufficiency')
 
 # Transform vehicles and workers to standard scale
 survey_standard <- survey_standard %>%
@@ -761,6 +776,7 @@ survey_standard <- survey_standard %>%
          -vehicles_other,
          -workers_other)
 
+print('Stats on vehicles/workers/persons for debug:')
 table(survey_standard$vehicles, useNA = 'ifany')
 table(survey_standard$workers, useNA = 'ifany')
 table(survey_standard$persons, useNA = 'ifany')
@@ -798,6 +814,7 @@ survey_standard <- survey_standard %>%
   mutate(vehicle_numeric_cat = ifelse(is.na(vehicle_numeric_cat), vehicles, vehicle_numeric_cat)) %>%
   mutate(worker_numeric_cat = ifelse(is.na(worker_numeric_cat), workers, worker_numeric_cat))
 
+print('Stats on vehicle_numeric_cat/worker_numeric_cat for debug:s')
 table(survey_standard$vehicle_numeric_cat, useNA = 'ifany')
 table(survey_standard$worker_numeric_cat, useNA = 'ifany')
 
@@ -826,6 +843,7 @@ survey_standard <- survey_standard %>%
                             'missing',
                             auto_suff))
 
+print('Stats on auto_suff:')
 table(survey_standard$auto_suff, useNA = 'ifany')
 
 remove(vehicles_dictionary,
@@ -833,6 +851,7 @@ remove(vehicles_dictionary,
 
 
 # Step 5:  Operator and Technology sequence --------------------------------------------
+print('Configure operator and technology for transfer routes')
 
 # Set operator for each of six legs (three before, three after)
 # - remove Dummy Records
@@ -859,12 +878,55 @@ survey_standard <- survey_standard %>%
                                                   third_route_after_survey_alight))
 
 survey_standard <- survey_standard %>%
-  mutate(first_before_operator  = str_extract(first_route_before_survey_board,  "^[A-z -]+?(?=_)"),
-         second_before_operator = str_extract(second_route_before_survey_board, "^[A-z -]+?(?=_)"),
-         third_before_operator  = str_extract(third_route_before_survey_board,  "^[A-z -]+?(?=_)"),
-         first_after_operator   = str_extract(first_route_after_survey_alight,  "^[A-z -]+?(?=_)"),
-         second_after_operator  = str_extract(second_route_after_survey_alight, "^[A-z -]+?(?=_)"),
-         third_after_operator   = str_extract(third_route_after_survey_alight,  "^[A-z -]+?(?=_)"))
+  mutate(first_before_operator_detail  = str_extract(first_route_before_survey_board,  "^[A-z -]+?(?=_)"),
+         second_before_operator_detail = str_extract(second_route_before_survey_board, "^[A-z -]+?(?=_)"),
+         third_before_operator_detail  = str_extract(third_route_before_survey_board,  "^[A-z -]+?(?=_)"),
+         first_after_operator_detail   = str_extract(first_route_after_survey_alight,  "^[A-z -]+?(?=_)"),
+         second_after_operator_detail  = str_extract(second_route_after_survey_alight, "^[A-z -]+?(?=_)"),
+         third_after_operator_detail   = str_extract(third_route_after_survey_alight,  "^[A-z -]+?(?=_)"))
+
+# convert detailed transfer operator to less granular categories
+operator_canonical_detail_crosswalk <- canonical_routes_crosswalk %>%
+  select(canonical_name, canonical_operator, operator_detail) %>%
+  unique() %>%
+  rename(transfer_route_name = canonical_name,
+         transfer_operator_canonical = canonical_operator,
+         transfer_operator_detail = operator_detail)
+
+survey_standard <- survey_standard %>%
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('first_route_before_survey_board' = 'transfer_route_name',
+                   'first_before_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(first_before_operator = transfer_operator_canonical) %>%
+  
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('second_route_before_survey_board' = 'transfer_route_name',
+                   'second_before_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(second_before_operator = transfer_operator_canonical) %>%
+  
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('third_route_before_survey_board' = 'transfer_route_name',
+                   'third_before_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(third_before_operator = transfer_operator_canonical) %>%
+  
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('first_route_after_survey_alight' = 'transfer_route_name',
+                   'first_after_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(first_after_operator = transfer_operator_canonical) %>%
+  
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('second_route_after_survey_alight' = 'transfer_route_name',
+                   'second_after_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(second_after_operator = transfer_operator_canonical) %>%
+  
+  left_join(operator_canonical_detail_crosswalk,
+            by = c('third_route_after_survey_alight' = 'transfer_route_name',
+                   'third_after_operator_detail' = 'transfer_operator_detail')) %>%
+  rename(third_after_operator = transfer_operator_canonical)
+
+# %>%
+#   select(-first_before_operator_detail, -second_before_operator_detail, -third_before_operator_detail,
+#          -first_after_operator_detail,  -second_after_operator_detail,  -third_after_operator_detail)
 
 
 # Set the technology for each of the six legs
@@ -887,7 +949,8 @@ tech_crosswalk_expansion_df <- tech_crosswalk_expansion_list %>%
 
 tech_crosswalk_df <- tech_crosswalk_df %>%
   bind_rows(tech_crosswalk_expansion_df) %>%
-  filter(survey != "GEOCODE")
+  filter(survey != "GEOCODE") %>%
+  select(-operator_detail, -technology_detail)
 
 remove(tech_crosswalk_expansion_df, tech_crosswalk_expansion_list)
 
@@ -922,6 +985,7 @@ survey_standard <- survey_standard %>%
                                      "third_route_after_survey_alight" = "canonical_name")) %>%
   rename(third_after_technology = temp_tech)
 
+print('Stats on first_before_technology/first_after_technology for debug:')
 table(survey_standard$first_before_technology, useNA = 'ifany')  #### check if there is "Missing"
 table(survey_standard$first_after_technology, useNA = 'ifany')
 
@@ -961,10 +1025,15 @@ survey_standard <- survey_standard %>%
                                    third_after_technology,
                                    last_alight_tech))
 
+print('Stats on transfer_from:')
 table(survey_standard$transfer_from, useNA = 'ifany')
+print('Stats on transfer_to:')
 table(survey_standard$transfer_to, useNA = 'ifany')
+print('Stats on survey_tech:')
 table(survey_standard$survey_tech, useNA = 'ifany')
+print('Stats on first_board_tech:')
 table(survey_standard$first_board_tech, useNA = 'ifany')
+print('Stats on last_alight_tech:')
 table(survey_standard$last_alight_tech, useNA = 'ifany')
 
 
@@ -1014,6 +1083,7 @@ survey_standard <- survey_standard %>%
   mutate(boardings = ifelse(!(second_after_technology  == "Missing"), boardings + 1, boardings)) %>%
   mutate(boardings = ifelse(!(third_after_technology   == "Missing"), boardings + 1, boardings))
 
+print('Stats on number of boardings:')
 table(survey_standard$boardings, useNA = 'ifany')
 
 # If missing, compute number_transfers_orig_board and number_transfers_alight_dest
@@ -1030,7 +1100,9 @@ survey_standard <- survey_standard %>%
                                                first + second + third, number_transfers_alight_dest)) %>%
   select(-first, -second, -third)
 
+print('Stats on number_transfers_orig_board:')
 table(survey_standard$number_transfers_orig_board, useNA = 'ifany')
+print('Stats on number_transfers_alight_dest:')
 table(survey_standard$number_transfers_alight_dest, useNA = 'ifany')
 
 survey_standard <- survey_standard %>%
@@ -1038,25 +1110,29 @@ survey_standard <- survey_standard %>%
            as.numeric(number_transfers_orig_board) +
            as.numeric(number_transfers_alight_dest) )
 
+print('Stats on boardings/survey_boardings for debug:')
 table(survey_standard$boardings, survey_standard$survey_boardings, useNA = 'ifany')
 
 # Build debug data frame to find odds and ends
-# Ideally, debug_transfers has 0 record. When it's not empty, examine if the transfer routes, transfer operator,
-# and transfer technology are coded correctly.
-# One caveat (Nov 10, 2020): the calculation of "survey_boarding" is based on "number_transfers_orig_board" and "number_transfers_alight_dest";
-# Muni survey and AC Transit survey track 4 transfers before and after the surveyed route, therefore "number_transfers_orig_board"/"number_transfers_alight_dest"
-# maxes at 4, but this script only tracks 3 transfers before and after, so the sum of transfers before or after maxes at 3, causing inconsistency
-# between boardings and survey_boardings. Currently there are only two such records and they are captured in debug_transfer (Muni survey ID 25955, 31474; 
-# AC Transit survey ID 959). - Note (Feb 22, 2021): the .csv survey data for Muni and AC Transit was modified to change "number_transfers_alight_dest == 4" to 3
+# "boardings" is calculated from transfer technologies. "survey_boarding" is calclated from
+# "number_transfers_orig_board" and "number_transfers_alight_dest"; some surveys contain these two variables
+# in the raw data, others have them calculated based on detailed transfer routes.
+# Ideally, debug_transfers has 0 record. However, there are outliers, where 'boarding' and 'survey_boardings' are different.
 
-# Another situation where debug_transfers contains records: the survey data comes with "number_transfers_alight_dest" and	"number_transfers_orig_board"
-# columns, but one or more of the transfers are routes that are "Missing" operator, e.g. unspecified private shuttle. In this case, "survey_boarding"
-# is larger than "boardings". This occurs in WestCAT 2017 survey (ID 181, 229, 304, 391, 709), Solano County 2017 Survey (FAST ID 1071, 1576;
-# Soltrans ID 1107, 1453).
+#   CASE 1: (Nov 10, 2020): SF Muni 2017 survey (ID 25955, 31474) and AC Transit 2018 survey (ID 959) track 4 transfers
+#   before and after the surveyed route, therefore "number_transfers_orig_board"/"number_transfers_alight_dest"
+#   maxes at 4, and but the standard database only tracks 3 before/after transfers, so transfer technology counts
+#   maxes at 3 on each end, causing inconsistency between boardings and survey_boardings.
+#   (Feb 22, 2021): the .csv survey data for Muni and AC Transit was modified to change "number_transfers_alight_dest == 4" to 3
 
-# Napa Vine 2019 has cases where the "number_transfers_orig_board" or "number_transfers_alight_dest" values in the raw data were wrong, resulting in
-# inconsistency between 'boardings' and 'survey_boardings': ID 14, 77, 306, 9142, 9216.
+#   CASE 2: one or more of the transfers are routes with "Missing" canonical operator, e.g. "Missing___missing",
+#   then "survey_boarding" is larger than "boardings". This occurs in WestCAT 2017 survey (ID 391).
 
+#   CASE 3: The "number_transfers_orig_board" or "number_transfers_alight_dest" values in the raw data
+#   are inconsistent with the detailed transfer routes. Napa Vine 2019 (ID 14, 77, 306, 9142, 9216), VTA 2017 (ID 44469).
+
+#   CASE 4: Capitol Corridor (2019) survey doesn't have detailed transfer operator/route information except for BART,
+#   Caltrain, Amtrak.
 
 debug_transfers <- survey_standard %>%
   filter(!(boardings == survey_boardings)) %>%
@@ -1068,6 +1144,7 @@ debug_transfers <- survey_standard %>%
          first_route_after_survey_alight,   first_after_operator,  first_after_technology,
          second_route_after_survey_alight, second_after_operator, second_after_technology,
          third_route_after_survey_alight,  third_after_operator,  third_after_technology)
+print('Examine interim output "debug_transfers" for records with boardings/survey_boardings mismatch')
 
 survey_standard <- survey_standard %>%
   select(-survey_boardings)
@@ -1075,6 +1152,7 @@ survey_standard <- survey_standard %>%
 
 
 # Step 7:  Standardize Demographics ----------------------------------------------------
+print('Configure demographic variables')
 
 # fill n/a in race columns with 0 so that they won't affect race_dmy_sum calculation
 survey_standard[c('race_dmy_ind', 'race_dmy_asn', 'race_dmy_blk', 'race_dmy_hwi', 'race_dmy_wht', 'race_dmy_mdl_estn',
@@ -1132,12 +1210,16 @@ race_chk <- survey_standard[which(is.na(survey_standard$race)),]
 # Update fare medium for surveys with clipper detail
 survey_standard <- survey_standard %>%
   mutate(fare_medium = ifelse(is.na(clipper_detail), fare_medium, clipper_detail)) %>%
+  # conver all to lower case
+  mutate(fare_medium = tolower(fare_medium)) %>%
   select(-clipper_detail)
 
 # consolidate 'fare_medium' with 'fare_medium_other', and 'fare_category' with 'fare_category_other'
 survey_standard <- survey_standard %>%
   mutate(fare_medium = ifelse(fare_medium == 'other', fare_medium_other, fare_medium)) %>%
   mutate(fare_category = ifelse(fare_category == 'other', fare_category_other, fare_category)) %>%
+  # conver all to lower case
+  mutate(fare_category = tolower(fare_category)) %>%
   select(-fare_medium_other,
          -fare_category_other)
 
@@ -1145,18 +1227,28 @@ survey_standard <- survey_standard %>%
 survey_standard <- survey_standard %>%
   mutate(household_income = ifelse(household_income == "DON'T KNOW", "Missing", household_income))
 
+print('Stats on work_status:')
 table(survey_standard$work_status, useNA = 'ifany')
+print('Stats on student_status:')
 table(survey_standard$student_status, useNA = 'ifany')
+print('Stats on fare_medium:')
 table(survey_standard$fare_medium, useNA = 'ifany')
+print('Stats on fare_category:')
 table(survey_standard$fare_category, useNA = 'ifany')
+print('Stats on hispanic:')
 table(survey_standard$hispanic, useNA = 'ifany')
+print('Stats on race:')
 table(survey_standard$race, useNA = 'ifany')
+print('Stats on language_at_home:')
 table(survey_standard$language_at_home, useNA = 'ifany')
+print('Stats on household_income:')
 table(survey_standard$household_income, useNA = 'ifany')
+print('Stats on eng_proficient:')
 table(survey_standard$eng_proficient, useNA = 'ifany')
 
 
 # Step 8:  Set dates and times ---------------------------------------------------------
+print('Configure date- and time-related variables')
 
 # Deal with date and time
 survey_standard <- survey_standard %>%
@@ -1175,7 +1267,7 @@ survey_standard <- survey_standard %>%
   # second, add fixing for BART
   mutate(weekpart = ifelse((is.na(date_string) & operator == "BART"), "WEEKDAY", weekpart))
 
-
+print('Stats on date_string and time_string for debug:')
 table(survey_standard$date_string, useNA = 'ifany')
 table(survey_standard$time_string, useNA = 'ifany')
 
@@ -1189,6 +1281,7 @@ survey_standard <- survey_standard %>%
   mutate(day_of_the_week = toupper(weekdays(date))) %>%
   mutate(day_of_the_week = ifelse(is.na(date), "Missing", day_of_the_week))
 
+print('Stats on day_of_the_week for debug:')
 table(survey_standard$operator, survey_standard$day_of_the_week, useNA = 'ifany')
 
 # Fill in missing weekpart
@@ -1201,6 +1294,7 @@ survey_standard <- survey_standard %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "FRIDAY",   "WEEKDAY", weekpart)) %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "SATURDAY", "WEEKEND", weekpart))
 
+print('Stats on final weekpart:')
 table(survey_standard$operator,survey_standard$weekpart, useNA = 'ifany')
 
 # Get field dates from date
@@ -1240,11 +1334,9 @@ survey_standard <- survey_standard %>%
   # keep survey_time to output
   mutate(survey_time=format(survey_time_posix, format="%H:%M:%S"))
 
-table(survey_standard$field_start, useNA = 'ifany')
-table(survey_standard$field_end, useNA = 'ifany')
-table(survey_standard$time_start, useNA = 'ifany')
-# table(survey_standard$day_part_temp, useNA = 'ifany')
-table(survey_standard$day_of_the_week, useNA = 'ifany')
+# table(survey_standard$field_start, useNA = 'ifany')
+# table(survey_standard$field_end, useNA = 'ifany')
+# table(survey_standard$time_start, useNA = 'ifany')
 
 # examine 'time_period(strata)' data
 # first, standardize the time_period name
@@ -1259,7 +1351,8 @@ survey_standard <- survey_standard %>%
                               'Owl'     ='EVENING',  'LATE NIGHT'   ='EVENING',  'PMO'         ='EVENING',
                               'SAT'     ='WEEKEND',  'SUN'          ='WEEKEND'))
 
-# compare time_period (based on 'strata') and day_part_temp (based on 'time_string') values 
+# compare time_period (based on 'strata') and day_part_temp (based on 'time_string') values
+print('Examine time_period and day_part_temp variables to debug:')
 table(survey_standard$operator, survey_standard$time_period, useNA = 'ifany')
 table(survey_standard$operator, survey_standard$day_part_temp, useNA = 'ifany')
 
@@ -1267,14 +1360,33 @@ table(survey_standard$operator, survey_standard$day_part_temp, useNA = 'ifany')
 survey_standard <- survey_standard %>%
   mutate(day_part = ifelse(is.na(time_period), day_part_temp, time_period))
 
+print('Stats on final day_part variable:')
 table(survey_standard$operator, survey_standard$day_part, useNA = 'ifany')
+
+# recode 'depart_time/return_time' of ACE 2019 survey to 'depart_hour/return_hour'
+# to be consistent with other surveys
+survey_standard <- survey_standard %>%
+  mutate(depart_time_stamp = as.POSIXct(strptime(depart_time, format = "%l:%M:%S %p"))) %>%
+  mutate(depart_hour_ace = as.numeric(format(depart_time_stamp,"%H"))) %>%
+  mutate(depart_hour = ifelse(operator == 'ACE',         # ACE 2019 generates 'depart_hour' from 'depart_time' 
+                              depart_hour_ace,
+                              depart_hour)) %>%
+  mutate(return_time_stamp = as.POSIXct(strptime(return_time, format = "%l:%M:%S %p"))) %>%
+  mutate(return_hour_ace = as.numeric(format(return_time_stamp,"%H"))) %>%
+  mutate(return_hour = ifelse(operator == 'ACE',         # ACE 2019 generates 'return_hour' from 'return_time' 
+                              return_hour_ace,
+                              return_hour))
 
 survey_standard <- survey_standard %>%
   select(-date_string, -time_string, -time1, -time2,
-         -time3, -time4, -survey_time_posix)
+         -time3, -time4, -survey_time_posix,
+         -depart_time, -return_time,
+         -depart_time_stamp, -return_time_stamp,
+         -depart_hour_ace, -return_hour_ace)
 
 
 ## Geocode XY to travel model geographies
+print('Geocode XY')
 
 # Prepare and write locations that need to be geo-coded to disk
 survey_standard <- survey_standard %>%
@@ -1665,6 +1777,7 @@ remove(board_alight_tap,
 
 
 ### Clean up data types
+print('Final cleanup')
 
 # Cast all factors to numeric or string
 survey_standard <- survey_standard %>%
@@ -1743,6 +1856,11 @@ survey_decomposition <- survey_standard %>%
          day_part,
          trip_weight)
 
+sprintf('Export %d rows and %d columns of survey_decomposition data to %s and %s',
+        nrow(survey_decomposition),
+        ncol(survey_decomposition),
+        f_output_decom_rdata_path,
+        f_output_decom_csv_path)
 saveRDS(survey_decomposition, file = f_output_decom_rdata_path)
 write.csv(survey_decomposition, file = f_output_decom_csv_path,  row.names = FALSE)
 
@@ -1808,8 +1926,19 @@ survey_standard_cols <- survey_standard %>%
 survey_standard <- survey_standard %>%
   select(all_of(survey_standard_cols), survey_time)
 
+sprintf('Export %d rows and %d columns of survey_standard data to %s and %s',
+        nrow(survey_standard),
+        ncol(survey_standard),
+        f_output_rds_path,
+        f_output_csv_path)
 saveRDS(survey_standard, file = f_output_rds_path)
-saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
-
 write.csv(survey_standard, file = f_output_csv_path, row.names = FALSE)
+
+sprintf('Export %d rows and %d columns of ancillary data to %s and %s',
+        nrow(ancillary_df),
+        ncol(ancillary_df),
+        f_ancillary_output_rdata_path,
+        f_ancillary_output_csv_path)
+
+saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
 write.csv(ancillary_df, file = f_ancillary_output_csv_path, row.names = FALSE)
