@@ -319,6 +319,27 @@ df <- df %>%
 print('Stats of race_ethnicity:')
 print(count(df, race_ethnicity))
 
+## combine 'evening' (standard data) with 'night' (legacy data) for variable 'day_part'
+df <- df %>%
+  mutate(day_part = recode(day_part,
+                           'NIGHT' = 'EVENING'))
+
+## tour_purp 'work-related' or 'business apt' should be 'other maintenance'
+df <- df %>%
+  mutate(tour_purp = recode(tour_purp,
+                            'work-related' = 'other maintenance'))
+
+## recode 'persons'
+df <- df %>%
+  mutate(persons = recode(persons,
+                          'eight' = 'six or more',
+                          'eleven' = 'six or more',
+                          'nine'  = 'six or more',
+                          'seven' = 'six or more',
+                          'six' = 'six or more',
+                          'ten' = 'six or more',
+                          'ten or more' = 'six or more',
+                          'twenty-seven' = 'six or more'))
 
 ## export needed fields for Tableau
 basic_info = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
