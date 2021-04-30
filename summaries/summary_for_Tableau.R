@@ -16,7 +16,7 @@ setwd(wd)
 
 # Input
 F_INPUT_LEGACY_RDATA = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy.RData'
-F_INPUT_STANDARD_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard_2021-04-22.csv'
+F_INPUT_STANDARD_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard_2021-04-26.csv'
 F_STD_DICTIONARY_CSV = paste0('C:/Users/',
                               Sys.getenv("USERNAME"),
                               '/Documents/GitHub/onboard-surveys/util/standard_variable_dict.csv')
@@ -31,7 +31,7 @@ F_DEMO_TM1_TAZ_CSV = paste0('C:/Users/',
                             '/Documents/GitHub/petrale/applications/travel_model_lu_inputs/2015/TAZ1454_Ethnicity.csv')
 
 # Output
-F_COMBINED_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-04-22.csv'
+F_COMBINED_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-04-26.csv'
 
 D_OUTPUT_TABLEAU = "M:/Data/OnBoard/Data and Reports/_data Standardized/tableau"
 F_TABLEAU_CSV  = paste0(D_OUTPUT_TABLEAU, '/for_tableau_all_survey_by_passenger.csv')
@@ -569,7 +569,8 @@ write.csv(all_tm1_taz, F_TAZ_CSV, row.names = FALSE)
 
 ## Configure ACS demographic data for comparison
 demo_tm1_taz <- demo_tm1_taz %>%
-  transform(hispanic_pct_ACS = hispanic/TOTPOP,
+  rename('his' = 'hispanic') %>%
+  transform(hispanic_pct_ACS = his/TOTPOP,
             white_nonh_pct_ACS = white_nonh/TOTPOP,
             black_nonh_pct_ACS = black_nonh/TOTPOP,
             asian_nonh_pct_ACS = asian_nonh/TOTPOP,
