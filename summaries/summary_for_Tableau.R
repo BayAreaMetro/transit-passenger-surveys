@@ -341,6 +341,17 @@ df <- df %>%
                           'ten or more' = 'six or more',
                           'twenty-seven' = 'six or more'))
 
+## recategorize household income
+df <- df %>%
+  mutate(household_income = recode(household_income,
+                                   'under $10,000' = 'under $25,000',
+                                   '$10,000 to $25,000' = 'under $25,000',
+                                   '$25,000 to $35,000' = '$25,000 to $50,000',
+                                   '$35,000 to $50,000' = '$25,000 to $50,000',
+                                   '$50,000 to $75,000' = '$50,000 to $100,000',
+                                   '$75,000 to $100,000' = '$50,000 to $100,000'))
+
+
 ## export needed fields for Tableau
 basic_info = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
                'survey_tech', 'weekpart', 'day_part', 'trip_weight', 'weight')
