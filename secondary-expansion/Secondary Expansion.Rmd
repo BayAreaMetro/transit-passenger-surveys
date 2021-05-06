@@ -42,15 +42,16 @@ use_condaenv("mtc_obs")
 
 # User Intervention
 ```{r user-intervention}
-box_sync_dir <- "/Users/wsp/Box Sync"
+USERPROFILE          <- gsub("\\\\","/", Sys.getenv("USERPROFILE"))
+box_drive_dir        <- file.path(USERPROFILE, "Box", "Modeling and Surveys")
 ```
 
 # Execute procedures
 ```{r pre-game}
 POPSIM_Dir      <- "."
 
-OBS_Dir         <- file.path(box_sync_dir, "Survey_Database_122717")
-BOX_TM2_Dir     <- file.path(box_sync_dir, "Travel Model Two Development")
+OBS_Dir         <- file.path(box_drive_dir, "Share Data", "Onboard-Surveys", "Survey_Database_May2021")
+BOX_TM2_Dir     <- file.path(box_drive_dir, "Development", "Travel Model Two Development")
 OBS_Anc_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Onboard Survey", "Data")
 TARGETS_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Scaled Transit Ridership Targets")
 VALIDATION_Dir  <- file.path(POPSIM_Dir, "validation")
