@@ -16,7 +16,7 @@ setwd(wd)
 
 # Input
 F_INPUT_LEGACY_RDATA = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy.RData'
-F_INPUT_STANDARD_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard_2021-04-26.csv'
+F_INPUT_STANDARD_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard_2021-05-06.csv'
 F_STD_DICTIONARY_CSV = paste0('C:/Users/',
                               Sys.getenv("USERNAME"),
                               '/Documents/GitHub/onboard-surveys/util/standard_variable_dict.csv')
@@ -31,7 +31,8 @@ F_DEMO_TM1_TAZ_CSV = paste0('C:/Users/',
                             '/Documents/GitHub/petrale/applications/travel_model_lu_inputs/2015/TAZ1454_Ethnicity.csv')
 
 # Output
-F_COMBINED_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-04-26.csv'
+F_COMBINED_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-05-06.csv'
+F_COMBINED_RDATA = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-05-06.RData'
 
 D_OUTPUT_TABLEAU = "M:/Data/OnBoard/Data and Reports/_data Standardized/tableau"
 F_TABLEAU_CSV  = paste0(D_OUTPUT_TABLEAU, '/for_tableau_all_survey_by_passenger.csv')
@@ -72,6 +73,7 @@ survey.legacy <- survey.legacy %>%
 legacy_names <- colnames(survey.legacy)
 std_names <- colnames(survey_standard)
 
+print('variables in standard_database but not in legacy_database:')
 for (std_name in std_names) {
   if(!(std_name %in% legacy_names)) {
     print(std_name)
@@ -85,6 +87,7 @@ for (std_name in std_names) {
   }
 }
 
+print('variables in legacy_database but not in standard_database:')
 for (legacy_name in legacy_names) {
   if(!(legacy_name %in% std_names)) {
     print(legacy_name)
@@ -119,11 +122,13 @@ data.ready <- data.ready %>%
                            'Petaluma'                       = 'Petaluma Transit'))
 
 # export combined data
-sprintf('Export %d rows and %d columns of legacy-standard combined data to %s',
+sprintf('Export %d rows and %d columns of legacy-standard combined data to %s and %s',
         nrow(data.ready),
         ncol(data.ready),
-        F_COMBINED_CSV)
+        F_COMBINED_CSV,
+        F_COMBINED_RDATA)
 write.csv(data.ready, F_COMBINED_CSV, row.names = FALSE)
+save(data.ready, file = F_COMBINED_RDATA)
 
 
 ######## Prepare Data for Tableau: Surveyed-passenger-level ########
@@ -200,12 +205,45 @@ for (colname in c('race', 'hispanic', 'household_income', 'approximate_age',
                df[colname] == 'do not know') | (
                df[colname] == '.') | (
                df[colname] == '') | (
-               df[colname] == 'refused')| is.na(df[colname])] <- 'missing'
+               df[colname] == 'refused') | (
+               df[colname] == 'Missing - Dummy Record' ) | (
+               df[colname] == 'Missing - Question Not Asked') | (
+               df[colname] == 'Unknown') | is.na(df[colname])] <- 'missing'
   missing_cnt = nrow(df[which(df[colname] == 'missing'),])
   info <- sprintf('%s missing data in %d rows, %.2f of total', colname, missing_cnt, missing_cnt/tot_cnt)
   print(eval(info))
   print(table(df[colname]))
   }
+
+# variables only in heavy rail/commuter rail surveys
+for (colname in c('onoff_enter_station', 'onoff_exit_station')){
+  df[colname][
+    ((df$survey_tech == 'commuter rail') | (df$survey_tech == 'heavy rail')) & is.na(df[colname])] <- 'missing'
+  missing_cnt = nrow(df[which(df[colname] == 'missing'),])
+  rail_cnt = nrow(df[which((df$survey_tech == 'commuter rail') | (df$survey_tech == 'heavy rail')),])
+  info <- sprintf('%s missing data in %d rows, %.2f of total', colname, missing_cnt, missing_cnt/rail_cnt)
+  print(eval(info))
+  print(table(df[colname]))
+}
+
+# fix station names
+df <- df %>%
+  mutate(onoff_enter_station = recode(onoff_enter_station,
+                                      'College Park' = 'College�Park',
+                                      'Mountain View' = 'Mountain�View',
+                                      'San Antonio' = 'San�Antonio',
+                                      'Santa Clara' = 'Santa�Clara')) %>%
+  mutate(onoff_exit_station = recode(onoff_exit_station,
+                                      'College Park' = 'College�Park',
+                                      'Mountain View' = 'Mountain�View',
+                                      'San Antonio' = 'San�Antonio',
+                                      'Santa Clara' = 'Santa�Clara'))
+
+# creat a field to represent operator + on/off_station for heavy rail/commuter rail surveys
+df$board_station <- paste0(df$operator, ' - ', df$onoff_enter_station)
+df$alight_station <- paste0(df$operator, ' - ', df$onoff_exit_station)
+df$board_station[(df$survey_tech != 'commuter rail') & (df$survey_tech != 'heavy rail')] <- NA
+df$alight_station[(df$survey_tech != 'commuter rail') & (df$survey_tech != 'heavy rail')] <- NA
 
 
 ## summarize access and egress modes
@@ -356,10 +394,13 @@ df <- df %>%
 basic_info = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
                'survey_tech', 'weekpart', 'day_part', 'trip_weight', 'weight')
 
-trip_info = c('access_egress_modes', 'access_mode', 'egress_mode', 'tour_purp', 'boardings',
+trip_info = c('board_station', 'alight_station',
+              'access_egress_modes', 'access_mode', 'egress_mode', 'tour_purp', 'boardings',
               'fare_category_summary', 'fare_medium_summary',
               'commuter_rail_present', 'heavy_rail_present', 'ferry_present',
-              'light_rail_present', 'express_bus_present')
+              'light_rail_present', 'express_bus_present',
+              'dest_lat', 'dest_lon', 'orig_lat', 'orig_lon', 'home_lat', 'home_lon',
+              'school_lat', 'school_lon', 'workplace_lat', 'workplace_lon')
 
 demo_info = c('persons', 'work_status', 'student_status', 'age_group', 'gender', 'race_ethnicity',
               'eng_proficient', 'household_income', 'hh_auto_ownership')
@@ -416,6 +457,7 @@ for (colname in c('orig_tm1_taz', 'dest_tm1_taz', 'home_tm1_taz',
 df_groupby_orig <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
                   survey_tech, weekpart, day_part, access_egress_modes,
+                  board_station, alight_station, 
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, orig_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
@@ -432,6 +474,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 df_groupby_dest <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
                   survey_tech, weekpart, day_part, access_egress_modes,
+                  board_station, alight_station,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, dest_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
@@ -448,6 +491,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 df_groupby_home <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
                   survey_tech, weekpart, day_part, access_egress_modes,
+                  board_station, alight_station,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, home_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
@@ -464,6 +508,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 df_groupby_workplace <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
                   survey_tech, weekpart, day_part, access_egress_modes,
+                  board_station, alight_station,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, workplace_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
@@ -480,6 +525,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 df_groupby_school <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
                   survey_tech, weekpart, day_part, access_egress_modes,
+                  board_station, alight_station,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, school_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
@@ -499,21 +545,25 @@ all_tm1_taz <- as.data.frame(df_groupby_orig) %>%
   full_join(as.data.frame(df_groupby_dest),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
                    'survey_tech', 'weekpart', 'day_part', 'access_egress_modes',
+                   'board_station', 'alight_station',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_home),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
                    'survey_tech', 'weekpart', 'day_part', 'access_egress_modes',
+                   'board_station', 'alight_station',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_workplace),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
                    'survey_tech', 'weekpart', 'day_part', 'access_egress_modes',
+                   'board_station', 'alight_station',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_school),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
                    'survey_tech', 'weekpart', 'day_part', 'access_egress_modes',
+                   'board_station', 'alight_station',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ'))
 
