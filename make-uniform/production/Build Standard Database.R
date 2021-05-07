@@ -1897,19 +1897,6 @@ survey_standard <- survey_standard %>%
          -second_after_technology,
          -third_after_technology)
 
-# Drop lat/lon for locations
-survey_standard <- survey_standard %>%
-  select(-dest_lat,
-         -dest_lon,
-         -home_lat,
-         -home_lon,
-         -orig_lat,
-         -orig_lon,
-         -school_lat,
-         -school_lon,
-         -workplace_lat,
-         -workplace_lon)
-
 
 ## Write RDS to disk
 
