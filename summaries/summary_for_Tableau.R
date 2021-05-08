@@ -223,21 +223,65 @@ for (colname in c('onoff_enter_station', 'onoff_exit_station')){
   rail_cnt = nrow(df[which((df$survey_tech == 'commuter rail') | (df$survey_tech == 'heavy rail')),])
   info <- sprintf('%s missing data in %d rows, %.2f of total', colname, missing_cnt, missing_cnt/rail_cnt)
   print(eval(info))
-  print(table(df[colname]))
 }
 
-# fix station names
+# fix station names: fix encoding issue, unify station names in different versions of survey
+for (colname in c('onoff_enter_station', 'onoff_exit_station')){
+  df[, colname] <- str_trim(df[, colname])
+}
+
+# fix station names like 'College�Park'
+print('onoff_enter_station before fixing:')
+print(table(df$onoff_enter_station))
+df$onoff_enter_station[(
+  startsWith(df$onoff_enter_station, 'College')) & (endsWith(df$onoff_enter_station, 'Park'))] <- 'College Park'
+df$onoff_enter_station[(
+  startsWith(df$onoff_enter_station, 'Mountain')) & (endsWith(df$onoff_enter_station, 'View'))] <- 'Mountain View'
+df$onoff_enter_station[(
+  startsWith(df$onoff_enter_station, 'San')) & (endsWith(df$onoff_enter_station, 'Antonio'))] <- 'San Antonio'
+df$onoff_enter_station[(
+  startsWith(df$onoff_enter_station, 'Santa')) & (endsWith(df$onoff_enter_station, 'Clara'))] <- 'Santa Clara'
+print('onoff_enter_station after fixing:')
+print(table(df$onoff_enter_station))
+
+print('onoff_exit_station before fixing:')
+print(table(df$onoff_exit_station))
+df$onoff_exit_station[(
+  startsWith(df$onoff_exit_station, 'College')) & (endsWith(df$onoff_exit_station, 'Park'))] <- 'College Park'
+df$onoff_exit_station[(
+  startsWith(df$onoff_exit_station, 'Mountain')) & (endsWith(df$onoff_exit_station, 'View'))] <- 'Mountain View'
+df$onoff_exit_station[(
+  startsWith(df$onoff_exit_station, 'San')) & (endsWith(df$onoff_exit_station, 'Antonio'))] <- 'San Antonio'
+df$onoff_exit_station[(
+  startsWith(df$onoff_exit_station, 'Santa')) & (endsWith(df$onoff_exit_station, 'Clara'))] <- 'Santa Clara'
+print('onoff_exit_station after fixing:')
+print(table(df$onoff_exit_station))
+
+
 df <- df %>%
   mutate(onoff_enter_station = recode(onoff_enter_station,
-                                      'College Park' = 'College�Park',
-                                      'Mountain View' = 'Mountain�View',
-                                      'San Antonio' = 'San�Antonio',
-                                      'Santa Clara' = 'Santa�Clara')) %>%
+                                      'FREMONT STATION' = 'Fremont Station',
+                                      'GREAT AMERICA STATION' = 'Great America Station',
+                                      'LATHROP-MANTECA STATION' = 'Lathrop/Manteca Station',
+                                      'LIVERMORE STATION' = 'Livermore Station',
+                                      'PLEASANTON STATION' = 'Pleasanton Station',
+                                      'SAN JOSE STATION' = 'San Jose Station',
+                                      'SANTA CLARA STATION' = 'Santa Clara University Station',
+                                      'STOCKTON STATION' = 'Stockton Station',
+                                      'TRACY STATION' = 'Tracy Station',
+                                      'VASCO STATION' = 'Vasco Station')) %>%
   mutate(onoff_exit_station = recode(onoff_exit_station,
-                                      'College Park' = 'College�Park',
-                                      'Mountain View' = 'Mountain�View',
-                                      'San Antonio' = 'San�Antonio',
-                                      'Santa Clara' = 'Santa�Clara'))
+                                     'FREMONT STATION' = 'Fremont Station',
+                                     'GREAT AMERICA STATION' = 'Great America Station',
+                                     'LATHROP-MANTECA STATION' = 'Lathrop/Manteca Station',
+                                     'LIVERMORE STATION' = 'Livermore Station',
+                                     'PLEASANTON STATION' = 'Pleasanton Station',
+                                     'SAN JOSE STATION' = 'San Jose Station',
+                                     'SANTA CLARA STATION' = 'Santa Clara University Station',
+                                     'STOCKTON STATION' = 'Stockton Station',
+                                     'TRACY STATION' = 'Tracy Station',
+                                     'VASCO STATION' = 'Vasco Station'))
+
 
 # creat a field to represent operator + on/off_station for heavy rail/commuter rail surveys
 df$board_station <- paste0(df$operator, ' - ', df$onoff_enter_station)
@@ -398,9 +442,7 @@ trip_info = c('board_station', 'alight_station',
               'access_egress_modes', 'access_mode', 'egress_mode', 'tour_purp', 'boardings',
               'fare_category_summary', 'fare_medium_summary',
               'commuter_rail_present', 'heavy_rail_present', 'ferry_present',
-              'light_rail_present', 'express_bus_present',
-              'dest_lat', 'dest_lon', 'orig_lat', 'orig_lon', 'home_lat', 'home_lon',
-              'school_lat', 'school_lon', 'workplace_lat', 'workplace_lon')
+              'light_rail_present', 'express_bus_present')
 
 demo_info = c('persons', 'work_status', 'student_status', 'age_group', 'gender', 'race_ethnicity',
               'eng_proficient', 'household_income', 'hh_auto_ownership')
@@ -410,7 +452,9 @@ spatial_info = c(
                  # 'orig_tm1_taz', 'dest_tm1_taz', 'home_tm1_taz', 'workplace_tm1_taz', 'school_tm1_taz',
                  # 'orig_tm2_taz', 'dest_tm2_taz', 'home_tm2_taz', 'workplace_tm2_taz', 'school_tm2_taz',
                  # 'orig_tm2_maz', 'dest_tm2_maz', 'home_tm2_maz', 'workplace_tm2_maz', 'school_tm2_maz',
-                 'first_board_lat', 'first_board_lon', 'last_alight_lat', 'last_alight_lon')
+                 'first_board_lat', 'first_board_lon', 'last_alight_lat', 'last_alight_lon',
+                 'dest_lat', 'dest_lon', 'orig_lat', 'orig_lon', 'home_lat', 'home_lon',
+                 'school_lat', 'school_lon', 'workplace_lat', 'workplace_lon')
 
 # export
 export <- df[c(basic_info, trip_info, demo_info, spatial_info)]
