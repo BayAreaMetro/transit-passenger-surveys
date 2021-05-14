@@ -30,6 +30,9 @@ F_DEMO_TM1_TAZ_CSV = paste0('C:/Users/',
                             Sys.getenv("USERNAME"),
                             '/Documents/GitHub/petrale/applications/travel_model_lu_inputs/2015/TAZ1454_Ethnicity.csv')
 
+F_PUMS_H_RDATA <- 'M:/Data/Census/PUMS/PUMS 2015-19/hbayarea1519.Rdata'
+F_PUMS_P_RDATA <- 'M:/Data/Census/PUMS/PUMS 2015-19/pbayarea1519.Rdata'
+
 # Output
 F_COMBINED_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-05-06.csv'
 F_COMBINED_RDATA = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-05-06.RData'
@@ -38,6 +41,7 @@ D_OUTPUT_TABLEAU = "M:/Data/OnBoard/Data and Reports/_data Standardized/tableau"
 F_TABLEAU_CSV  = paste0(D_OUTPUT_TABLEAU, '/for_tableau_all_survey_by_passenger.csv')
 F_TAZ_CSV      = paste0(D_OUTPUT_TABLEAU, '/for_tableau_all_survey_by_TM1_TAZ.csv')
 F_TAZ_DEMO_CSV = paste0(D_OUTPUT_TABLEAU, '/for_tableau_ACS_by_TM1_TAZ.csv')
+F_PUMS_HH_DEMO_CSV  = paste0(D_OUTPUT_TABLEAU, '/for_tableau_PUMS.csv')
 
 # Setup the log file
 today = Sys.Date()
@@ -659,6 +663,7 @@ for (colname in c('weight_by_orig_taz', 'trip_weight_by_orig_taz',
                   'num_surveyed_by_work_taz',
                   'num_surveyed_by_school_taz')) {
   all_tm1_taz[,colname] <- as.numeric(all_tm1_taz[,colname])
+  all_tm1_taz[,colname][is.na(all_tm1_taz[,colname])] <- 0
 }
 
 # check datatypes
@@ -672,7 +677,7 @@ sprintf('Export %d rows and %d columns of TM1-TAZ-level data for Tableau to %s',
 write.csv(all_tm1_taz, F_TAZ_CSV, row.names = FALSE)
 
 
-## Configure ACS demographic data for comparison
+## Configure ACS race/ethnicity data for comparison
 demo_tm1_taz <- demo_tm1_taz %>%
   rename('his' = 'hispanic') %>%
   transform(hispanic_pct_ACS = his/TOTPOP,
@@ -692,3 +697,108 @@ sprintf('Export %d rows and %d columns of TM1-TAZ-level ACS data for Tableau to 
         ncol(demo_tm1_taz),
         F_TAZ_DEMO_CSV)
 write.csv(demo_tm1_taz, F_TAZ_DEMO_CSV, row.names = FALSE)
+
+
+######## Prepare Data for Tableau: PUMS data ########
+#####################################################
+
+# load the data and keep only the needed fields
+load(F_PUMS_H_RDATA)
+load(F_PUMS_P_RDATA)
+
+h_df <- hbayarea1519[, c('SERIALNO', 'HINCP', 'NP', 'VEH')]
+p_df <- pbayarea1519[, c('SERIALNO', 'ESR')]
+
+
+## recide HH income, vehicle ownership, and employment status
+
+# recode HH income into categories
+# household income 'HINCP' (past 12 months, use ADJINC to adjust HINCP to constant dollars)
+# zero income and negative income are included in 'under $25,000
+h_df <- h_df %>%
+  mutate(household_income = ifelse(is.na(HINCP), 'missing',
+                                   ifelse(HINCP < 25000, 'under $25,000',
+                                          ifelse(HINCP < 50000, '$25,000 to $50,000',
+                                                 ifelse(HINCP < 100000, '$50,000 to $100,000',
+                                                        ifelse(HINCP < 150000, '$100,000 to $150,000',
+                                                               ifelse(HINCP >= 150000, '$150,000 or higher', 'other')))))))
+
+# vehicle ownership 'VEH' (Vehicles (1 ton or less) available)
+  # b .N/A (GQ/vacant)
+  # 0 .No vehicles
+  # 1 .1 vehicle
+  # 2 .2 vehicles
+  # 3 .3 vehicles
+  # 4 .4 vehicles
+  # 5 .5 vehicles
+  # 6 .6 or more vehicles
+  # NA is considered no vehicle (0)
+h_df <- h_df %>%
+  mutate(VEH = ifelse(is.na(VEH), 0, VEH))
+
+
+# work status 'ESR' (Employment status recode) 
+  # b .N/A (less than 16 years old)
+  # 1 .Civilian employed, at work
+  # 2 .Civilian employed, with a job but not at work
+  # 3 .Unemployed
+  # 4 .Armed forces, at work
+  # 5 .Armed forces, with a job but not at work
+  # 6 .Not in labor force
+
+
+# recode ESR into a new binary variable 'work_status': 1 full-time/part-time workers, 0 non-worker
+# NA (less than 16 years old) is coded as non-worker
+p_df <- p_df %>%
+  mutate('work_status' = ifelse(is.na(ESR), 0, 
+                                ifelse(ESR %in% c(1, 2, 4, 5), 1, 0)))
+
+
+## calculate 'auto-sufficiency' by household
+
+# group by household SERIALNO and calculate number of workers and workers by household
+p_groupby <- p_df %>% 
+  dplyr::group_by(SERIALNO) %>%
+  dplyr::summarize(num_workers = sum(work_status), num_persons = n())
+
+# merge household and person data and calculate workers per household
+pums_df <- h_df %>%
+  full_join(p_groupby, by = c('SERIALNO' = 'SERIALNO'))
+
+# QA/QC groupby and join
+# first, there should be same number of NA in num_persons and num_workers
+stopifnot(nrow(pums_df[which(is.na(pums_df$num_workers)),]) == nrow(pums_df[which(is.na(pums_df$num_persons)),]))
+# second, there should be no row where num_persons != NP
+pums_df[, 'num_persons'][is.na(pums_df[, 'num_persons'])] <- 0
+pums_df['chk'] = pums_df['num_persons'] - pums_df['NP']
+stopifnot(nrow(pums_df[which(pums_df$chk != 0),]) == 0)
+
+# calculate household vehicle ownership categories
+pums_df[, 'num_workers'][is.na(pums_df[, 'num_workers'])] <- 0
+
+pums_df <- pums_df %>%
+  mutate(hh_auto_ownership = ifelse(VEH == 0, 'zero autos',
+                                    ifelse((VEH > 0) & (
+                                      num_workers > 0) & (
+                                        num_workers > VEH), 'autos < workers',
+                                      ifelse((VEH > 0) & (
+                                        num_workers >= 0) & (
+                                          num_workers <= VEH), 'autos >= workers', 'other'))))
+
+
+## finally, use household size as weight so that can represent persons
+# household size 'NP' (Number of persons associated with this housing record)
+  # 0 .Vacant unit
+  # 1 .One person record (one person in household or any person in group quarters)
+  # 2..20 .Number of person records (number of persons in household)
+
+pums_df <- pums_df %>%
+  select(SERIALNO, household_income, hh_auto_ownership, NP) %>%
+  rename('weight' = 'NP')
+
+# export
+sprintf('Export %d rows and %d columns of PUMS data for Tableau to %s',
+        nrow(pums_df),
+        ncol(pums_df),
+        F_PUMS_HH_DEMO_CSV)
+write.csv(pums_df, F_PUMS_HH_DEMO_CSV, row.names = FALSE)
