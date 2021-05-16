@@ -707,7 +707,7 @@ load(F_PUMS_H_RDATA)
 load(F_PUMS_P_RDATA)
 
 h_df <- hbayarea1519[, c('SERIALNO', 'HINCP', 'NP', 'VEH')]
-p_df <- pbayarea1519[, c('SERIALNO', 'ESR')]
+p_df <- pbayarea1519[, c('SERIALNO', 'SPORDER', 'ESR', 'PWGTP')]
 
 
 ## recide HH income, vehicle ownership, and employment status
@@ -762,21 +762,23 @@ p_groupby <- p_df %>%
   dplyr::summarize(num_workers = sum(work_status), num_persons = n())
 
 # merge household and person data and calculate workers per household
-pums_df <- h_df %>%
+pums_h_df <- h_df %>%
   full_join(p_groupby, by = c('SERIALNO' = 'SERIALNO'))
 
 # QA/QC groupby and join
 # first, there should be same number of NA in num_persons and num_workers
-stopifnot(nrow(pums_df[which(is.na(pums_df$num_workers)),]) == nrow(pums_df[which(is.na(pums_df$num_persons)),]))
-# second, there should be no row where num_persons != NP
-pums_df[, 'num_persons'][is.na(pums_df[, 'num_persons'])] <- 0
-pums_df['chk'] = pums_df['num_persons'] - pums_df['NP']
-stopifnot(nrow(pums_df[which(pums_df$chk != 0),]) == 0)
+stopifnot(
+  nrow(pums_h_df[which(is.na(pums_h_df$num_workers)),]) == nrow(pums_h_df[which(is.na(pums_h_df$num_persons)),]))
+# second, there should be no row where num_persons != NP, with NP as an interger >= o
+  # representing household size
+pums_h_df[, 'num_persons'][is.na(pums_h_df[, 'num_persons'])] <- 0
+pums_h_df['chk'] = pums_h_df['num_persons'] - pums_h_df['NP']
+stopifnot(nrow(pums_h_df[which(pums_h_df$chk != 0),]) == 0)
 
 # calculate household vehicle ownership categories
-pums_df[, 'num_workers'][is.na(pums_df[, 'num_workers'])] <- 0
+pums_h_df[, 'num_workers'][is.na(pums_h_df[, 'num_workers'])] <- 0
 
-pums_df <- pums_df %>%
+pums_h_df <- pums_h_df %>%
   mutate(hh_auto_ownership = ifelse(VEH == 0, 'zero autos',
                                     ifelse((VEH > 0) & (
                                       num_workers > 0) & (
@@ -786,19 +788,18 @@ pums_df <- pums_df %>%
                                           num_workers <= VEH), 'autos >= workers', 'other'))))
 
 
-## finally, use household size as weight so that can represent persons
-# household size 'NP' (Number of persons associated with this housing record)
-  # 0 .Vacant unit
-  # 1 .One person record (one person in household or any person in group quarters)
-  # 2..20 .Number of person records (number of persons in household)
-
-pums_df <- pums_df %>%
-  select(SERIALNO, household_income, hh_auto_ownership, NP) %>%
-  rename('weight' = 'NP')
+## finally, join household-level HH income and vehicle-ownership data back to
+   # persons data to get person-level data with person weights
+pums_p_df <- pums_h_df %>%
+  right_join(p_df, by = c('SERIALNO' = 'SERIALNO')) %>%
+  # create an unique ID for each person for potential QA/QC need
+  mutate(p_id = paste(SERIALNO, SPORDER, sep='-')) %>%
+  rename('person_weight' = 'PWGTP') %>%
+  select(p_id, household_income, hh_auto_ownership, person_weight)
 
 # export
-sprintf('Export %d rows and %d columns of PUMS data for Tableau to %s',
-        nrow(pums_df),
-        ncol(pums_df),
+sprintf('Export %d rows and %d columns of PUMS person-level data for Tableau to %s',
+        nrow(pums_p_df),
+        ncol(pums_p_df),
         F_PUMS_HH_DEMO_CSV)
-write.csv(pums_df, F_PUMS_HH_DEMO_CSV, row.names = FALSE)
+write.csv(pums_p_df, F_PUMS_HH_DEMO_CSV, row.names = FALSE)
