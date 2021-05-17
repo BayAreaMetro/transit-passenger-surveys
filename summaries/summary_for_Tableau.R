@@ -707,7 +707,7 @@ load(F_PUMS_H_RDATA)
 load(F_PUMS_P_RDATA)
 
 h_df <- hbayarea1519[, c('SERIALNO', 'HINCP', 'NP', 'VEH')]
-p_df <- pbayarea1519[, c('SERIALNO', 'SPORDER', 'ESR', 'PWGTP')]
+p_df <- pbayarea1519[, c('SERIALNO', 'SPORDER', 'ESR', 'PWGTP', 'County_Name')]
 
 
 ## recide HH income, vehicle ownership, and employment status
@@ -795,7 +795,7 @@ pums_p_df <- pums_h_df %>%
   # create an unique ID for each person for potential QA/QC need
   mutate(p_id = paste(SERIALNO, SPORDER, sep='-')) %>%
   rename('person_weight' = 'PWGTP') %>%
-  select(p_id, household_income, hh_auto_ownership, person_weight)
+  select(p_id, household_income, hh_auto_ownership, person_weight, County_Name)
 
 # export
 sprintf('Export %d rows and %d columns of PUMS person-level data for Tableau to %s',
