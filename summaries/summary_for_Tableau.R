@@ -126,7 +126,9 @@ data.ready <- data.ready %>%
                            'Union City'                     = 'Union City Transit',
                            'Sonoma County'                  = 'Sonoma County Transit',
                            'Sonoma-Marin Area Rail Transit' = 'SMART',
-                           'Petaluma'                       = 'Petaluma Transit'))
+                           'Petaluma'                       = 'Petaluma Transit',
+                           'SF Bay Ferry'                   = 'SF Bay Ferry/WETA',
+                           'WETA'                           = 'SF Bay Ferry/WETA'))
 
 # export combined data
 sprintf('Export %d rows and %d columns of legacy-standard combined data to %s and %s',
@@ -161,7 +163,8 @@ df$survey_version[(df$operator_survey_year == 'AC Transit - 2012') | (
                    df$operator_survey_year == 'Santa Rosa CityBus - 2012') | (
                    df$operator_survey_year == 'Sonoma County Transit - 2012') | (
                    df$operator_survey_year == 'TriDelta - 2014') | (
-                   df$operator_survey_year == 'Union City Transit - 2013') ] <- 'old'
+                   df$operator_survey_year == 'Union City Transit - 2013') | (
+                   df$operator_survey_year == 'SF Bay Ferry/WETA - 2013')] <- 'old'
 
 print('Double-check the survey version:')
 print(table(df$operator_survey_year, df$survey_version))
