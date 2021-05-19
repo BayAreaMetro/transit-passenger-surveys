@@ -1883,19 +1883,7 @@ survey_standard <- survey_standard %>%
          -second_route_before_survey_board,
          -second_route_after_survey_alight,
          -third_route_before_survey_board,
-         -third_route_after_survey_alight,
-         -first_before_operator,
-         -second_before_operator,
-         -third_before_operator,
-         -first_after_operator,
-         -second_after_operator,
-         -third_after_operator,
-         -first_before_technology,
-         -second_before_technology,
-         -third_before_technology,
-         -first_after_technology,
-         -second_after_technology,
-         -third_after_technology)
+         -third_route_after_survey_alight)
 
 
 ## Write RDS to disk
