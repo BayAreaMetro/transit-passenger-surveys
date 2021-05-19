@@ -16,7 +16,7 @@ setwd(wd)
 
 # Input
 F_INPUT_LEGACY_RDATA = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy.RData'
-F_INPUT_STANDARD_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard_2021-05-06.csv'
+F_INPUT_STANDARD_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard_2021-05-17.csv'
 F_STD_DICTIONARY_CSV = paste0('C:/Users/',
                               Sys.getenv("USERNAME"),
                               '/Documents/GitHub/onboard-surveys/util/standard_variable_dict.csv')
@@ -105,6 +105,9 @@ for (legacy_name in legacy_names) {
   }
 }
 # end DEBUG
+
+survey.legacy['survey_batch'] = 'legacy'
+survey_standard['survey_batch'] = 'standard'
 
 data.ready <- rbind(survey_standard, survey.legacy)
 
@@ -294,62 +297,39 @@ df$board_station[(df$survey_tech != 'commuter rail') & (df$survey_tech != 'heavy
 df$alight_station[(df$survey_tech != 'commuter rail') & (df$survey_tech != 'heavy rail')] <- NA
 
 
-## summarize access and egress modes
-df$access_egress_modes <- paste0(df$access_mode, '-', df$egress_mode)
-
+## create variable 'immediate_access_mode' and 'immediate_egress_mode' to represent
+# the connection directly before and after the surveyed route
 df <- df %>%
-  mutate(access_egress_modes = recode(access_egress_modes,
-                                      'walk-walk'       = 'walk at both ends',
-                                      'bike-bike'       = 'bike at both ends',
-                                      'pnr-pnr'         = 'pnr at both ends',
-                                      'knr-knr'         = 'knr at both ends',
-                                      'tnc-tnc'         = 'tnc at both ends',
-                                      
-                                      'bike-walk'       = 'bike at one end',
-                                      'walk-bike'       = 'bike at one end',
-                                      'pnr-walk'        = 'pnr at one end',
-                                      'walk-pnr'        = 'pnr at one end',
-                                      'knr-walk'        = 'knr at one end',
-                                      'walk-knr'        = 'knr at one end',
-                                      'tnc-walk'        = 'tnc at one end',
-                                      'walk-tnc'        = 'tnc at one end',
-                                      'bike-pnr'        = 'pnr at one end',
-                                      'pnr-bike'        = 'pnr at one end',
-                                      'bike-knr'        = 'knr at one end',
-                                      'knr-bike'        = 'knr at one end',
-                                      'tnc-bike'        = 'tnc at one end',
-                                      'bike-tnc'        = 'tnc at one end',
-                                      
-                                      'knr-other'       = 'knr at one end',
-                                      'other-pnr'       = 'pnr at one end',
-                                      'other-knr'       = 'knr at one end',
-                                      'other-bike'      = 'bike at one end',
-                                      
-                                      'knr-pnr'         = 'pnr and knr',
-                                      'pnr-knr'         = 'pnr and knr',
-                                      'pnr-tnc'         = 'pnr and tnc',
-                                      'tnc-pnr'         = 'pnr and tnc',
-                                      'knr-tnc'         = 'knr and tnc',
-                                      'tnc-knr'         = 'knr and tnc',
-                                      
-                                      'other-walk'      = 'other',
-                                      'walk-other'      = 'other',
-                                      'other-other'     = 'other',
-                                      
-                                      'missing-missing' = 'missing at least one end',
-                                      'walk-missing'    = 'missing at least one end',
-                                      'missing-walk'    = 'missing at least one end',
-                                      'bike-missing'    = 'missing at least one end',
-                                      'pnr-missing'     = 'missing at least one end',
-                                      'missing-pnr'     = 'missing at least one end',
-                                      'knr-missing'     = 'missing at least one end',
-                                      'missing-knr'     = 'missing at least one end',
-                                      'tnc-missing'     = 'missing at least one end',
-                                      'missing-tnc'     = 'missing at least one end',
-                                      'missing-other'   = 'missing at least one end'))
+  mutate(immediate_access_mode = access_mode) %>%
+  mutate(immediate_egress_mode = egress_mode) %>%
+  
+  # in standard survey,
+  # before/after technology == 'Missing' indicating no transfer; before/after technology is NA indicating legacy survey
+  # also, only need to check first_before and first_after technology
+  mutate(immediate_access_mode = ifelse((first_before_technology != 'Missing') & (!is.na(first_before_operator_detail)),
+                                        'transit', immediate_access_mode)) %>%
+  mutate(immediate_egress_mode = ifelse((first_after_technology != 'Missing') & (!is.na(first_after_operator_detail)),
+                                        'transit', immediate_egress_mode)) %>%
+  
+  # legacy survey data doesn't contain before/after transfer technology
+  mutate(immediate_access_mode = ifelse(is.na(first_before_technology), 'missing', immediate_access_mode)) %>%
+  mutate(immediate_egress_mode = ifelse(is.na(first_after_technology), 'missing', immediate_egress_mode))
 
-print('Stats of aggregated access_egress_modes:')
-print(count(df, access_egress_modes))
+# create access_egress_diff for QA/QC. 
+# It contains records where access_mode != immediate_access_mode, or egress_mode != immediate_egress_mode
+access_egress_diff <- df[which((df$immediate_access_mode != df$access_mode) | (df$immediate_egress_mode != df$egress_mode)),
+                         c('operator_survey_year',
+                           'access_mode', 'immediate_access_mode', 'first_board_tech',
+                           'first_before_technology', 'second_before_technology', 'third_before_technology',
+                           'egress_mode', 'immediate_egress_mode', 'last_alight_tech',
+                           'first_after_technology', 'second_after_technology', 'third_after_technology')]
+
+print('Stats of access_mode and immediate_access_mode:')
+print(count(df, access_modes))
+print(count(df, immediate_access_modes))
+print('Stats of egress_mode and immediate_egress_mode:')
+print(count(df, egress_mode))
+print(count(df, immediate_egress_mode))
 
 
 ## create 'age_group' field
@@ -439,12 +419,12 @@ df <- df %>%
 
 
 ## export needed fields for Tableau
-basic_info = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
+basic_info = c('survey_version', 'survey_batch', 'operator_survey_year', 'operator', 'survey_year',
                'survey_tech', 'weekpart', 'day_part', 'trip_weight', 'weight')
 
-trip_info = c('board_station', 'alight_station',
-              'access_egress_modes', 'access_mode', 'egress_mode', 'tour_purp', 'boardings',
-              'fare_category_summary', 'fare_medium_summary',
+trip_info = c('board_station', 'alight_station', 'first_board_tech', 'last_alight_tech',
+              'access_mode', 'egress_mode', 'immediate_access_mode', 'immediate_egress_mode', 'boardings',
+              'orig_purp', 'dest_purp', 'tour_purp', 'fare_category_summary', 'fare_medium_summary',
               'commuter_rail_present', 'heavy_rail_present', 'ferry_present',
               'light_rail_present', 'express_bus_present')
 
