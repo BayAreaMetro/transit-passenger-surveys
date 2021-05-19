@@ -145,6 +145,9 @@ save(data.ready, file = F_COMBINED_RDATA)
 
 df <- data.ready
 
+## remove Capitol Corridor survey from the data since it is not part of MTC's Transit Passenger Survey
+df <- df[which(df$operator != 'Capitol Corridor'),]
+
 ## create a field to represent operator + survey_year
 df$operator_survey_year <- paste0(df$operator, ' - ', df$survey_year)
 
