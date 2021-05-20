@@ -492,14 +492,15 @@ survey_flat <- survey_flat %>%
 
 # for multi-tech operators, survey_tech = technology
 survey_flat <- survey_flat %>%
-  mutate(survey_tech = ifelse(((operator == 'AC Transit') & (survey_year == 2018)) | (
-                               (operator == 'FAST') & (survey_year == 2017)) | (
-                               (operator == 'Golden Gate Transit') & (survey_year == 2018)) | (
-                               (operator == 'Napa Vine') & (survey_year == 2019)) | (
-                               (operator == 'Napa Vine') & (survey_year == 2014)) | (
-                               (operator == 'SF Muni') & (survey_year == 2017)) | (
-                               (operator == 'VTA') & (survey_year == 2017)) | (
-                               (operator == 'WestCAT') & (survey_year == 2017)), 
+  mutate(survey_tech = ifelse(operator %in% c('AC Transit',
+                                              'FAST',
+                                              'Golden Gate Transit',
+                                              'Napa Vine',
+                                              'SF Muni',
+                                              'VTA',
+                                              'WestCAT',
+                                              'Soltrans',
+                                              'County Connection'),
                               technology,
                               survey_tech))
 
