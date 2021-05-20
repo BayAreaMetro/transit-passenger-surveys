@@ -16,7 +16,7 @@ setwd(wd)
 
 # Input
 F_INPUT_LEGACY_RDATA = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy.RData'
-F_INPUT_STANDARD_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard_2021-05-17.csv'
+F_INPUT_STANDARD_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard_2021-05-20.csv'
 F_STD_DICTIONARY_CSV = paste0('C:/Users/',
                               Sys.getenv("USERNAME"),
                               '/Documents/GitHub/onboard-surveys/util/standard_variable_dict.csv')
@@ -34,8 +34,8 @@ F_PUMS_H_RDATA <- 'M:/Data/Census/PUMS/PUMS 2015-19/hbayarea1519.Rdata'
 F_PUMS_P_RDATA <- 'M:/Data/Census/PUMS/PUMS 2015-19/pbayarea1519.Rdata'
 
 # Output
-F_COMBINED_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-05-06.csv'
-F_COMBINED_RDATA = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-05-06.RData'
+F_COMBINED_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-05-20.csv'
+F_COMBINED_RDATA = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-05-20.RData'
 
 D_OUTPUT_TABLEAU = "M:/Data/OnBoard/Data and Reports/_data Standardized/tableau"
 F_TABLEAU_CSV  = paste0(D_OUTPUT_TABLEAU, '/for_tableau_all_survey_by_passenger.csv')
