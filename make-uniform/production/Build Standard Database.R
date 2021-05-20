@@ -117,7 +117,7 @@ f_lavta_survey_path <- paste0(dir_path,
 f_tridelta2019_survey_path <- paste0(dir_path,
                                      "Tri Delta/2019/As CSV/TriDelta_ODSurvey_Dataset_Weights_03272019_FinalDeliv_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_cccta2019_survey_path <- paste0(dir_path,
-                                  "County Connection/2019/As CSV/OD_20191105_CCCTA_Submittal_FINAL Expanded_addCols_NO POUND OR SINGLE QUOTE.csv")
+                                  "County Connection/2019/As CSV/OD_20191105_CCCTA_Submittal_FINAL Expanded_Revised_05192021_addCols_NO POUND OR SINGLE QUOTE.csv")
 f_ggtransit_survey_path <- paste0(dir_path,
                                   "Golden Gate Transit/2018/As CSV/20180907_OD_GoldenGate_allDays_addCols_modifyTransfer_NO POUND OR SINGLE QUOTE.csv")
 f_napavine2019_survey_path <- paste0(dir_path,
