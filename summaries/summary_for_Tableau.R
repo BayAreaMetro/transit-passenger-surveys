@@ -155,19 +155,22 @@ sprintf('Read %d rows including the following surveys:', nrow(df))
 print(count(df, operator_survey_year))
 
 ## create a field to represent survey versions
-df$survey_version <- 'new'
-df$survey_version[(df$operator_survey_year == 'AC Transit - 2012') | (
-                   df$operator_survey_year == 'ACE - 2014') | (
-                   df$operator_survey_year == 'County Connection - 2012') | (
-                   df$operator_survey_year == 'Golden Gate Transit - 2013') | (
-                   df$operator_survey_year == 'LAVTA - 2013') | (
-                   df$operator_survey_year == 'Napa Vine - 2014') | (
-                   df$operator_survey_year == 'Petaluma Transit - 2012') | (
-                   df$operator_survey_year == 'Santa Rosa CityBus - 2012') | (
-                   df$operator_survey_year == 'Sonoma County Transit - 2012') | (
-                   df$operator_survey_year == 'TriDelta - 2014') | (
-                   df$operator_survey_year == 'Union City Transit - 2013') | (
-                   df$operator_survey_year == 'SF Bay Ferry/WETA - 2013')] <- 'old'
+df <- df %>%
+  mutate(survey_version = 'new') %>%
+  mutate(survey_version = ifelse(operator_survey_year %in% c('AC Transit - 2012',
+                                                             'ACE - 2014',
+                                                             'County Connection - 2012',
+                                                             'Golden Gate Transit - 2013',
+                                                             'LAVTA - 2013',
+                                                             'Napa Vine - 2014',
+                                                             'Petaluma Transit - 2012',
+                                                             'Santa Rosa CityBus - 2012',
+                                                             'Sonoma County Transit - 2012',
+                                                             'TriDelta - 2014',
+                                                             'Union City Transit - 2013',
+                                                             'SF Bay Ferry/WETA - 2013'),
+                                 'old',
+                                 survey_version))
 
 print('Double-check the survey version:')
 print(table(df$operator_survey_year, df$survey_version))
@@ -331,8 +334,8 @@ access_egress_diff <- df[which((df$immediate_access_mode != df$access_mode) | (d
                            'first_after_technology', 'second_after_technology', 'third_after_technology')]
 
 print('Stats of access_mode and immediate_access_mode:')
-print(count(df, access_modes))
-print(count(df, immediate_access_modes))
+print(count(df, access_mode))
+print(count(df, immediate_access_mode))
 print('Stats of egress_mode and immediate_egress_mode:')
 print(count(df, egress_mode))
 print(count(df, immediate_egress_mode))
@@ -490,8 +493,7 @@ for (colname in c('orig_tm1_taz', 'dest_tm1_taz', 'home_tm1_taz',
 
 df_groupby_orig <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
-                  survey_tech, weekpart, day_part, access_egress_modes,
-                  board_station, alight_station, 
+                  survey_tech, weekpart, day_part, board_station, alight_station, 
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, orig_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
@@ -507,8 +509,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 
 df_groupby_dest <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
-                  survey_tech, weekpart, day_part, access_egress_modes,
-                  board_station, alight_station,
+                  survey_tech, weekpart, day_part, board_station, alight_station,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, dest_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
@@ -524,8 +525,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 
 df_groupby_home <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
-                  survey_tech, weekpart, day_part, access_egress_modes,
-                  board_station, alight_station,
+                  survey_tech, weekpart, day_part, board_station, alight_station,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, home_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
@@ -541,8 +541,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 
 df_groupby_workplace <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
-                  survey_tech, weekpart, day_part, access_egress_modes,
-                  board_station, alight_station,
+                  survey_tech, weekpart, day_part, board_station, alight_station,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, workplace_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
@@ -558,8 +557,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 
 df_groupby_school <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
-                  survey_tech, weekpart, day_part, access_egress_modes,
-                  board_station, alight_station,
+                  survey_tech, weekpart, day_part, board_station, alight_station,
                   tour_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, school_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
@@ -578,26 +576,22 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 all_tm1_taz <- as.data.frame(df_groupby_orig) %>% 
   full_join(as.data.frame(df_groupby_dest),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
-                   'survey_tech', 'weekpart', 'day_part', 'access_egress_modes',
-                   'board_station', 'alight_station',
+                   'survey_tech', 'weekpart', 'day_part', 'board_station', 'alight_station',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_home),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
-                   'survey_tech', 'weekpart', 'day_part', 'access_egress_modes',
-                   'board_station', 'alight_station',
+                   'survey_tech', 'weekpart', 'day_part', 'board_station', 'alight_station',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_workplace),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
-                   'survey_tech', 'weekpart', 'day_part', 'access_egress_modes',
-                   'board_station', 'alight_station',
+                   'survey_tech', 'weekpart', 'day_part', 'board_station', 'alight_station',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_school),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
-                   'survey_tech', 'weekpart', 'day_part', 'access_egress_modes',
-                   'board_station', 'alight_station',
+                   'survey_tech', 'weekpart', 'day_part', 'board_station', 'alight_station',
                    'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ'))
 
