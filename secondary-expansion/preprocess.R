@@ -125,27 +125,23 @@ TPS <- TPS %>%
   # 6[At-work]: At work
   mutate(agg_tour_purp = ifelse(agg_tour_purp == -9 & (tour_purp == 'at work'), 6, agg_tour_purp))
 
-
-# Access/Egress Modes
-# Create new variables just for modeling, recoding bike as "knr"
+# Create new access/egress variables just for modeling, recoding bike as "knr" and recoding missing in a predictable way
 #-------------------------
 
 TPS <- TPS %>% 
   mutate(access_mode_model=access_mode,
          egress_mode_model=egress_mode) %>% 
   mutate_at(.,vars(access_mode_model,egress_mode_model),~recode(.,
-            "bike"=                  "knr"))
-
-# Code missing access/egress mode
-TPS$access_mode[TPS$access_mode=="."] <- "missing"
-TPS$egress_mode[TPS$egress_mode=="."] <- "missing"
-TPS$access_mode[TPS$access_mode_model=="."] <- "missing"
-TPS$egress_mode[TPS$egress_mode_model=="."] <- "missing"
+            "bike"=                            "knr",
+            "."=                               "missing",
+            "Missing - Dummy Record"=          "missing",
+            "Missing - Question Not Asked"=    "missing",
+            "Unknown"=                         "missing")) 
 
 # Summarize operator by access mode
 
 TPS <- TPS %>%
-  mutate(access_mode = ifelse(is.na(access_mode), "missing", access_mode))
+  mutate(access_mode_model = ifelse(is.na(access_mode), "missing", access_mode))
 operator_access_mode <- xtabs(trip_weight~operator+access_mode, data = TPS[TPS$access_mode!="missing", ])
 operator_access_mode <- data.frame(operator_access_mode)
 molten <- melt(operator_access_mode, id = c("operator", "access_mode"))
