@@ -1,7 +1,8 @@
 ###########################################################################################################################
-### Script to process MTC OBS Database and produce inputs for weighting using PopualtionSim
+### Script to process MTC TPS Database and produce inputs for weighting using PopualtionSim
 ###
 ### Author: Binny M Paul, July 2019
+### Amended by Shimon Israel, May 2021
 ###########################################################################################################################
 oldw <- getOption("warn")
 options(warn = -1)                      # Ignore all warnings
@@ -10,13 +11,11 @@ options(warn = -1)                      # Ignore all warnings
 # READ INPUTS
 #=========================================================================================================================
 
-# Read OBS dataset survey data and ancillary variables
-load(file.path(OBS_Dir,     "survey.rdata"))
-load(file.path(OBS_Anc_Dir, "ancillary_variables.rdata"))
+# Read TPS dataset survey data
+load(file.path(TPS_Dir,     "survey_combined_2021-05-20.RData"))
 
 # Read in target boardings for 2015, with directory coming from Secondary Expansion.Rmd file
 boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE)
-boarding_targets$technology[boarding_targets$technology=="Ferry"] <- "FR"
 
 #=========================================================================================================================
 # DEFINITIONS
@@ -24,22 +23,49 @@ boarding_targets$technology[boarding_targets$technology=="Ferry"] <- "FR"
 
 # Create operator equivalency with technology
 
-operator = c("ACE",               "AC TRANSIT",        "AIR BART",         "AMTRAK",              "BART",             
-             "CALTRAIN",          "COUNTY CONNECTION", "FAIRFIELD-SUISUN", "GOLDEN GATE TRANSIT", "GOLDEN GATE FERRY", 
-             "MARIN TRANSIT",     "MUNI",              "NAPA VINE",        "RIO-VISTA",           "SAMTRANS",
-             "SANTA ROSA CITYBUS","SF BAY FERRY",      "SOLTRANS",          "TRI-DELTA",          "UNION CITY",          
-             "WESTCAT",           "VTA",               "OTHER",             "PRIVATE SHUTTLE",  "OTHER AGENCY",        
-             "BLUE GOLD FERRY", "None", "WHEELS (LAVTA)", "MODESTO TRANSIT", "BLUE & GOLD FERRY", 
-             "DUMBARTON EXPRESS", "EMERY-GO-ROUND", "PETALUMA TRANSIT", "SANTA ROSA CITY BUS", "SONOMA COUNTY TRANSIT", 
-             "STANFORD SHUTTLES", "VALLEJO TRANSIT", "SAN JOAQUIN TRANSIT")
-technology = c("CR", "LB", "LB", "CR", "HR", 
-               "CR", "LB", "LB", "EB", "FR",      
-               "LB", "LB", "LB", "LB", "LB",
-               "LB", "FR", "LB", "LB", "LB",     
-               "LB", "LB", "LB", "LB", "LB",     
-               "FR", "None", "LB", "LB", "FR", 
-               "EB", "LB", "LB", "LB", "LB", 
-               "LB", "LB", "LB")
+#operator = c("ACE",               "AC TRANSIT",        "AIR BART",         "AMTRAK",              "BART",             
+#             "CALTRAIN",          "COUNTY CONNECTION", "FAIRFIELD-SUISUN", "GOLDEN GATE TRANSIT", "GOLDEN GATE FERRY", 
+#             "MARIN TRANSIT",     "MUNI",              "NAPA VINE",        "RIO-VISTA",           "SAMTRANS",
+#             "SANTA ROSA CITYBUS","SF BAY FERRY",      "SOLTRANS",          "TRI-DELTA",          "UNION CITY",          
+#             "WESTCAT",           "VTA",               "OTHER",             "PRIVATE SHUTTLE",  "OTHER AGENCY",        
+#             "BLUE GOLD FERRY", "None", "WHEELS (LAVTA)", "MODESTO TRANSIT", "BLUE & GOLD FERRY", 
+#             "DUMBARTON EXPRESS", "EMERY-GO-ROUND", "PETALUMA TRANSIT", "SANTA ROSA CITY BUS", "SONOMA COUNTY TRANSIT", 
+#             "STANFORD SHUTTLES", "VALLEJO TRANSIT", "SAN JOAQUIN TRANSIT")
+#technology = c("CR", "LB", "LB", "CR", "HR", 
+#               "CR", "LB", "LB", "EB", "FR",      
+#               "LB", "LB", "LB", "LB", "LB",
+#               "LB", "FR", "LB", "LB", "LB",     
+#               "LB", "LB", "LB", "LB", "LB",     
+#               "FR", "None", "LB", "LB", "FR", 
+#               "EB", "LB", "LB", "LB", "LB", 
+#               "LB", "LB", "LB")
+
+operator = c("AC TRANSIT", "ACE", "AMTRAK", "BART", "Bay Area Shuttles", 
+             "BLUE & GOLD FERRY", "BLUE GOLD FERRY", "CALTRAIN", "COUNTY CONNECTION", 
+             "DUMBARTON", "DUMBARTON EXPRESS", "EMERY-GO-ROUND", "EMERYVILLE MTA", 
+             "FAIRFIELD-SUISUN", "FAST", "GOLDEN GATE FERRY", "GOLDEN GATE TRANSIT", 
+             "Greyhound", "LAVTA", "MARIN TRANSIT", "Missing", "MODESTO TRANSIT", 
+             "MUNI", "NAPA VINE", "None", "Operator Outside Bay Area", "Other", 
+             "OTHER", "PETALUMA TRANSIT", "PRIVATE SHUTTLE", "RIO-VISTA", 
+             "SAMTRANS", "SAN JOAQUIN TRANSIT", "San Leandro Links", "SANTA ROSA CITY BUS", 
+             "Santa Rosa CityBus", "SANTA ROSA CITYBUS", "SF BAY FERRY", "SMART", 
+             "SOLTRANS", "Sonoma County Transit", "SONOMA COUNTY TRANSIT", 
+             "STANFORD SHUTTLES", "TRI-DELTA", "UNION CITY", "VACAVILLE CITY COACH", 
+             "VALLEJO TRANSIT", "VTA", "WESTCAT", "WHEELS (LAVTA)")
+
+technology = c("LB", "CR", "CR","HR", "LB",
+               "FR", "FR", "CR", "LB",
+               "EB", "EB", "LB", "LB",
+               "LB", "LB", "FR", "EB",
+               "EB", "LB", "LB", "None", "LB",
+               "LB", "LB", "None", "LB", "LB",
+               "LB", "LB", "LB", "LB",
+               "LB", "LB", "LB", "LB", 
+               "LB", "LB", "FR", "CR",
+               "LB", "LB", "LB",
+               "LB", "LB", "LB", "LB",
+               "LB", "LB", "LB", "LB")
+
 opTechXWalk <- data.frame(operator, technology)
 
 survey_tech = c("commuter rail", "express bus", "ferry", "heavy rail", "light rail", "local bus")
@@ -49,29 +75,42 @@ survey_tech_df <- data.frame(survey_tech, survey_tech_short)
 SeedIDs <- c(1)
 
 
-# Asserted BEST MODE TRANSFER RATE
-#------------------------------------
-best_modes = c("CR", "HR", "LR", "FR", "EB", "LB")
-asserted_xfer_rates = c(1.0, 1.0, 1.0, 1.0, 1.26, 1.29)
-asserted_xfer_df <- data.frame(BEST_MODE = best_modes, TRANSFER_RATE = asserted_xfer_rates)
-
-
-
 #=========================================================================================================================
 # DATA CLEANING, IMPUTATION & TRASNFORMATION
 #=========================================================================================================================
 
-# Remove weekend records
+# Remove weekend records and all older vintages of operators surveyed more than once
 #------------------------
-OBS <- survey[!(survey$day_of_the_week %in% c("SATURDAY", "SUNDAY")),]
-OBS_ancillary <- ancillary_df
-remove(survey)
-remove(ancillary_df)
+temp1 <- data.ready %>% filter(weekpart=="WEEKDAY" & 
+                               !(operator %in% c("AC Transit", "ACE", "County Connection", 
+                                                 "Golden Gate Transit", "LAVTA", "Napa Vine", 
+                                                 "Petaluma Transit", "Santa Rosa CityBus", 
+                                                 "SF Bay Ferry/WETA", "Sonoma County Transit", 
+                                                 "TriDelta", "Union City Transit") & survey_year<2015))
 
+# Remove Capitol Corridor Records that start and/or end outside the Bay Area
+
+temp2 <- temp1 %>% 
+  mutate(flag=0) %>% 
+  mutate(flag=if_else(operator=="Capitol Corridor" & 
+                        !(onoff_enter_station %in% c("Jack London Square", "Berkeley", "Suisun-fairfield", 
+                                    "Emeryville", "Fairfield/Vacaville Station", "Martinez", "San Jose", 
+                                    "Richmond", "Santa Clara University", "Santa Clara Great America", 
+                                    "Fremont", "Hayward", "Oakland Coliseum") & 
+                          onoff_exit_station %in% c("Jack London Square", "Berkeley", "Suisun-fairfield", 
+                                     "Emeryville", "Fairfield/Vacaville Station", "Martinez", "San Jose", 
+                                     "Richmond", "Santa Clara University", "Santa Clara Great America", 
+                                     "Fremont", "Hayward", "Oakland Coliseum")), 1, flag))
+
+TPS <- temp2 %>% 
+  filter(flag !=1) %>% 
+  select(-flag)
+
+remove(data.ready,temp1, temp2)
 
 #Aggregate tour purposes
 #-------------------------
-OBS <- OBS %>%
+TPS <- TPS %>%
   mutate(agg_tour_purp = -9) %>% 
   # 1[Work]: work, work-related
   mutate(agg_tour_purp = ifelse(agg_tour_purp == -9 & (tour_purp == 'work' | tour_purp == 'work-related'), 1, agg_tour_purp)) %>% 
@@ -88,24 +127,26 @@ OBS <- OBS %>%
 
 
 # Access/Egress Modes
+# Create new variables just for modeling, recoding bike as "knr"
 #-------------------------
-# Code "bie" to "bike"
-OBS$access_mode[OBS$access_mode=="bie"] <- 'bike'
-OBS$egress_mode[OBS$egress_mode=="bie"] <- 'bike'
 
-# replace bike access mode with knr
-OBS$access_mode[OBS$access_mode=="bike"] <- 'knr'
-OBS$egress_mode[OBS$egress_mode=="bike"] <- 'knr'
+TPS <- TPS %>% 
+  mutate(access_mode_model=access_mode,
+         egress_mode_model=egress_mode) %>% 
+  mutate_at(.,vars(access_mode_model,egress_mode_model),~recode(.,
+            "bike"=                  "knr"))
 
 # Code missing access/egress mode
-OBS$access_mode[OBS$access_mode=="."] <- "missing"
-OBS$egress_mode[OBS$egress_mode=="."] <- "missing"
+TPS$access_mode[TPS$access_mode=="."] <- "missing"
+TPS$egress_mode[TPS$egress_mode=="."] <- "missing"
+TPS$access_mode[TPS$access_mode_model=="."] <- "missing"
+TPS$egress_mode[TPS$egress_mode_model=="."] <- "missing"
 
 # Summarize operator by access mode
 
-OBS <- OBS %>%
+TPS <- TPS %>%
   mutate(access_mode = ifelse(is.na(access_mode), "missing", access_mode))
-operator_access_mode <- xtabs(trip_weight~operator+access_mode, data = OBS[OBS$access_mode!="missing", ])
+operator_access_mode <- xtabs(trip_weight~operator+access_mode, data = TPS[TPS$access_mode!="missing", ])
 operator_access_mode <- data.frame(operator_access_mode)
 molten <- melt(operator_access_mode, id = c("operator", "access_mode"))
 operator_access_mode <- dcast(molten, operator~access_mode, sum)
@@ -129,13 +170,13 @@ returnAccessMode <- function(op)
   return(ifelse(r<c1, "walk", ifelse(r<c2, "knr", "pnr")))
 }
 
-OBS$access_mode[OBS$access_mode=="missing"] <- sapply(as.character(OBS$operator[OBS$access_mode=="missing"]),function(x) {returnAccessMode(x)} )
+TPS$access_mode[TPS$access_mode=="missing"] <- sapply(as.character(TPS$operator[TPS$access_mode=="missing"]),function(x) {returnAccessMode(x)} )
 
 # Now do the same thing for egress modes as is done above for access modes
 
-OBS <- OBS %>%
+TPS <- TPS %>%
   mutate(egress_mode = ifelse(is.na(egress_mode), "missing", egress_mode))
-operator_egress_mode <- xtabs(trip_weight~operator+egress_mode, data = OBS[OBS$egress_mode!="missing", ])
+operator_egress_mode <- xtabs(trip_weight~operator+egress_mode, data = TPS[TPS$egress_mode!="missing", ])
 operator_egress_mode <- data.frame(operator_egress_mode)
 molten <- melt(operator_egress_mode, id = c("operator", "egress_mode"))
 operator_egress_mode <- dcast(molten, operator~egress_mode, sum)
@@ -154,15 +195,15 @@ returnEgressMode <- function(op)
   return(ifelse(r<c1, "walk", ifelse(r<c2, "knr", "pnr")))
 }
 
-OBS$egress_mode[OBS$egress_mode=="missing"] <- sapply(as.character(OBS$operator[OBS$egress_mode=="missing"]),function(x) {returnEgressMode(x)} )
+TPS$egress_mode[TPS$egress_mode=="missing"] <- sapply(as.character(TPS$operator[TPS$egress_mode=="missing"]),function(x) {returnEgressMode(x)} )
 
 # Auto Sufficiency
 #-----------------
 # Code missing auto sufficiency, including imputation for missing values
 
-OBS <- OBS %>%
+TPS <- TPS %>%
   mutate(auto_suff = ifelse(is.na(auto_suff), "missing", auto_suff))
-operator_autoSuff <- xtabs(trip_weight~operator+auto_suff, data = OBS[OBS$auto_suff!="missing", ])
+operator_autoSuff <- xtabs(trip_weight~operator+auto_suff, data = TPS[TPS$auto_suff!="missing", ])
 operator_autoSuff <- data.frame(operator_autoSuff)
 molten <- melt(operator_autoSuff, id = c("operator", "auto_suff"))
 operator_autoSuff <- dcast(molten, operator~auto_suff, sum)
@@ -181,42 +222,42 @@ returnAS <- function(op)
   return(ifelse(r<c1, "zero autos", ifelse(r<c2, "auto negotiating", "auto sufficient")))
 }
 
-OBS$auto_suff[OBS$auto_suff=="missing" | OBS$auto_suff=="Missing"] <- sapply(as.character(OBS$operator[OBS$auto_suff=="missing" | OBS$auto_suff=="Missing"]),function(x) {returnAS(x)} )
+TPS$auto_suff[TPS$auto_suff=="missing" | TPS$auto_suff=="Missing"] <- sapply(as.character(TPS$operator[TPS$auto_suff=="missing" | TPS$auto_suff=="Missing"]),function(x) {returnAS(x)} )
 
 # Transform survey_tech into simplified values for survey_tech, first_board tech, and last_alight tech
 #-----------------------------
-OBS$survey_tech <- survey_tech_df$survey_tech_short[match(OBS$survey_tech, survey_tech_df$survey_tech)]
-OBS$first_board_tech <- survey_tech_df$survey_tech_short[match(OBS$first_board_tech, survey_tech_df$survey_tech)]
-OBS$last_alight_tech <- survey_tech_df$survey_tech_short[match(OBS$last_alight_tech, survey_tech_df$survey_tech)]
+TPS$survey_tech <- survey_tech_df$survey_tech_short[match(TPS$survey_tech, survey_tech_df$survey_tech)]
+TPS$first_board_tech <- survey_tech_df$survey_tech_short[match(TPS$first_board_tech, survey_tech_df$survey_tech)]
+TPS$last_alight_tech <- survey_tech_df$survey_tech_short[match(TPS$last_alight_tech, survey_tech_df$survey_tech)]
 
 # Detailed Operator Coding
 #-------------------------
 # Edit operator names to show local and express bus
-OBS$operator[OBS$operator=="AC Transit" & OBS$survey_tech=="LB"] <- "AC Transit [LOCAL]"
-OBS$operator[OBS$operator=="AC Transit" & OBS$survey_tech=="EB"] <- "AC Transit [EXPRESS]"
+TPS$operator[TPS$operator=="AC Transit" & TPS$survey_tech=="LB"] <- "AC Transit [LOCAL]"
+TPS$operator[TPS$operator=="AC Transit" & TPS$survey_tech=="EB"] <- "AC Transit [EXPRESS]"
 
-OBS$operator[OBS$operator=="County Connection" & OBS$survey_tech=="LB"] <- "County Connection [LOCAL]"
-OBS$operator[OBS$operator=="County Connection" & OBS$survey_tech=="EB"] <- "County Connection [EXPRESS]"
+TPS$operator[TPS$operator=="County Connection" & TPS$survey_tech=="LB"] <- "County Connection [LOCAL]"
+TPS$operator[TPS$operator=="County Connection" & TPS$survey_tech=="EB"] <- "County Connection [EXPRESS]"
 
-OBS$operator[OBS$operator=="Golden Gate Transit (bus)" & OBS$survey_tech=="LB"] <- "Golden Gate Transit [LOCAL]"
-OBS$operator[OBS$operator=="Golden Gate Transit (bus)" & OBS$survey_tech=="EB"] <- "Golden Gate Transit [EXPRESS]"
+TPS$operator[TPS$operator=="Golden Gate Transit (bus)" & TPS$survey_tech=="LB"] <- "Golden Gate Transit [LOCAL]"
+TPS$operator[TPS$operator=="Golden Gate Transit (bus)" & TPS$survey_tech=="EB"] <- "Golden Gate Transit [EXPRESS]"
 
-OBS$operator[OBS$operator=="Napa Vine" & OBS$survey_tech=="LB"] <- "Napa Vine [LOCAL]"
-OBS$operator[OBS$operator=="Napa Vine" & OBS$survey_tech=="EB"] <- "Napa Vine [EXPRESS]"
+TPS$operator[TPS$operator=="Napa Vine" & TPS$survey_tech=="LB"] <- "Napa Vine [LOCAL]"
+TPS$operator[TPS$operator=="Napa Vine" & TPS$survey_tech=="EB"] <- "Napa Vine [EXPRESS]"
 
-OBS$operator[OBS$operator=="SamTrans" & OBS$survey_tech=="LB"] <- "SamTrans [LOCAL]"
-OBS$operator[OBS$operator=="SamTrans" & OBS$survey_tech=="EB"] <- "SamTrans [EXPRESS]"
+TPS$operator[TPS$operator=="SamTrans" & TPS$survey_tech=="LB"] <- "SamTrans [LOCAL]"
+TPS$operator[TPS$operator=="SamTrans" & TPS$survey_tech=="EB"] <- "SamTrans [EXPRESS]"
 
-OBS$operator[OBS$operator=="SF Muni" & OBS$survey_tech=="LB"] <- "SF Muni [LOCAL]"
-OBS$operator[OBS$operator=="SF Muni" & OBS$survey_tech=="LR"] <- "SF Muni [LRT]"
+TPS$operator[TPS$operator=="SF Muni" & TPS$survey_tech=="LB"] <- "SF Muni [LOCAL]"
+TPS$operator[TPS$operator=="SF Muni" & TPS$survey_tech=="LR"] <- "SF Muni [LRT]"
 
-OBS$operator[OBS$operator=="VTA" & OBS$survey_tech=="LB"] <- "VTA [LOCAL]"
-OBS$operator[OBS$operator=="VTA" & OBS$survey_tech=="EB"] <- "VTA [EXPRESS]"
-OBS$operator[OBS$operator=="VTA" & OBS$survey_tech=="LR"] <- "VTA [LRT]"
+TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="LB"] <- "VTA [LOCAL]"
+TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="EB"] <- "VTA [EXPRESS]"
+TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="LR"] <- "VTA [LRT]"
 
 ## copy technology from the targets database
-OBS <- merge(x=OBS, y=boarding_targets[boarding_targets$surveyed==1,c("operator","technology")], by="operator", all.x = TRUE)
-OBS$technology[OBS$technology=="Ferry"] <- "FR"
+TPS <- merge(x=TPS, y=boarding_targets[boarding_targets$surveyed==1,c("operator","technology")], by="operator", all.x = TRUE)
+TPS$technology[TPS$technology=="Ferry"] <- "FR"
 
 
 
@@ -225,7 +266,7 @@ OBS$technology[OBS$technology=="Ferry"] <- "FR"
 #=========================================================================================================================
 
 # Missing Tour Purpose
-OBS <- OBS[OBS$agg_tour_purp>0,]
+TPS <- TPS[TPS$agg_tour_purp>0,]
 
 
 
@@ -236,10 +277,10 @@ OBS <- OBS[OBS$agg_tour_purp>0,]
 # Factor weights to match 2015 targets for surveyed operators
 #-------------------------------------------------------------
 
-# Sum survey OBS boardings by operator
-obs_operator_totals <- aggregate(OBS$weight, by = list(operator = OBS$operator), sum)
-obs_operator_totals <- data.frame(obs_operator_totals)
-colnames(obs_operator_totals) <- c("operator", "boardWeight")
+# Sum survey TPS boardings by operator
+TPS_operator_totals <- aggregate(TPS$weight, by = list(operator = TPS$operator), sum)
+TPS_operator_totals <- data.frame(TPS_operator_totals)
+colnames(TPS_operator_totals) <- c("operator", "boardWeight")
 
 # Sum target 2015 boards by operator
 target_operator_totals <- aggregate(boarding_targets$targets2015, by = list(operator = boarding_targets$operator), sum)
@@ -247,16 +288,16 @@ target_operator_totals <- data.frame(target_operator_totals)
 colnames(target_operator_totals) <- c("operator", "targetBoardings")
 
 # Append target totals to operator totals into new data frame and calculate expansion factor
-expansion_factors <- obs_operator_totals
+expansion_factors <- TPS_operator_totals
 expansion_factors$targetBoardings <- target_operator_totals$targetBoardings[match(expansion_factors$operator, target_operator_totals$operator)]
 
 expansion_factors <- expansion_factors %>%
   mutate(exp_factor = targetBoardings/boardWeight) 
 
 # Append expansion factor and create new board weight and trip weight variables based on this value
-OBS$exp_factor <- expansion_factors$exp_factor[match(OBS$operator, expansion_factors$operator)]
-OBS$boardWeight_2015 <- OBS$weight * OBS$exp_factor
-OBS$tripWeight_2015 <- OBS$trip_weight * OBS$exp_factor
+TPS$exp_factor <- expansion_factors$exp_factor[match(TPS$operator, expansion_factors$operator)]
+TPS$boardWeight_2015 <- TPS$weight * TPS$exp_factor
+TPS$tripWeight_2015 <- TPS$trip_weight * TPS$exp_factor
 
 # Non-surveyed operators to be added later
 
@@ -266,10 +307,10 @@ OBS$tripWeight_2015 <- OBS$trip_weight * OBS$exp_factor
 ## Boarding targets for non-surveyed operators
 #non_surveyed_targets <- boarding_targets[boarding_targets$surveyed==0,]
 #
-## OBS boards by operator
-#obs_tech_totals <- aggregate(OBS$boardWeight_2015, by = list(technology = OBS$technology), sum)
-#obs_tech_totals <- data.frame(obs_tech_totals)
-#colnames(obs_tech_totals) <- c("technology", "boardWeight")
+## TPS boards by operator
+#TPS_tech_totals <- aggregate(TPS$boardWeight_2015, by = list(technology = TPS$technology), sum)
+#TPS_tech_totals <- data.frame(TPS_tech_totals)
+#colnames(TPS_tech_totals) <- c("technology", "boardWeight")
 #
 ## Target 2015 boards by technology [including non-surveyed operators]
 #target_tech_totals <- aggregate(boarding_targets$targets2015, by = list(technology = boarding_targets$technology), sum)
@@ -277,16 +318,16 @@ OBS$tripWeight_2015 <- OBS$trip_weight * OBS$exp_factor
 #colnames(target_tech_totals) <- c("technology", "targetBoardings")
 #
 ## Compute expansion factors
-#expansion_factors <- obs_tech_totals
+#expansion_factors <- TPS_tech_totals
 #expansion_factors$targetBoardings <- target_tech_totals$targetBoardings[match(expansion_factors$technology, target_tech_totals$technology)]
 #
 #expansion_factors <- expansion_factors %>%
 #  mutate(exp_factor = targetBoardings/boardWeight) 
 #
 ## Compute final 2015 factored weights [accounting for non-surveyed operators]
-#OBS$exp_factor <- expansion_factors$exp_factor[match(OBS$technology, expansion_factors$technology)]
-#OBS$boardWeight_2015 <- OBS$boardWeight_2015 * OBS$exp_factor
-#OBS$tripWeight_2015 <- OBS$tripWeight_2015 * OBS$exp_factor
+#TPS$exp_factor <- expansion_factors$exp_factor[match(TPS$technology, expansion_factors$technology)]
+#TPS$boardWeight_2015 <- TPS$boardWeight_2015 * TPS$exp_factor
+#TPS$tripWeight_2015 <- TPS$tripWeight_2015 * TPS$exp_factor
 
 
 
@@ -296,34 +337,34 @@ OBS$tripWeight_2015 <- OBS$trip_weight * OBS$exp_factor
 
 # Number of transfers (boardings minus 1)
 #------------------------
-OBS$nTransfers <- OBS$boardings - 1
+TPS$nTransfers <- TPS$boardings - 1
 
 # Time period (commented out version from previous iteration)
 #----------------
-#OBS$period[OBS$depart_hour<6] <- "EA"
-#OBS$period[OBS$depart_hour>=6 & OBS$depart_hour<9] <- "AM"
-#OBS$period[OBS$depart_hour>=9 & OBS$depart_hour<15] <- "MD"
-#OBS$period[OBS$depart_hour>=15 & OBS$depart_hour<19] <- "PM"
-#OBS$period[OBS$depart_hour>=19] <- "EV"
+#TPS$period[TPS$depart_hour<6] <- "EA"
+#TPS$period[TPS$depart_hour>=6 & TPS$depart_hour<9] <- "AM"
+#TPS$period[TPS$depart_hour>=9 & TPS$depart_hour<15] <- "MD"
+#TPS$period[TPS$depart_hour>=15 & TPS$depart_hour<19] <- "PM"
+#TPS$period[TPS$depart_hour>=19] <- "EV"
 
-OBS$period[OBS$day_part=="EARLY AM"] <- "EA"
-OBS$period[OBS$day_part=="AM PEAK"]  <- "AM"
-OBS$period[OBS$day_part=="MIDDAY"]   <- "MD"
-OBS$period[OBS$day_part=="PM PEAK"]  <- "PM"
-OBS$period[OBS$day_part=="EVENING"]  <- "EV"
+TPS$period[TPS$day_part=="EARLY AM"] <- "EA"
+TPS$period[TPS$day_part=="AM PEAK"]  <- "AM"
+TPS$period[TPS$day_part=="MIDDAY"]   <- "MD"
+TPS$period[TPS$day_part=="PM PEAK"]  <- "PM"
+TPS$period[TPS$day_part=="EVENING"]  <- "EV"
 
 
 
 # BEST Mode for transfer_from and transfer_to tech
 #--------------------
-OBS$transfer_from_tech <- opTechXWalk$technology[match(OBS$transfer_from, opTechXWalk$operator)]
-OBS$transfer_to_tech <- opTechXWalk$technology[match(OBS$transfer_to, opTechXWalk$operator)]
+TPS$transfer_from_tech <- opTechXWalk$technology[match(TPS$transfer_from, opTechXWalk$operator)]
+TPS$transfer_to_tech <- opTechXWalk$technology[match(TPS$transfer_to, opTechXWalk$operator)]
 
-OBS$transfer_from_tech[OBS$transfer_from=="WHEELS (LAVTA)" | OBS$transfer_from=="MODESTO TRANSIT"] <- "LB"
-OBS$transfer_to_tech[OBS$transfer_to=="WHEELS (LAVTA)" | OBS$transfer_to=="MODESTO TRANSIT"] <- "LB"
+TPS$transfer_from_tech[TPS$transfer_from=="WHEELS (LAVTA)" | TPS$transfer_from=="MODESTO TRANSIT"] <- "LB"
+TPS$transfer_to_tech[TPS$transfer_to=="WHEELS (LAVTA)" | TPS$transfer_to=="MODESTO TRANSIT"] <- "LB"
 
 # Code Mode Set Type, creating dummy values (1) for each technology used
-OBS <- OBS %>%
+TPS <- TPS %>%
   mutate(usedLB = ifelse(first_board_tech=="LB" 
                          | transfer_from_tech=="LB"
                          | survey_tech=="LB"
@@ -356,41 +397,41 @@ OBS <- OBS %>%
                          | last_alight_tech=="FR",1,0))
 
 # Input zero values for NAs
-OBS$usedLB[is.na(OBS$usedLB)] <- 0
-OBS$usedEB[is.na(OBS$usedEB)] <- 0
-OBS$usedLR[is.na(OBS$usedLR)] <- 0
-OBS$usedFR[is.na(OBS$usedFR)] <- 0
-OBS$usedHR[is.na(OBS$usedHR)] <- 0
-OBS$usedCR[is.na(OBS$usedCR)] <- 0
+TPS$usedLB[is.na(TPS$usedLB)] <- 0
+TPS$usedEB[is.na(TPS$usedEB)] <- 0
+TPS$usedLR[is.na(TPS$usedLR)] <- 0
+TPS$usedFR[is.na(TPS$usedFR)] <- 0
+TPS$usedHR[is.na(TPS$usedHR)] <- 0
+TPS$usedCR[is.na(TPS$usedCR)] <- 0
 
 # Total technologies used
 
-OBS$usedTotal <- OBS$usedLB+OBS$usedEB+OBS$usedLR+OBS$usedFR+OBS$usedHR+OBS$usedCR
+TPS$usedTotal <- TPS$usedLB+TPS$usedEB+TPS$usedLR+TPS$usedFR+TPS$usedHR+TPS$usedCR
 
 # Recode used fields based on path line haul variable code
 
-OBS$usedLB[OBS$usedTotal==0 & OBS$path_line_haul=="LOC"] <- 1
-OBS$usedEB[OBS$usedTotal==0 & OBS$path_line_haul=="EXP"] <- 1
-OBS$usedLR[OBS$usedTotal==0 & OBS$path_line_haul=="LRF"] <- 1
-OBS$usedHR[OBS$usedTotal==0 & OBS$path_line_haul=="HVY"] <- 1
-OBS$usedCR[OBS$usedTotal==0 & OBS$path_line_haul=="COM"] <- 1
+TPS$usedLB[TPS$usedTotal==0 & TPS$path_line_haul=="LOC"] <- 1
+TPS$usedEB[TPS$usedTotal==0 & TPS$path_line_haul=="EXP"] <- 1
+TPS$usedLR[TPS$usedTotal==0 & TPS$path_line_haul=="LRF"] <- 1
+TPS$usedHR[TPS$usedTotal==0 & TPS$path_line_haul=="HVY"] <- 1
+TPS$usedCR[TPS$usedTotal==0 & TPS$path_line_haul=="COM"] <- 1
 
-OBS$usedTotal <- OBS$usedLB+OBS$usedEB+OBS$usedLR+OBS$usedFR+OBS$usedHR+OBS$usedCR
+TPS$usedTotal <- TPS$usedLB+TPS$usedEB+TPS$usedLR+TPS$usedFR+TPS$usedHR+TPS$usedCR
 
 # Hierarchy of local bus through commuter rail
 
-OBS$BEST_MODE <- "LB"
-OBS$BEST_MODE[OBS$usedEB==1] <- "EB"
-OBS$BEST_MODE[OBS$usedFR==1] <- "FR"
-OBS$BEST_MODE[OBS$usedLR==1] <- "LR"
-OBS$BEST_MODE[OBS$usedHR==1] <- "HR"
-OBS$BEST_MODE[OBS$usedCR==1] <- "CR"
+TPS$BEST_MODE <- "LB"
+TPS$BEST_MODE[TPS$usedEB==1] <- "EB"
+TPS$BEST_MODE[TPS$usedFR==1] <- "FR"
+TPS$BEST_MODE[TPS$usedLR==1] <- "LR"
+TPS$BEST_MODE[TPS$usedHR==1] <- "HR"
+TPS$BEST_MODE[TPS$usedCR==1] <- "CR"
 
 
 #Transfer Types [across all surveys], creating dummy for all types of transfers, applying mode hierarchy
 #----------------------
 
-OBS <- OBS %>%
+TPS <- TPS %>%
   mutate(LB_CR = ifelse((usedLB==1 & usedCR==1 & nTransfers>0), 1, 0)) %>%
   mutate(LB_HR = ifelse((usedLB==1 & usedHR==1 & nTransfers>0), 1, 0)) %>%
   mutate(LB_LR = ifelse((usedLB==1 & usedLR==1 & nTransfers>0), 1, 0)) %>%
@@ -414,29 +455,29 @@ OBS <- OBS %>%
   mutate(CR_CR = ifelse((usedCR==1 & usedTotal==1 & nTransfers>0), 1, 0))
 
 
-OBS$TRANSFER_TYPE <- "OTHER"
-OBS$TRANSFER_TYPE[OBS$nTransfers==0] <- "NO_TRANSFERS"
-OBS$TRANSFER_TYPE[OBS$usedLB==1 & OBS$usedCR==1 & OBS$nTransfers>0] <- "LB_CR"
-OBS$TRANSFER_TYPE[OBS$usedLB==1 & OBS$usedHR==1 & OBS$nTransfers>0] <- "LB_HR"
-OBS$TRANSFER_TYPE[OBS$usedLB==1 & OBS$usedLR==1 & OBS$nTransfers>0] <- "LB_LR"
-OBS$TRANSFER_TYPE[OBS$usedLB==1 & OBS$usedFR==1 & OBS$nTransfers>0] <- "LB_FR"
-OBS$TRANSFER_TYPE[OBS$usedLB==1 & OBS$usedEB==1 & OBS$nTransfers>0] <- "LB_EB"
-OBS$TRANSFER_TYPE[OBS$usedLB==1 & OBS$usedTotal==1 & OBS$nTransfers>0] <- "LB_LB"
-OBS$TRANSFER_TYPE[OBS$usedEB==1 & OBS$usedCR==1 & OBS$nTransfers>0] <- "EB_CR"
-OBS$TRANSFER_TYPE[OBS$usedEB==1 & OBS$usedHR==1 & OBS$nTransfers>0] <- "EB_HR"
-OBS$TRANSFER_TYPE[OBS$usedEB==1 & OBS$usedLR==1 & OBS$nTransfers>0] <- "EB_LR"
-OBS$TRANSFER_TYPE[OBS$usedEB==1 & OBS$usedFR==1 & OBS$nTransfers>0] <- "EB_FR"
-OBS$TRANSFER_TYPE[OBS$usedEB==1 & OBS$usedTotal==1 & OBS$nTransfers>0] <- "EB_EB"
-OBS$TRANSFER_TYPE[OBS$usedFR==1 & OBS$usedCR==1 & OBS$nTransfers>0] <- "FR_CR"
-OBS$TRANSFER_TYPE[OBS$usedFR==1 & OBS$usedHR==1 & OBS$nTransfers>0] <- "FR_HR"
-OBS$TRANSFER_TYPE[OBS$usedFR==1 & OBS$usedLR==1 & OBS$nTransfers>0] <- "FR_LR"
-OBS$TRANSFER_TYPE[OBS$usedFR==1 & OBS$usedTotal==1 & OBS$nTransfers>0] <- "FR_FR"
-OBS$TRANSFER_TYPE[OBS$usedLR==1 & OBS$usedCR==1 & OBS$nTransfers>0] <- "LR_CR"
-OBS$TRANSFER_TYPE[OBS$usedLR==1 & OBS$usedHR==1 & OBS$nTransfers>0] <- "LR_HR"
-OBS$TRANSFER_TYPE[OBS$usedLR==1 & OBS$usedTotal==1 & OBS$nTransfers>0] <- "LR_LR"
-OBS$TRANSFER_TYPE[OBS$usedHR==1 & OBS$usedCR==1 & OBS$nTransfers>0] <- "HR_CR"
-OBS$TRANSFER_TYPE[OBS$usedHR==1 & OBS$usedTotal==1 & OBS$nTransfers>0] <- "HR_HR"
-OBS$TRANSFER_TYPE[OBS$usedCR==1 & OBS$usedTotal==1 & OBS$nTransfers>0] <- "CR_CR"
+TPS$TRANSFER_TYPE <- "OTHER"
+TPS$TRANSFER_TYPE[TPS$nTransfers==0] <- "NO_TRANSFERS"
+TPS$TRANSFER_TYPE[TPS$usedLB==1 & TPS$usedCR==1 & TPS$nTransfers>0] <- "LB_CR"
+TPS$TRANSFER_TYPE[TPS$usedLB==1 & TPS$usedHR==1 & TPS$nTransfers>0] <- "LB_HR"
+TPS$TRANSFER_TYPE[TPS$usedLB==1 & TPS$usedLR==1 & TPS$nTransfers>0] <- "LB_LR"
+TPS$TRANSFER_TYPE[TPS$usedLB==1 & TPS$usedFR==1 & TPS$nTransfers>0] <- "LB_FR"
+TPS$TRANSFER_TYPE[TPS$usedLB==1 & TPS$usedEB==1 & TPS$nTransfers>0] <- "LB_EB"
+TPS$TRANSFER_TYPE[TPS$usedLB==1 & TPS$usedTotal==1 & TPS$nTransfers>0] <- "LB_LB"
+TPS$TRANSFER_TYPE[TPS$usedEB==1 & TPS$usedCR==1 & TPS$nTransfers>0] <- "EB_CR"
+TPS$TRANSFER_TYPE[TPS$usedEB==1 & TPS$usedHR==1 & TPS$nTransfers>0] <- "EB_HR"
+TPS$TRANSFER_TYPE[TPS$usedEB==1 & TPS$usedLR==1 & TPS$nTransfers>0] <- "EB_LR"
+TPS$TRANSFER_TYPE[TPS$usedEB==1 & TPS$usedFR==1 & TPS$nTransfers>0] <- "EB_FR"
+TPS$TRANSFER_TYPE[TPS$usedEB==1 & TPS$usedTotal==1 & TPS$nTransfers>0] <- "EB_EB"
+TPS$TRANSFER_TYPE[TPS$usedFR==1 & TPS$usedCR==1 & TPS$nTransfers>0] <- "FR_CR"
+TPS$TRANSFER_TYPE[TPS$usedFR==1 & TPS$usedHR==1 & TPS$nTransfers>0] <- "FR_HR"
+TPS$TRANSFER_TYPE[TPS$usedFR==1 & TPS$usedLR==1 & TPS$nTransfers>0] <- "FR_LR"
+TPS$TRANSFER_TYPE[TPS$usedFR==1 & TPS$usedTotal==1 & TPS$nTransfers>0] <- "FR_FR"
+TPS$TRANSFER_TYPE[TPS$usedLR==1 & TPS$usedCR==1 & TPS$nTransfers>0] <- "LR_CR"
+TPS$TRANSFER_TYPE[TPS$usedLR==1 & TPS$usedHR==1 & TPS$nTransfers>0] <- "LR_HR"
+TPS$TRANSFER_TYPE[TPS$usedLR==1 & TPS$usedTotal==1 & TPS$nTransfers>0] <- "LR_LR"
+TPS$TRANSFER_TYPE[TPS$usedHR==1 & TPS$usedCR==1 & TPS$nTransfers>0] <- "HR_CR"
+TPS$TRANSFER_TYPE[TPS$usedHR==1 & TPS$usedTotal==1 & TPS$nTransfers>0] <- "HR_HR"
+TPS$TRANSFER_TYPE[TPS$usedCR==1 & TPS$usedTotal==1 & TPS$nTransfers>0] <- "CR_CR"
 
 
 
@@ -444,7 +485,7 @@ OBS$TRANSFER_TYPE[OBS$usedCR==1 & OBS$usedTotal==1 & OBS$nTransfers>0] <- "CR_CR
 # RENAME FIELDS
 #=========================================================================================================================
 
-names(OBS)[names(OBS)=="survey_tech"] <- "SURVEY_MODE"
+names(TPS)[names(TPS)=="survey_tech"] <- "SURVEY_MODE"
 
 
 
@@ -458,7 +499,7 @@ names(OBS)[names(OBS)=="survey_tech"] <- "SURVEY_MODE"
 marginalControls <- data.frame(GEOID = SeedIDs)
 
 # Create a matrix of boarding targets by operator
-boardingsTargets <- data.frame(xtabs(boardWeight_2015~operator, data = OBS))
+boardingsTargets <- data.frame(xtabs(boardWeight_2015~operator, data = TPS))
 boardingsTargets <- data.frame(t(boardingsTargets), stringsAsFactors = F)
 colnames(boardingsTargets) <- boardingsTargets[1,]
 boardingsTargets <- boardingsTargets[2,]
@@ -474,12 +515,12 @@ colnames(boardingsTargets) <- unlist(lapply(colnames(boardingsTargets), function
 marginalControls <- cbind(marginalControls, boardingsTargets)
 
 # Total linked trips
-totalLinkedTrips <- sum(OBS$tripWeight_2015)
+totalLinkedTrips <- sum(TPS$tripWeight_2015)
 marginalControls$totalLinkedTrips <- totalLinkedTrips
 
 # Sum boardings by suvey_mode and transfer combination type
 
-linkedtrips_best_mode_xfer <- OBS %>%
+linkedtrips_best_mode_xfer <- TPS %>%
   group_by(SURVEY_MODE) %>%
   summarise(LB_CR = sum(LB_CR * boardWeight_2015), 
             LB_HR = sum(LB_HR * boardWeight_2015), 
@@ -509,73 +550,73 @@ linkedtrips_best_mode_xfer <- linkedtrips_best_mode_xfer[-c(1),]                
 linkedtrips_best_mode_xfer <- cbind(TRANSFER_TYPE = row.names(linkedtrips_best_mode_xfer), linkedtrips_best_mode_xfer) # Append first column using row names
 
 # transfer targets must be from the survey reporting the maximum transfers
-#marginalControls$XFERS_LB_EB <- as.integer(max(sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LB_EB" & OBS$SURVEY_MODE=="EB"]), 
-#                                               sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LB_EB" & OBS$SURVEY_MODE=="LB"])))
-#marginalControls$XFERS_LB_LR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LB_LR" & OBS$SURVEY_MODE=="LR"]), 
-#                                               sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LB_LR" & OBS$SURVEY_MODE=="LB"])))
-#marginalControls$XFERS_LB_FR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LB_FR" & OBS$SURVEY_MODE=="FR"]), 
-#                                               sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LB_FR" & OBS$SURVEY_MODE=="LB"])))
-#marginalControls$XFERS_LB_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LB_CR" & OBS$SURVEY_MODE=="CR"]), 
-#                                               sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LB_CR" & OBS$SURVEY_MODE=="LB"])))
-#marginalControls$XFERS_LB_HR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LB_HR" & OBS$SURVEY_MODE=="HR"]), 
-#                                               sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LB_HR" & OBS$SURVEY_MODE=="LB"])))
-#marginalControls$XFERS_LR_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LR_CR" & OBS$SURVEY_MODE=="CR"]), 
-#                                               sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="LR_CR" & OBS$SURVEY_MODE=="LR"])))
-#marginalControls$XFERS_HR_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="HR_CR" & OBS$SURVEY_MODE=="CR"]), 
-#                                               sum(OBS$boardWeight_2015[OBS$TRANSFER_TYPE=="HR_CR" & OBS$SURVEY_MODE=="HR"])))
+#marginalControls$XFERS_LB_EB <- as.integer(max(sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LB_EB" & TPS$SURVEY_MODE=="EB"]), 
+#                                               sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LB_EB" & TPS$SURVEY_MODE=="LB"])))
+#marginalControls$XFERS_LB_LR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LB_LR" & TPS$SURVEY_MODE=="LR"]), 
+#                                               sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LB_LR" & TPS$SURVEY_MODE=="LB"])))
+#marginalControls$XFERS_LB_FR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LB_FR" & TPS$SURVEY_MODE=="FR"]), 
+#                                               sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LB_FR" & TPS$SURVEY_MODE=="LB"])))
+#marginalControls$XFERS_LB_CR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LB_CR" & TPS$SURVEY_MODE=="CR"]), 
+#                                               sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LB_CR" & TPS$SURVEY_MODE=="LB"])))
+#marginalControls$XFERS_LB_HR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LB_HR" & TPS$SURVEY_MODE=="HR"]), 
+#                                               sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LB_HR" & TPS$SURVEY_MODE=="LB"])))
+#marginalControls$XFERS_LR_CR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LR_CR" & TPS$SURVEY_MODE=="CR"]), 
+#                                               sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="LR_CR" & TPS$SURVEY_MODE=="LR"])))
+#marginalControls$XFERS_HR_CR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="HR_CR" & TPS$SURVEY_MODE=="CR"]), 
+#                                               sum(TPS$boardWeight_2015[TPS$TRANSFER_TYPE=="HR_CR" & TPS$SURVEY_MODE=="HR"])))
 
 # Creating a new variable in the marginal controls data frame with the max sum of 2015 boarding weight between each mode of a transfer combination
 
 
-marginalControls$XFERS_LB_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$LB_CR==1 & OBS$SURVEY_MODE=="CR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$LB_CR==1 & OBS$SURVEY_MODE=="LB"])))
-marginalControls$XFERS_LB_HR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$LB_HR==1 & OBS$SURVEY_MODE=="HR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$LB_HR==1 & OBS$SURVEY_MODE=="LB"])))
-marginalControls$XFERS_LB_LR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$LB_LR==1 & OBS$SURVEY_MODE=="LR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$LB_LR==1 & OBS$SURVEY_MODE=="LB"])))
-marginalControls$XFERS_LB_FR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$LB_FR==1 & OBS$SURVEY_MODE=="FR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$LB_FR==1 & OBS$SURVEY_MODE=="LB"])))
-marginalControls$XFERS_LB_EB <- as.integer(max(sum(OBS$boardWeight_2015[OBS$LB_EB==1 & OBS$SURVEY_MODE=="EB"]), 
-                                               sum(OBS$boardWeight_2015[OBS$LB_EB==1 & OBS$SURVEY_MODE=="LB"])))
-marginalControls$XFERS_LB_LB <- as.integer(max(sum(OBS$boardWeight_2015[OBS$LB_LB==1 & OBS$SURVEY_MODE=="LB"]), 
-                                               sum(OBS$boardWeight_2015[OBS$LB_LB==1 & OBS$SURVEY_MODE=="LB"])))
-marginalControls$XFERS_EB_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$EB_CR==1 & OBS$SURVEY_MODE=="CR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$EB_CR==1 & OBS$SURVEY_MODE=="EB"])))
-marginalControls$XFERS_EB_HR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$EB_HR==1 & OBS$SURVEY_MODE=="HR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$EB_HR==1 & OBS$SURVEY_MODE=="EB"])))
-marginalControls$XFERS_EB_LR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$EB_LR==1 & OBS$SURVEY_MODE=="LR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$EB_LR==1 & OBS$SURVEY_MODE=="EB"])))
-marginalControls$XFERS_EB_FR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$EB_FR==1 & OBS$SURVEY_MODE=="FR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$EB_FR==1 & OBS$SURVEY_MODE=="EB"])))
-marginalControls$XFERS_EB_EB <- as.integer(max(sum(OBS$boardWeight_2015[OBS$EB_EB==1 & OBS$SURVEY_MODE=="EB"]), 
-                                               sum(OBS$boardWeight_2015[OBS$EB_EB==1 & OBS$SURVEY_MODE=="EB"])))
-marginalControls$XFERS_FR_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$FR_CR==1 & OBS$SURVEY_MODE=="CR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$FR_CR==1 & OBS$SURVEY_MODE=="FR"])))
-marginalControls$XFERS_FR_HR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$FR_HR==1 & OBS$SURVEY_MODE=="HR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$FR_HR==1 & OBS$SURVEY_MODE=="FR"])))
-marginalControls$XFERS_FR_LR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$FR_LR==1 & OBS$SURVEY_MODE=="LR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$FR_LR==1 & OBS$SURVEY_MODE=="FR"])))
-marginalControls$XFERS_FR_FR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$FR_FR==1 & OBS$SURVEY_MODE=="FR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$FR_FR==1 & OBS$SURVEY_MODE=="FR"])))
-marginalControls$XFERS_LR_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$LR_CR==1 & OBS$SURVEY_MODE=="CR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$LR_CR==1 & OBS$SURVEY_MODE=="LR"])))
-marginalControls$XFERS_LR_HR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$LR_HR==1 & OBS$SURVEY_MODE=="HR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$LR_HR==1 & OBS$SURVEY_MODE=="LR"])))
-marginalControls$XFERS_LR_LR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$LR_LR==1 & OBS$SURVEY_MODE=="LR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$LR_LR==1 & OBS$SURVEY_MODE=="LR"])))
-marginalControls$XFERS_HR_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$HR_CR==1 & OBS$SURVEY_MODE=="CR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$HR_CR==1 & OBS$SURVEY_MODE=="HR"])))
-marginalControls$XFERS_HR_HR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$HR_HR==1 & OBS$SURVEY_MODE=="HR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$HR_HR==1 & OBS$SURVEY_MODE=="HR"])))
-marginalControls$XFERS_CR_CR <- as.integer(max(sum(OBS$boardWeight_2015[OBS$CR_CR==1 & OBS$SURVEY_MODE=="CR"]), 
-                                               sum(OBS$boardWeight_2015[OBS$CR_CR==1 & OBS$SURVEY_MODE=="CR"])))
+marginalControls$XFERS_LB_CR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$LB_CR==1 & TPS$SURVEY_MODE=="CR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$LB_CR==1 & TPS$SURVEY_MODE=="LB"])))
+marginalControls$XFERS_LB_HR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$LB_HR==1 & TPS$SURVEY_MODE=="HR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$LB_HR==1 & TPS$SURVEY_MODE=="LB"])))
+marginalControls$XFERS_LB_LR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$LB_LR==1 & TPS$SURVEY_MODE=="LR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$LB_LR==1 & TPS$SURVEY_MODE=="LB"])))
+marginalControls$XFERS_LB_FR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$LB_FR==1 & TPS$SURVEY_MODE=="FR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$LB_FR==1 & TPS$SURVEY_MODE=="LB"])))
+marginalControls$XFERS_LB_EB <- as.integer(max(sum(TPS$boardWeight_2015[TPS$LB_EB==1 & TPS$SURVEY_MODE=="EB"]), 
+                                               sum(TPS$boardWeight_2015[TPS$LB_EB==1 & TPS$SURVEY_MODE=="LB"])))
+marginalControls$XFERS_LB_LB <- as.integer(max(sum(TPS$boardWeight_2015[TPS$LB_LB==1 & TPS$SURVEY_MODE=="LB"]), 
+                                               sum(TPS$boardWeight_2015[TPS$LB_LB==1 & TPS$SURVEY_MODE=="LB"])))
+marginalControls$XFERS_EB_CR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$EB_CR==1 & TPS$SURVEY_MODE=="CR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$EB_CR==1 & TPS$SURVEY_MODE=="EB"])))
+marginalControls$XFERS_EB_HR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$EB_HR==1 & TPS$SURVEY_MODE=="HR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$EB_HR==1 & TPS$SURVEY_MODE=="EB"])))
+marginalControls$XFERS_EB_LR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$EB_LR==1 & TPS$SURVEY_MODE=="LR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$EB_LR==1 & TPS$SURVEY_MODE=="EB"])))
+marginalControls$XFERS_EB_FR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$EB_FR==1 & TPS$SURVEY_MODE=="FR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$EB_FR==1 & TPS$SURVEY_MODE=="EB"])))
+marginalControls$XFERS_EB_EB <- as.integer(max(sum(TPS$boardWeight_2015[TPS$EB_EB==1 & TPS$SURVEY_MODE=="EB"]), 
+                                               sum(TPS$boardWeight_2015[TPS$EB_EB==1 & TPS$SURVEY_MODE=="EB"])))
+marginalControls$XFERS_FR_CR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$FR_CR==1 & TPS$SURVEY_MODE=="CR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$FR_CR==1 & TPS$SURVEY_MODE=="FR"])))
+marginalControls$XFERS_FR_HR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$FR_HR==1 & TPS$SURVEY_MODE=="HR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$FR_HR==1 & TPS$SURVEY_MODE=="FR"])))
+marginalControls$XFERS_FR_LR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$FR_LR==1 & TPS$SURVEY_MODE=="LR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$FR_LR==1 & TPS$SURVEY_MODE=="FR"])))
+marginalControls$XFERS_FR_FR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$FR_FR==1 & TPS$SURVEY_MODE=="FR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$FR_FR==1 & TPS$SURVEY_MODE=="FR"])))
+marginalControls$XFERS_LR_CR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$LR_CR==1 & TPS$SURVEY_MODE=="CR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$LR_CR==1 & TPS$SURVEY_MODE=="LR"])))
+marginalControls$XFERS_LR_HR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$LR_HR==1 & TPS$SURVEY_MODE=="HR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$LR_HR==1 & TPS$SURVEY_MODE=="LR"])))
+marginalControls$XFERS_LR_LR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$LR_LR==1 & TPS$SURVEY_MODE=="LR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$LR_LR==1 & TPS$SURVEY_MODE=="LR"])))
+marginalControls$XFERS_HR_CR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$HR_CR==1 & TPS$SURVEY_MODE=="CR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$HR_CR==1 & TPS$SURVEY_MODE=="HR"])))
+marginalControls$XFERS_HR_HR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$HR_HR==1 & TPS$SURVEY_MODE=="HR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$HR_HR==1 & TPS$SURVEY_MODE=="HR"])))
+marginalControls$XFERS_CR_CR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$CR_CR==1 & TPS$SURVEY_MODE=="CR"]), 
+                                               sum(TPS$boardWeight_2015[TPS$CR_CR==1 & TPS$SURVEY_MODE=="CR"])))
 
 
 # Create SEED HOUSEHOLD dataset, including only records with a non-zero trip weight
 #--------------------
 
 # Select variables [exclude records with zero weight]
-seed_households <- OBS[OBS$tripWeight_2015>0,c("Unique_ID", "SURVEY_MODE", "operator", "route", "TRANSFER_TYPE", 
+seed_households <- TPS[TPS$tripWeight_2015>0,c("Unique_ID", "SURVEY_MODE", "operator", "route", "TRANSFER_TYPE", 
                                                "BEST_MODE", "period", "boardings", "tripWeight_2015", "LB_CR", "LB_HR", "LB_LR", "LB_FR", "LB_EB", 
                                                "LB_LB", "EB_CR", "EB_HR", "EB_LR", "EB_FR", "EB_EB", "FR_CR", "FR_HR", "FR_LR", "FR_FR", "LR_CR", 
                                                "LR_HR", "LR_LR", "HR_CR", "HR_HR", "CR_CR")]
@@ -614,38 +655,38 @@ geogXWalk <- data.frame(Region = 1, GEOID = SeedIDs)
 
 # Target boardings by MODE
 target_boardings_mode <- xtabs(targets2015~technology, data = boarding_targets[boarding_targets$surveyed==1,])
-write.table("target_boardings_mode", file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",")
-write.table(target_boardings_mode, file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
+write.table("target_boardings_mode", file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",")
+write.table(target_boardings_mode, file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
 
 # Target boardings by operator
 target_boardings_operator <- xtabs(targets2015~operator, data = boarding_targets)
-write.table("target_boardings_operator", file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
-write.table(target_boardings_operator, file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
+write.table("target_boardings_operator", file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
+write.table(target_boardings_operator, file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
 
 # Boardings by SURVEY MODE
-boardings_survey_mode <- xtabs(boardWeight_2015~SURVEY_MODE, data = OBS)
-write.table("boardings_survey_mode", file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
-write.table(boardings_survey_mode, file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
+boardings_survey_mode <- xtabs(boardWeight_2015~SURVEY_MODE, data = TPS)
+write.table("boardings_survey_mode", file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
+write.table(boardings_survey_mode, file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
 
 # Boardings by OPERATOR
-boardings_operator <- xtabs(boardWeight_2015~operator, data = OBS)
-write.table("boardings_operator", file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
-write.table(boardings_operator, file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
+boardings_operator <- xtabs(boardWeight_2015~operator, data = TPS)
+write.table("boardings_operator", file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
+write.table(boardings_operator, file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
 
 # Linkedtrips by SURVEY MODE
-linkedtrips_survey_mode <- xtabs(tripWeight_2015~SURVEY_MODE, data = OBS)
-write.table("linkedtrips_survey_mode", file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
-write.table(linkedtrips_survey_mode, file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
+linkedtrips_survey_mode <- xtabs(tripWeight_2015~SURVEY_MODE, data = TPS)
+write.table("linkedtrips_survey_mode", file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
+write.table(linkedtrips_survey_mode, file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
 
 # Linkedtrips by BEST MODE
-linkedtrips_best_mode <- xtabs(tripWeight_2015~BEST_MODE, data = OBS)
-write.table("linkedtrips_best_mode", file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
-write.table(linkedtrips_best_mode, file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
+linkedtrips_best_mode <- xtabs(tripWeight_2015~BEST_MODE, data = TPS)
+write.table("linkedtrips_best_mode", file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
+write.table(linkedtrips_best_mode, file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
 
 # Boardings by BEST MODE and transfer type
-#linkedtrips_best_mode_xfer <- xtabs(boardWeight_2015~TRANSFER_TYPE+SURVEY_MODE, data = OBS)
-write.table("linkedtrips_best_mode_xfer", file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T)
-write.table(linkedtrips_best_mode_xfer, file.path(VALIDATION_Dir, "OBS_Summaries_Paste.csv"), sep = ",", append = T, row.names = F)
+#linkedtrips_best_mode_xfer <- xtabs(boardWeight_2015~TRANSFER_TYPE+SURVEY_MODE, data = TPS)
+write.table("linkedtrips_best_mode_xfer", file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T)
+write.table(linkedtrips_best_mode_xfer, file.path(VALIDATION_Dir, "TPS_Summaries_Paste.csv"), sep = ",", append = T, row.names = F)
 
 
 
@@ -658,19 +699,19 @@ write.csv(seed_households, file.path(POPSIM_Dir, "data", "seed_households.csv"),
 write.csv(seed_persons, file.path(POPSIM_Dir, "data", "seed_persons.csv"), row.names = F)
 write.csv(marginalControls, file.path(POPSIM_Dir, "data", "seed_controls.csv"), row.names = F)
 write.csv(geogXWalk, file.path(POPSIM_Dir, "data", "geogXWalk.csv"), row.names = F)
-write.csv(OBS, file.path(POPSIM_Dir, "data", "obs_processed.csv"), row.names = F)
+write.csv(TPS, file.path(POPSIM_Dir, "data", "TPS_processed.csv"), row.names = F)
 
 
 # # transfer rate when surveyed mode is CR
-# sum(OBS$weight[OBS$survey_tech=="CR"])/sum(OBS$trip_weight[OBS$survey_tech=="CR"])
+# sum(TPS$weight[TPS$survey_tech=="CR"])/sum(TPS$trip_weight[TPS$survey_tech=="CR"])
 # 
 # # transfer rate when surveyed mode is not CR but transferred to/from CR
-# sum(OBS$weight[OBS$survey_tech!="CR" & OBS$usedCR==1])/sum(OBS$trip_weight[OBS$survey_tech!="CR" & OBS$usedCR==1])
+# sum(TPS$weight[TPS$survey_tech!="CR" & TPS$usedCR==1])/sum(TPS$trip_weight[TPS$survey_tech!="CR" & TPS$usedCR==1])
 # 
-# View(OBS[OBS$survey_tech!="CR" & OBS$usedCR==1,c("boardings","first_board_tech", "transfer_from_tech", "transfer_from",
+# View(TPS[TPS$survey_tech!="CR" & TPS$usedCR==1,c("boardings","first_board_tech", "transfer_from_tech", "transfer_from",
 #                                                    "survey_tech", "transfer_to", "transfer_to_tech", "last_alight_tech")])
 # 
-# xtabs(~transfer_from_tech+survey_tech, data = OBS)
+# xtabs(~transfer_from_tech+survey_tech, data = TPS)
 
 
 # Turn back warnings;
