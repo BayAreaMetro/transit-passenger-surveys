@@ -13,10 +13,10 @@ suppressMessages(library(tidyverse))
 #=========================================================================================================================
 
 # Read TPS dataset survey data
-load(file.path(TPS_Dir,     "survey_combined_2021-05-24.RData"))
+load(file.path(TPS_Dir,     "survey_combined_2021-05-27.RData"))
 
 # Read in target boardings for 2015, with directory coming from Secondary Expansion.Rmd file
-boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE)
+boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE) 
 
 #=========================================================================================================================
 # DEFINITIONS
@@ -80,14 +80,15 @@ SeedIDs <- c(1)
 # DATA CLEANING, IMPUTATION & TRASNFORMATION
 #=========================================================================================================================
 
-# Remove weekend records and all older vintages of operators surveyed more than once
+# Remove weekend records, all older vintages of operators surveyed more than once, and SMART (not in 2015 network)
 #------------------------
 temp1 <- data.ready %>% filter(weekpart=="WEEKDAY" & 
                                !(operator %in% c("AC Transit", "ACE", "County Connection", 
                                                  "Golden Gate Transit", "LAVTA", "Napa Vine", 
                                                  "Petaluma Transit", "Santa Rosa CityBus", 
                                                  "SF Bay Ferry/WETA", "Sonoma County Transit", 
-                                                 "TriDelta", "Union City Transit") & survey_year<2015))
+                                                 "TriDelta", "Union City Transit") & survey_year<2015)) %>% 
+                              filter(!(operator=="SMART"))
 
 # Remove Capitol Corridor Records that start and/or end outside the Bay Area
 
@@ -232,12 +233,16 @@ TPS$last_alight_tech <- survey_tech_df$survey_tech_short[match(TPS$last_alight_t
 
 # Detailed Operator Coding
 #-------------------------
-# Edit operator names to show local and express bus
+# Edit operator names to show local and express bus and to match names in transit ridership targets
+
 TPS$operator[TPS$operator=="AC Transit" & TPS$survey_tech=="LB"] <- "AC Transit [LOCAL]"
 TPS$operator[TPS$operator=="AC Transit" & TPS$survey_tech=="EB"] <- "AC Transit [EXPRESS]"
 
 TPS$operator[TPS$operator=="County Connection" & TPS$survey_tech=="LB"] <- "County Connection [LOCAL]"
 TPS$operator[TPS$operator=="County Connection" & TPS$survey_tech=="EB"] <- "County Connection [EXPRESS]"
+
+TPS$operator[TPS$operator=="FAST" & TPS$survey_tech=="LB"] <- "FAST [LOCAL]"
+TPS$operator[TPS$operator=="FAST" & TPS$survey_tech=="EB"] <- "FAST [EXPRESS]"
 
 TPS$operator[TPS$operator=="Golden Gate Transit" & TPS$survey_tech=="EB"] <- "Golden Gate Transit [EXPRESS]"
 TPS$operator[TPS$operator=="Golden Gate Transit" & TPS$survey_tech=="FR"] <- "Golden Gate Transit [FERRY]"
@@ -245,32 +250,28 @@ TPS$operator[TPS$operator=="Golden Gate Transit" & TPS$survey_tech=="FR"] <- "Go
 TPS$operator[TPS$operator=="Napa Vine" & TPS$survey_tech=="LB"] <- "Napa Vine [LOCAL]"
 TPS$operator[TPS$operator=="Napa Vine" & TPS$survey_tech=="EB"] <- "Napa Vine [EXPRESS]"
 
+TPS$operator[TPS$operator=="Delta Breeze"] <- "Rio Vista Delta Breeze"
+
 TPS$operator[TPS$operator=="SamTrans" & TPS$survey_tech=="LB"] <- "SamTrans [LOCAL]"
 TPS$operator[TPS$operator=="SamTrans" & TPS$survey_tech=="EB"] <- "SamTrans [EXPRESS]"
 
 TPS$operator[TPS$operator=="SF Muni" & TPS$survey_tech=="LB"] <- "SF Muni [LOCAL]"
 TPS$operator[TPS$operator=="SF Muni" & TPS$survey_tech=="LR"] <- "SF Muni [LRT]"
 
-TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="LB"] <- "VTA [LOCAL]"
-TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="EB"] <- "VTA [EXPRESS]"
-TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="LR"] <- "VTA [LRT]"
-
-TPS$operator[TPS$operator=="FAST" & TPS$survey_tech=="LB"] <- "FAST [LOCAL]"
-TPS$operator[TPS$operator=="FAST" & TPS$survey_tech=="EB"] <- "FAST [EXPRESS]"
-
 TPS$operator[TPS$operator=="Soltrans" & TPS$survey_tech=="LB"] <- "Soltrans [LOCAL]"
 TPS$operator[TPS$operator=="Soltrans" & TPS$survey_tech=="EB"] <- "Soltrans [EXPRESS]"
 
 TPS$operator[TPS$operator=="City Coach"] <- "Vacaville City Coach"
 
+TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="LB"] <- "VTA [LOCAL]"
+TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="EB"] <- "VTA [EXPRESS]"
+TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="LR"] <- "VTA [LRT]"
+
 TPS$operator[TPS$operator=="WestCAT" & TPS$survey_tech=="LB"] <- "WestCAT [LOCAL]"
 TPS$operator[TPS$operator=="WestCAT" & TPS$survey_tech=="EB"] <- "WestCAT [EXPRESS]"
 
 ## copy technology from the targets database
-TPS <- merge(x=TPS, y=boarding_targets[boarding_targets$surveyed==1,c("operator","technology")], by="operator", all.x = TRUE)
-TPS$technology[TPS$technology=="Ferry"] <- "FR"
-
-
+#TPS <- merge(x=TPS, y=boarding_targets[boarding_targets$surveyed==1,c("operator","technology")], by="operator", all.x = TRUE)
 
 #=========================================================================================================================
 # FILTER RECORDS WITH MISSING DATA
