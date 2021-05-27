@@ -6,13 +6,14 @@
 ###########################################################################################################################
 oldw <- getOption("warn")
 options(warn = -1)                      # Ignore all warnings
+suppressMessages(library(tidyverse))
 
 #=========================================================================================================================
 # READ INPUTS
 #=========================================================================================================================
 
 # Read TPS dataset survey data
-load(file.path(TPS_Dir,     "survey_combined_2021-05-20.RData"))
+load(file.path(TPS_Dir,     "survey_combined_2021-05-24.RData"))
 
 # Read in target boardings for 2015, with directory coming from Secondary Expansion.Rmd file
 boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE)
@@ -91,7 +92,6 @@ temp1 <- data.ready %>% filter(weekpart=="WEEKDAY" &
 # Remove Capitol Corridor Records that start and/or end outside the Bay Area
 
 temp2 <- temp1 %>% 
-  mutate(flag=0) %>% 
   mutate(flag=if_else(operator=="Capitol Corridor" & 
                         !(onoff_enter_station %in% c("Jack London Square", "Berkeley", "Suisun-fairfield", 
                                     "Emeryville", "Fairfield/Vacaville Station", "Martinez", "San Jose", 
@@ -100,7 +100,7 @@ temp2 <- temp1 %>%
                           onoff_exit_station %in% c("Jack London Square", "Berkeley", "Suisun-fairfield", 
                                      "Emeryville", "Fairfield/Vacaville Station", "Martinez", "San Jose", 
                                      "Richmond", "Santa Clara University", "Santa Clara Great America", 
-                                     "Fremont", "Hayward", "Oakland Coliseum")), 1, flag))
+                                     "Fremont", "Hayward", "Oakland Coliseum")), 1, 0))
 
 TPS <- temp2 %>% 
   filter(flag !=1) %>% 
@@ -126,26 +126,30 @@ TPS <- TPS %>%
   mutate(agg_tour_purp = ifelse(agg_tour_purp == -9 & (tour_purp == 'at work'), 6, agg_tour_purp))
 
 # Create new access/egress variables just for modeling, recoding bike as "knr" and recoding missing in a predictable way
+# Create new auto sufficiency variable for imputation
 #-------------------------
 
 TPS <- TPS %>% 
   mutate(access_mode_model=access_mode,
-         egress_mode_model=egress_mode) %>% 
-  mutate_at(.,vars(access_mode_model,egress_mode_model),~recode(.,
-            "bike"=                            "knr",
-            "."=                               "missing",
-            "Missing - Dummy Record"=          "missing",
-            "Missing - Question Not Asked"=    "missing",
-            "Unknown"=                         "missing")) 
+         egress_mode_model=egress_mode,
+         auto_suff_model=auto_suff) 
+
+TPS <- TPS %>% 
+  mutate_at(.,vars(access_mode_model,egress_mode_model),~case_when(
+            .=="bike"~                           "knr",
+            .=="."~                              "missing",
+            #.=="Missing - Dummy Record"~        "missing",
+            .=="Missing - Question Not Asked"~  "missing",
+            .=="Unknown"~                       "missing",
+            is.na(.)~                           "missing",
+            TRUE~                                       .)) 
 
 # Summarize operator by access mode
 
-TPS <- TPS %>%
-  mutate(access_mode_model = ifelse(is.na(access_mode), "missing", access_mode))
-operator_access_mode <- xtabs(trip_weight~operator+access_mode, data = TPS[TPS$access_mode!="missing", ])
+operator_access_mode <- xtabs(trip_weight~operator+access_mode_model, data = TPS[TPS$access_mode_model!="missing", ])
 operator_access_mode <- data.frame(operator_access_mode)
-molten <- melt(operator_access_mode, id = c("operator", "access_mode"))
-operator_access_mode <- dcast(molten, operator~access_mode, sum)
+molten <- melt(operator_access_mode, id = c("operator", "access_mode_model"))
+operator_access_mode <- dcast(molten, operator~access_mode_model, sum)
 
 # Create additional access mode variables (totals and shares) for later application
 
@@ -166,16 +170,16 @@ returnAccessMode <- function(op)
   return(ifelse(r<c1, "walk", ifelse(r<c2, "knr", "pnr")))
 }
 
-TPS$access_mode[TPS$access_mode=="missing"] <- sapply(as.character(TPS$operator[TPS$access_mode=="missing"]),function(x) {returnAccessMode(x)} )
+TPS$access_mode_model[TPS$access_mode_model=="missing"] <- sapply(as.character(TPS$operator[TPS$access_mode_model=="missing"]),function(x) {returnAccessMode(x)} )
 
 # Now do the same thing for egress modes as is done above for access modes
 
 TPS <- TPS %>%
-  mutate(egress_mode = ifelse(is.na(egress_mode), "missing", egress_mode))
-operator_egress_mode <- xtabs(trip_weight~operator+egress_mode, data = TPS[TPS$egress_mode!="missing", ])
+  mutate(egress_mode_model = ifelse(is.na(egress_mode_model), "missing", egress_mode_model))
+operator_egress_mode <- xtabs(trip_weight~operator+egress_mode_model, data = TPS[TPS$egress_mode_model!="missing", ])
 operator_egress_mode <- data.frame(operator_egress_mode)
-molten <- melt(operator_egress_mode, id = c("operator", "egress_mode"))
-operator_egress_mode <- dcast(molten, operator~egress_mode, sum)
+molten <- melt(operator_egress_mode, id = c("operator", "egress_mode_model"))
+operator_egress_mode <- dcast(molten, operator~egress_mode_model, sum)
 operator_egress_mode$tot <- operator_egress_mode$walk+operator_egress_mode$knr+operator_egress_mode$pnr
 operator_egress_mode$w <- operator_egress_mode$walk/operator_egress_mode$tot
 operator_egress_mode$k <- operator_egress_mode$knr/operator_egress_mode$tot
@@ -191,18 +195,18 @@ returnEgressMode <- function(op)
   return(ifelse(r<c1, "walk", ifelse(r<c2, "knr", "pnr")))
 }
 
-TPS$egress_mode[TPS$egress_mode=="missing"] <- sapply(as.character(TPS$operator[TPS$egress_mode=="missing"]),function(x) {returnEgressMode(x)} )
+TPS$egress_mode_model[TPS$egress_mode_model=="missing"] <- sapply(as.character(TPS$operator[TPS$egress_mode_model=="missing"]),function(x) {returnEgressMode(x)} )
 
 # Auto Sufficiency
 #-----------------
 # Code missing auto sufficiency, including imputation for missing values
 
 TPS <- TPS %>%
-  mutate(auto_suff = ifelse(is.na(auto_suff), "missing", auto_suff))
-operator_autoSuff <- xtabs(trip_weight~operator+auto_suff, data = TPS[TPS$auto_suff!="missing", ])
+  mutate(auto_suff_model = ifelse((is.na(auto_suff_model) | auto_suff_model=="Missing"), "missing", auto_suff_model))
+operator_autoSuff <- xtabs(trip_weight~operator+auto_suff_model, data = TPS[TPS$auto_suff_model!="missing", ])
 operator_autoSuff <- data.frame(operator_autoSuff)
-molten <- melt(operator_autoSuff, id = c("operator", "auto_suff"))
-operator_autoSuff <- dcast(molten, operator~auto_suff, sum)
+molten <- melt(operator_autoSuff, id = c("operator", "auto_suff_model"))
+operator_autoSuff <- dcast(molten, operator~auto_suff_model, sum)
 operator_autoSuff$tot <- operator_autoSuff$`zero autos`+operator_autoSuff$`auto sufficient`+operator_autoSuff$`auto negotiating`
 operator_autoSuff$as1 <- operator_autoSuff$`zero autos`/operator_autoSuff$tot
 operator_autoSuff$as2 <- operator_autoSuff$`auto negotiating`/operator_autoSuff$tot
@@ -218,7 +222,7 @@ returnAS <- function(op)
   return(ifelse(r<c1, "zero autos", ifelse(r<c2, "auto negotiating", "auto sufficient")))
 }
 
-TPS$auto_suff[TPS$auto_suff=="missing" | TPS$auto_suff=="Missing"] <- sapply(as.character(TPS$operator[TPS$auto_suff=="missing" | TPS$auto_suff=="Missing"]),function(x) {returnAS(x)} )
+TPS$auto_suff_model[TPS$auto_suff_model=="missing" | TPS$auto_suff_model=="Missing"] <- sapply(as.character(TPS$operator[TPS$auto_suff_model=="missing" | TPS$auto_suff_model=="Missing"]),function(x) {returnAS(x)} )
 
 # Transform survey_tech into simplified values for survey_tech, first_board tech, and last_alight tech
 #-----------------------------
@@ -235,8 +239,8 @@ TPS$operator[TPS$operator=="AC Transit" & TPS$survey_tech=="EB"] <- "AC Transit 
 TPS$operator[TPS$operator=="County Connection" & TPS$survey_tech=="LB"] <- "County Connection [LOCAL]"
 TPS$operator[TPS$operator=="County Connection" & TPS$survey_tech=="EB"] <- "County Connection [EXPRESS]"
 
-TPS$operator[TPS$operator=="Golden Gate Transit (bus)" & TPS$survey_tech=="LB"] <- "Golden Gate Transit [LOCAL]"
-TPS$operator[TPS$operator=="Golden Gate Transit (bus)" & TPS$survey_tech=="EB"] <- "Golden Gate Transit [EXPRESS]"
+TPS$operator[TPS$operator=="Golden Gate Transit" & TPS$survey_tech=="EB"] <- "Golden Gate Transit [EXPRESS]"
+TPS$operator[TPS$operator=="Golden Gate Transit" & TPS$survey_tech=="FR"] <- "Golden Gate Transit [FERRY]"
 
 TPS$operator[TPS$operator=="Napa Vine" & TPS$survey_tech=="LB"] <- "Napa Vine [LOCAL]"
 TPS$operator[TPS$operator=="Napa Vine" & TPS$survey_tech=="EB"] <- "Napa Vine [EXPRESS]"
@@ -251,6 +255,17 @@ TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="LB"] <- "VTA [LOCAL]"
 TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="EB"] <- "VTA [EXPRESS]"
 TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="LR"] <- "VTA [LRT]"
 
+TPS$operator[TPS$operator=="FAST" & TPS$survey_tech=="LB"] <- "FAST [LOCAL]"
+TPS$operator[TPS$operator=="FAST" & TPS$survey_tech=="EB"] <- "FAST [EXPRESS]"
+
+TPS$operator[TPS$operator=="Soltrans" & TPS$survey_tech=="LB"] <- "Soltrans [LOCAL]"
+TPS$operator[TPS$operator=="Soltrans" & TPS$survey_tech=="EB"] <- "Soltrans [EXPRESS]"
+
+TPS$operator[TPS$operator=="City Coach"] <- "Vacaville City Coach"
+
+TPS$operator[TPS$operator=="WestCAT" & TPS$survey_tech=="LB"] <- "WestCAT [LOCAL]"
+TPS$operator[TPS$operator=="WestCAT" & TPS$survey_tech=="EB"] <- "WestCAT [EXPRESS]"
+
 ## copy technology from the targets database
 TPS <- merge(x=TPS, y=boarding_targets[boarding_targets$surveyed==1,c("operator","technology")], by="operator", all.x = TRUE)
 TPS$technology[TPS$technology=="Ferry"] <- "FR"
@@ -262,7 +277,7 @@ TPS$technology[TPS$technology=="Ferry"] <- "FR"
 #=========================================================================================================================
 
 # Missing Tour Purpose
-TPS <- TPS[TPS$agg_tour_purp>0,]
+#TPS <- TPS[TPS$agg_tour_purp>0,]
 
 
 
@@ -355,9 +370,6 @@ TPS$period[TPS$day_part=="EVENING"]  <- "EV"
 #--------------------
 TPS$transfer_from_tech <- opTechXWalk$technology[match(TPS$transfer_from, opTechXWalk$operator)]
 TPS$transfer_to_tech <- opTechXWalk$technology[match(TPS$transfer_to, opTechXWalk$operator)]
-
-TPS$transfer_from_tech[TPS$transfer_from=="WHEELS (LAVTA)" | TPS$transfer_from=="MODESTO TRANSIT"] <- "LB"
-TPS$transfer_to_tech[TPS$transfer_to=="WHEELS (LAVTA)" | TPS$transfer_to=="MODESTO TRANSIT"] <- "LB"
 
 # Code Mode Set Type, creating dummy values (1) for each technology used
 TPS <- TPS %>%
