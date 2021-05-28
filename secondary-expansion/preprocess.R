@@ -5,8 +5,12 @@
 ### Amended by Shimon Israel, May 2021
 ###########################################################################################################################
 oldw <- getOption("warn")
-options(warn = -1)                      # Ignore all warnings
+#options(warn = -1)                      # Ignore all warnings
+
+POPSIM_Dir <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
+
 suppressMessages(library(tidyverse))
+library(reshape2)
 
 #=========================================================================================================================
 # READ INPUTS
@@ -201,9 +205,8 @@ TPS$egress_mode_model[TPS$egress_mode_model=="missing"] <- sapply(as.character(T
 # Auto Sufficiency
 #-----------------
 # Code missing auto sufficiency, including imputation for missing values
-
 TPS <- TPS %>%
-  mutate(auto_suff_model = ifelse((is.na(auto_suff_model) | auto_suff_model=="Missing"), "missing", auto_suff_model))
+  mutate(auto_suff_model = ifelse(is.na(auto_suff_model) | auto_suff_model=="Missing", "missing", auto_suff_model))
 operator_autoSuff <- xtabs(trip_weight~operator+auto_suff_model, data = TPS[TPS$auto_suff_model!="missing", ])
 operator_autoSuff <- data.frame(operator_autoSuff)
 molten <- melt(operator_autoSuff, id = c("operator", "auto_suff_model"))
@@ -223,7 +226,7 @@ returnAS <- function(op)
   return(ifelse(r<c1, "zero autos", ifelse(r<c2, "auto negotiating", "auto sufficient")))
 }
 
-TPS$auto_suff_model[TPS$auto_suff_model=="missing" | TPS$auto_suff_model=="Missing"] <- sapply(as.character(TPS$operator[TPS$auto_suff_model=="missing" | TPS$auto_suff_model=="Missing"]),function(x) {returnAS(x)} )
+TPS$auto_suff_model[TPS$auto_suff_model=="missing"] <- sapply(as.character(TPS$operator[TPS$auto_suff_model=="missing"]),function(x) {returnAS(x)} )
 
 # Transform survey_tech into simplified values for survey_tech, first_board tech, and last_alight tech
 #-----------------------------
@@ -625,13 +628,13 @@ marginalControls$XFERS_CR_CR <- as.integer(max(sum(TPS$boardWeight_2015[TPS$CR_C
 #--------------------
 
 # Select variables [exclude records with zero weight]
-seed_households <- TPS[TPS$tripWeight_2015>0,c("Unique_ID", "SURVEY_MODE", "operator", "route", "TRANSFER_TYPE", 
+seed_households <- TPS[TPS$tripWeight_2015>0,c("unique_ID", "SURVEY_MODE", "operator", "route", "TRANSFER_TYPE", 
                                                "BEST_MODE", "period", "boardings", "tripWeight_2015", "LB_CR", "LB_HR", "LB_LR", "LB_FR", "LB_EB", 
                                                "LB_LB", "EB_CR", "EB_HR", "EB_LR", "EB_FR", "EB_EB", "FR_CR", "FR_HR", "FR_LR", "FR_FR", "LR_CR", 
                                                "LR_HR", "LR_LR", "HR_CR", "HR_HR", "CR_CR")]
 
 # Rename fields to make it ready for PopSim
-names(seed_households)[names(seed_households)=="Unique_ID"] <- "UNIQUE_ID"
+names(seed_households)[names(seed_households)=="unique_ID"] <- "UNIQUE_ID"
 names(seed_households)[names(seed_households)=="operator"] <- "OPERATOR"
 names(seed_households)[names(seed_households)=="route"] <- "ROUTE"
 names(seed_households)[names(seed_households)=="period"] <- "PERIOD"
@@ -724,7 +727,7 @@ write.csv(TPS, file.path(POPSIM_Dir, "data", "TPS_processed.csv"), row.names = F
 
 
 # Turn back warnings;
-options(warn = oldw)
+#options(warn = oldw)
 
 
 
