@@ -83,7 +83,7 @@ f_actransit_survey_path <- paste0(dir_path,
 f_bart_survey_path <- paste0(dir_path,
                              "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight_fixColname_modifyTransfer_NO POUND OR SINGLE QUOTE.csv")
 f_caltrain_survey_path <- paste0(dir_path,
-                                 "Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE_modifyTransfer_fixRouteNames_NO POUND OR SINGLE QUOTE.csv")
+                              "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE_modifyTransfer_fixRouteNames_NO POUND OR SINGLE QUOTE.csv")
 f_marin_survey_path <- paste0(dir_path,
                               "Marin Transit/As CSV/marin transit_data file_final01222021_NO POUND OR SINGLE QUOTE.csv")
 f_muni_survey_path <- paste0(dir_path,
@@ -144,9 +144,9 @@ f_output_decom_csv_path <- paste0(dir_path,
                                   "_data Standardized/decomposition/survey_decomposition_", today, ".csv")
 
 # Setup the log file
-run_log <- file(sprintf("%s_data Standardized/Build_Standard_Database_%s.log",dir_path,today))
-sink(run_log, append=TRUE, type = 'output')
-sink(run_log, append=TRUE, type = "message")
+#run_log <- file(sprintf("%s_data Standardized/Build_Standard_Database_%s.log",dir_path,today))
+#sink(run_log, append=TRUE, type = 'output')
+#sink(run_log, append=TRUE, type = "message")
 
 
 # _User Intervention_
