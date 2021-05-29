@@ -39,23 +39,6 @@ boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015
 
 # Create operator equivalency with technology
 
-#operator = c("ACE",               "AC TRANSIT",        "AIR BART",         "AMTRAK",              "BART",             
-#             "CALTRAIN",          "COUNTY CONNECTION", "FAIRFIELD-SUISUN", "GOLDEN GATE TRANSIT", "GOLDEN GATE FERRY", 
-#             "MARIN TRANSIT",     "MUNI",              "NAPA VINE",        "RIO-VISTA",           "SAMTRANS",
-#             "SANTA ROSA CITYBUS","SF BAY FERRY",      "SOLTRANS",          "TRI-DELTA",          "UNION CITY",          
-#             "WESTCAT",           "VTA",               "OTHER",             "PRIVATE SHUTTLE",  "OTHER AGENCY",        
-#             "BLUE GOLD FERRY", "None", "WHEELS (LAVTA)", "MODESTO TRANSIT", "BLUE & GOLD FERRY", 
-#             "DUMBARTON EXPRESS", "EMERY-GO-ROUND", "PETALUMA TRANSIT", "SANTA ROSA CITY BUS", "SONOMA COUNTY TRANSIT", 
-#             "STANFORD SHUTTLES", "VALLEJO TRANSIT", "SAN JOAQUIN TRANSIT")
-#technology = c("CR", "LB", "LB", "CR", "HR", 
-#               "CR", "LB", "LB", "EB", "FR",      
-#               "LB", "LB", "LB", "LB", "LB",
-#               "LB", "FR", "LB", "LB", "LB",     
-#               "LB", "LB", "LB", "LB", "LB",     
-#               "FR", "None", "LB", "LB", "FR", 
-#               "EB", "LB", "LB", "LB", "LB", 
-#               "LB", "LB", "LB")
-
 operator = c("AC TRANSIT", "ACE", "AMTRAK", "BART", "Bay Area Shuttles", 
              "BLUE & GOLD FERRY", "BLUE GOLD FERRY", "CALTRAIN", "COUNTY CONNECTION", 
              "DUMBARTON", "DUMBARTON EXPRESS", "EMERY-GO-ROUND", "EMERYVILLE MTA", 
@@ -98,42 +81,30 @@ SeedIDs <- c(1)
 # Remove weekend records, all older vintages of operators surveyed more than once, and SMART (not in 2015 network)
 # Also remove "dummy records" (BART, Caltrain, Muni) used for weighting purposes but lacking characteristics
 #------------------------
-temp1 <- data.ready %>% filter(weekpart=="WEEKDAY" & 
+TPS <- data.ready %>% filter(weekpart=="WEEKDAY" & 
                                !(operator %in% c("AC Transit", "ACE", "County Connection", 
                                                  "Golden Gate Transit", "LAVTA", "Napa Vine", 
                                                  "Petaluma Transit", "Santa Rosa CityBus", 
                                                  "SF Bay Ferry/WETA", "Sonoma County Transit", 
                                                  "TriDelta", "Union City Transit") & survey_year<2015)) %>% 
-                              filter(!(operator=="SMART")) %>% 
-                              mutate(dummy=if_else(access_mode!="Missing - Dummy Record" | is.na(access_mode),0,1)) 
-
-temp1 <- temp1 %>% filter(dummy !=1)
-
+                              filter(operator!="SMART" | is.na(operator)) %>% 
+                              filter(access_mode!="Missing - Dummy Record" | is.na(access_mode)) 
 
 # Remove Capitol Corridor and ACE Records that start and/or end outside the Bay Area
-# Create flag then later remove records based on flag
 
-temp2 <- temp1 %>% 
-  mutate(flag=if_else(operator=="Capitol Corridor" & 
-                        !(onoff_enter_station %in% c("Jack London Square", "Berkeley", "Suisun-fairfield", 
-                                    "Emeryville", "Fairfield/Vacaville Station", "Martinez", "San Jose", 
-                                    "Richmond", "Santa Clara University", "Santa Clara Great America", 
-                                    "Fremont", "Hayward", "Oakland Coliseum") & 
-                          onoff_exit_station %in% c("Jack London Square", "Berkeley", "Suisun-fairfield", 
-                                     "Emeryville", "Fairfield/Vacaville Station", "Martinez", "San Jose", 
-                                     "Richmond", "Santa Clara University", "Santa Clara Great America", 
-                                     "Fremont", "Hayward", "Oakland Coliseum")), 1, 
-                        if_else(operator=="ACE" &
-                                (onoff_enter_station %in% c("Stockton Station", "Lathrop/Manteca Station",
-                                                            "Tracy Station") |
-                                 onoff_exit_station %in% c("Stockton Station", "Lathrop/Manteca Station",
-                                                           "Tracy Station")),1,0)))
+bay_cap <- c("Jack London Square", "Berkeley", "Suisun-fairfield", 
+             "Emeryville", "Fairfield/Vacaville Station", "Martinez", "San Jose", 
+             "Richmond", "Santa Clara University", "Santa Clara Great America", 
+             "Fremont", "Hayward", "Oakland Coliseum")
 
-TPS <- temp2 %>% 
-  filter(flag !=1) %>% 
-  select(-flag)
+bay_ace <- c("San Jose Station", "Santa Clara University Station", "Great America Station", 
+             "Fremont Station", "Pleasanton Station", "Vasco Station", "Livermore Station")
 
-remove(data.ready,temp1, temp2)
+TPS <- TPS %>%
+  filter((onoff_enter_station %in% bay_cap | operator !="Capitol Corridor") &
+           (onoff_exit_station %in% bay_cap | operator !="Capitol Corridor") &
+           (onoff_enter_station %in% bay_ace | operator !="ACE") &
+           (onoff_exit_station %in% bay_ace | operator !="ACE"))
 
 #Aggregate tour purposes
 #-------------------------
@@ -316,18 +287,6 @@ TPS$operator[TPS$operator=="VTA" & TPS$survey_tech=="LR"] <- "VTA [LRT]"
 
 TPS$operator[TPS$operator=="WestCAT" & TPS$survey_tech=="LB"] <- "WestCAT [LOCAL]"
 TPS$operator[TPS$operator=="WestCAT" & TPS$survey_tech=="EB"] <- "WestCAT [EXPRESS]"
-
-## copy technology from the targets database
-#TPS <- merge(x=TPS, y=boarding_targets[boarding_targets$surveyed==1,c("operator","technology")], by="operator", all.x = TRUE)
-
-#=========================================================================================================================
-# FILTER RECORDS WITH MISSING DATA
-#=========================================================================================================================
-
-# Missing Tour Purpose
-#TPS <- TPS[TPS$agg_tour_purp>0,]
-
-
 
 #=========================================================================================================================
 # FACTOR WEIGHTS TO MATCH 2015 RIDERSHIP TARGETS
