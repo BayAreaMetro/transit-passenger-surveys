@@ -7,7 +7,18 @@
 oldw <- getOption("warn")
 #options(warn = -1)                      # Ignore all warnings
 
+#=========================================================================================================================
+# DIRECTORIES AND LIBRARIES
+#=========================================================================================================================
+
+USERPROFILE          <- gsub("\\\\","/", Sys.getenv("USERPROFILE"))
+box_drive_dir        <- file.path(USERPROFILE, "Box", "Modeling and Surveys")
+TPS_Dir         <- "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/"
 POPSIM_Dir <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
+BOX_TM2_Dir     <- file.path(box_drive_dir, "Development", "Travel Model Two Development")
+TPS_Anc_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Onboard Survey", "Data")
+TARGETS_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Scaled Transit Ridership Targets")
+VALIDATION_Dir  <- file.path(POPSIM_Dir, "validation")
 
 suppressMessages(library(tidyverse))
 library(reshape2)
@@ -17,7 +28,7 @@ library(reshape2)
 #=========================================================================================================================
 
 # Read TPS dataset survey data
-load(file.path(TPS_Dir,     "survey_combined_2021-05-27.RData"))
+load(file.path(TPS_Dir,     "survey_combined_2021-05-28.RData"))
 
 # Read in target boardings for 2015, with directory coming from Secondary Expansion.Rmd file
 boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE) 
@@ -85,6 +96,7 @@ SeedIDs <- c(1)
 #=========================================================================================================================
 
 # Remove weekend records, all older vintages of operators surveyed more than once, and SMART (not in 2015 network)
+# Also remove "dummy records" (BART, Caltrain, Muni) used for weighting purposes but lacking characteristics
 #------------------------
 temp1 <- data.ready %>% filter(weekpart=="WEEKDAY" & 
                                !(operator %in% c("AC Transit", "ACE", "County Connection", 
@@ -92,9 +104,14 @@ temp1 <- data.ready %>% filter(weekpart=="WEEKDAY" &
                                                  "Petaluma Transit", "Santa Rosa CityBus", 
                                                  "SF Bay Ferry/WETA", "Sonoma County Transit", 
                                                  "TriDelta", "Union City Transit") & survey_year<2015)) %>% 
-                              filter(!(operator=="SMART"))
+                              filter(!(operator=="SMART")) %>% 
+                              mutate(dummy=if_else(access_mode!="Missing - Dummy Record" | is.na(access_mode),0,1)) 
 
-# Remove Capitol Corridor Records that start and/or end outside the Bay Area
+temp1 <- temp1 %>% filter(dummy !=1)
+
+
+# Remove Capitol Corridor and ACE Records that start and/or end outside the Bay Area
+# Create flag then later remove records based on flag
 
 temp2 <- temp1 %>% 
   mutate(flag=if_else(operator=="Capitol Corridor" & 
@@ -105,7 +122,12 @@ temp2 <- temp1 %>%
                           onoff_exit_station %in% c("Jack London Square", "Berkeley", "Suisun-fairfield", 
                                      "Emeryville", "Fairfield/Vacaville Station", "Martinez", "San Jose", 
                                      "Richmond", "Santa Clara University", "Santa Clara Great America", 
-                                     "Fremont", "Hayward", "Oakland Coliseum")), 1, 0))
+                                     "Fremont", "Hayward", "Oakland Coliseum")), 1, 
+                        if_else(operator=="ACE" &
+                                (onoff_enter_station %in% c("Stockton Station", "Lathrop/Manteca Station",
+                                                            "Tracy Station") |
+                                 onoff_exit_station %in% c("Stockton Station", "Lathrop/Manteca Station",
+                                                           "Tracy Station")),1,0)))
 
 TPS <- temp2 %>% 
   filter(flag !=1) %>% 
@@ -142,8 +164,9 @@ TPS <- TPS %>%
 TPS <- TPS %>% 
   mutate_at(.,vars(access_mode_model,egress_mode_model),~case_when(
             .=="bike"~                           "knr",
+            .=="tnc"~                            "knr",
+            .=="other"~                          "missing",
             .=="."~                              "missing",
-            #.=="Missing - Dummy Record"~        "missing",
             .=="Missing - Question Not Asked"~  "missing",
             .=="Unknown"~                       "missing",
             is.na(.)~                           "missing",
@@ -205,6 +228,21 @@ TPS$egress_mode_model[TPS$egress_mode_model=="missing"] <- sapply(as.character(T
 # Auto Sufficiency
 #-----------------
 # Code missing auto sufficiency, including imputation for missing values
+
+# Remove Capitol Corridor from the auto_suff imputation, then re-add later below
+# Populate imputation variable for Capitol Corridor for later ease of binding
+# Capitol Corridor didn't collect workers/vehicles, so there's no basis for imputation here
+
+cap_trigger=0                                        # Set trigger if dataset has Capitol Corridor in it.
+if ("Capitol Corridor" %in% unique(TPS$operator)) {
+  cap_trigger=1
+  capitol <- TPS %>% 
+    filter(operator=="Capitol Corridor") %>% 
+    mutate(auto_suff_model=auto_suff)
+  TPS <- TPS %>% 
+    filter(!(operator=="Capitol Corridor"))}
+
+
 TPS <- TPS %>%
   mutate(auto_suff_model = ifelse(is.na(auto_suff_model) | auto_suff_model=="Missing", "missing", auto_suff_model))
 operator_autoSuff <- xtabs(trip_weight~operator+auto_suff_model, data = TPS[TPS$auto_suff_model!="missing", ])
@@ -227,6 +265,12 @@ returnAS <- function(op)
 }
 
 TPS$auto_suff_model[TPS$auto_suff_model=="missing"] <- sapply(as.character(TPS$operator[TPS$auto_suff_model=="missing"]),function(x) {returnAS(x)} )
+
+# Add Capitol Corridor back in 
+
+if (cap_trigger==1) {
+  TPS <- rbind(TPS,capitol)
+  cap_trigger=0}
 
 # Transform survey_tech into simplified values for survey_tech, first_board tech, and last_alight tech
 #-----------------------------
