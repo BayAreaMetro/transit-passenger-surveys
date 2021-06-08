@@ -24,6 +24,11 @@ for (package in packages_vector){
 
 ```
 
+# Set directory to the current folder
+```{r, setup, include=FALSE}
+knitr::opts_knit$set(root.dir = paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/"))
+```
+
 # Python Overhead - Conda config (only need to run once)
 ```{bash}
 conda create -n mtc_tps python=3.8
