@@ -13,7 +13,7 @@ TPS <- read.csv(file.path(POPSIM_Dir, "data", "TPS_processed.csv"), header = TRU
 seed_households <- read.csv(file.path(POPSIM_Dir, "data", "seed_households.csv"), header = TRUE, stringsAsFactors = FALSE)
 
 # Read PopSim weights
-popSim_weights <- read.csv(file.path(POPSIM_Dir, "output", "GEOID_weights.csv"), stringsAsFactors = FALSE)
+popSim_weights <- read.csv(file.path(POPSIM_Dir, "output", "final_GEOID_weights.csv"), stringsAsFactors = FALSE)
 
 # Read in target boardings for 2015
 boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE)
