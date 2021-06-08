@@ -220,18 +220,82 @@ pre code {
 <!-- rnb-text-end -->
 <!-- rnb-text-begin -->
 </div>
-<div id="set-directory-to-the-current-folder" class="section level1">
-<h1>Set directory to the current folder</h1>
-<!-- rnb-text-end -->
-<!-- rnb-text-begin -->
-</div>
 <div id="python-overhead---conda-config-only-need-to-run-once" class="section level1">
 <h1>Python Overhead - Conda config (only need to run once)</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxua25pdHI6Om9wdHNfa25pdCRzZXQocm9vdC5kaXIgPSBwYXN0ZTAoZGlybmFtZShyc3R1ZGlvYXBpOjpnZXRBY3RpdmVEb2N1bWVudENvbnRleHQoKSRwYXRoKSxcIi9cIikpXG5gYGAifQ== -->
-<pre class="bash"><code>knitr::opts_knit$set(root.dir = paste0(dirname(rstudioapi::getActiveDocumentContext()$path),&quot;/&quot;))</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxuY29uZGEgY3JlYXRlIC1uIG10Y190cHMgcHl0aG9uPTMuOFxuY29uZGEgYWN0aXZhdGUgbXRjX3RwcyBcbnBpcCBpbnN0YWxsIHBvcHVsYXRpb25zaW1cbmBgYCJ9 -->
+<pre class="bash"><code>conda create -n mtc_tps python=3.8
+conda activate mtc_tps 
+pip install populationsim</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiQ29sbGVjdGluZyBwYWNrYWdlIG1ldGFkYXRhIChjdXJyZW50X3JlcG9kYXRhLmpzb24pOiAuLi53b3JraW5nLi4uIGZhaWxlZFxuIn0= -->
+<pre><code>Collecting package metadata (current_repodata.json): ...working... failed</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5Db25kYUhUVFBFcnJvcjogSFRUUCAwMDAgQ09OTkVDVElPTiBGQUlMRUQgZm9yIHVybCA8aHR0cHM6Ly9yZXBvLmFuYWNvbmRhLmNvbS9wa2dzL21haW4vd2luLTY0L2N1cnJlbnRfcmVwb2RhdGEuanNvbj5cbkVsYXBzZWQ6IC1cblxuQW4gSFRUUCBlcnJvciBvY2N1cnJlZCB3aGVuIHRyeWluZyB0byByZXRyaWV2ZSB0aGlzIFVSTC5cbkhUVFAgZXJyb3JzIGFyZSBvZnRlbiBpbnRlcm1pdHRlbnQsIGFuZCBhIHNpbXBsZSByZXRyeSB3aWxsIGdldCB5b3Ugb24geW91ciB3YXkuXG5cbklmIHlvdXIgY3VycmVudCBuZXR3b3JrIGhhcyBodHRwczovL3d3dy5hbmFjb25kYS5jb20gYmxvY2tlZCwgcGxlYXNlIGZpbGVcbmEgc3VwcG9ydCByZXF1ZXN0IHdpdGggeW91ciBuZXR3b3JrIGVuZ2luZWVyaW5nIHRlYW0uXG5cbidodHRwczovL3JlcG8uYW5hY29uZGEuY29tL3BrZ3MvbWFpbi93aW4tNjQnXG5cblxuXG5Db21tYW5kTm90Rm91bmRFcnJvcjogWW91ciBzaGVsbCBoYXMgbm90IGJlZW4gcHJvcGVybHkgY29uZmlndXJlZCB0byB1c2UgJ2NvbmRhIGFjdGl2YXRlJy5cbklmIHVzaW5nICdjb25kYSBhY3RpdmF0ZScgZnJvbSBhIGJhdGNoIHNjcmlwdCwgY2hhbmdlIHlvdXJcbmludm9jYXRpb24gdG8gJ0NBTEwgY29uZGEuYmF0IGFjdGl2YXRlJy5cblxuVG8gaW5pdGlhbGl6ZSB5b3VyIHNoZWxsLCBydW5cblxuICAgICQgY29uZGEgaW5pdCA8U0hFTExfTkFNRT5cblxuQ3VycmVudGx5IHN1cHBvcnRlZCBzaGVsbHMgYXJlOlxuICAtIGJhc2hcbiAgLSBjbWQuZXhlXG4gIC0gZmlzaFxuICAtIHRjc2hcbiAgLSB4b25zaFxuICAtIHpzaFxuICAtIHBvd2Vyc2hlbGxcblxuU2VlICdjb25kYSBpbml0IC0taGVscCcgZm9yIG1vcmUgaW5mb3JtYXRpb24gYW5kIG9wdGlvbnMuXG5cbklNUE9SVEFOVDogWW91IG1heSBuZWVkIHRvIGNsb3NlIGFuZCByZXN0YXJ0IHlvdXIgc2hlbGwgYWZ0ZXIgcnVubmluZyAnY29uZGEgaW5pdCcuXG4ifQ== -->
+<pre><code>
+CondaHTTPError: HTTP 000 CONNECTION FAILED for url &lt;https://repo.anaconda.com/pkgs/main/win-64/current_repodata.json&gt;
+Elapsed: -
+
+An HTTP error occurred when trying to retrieve this URL.
+HTTP errors are often intermittent, and a simple retry will get you on your way.
+
+If your current network has https://www.anaconda.com blocked, please file
+a support request with your network engineering team.
+
+&#39;https://repo.anaconda.com/pkgs/main/win-64&#39;
+
+
+
+CommandNotFoundError: Your shell has not been properly configured to use &#39;conda activate&#39;.
+If using &#39;conda activate&#39; from a batch script, change your
+invocation to &#39;CALL conda.bat activate&#39;.
+
+To initialize your shell, run
+
+    $ conda init &lt;SHELL_NAME&gt;
+
+Currently supported shells are:
+  - bash
+  - cmd.exe
+  - fish
+  - tcsh
+  - xonsh
+  - zsh
+  - powershell
+
+See &#39;conda init --help&#39; for more information and options.
+
+IMPORTANT: You may need to close and restart your shell after running &#39;conda init&#39;.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUmVxdWlyZW1lbnQgYWxyZWFkeSBzYXRpc2ZpZWQ6IHBvcHVsYXRpb25zaW0gaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKDAuNSlcblJlcXVpcmVtZW50IGFscmVhZHkgc2F0aXNmaWVkOiBudW1weT49MS4xNi4xIGluIGM6XFx1c2Vyc1xcc2lzcmFlXFxhcHBkYXRhXFxsb2NhbFxcci1taW5pY29uZGFcXGVudnNcXHItcmV0aWN1bGF0ZVxcbGliXFxzaXRlLXBhY2thZ2VzIChmcm9tIHBvcHVsYXRpb25zaW0pICgxLjE5LjUpXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogYWN0aXZpdHlzaW0+PTAuOS45LjEgaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gcG9wdWxhdGlvbnNpbSkgKDAuOS45LjEpXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogb3J0b29scz49NS4xLjQwNDUgaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gcG9wdWxhdGlvbnNpbSkgKDkuMC45MDQ4KVxuUmVxdWlyZW1lbnQgYWxyZWFkeSBzYXRpc2ZpZWQ6IHBhbmRhcz49MS4xLjAgaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gcG9wdWxhdGlvbnNpbSkgKDEuMS41KVxuUmVxdWlyZW1lbnQgYWxyZWFkeSBzYXRpc2ZpZWQ6IHBzdXRpbD49NC4xIGluIGM6XFx1c2Vyc1xcc2lzcmFlXFxhcHBkYXRhXFxsb2NhbFxcci1taW5pY29uZGFcXGVudnNcXHItcmV0aWN1bGF0ZVxcbGliXFxzaXRlLXBhY2thZ2VzIChmcm9tIGFjdGl2aXR5c2ltPj0wLjkuOS4xLT5wb3B1bGF0aW9uc2ltKSAoNS44LjApXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogb3Blbm1hdHJpeD49MC4zLjQuMSBpbiBjOlxcdXNlcnNcXHNpc3JhZVxcYXBwZGF0YVxcbG9jYWxcXHItbWluaWNvbmRhXFxlbnZzXFxyLXJldGljdWxhdGVcXGxpYlxcc2l0ZS1wYWNrYWdlcyAoZnJvbSBhY3Rpdml0eXNpbT49MC45LjkuMS0+cG9wdWxhdGlvbnNpbSkgKDAuMy41LjApXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogcmVxdWVzdHM+PTIuNyBpbiBjOlxcdXNlcnNcXHNpc3JhZVxcYXBwZGF0YVxcbG9jYWxcXHItbWluaWNvbmRhXFxlbnZzXFxyLXJldGljdWxhdGVcXGxpYlxcc2l0ZS1wYWNrYWdlcyAoZnJvbSBhY3Rpdml0eXNpbT49MC45LjkuMS0+cG9wdWxhdGlvbnNpbSkgKDIuMjUuMSlcblJlcXVpcmVtZW50IGFscmVhZHkgc2F0aXNmaWVkOiB6Ym94Pj0xLjIgaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gYWN0aXZpdHlzaW0+PTAuOS45LjEtPnBvcHVsYXRpb25zaW0pICgxLjIuMClcblJlcXVpcmVtZW50IGFscmVhZHkgc2F0aXNmaWVkOiB0YWJsZXM+PTMuNS4xIGluIGM6XFx1c2Vyc1xcc2lzcmFlXFxhcHBkYXRhXFxsb2NhbFxcci1taW5pY29uZGFcXGVudnNcXHItcmV0aWN1bGF0ZVxcbGliXFxzaXRlLXBhY2thZ2VzIChmcm9tIGFjdGl2aXR5c2ltPj0wLjkuOS4xLT5wb3B1bGF0aW9uc2ltKSAoMy42LjEpXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogcHl5YW1sPj01LjEgaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gYWN0aXZpdHlzaW0+PTAuOS45LjEtPnBvcHVsYXRpb25zaW0pICg1LjQuMSlcblJlcXVpcmVtZW50IGFscmVhZHkgc2F0aXNmaWVkOiB0b29sej49MC44LjEgaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gYWN0aXZpdHlzaW0+PTAuOS45LjEtPnBvcHVsYXRpb25zaW0pICgwLjExLjEpXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogbnVtYmE+PTAuNTEuMiBpbiBjOlxcdXNlcnNcXHNpc3JhZVxcYXBwZGF0YVxcbG9jYWxcXHItbWluaWNvbmRhXFxlbnZzXFxyLXJldGljdWxhdGVcXGxpYlxcc2l0ZS1wYWNrYWdlcyAoZnJvbSBhY3Rpdml0eXNpbT49MC45LjkuMS0+cG9wdWxhdGlvbnNpbSkgKDAuNTMuMSlcblJlcXVpcmVtZW50IGFscmVhZHkgc2F0aXNmaWVkOiBweWFycm93Pj0yLjAgaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gYWN0aXZpdHlzaW0+PTAuOS45LjEtPnBvcHVsYXRpb25zaW0pICg0LjAuMClcblJlcXVpcmVtZW50IGFscmVhZHkgc2F0aXNmaWVkOiBzZXR1cHRvb2xzIGluIGM6XFx1c2Vyc1xcc2lzcmFlXFxhcHBkYXRhXFxsb2NhbFxcci1taW5pY29uZGFcXGVudnNcXHItcmV0aWN1bGF0ZVxcbGliXFxzaXRlLXBhY2thZ2VzIChmcm9tIG51bWJhPj0wLjUxLjItPmFjdGl2aXR5c2ltPj0wLjkuOS4xLT5wb3B1bGF0aW9uc2ltKSAoNDkuNi4wLnBvc3QyMDIxMDEwOClcblJlcXVpcmVtZW50IGFscmVhZHkgc2F0aXNmaWVkOiBsbHZtbGl0ZTwwLjM3LD49MC4zNi4wcmMxIGluIGM6XFx1c2Vyc1xcc2lzcmFlXFxhcHBkYXRhXFxsb2NhbFxcci1taW5pY29uZGFcXGVudnNcXHItcmV0aWN1bGF0ZVxcbGliXFxzaXRlLXBhY2thZ2VzIChmcm9tIG51bWJhPj0wLjUxLjItPmFjdGl2aXR5c2ltPj0wLjkuOS4xLT5wb3B1bGF0aW9uc2ltKSAoMC4zNi4wKVxuUmVxdWlyZW1lbnQgYWxyZWFkeSBzYXRpc2ZpZWQ6IHByb3RvYnVmPj0zLjE1LjggaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gb3J0b29scz49NS4xLjQwNDUtPnBvcHVsYXRpb25zaW0pICgzLjE3LjIpXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogYWJzbC1weT49MC4xMSBpbiBjOlxcdXNlcnNcXHNpc3JhZVxcYXBwZGF0YVxcbG9jYWxcXHItbWluaWNvbmRhXFxlbnZzXFxyLXJldGljdWxhdGVcXGxpYlxcc2l0ZS1wYWNrYWdlcyAoZnJvbSBvcnRvb2xzPj01LjEuNDA0NS0+cG9wdWxhdGlvbnNpbSkgKDAuMTIuMClcblJlcXVpcmVtZW50IGFscmVhZHkgc2F0aXNmaWVkOiBzaXggaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gYWJzbC1weT49MC4xMS0+b3J0b29scz49NS4xLjQwNDUtPnBvcHVsYXRpb25zaW0pICgxLjE2LjApXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogcHl0ej49MjAxNy4yIGluIGM6XFx1c2Vyc1xcc2lzcmFlXFxhcHBkYXRhXFxsb2NhbFxcci1taW5pY29uZGFcXGVudnNcXHItcmV0aWN1bGF0ZVxcbGliXFxzaXRlLXBhY2thZ2VzIChmcm9tIHBhbmRhcz49MS4xLjAtPnBvcHVsYXRpb25zaW0pICgyMDIxLjEpXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogcHl0aG9uLWRhdGV1dGlsPj0yLjcuMyBpbiBjOlxcdXNlcnNcXHNpc3JhZVxcYXBwZGF0YVxcbG9jYWxcXHItbWluaWNvbmRhXFxlbnZzXFxyLXJldGljdWxhdGVcXGxpYlxcc2l0ZS1wYWNrYWdlcyAoZnJvbSBwYW5kYXM+PTEuMS4wLT5wb3B1bGF0aW9uc2ltKSAoMi44LjEpXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogY2hhcmRldDw1LD49My4wLjIgaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gcmVxdWVzdHM+PTIuNy0+YWN0aXZpdHlzaW0+PTAuOS45LjEtPnBvcHVsYXRpb25zaW0pICg0LjAuMClcblJlcXVpcmVtZW50IGFscmVhZHkgc2F0aXNmaWVkOiBjZXJ0aWZpPj0yMDE3LjQuMTcgaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gcmVxdWVzdHM+PTIuNy0+YWN0aXZpdHlzaW0+PTAuOS45LjEtPnBvcHVsYXRpb25zaW0pICgyMDIwLjEyLjUpXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogdXJsbGliMzwxLjI3LD49MS4yMS4xIGluIGM6XFx1c2Vyc1xcc2lzcmFlXFxhcHBkYXRhXFxsb2NhbFxcci1taW5pY29uZGFcXGVudnNcXHItcmV0aWN1bGF0ZVxcbGliXFxzaXRlLXBhY2thZ2VzIChmcm9tIHJlcXVlc3RzPj0yLjctPmFjdGl2aXR5c2ltPj0wLjkuOS4xLT5wb3B1bGF0aW9uc2ltKSAoMS4yNi40KVxuUmVxdWlyZW1lbnQgYWxyZWFkeSBzYXRpc2ZpZWQ6IGlkbmE8Myw+PTIuNSBpbiBjOlxcdXNlcnNcXHNpc3JhZVxcYXBwZGF0YVxcbG9jYWxcXHItbWluaWNvbmRhXFxlbnZzXFxyLXJldGljdWxhdGVcXGxpYlxcc2l0ZS1wYWNrYWdlcyAoZnJvbSByZXF1ZXN0cz49Mi43LT5hY3Rpdml0eXNpbT49MC45LjkuMS0+cG9wdWxhdGlvbnNpbSkgKDIuMTApXG5SZXF1aXJlbWVudCBhbHJlYWR5IHNhdGlzZmllZDogbnVtZXhwcj49Mi42LjIgaW4gYzpcXHVzZXJzXFxzaXNyYWVcXGFwcGRhdGFcXGxvY2FsXFxyLW1pbmljb25kYVxcZW52c1xcci1yZXRpY3VsYXRlXFxsaWJcXHNpdGUtcGFja2FnZXMgKGZyb20gdGFibGVzPj0zLjUuMS0+YWN0aXZpdHlzaW0+PTAuOS45LjEtPnBvcHVsYXRpb25zaW0pICgyLjcuMylcbiJ9 -->
+<pre><code>Requirement already satisfied: populationsim in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (0.5)
+Requirement already satisfied: numpy&gt;=1.16.1 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from populationsim) (1.19.5)
+Requirement already satisfied: activitysim&gt;=0.9.9.1 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from populationsim) (0.9.9.1)
+Requirement already satisfied: ortools&gt;=5.1.4045 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from populationsim) (9.0.9048)
+Requirement already satisfied: pandas&gt;=1.1.0 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from populationsim) (1.1.5)
+Requirement already satisfied: psutil&gt;=4.1 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from activitysim&gt;=0.9.9.1-&gt;populationsim) (5.8.0)
+Requirement already satisfied: openmatrix&gt;=0.3.4.1 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from activitysim&gt;=0.9.9.1-&gt;populationsim) (0.3.5.0)
+Requirement already satisfied: requests&gt;=2.7 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from activitysim&gt;=0.9.9.1-&gt;populationsim) (2.25.1)
+Requirement already satisfied: zbox&gt;=1.2 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from activitysim&gt;=0.9.9.1-&gt;populationsim) (1.2.0)
+Requirement already satisfied: tables&gt;=3.5.1 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from activitysim&gt;=0.9.9.1-&gt;populationsim) (3.6.1)
+Requirement already satisfied: pyyaml&gt;=5.1 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from activitysim&gt;=0.9.9.1-&gt;populationsim) (5.4.1)
+Requirement already satisfied: toolz&gt;=0.8.1 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from activitysim&gt;=0.9.9.1-&gt;populationsim) (0.11.1)
+Requirement already satisfied: numba&gt;=0.51.2 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from activitysim&gt;=0.9.9.1-&gt;populationsim) (0.53.1)
+Requirement already satisfied: pyarrow&gt;=2.0 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from activitysim&gt;=0.9.9.1-&gt;populationsim) (4.0.0)
+Requirement already satisfied: setuptools in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from numba&gt;=0.51.2-&gt;activitysim&gt;=0.9.9.1-&gt;populationsim) (49.6.0.post20210108)
+Requirement already satisfied: llvmlite&lt;0.37,&gt;=0.36.0rc1 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from numba&gt;=0.51.2-&gt;activitysim&gt;=0.9.9.1-&gt;populationsim) (0.36.0)
+Requirement already satisfied: protobuf&gt;=3.15.8 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from ortools&gt;=5.1.4045-&gt;populationsim) (3.17.2)
+Requirement already satisfied: absl-py&gt;=0.11 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from ortools&gt;=5.1.4045-&gt;populationsim) (0.12.0)
+Requirement already satisfied: six in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from absl-py&gt;=0.11-&gt;ortools&gt;=5.1.4045-&gt;populationsim) (1.16.0)
+Requirement already satisfied: pytz&gt;=2017.2 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from pandas&gt;=1.1.0-&gt;populationsim) (2021.1)
+Requirement already satisfied: python-dateutil&gt;=2.7.3 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from pandas&gt;=1.1.0-&gt;populationsim) (2.8.1)
+Requirement already satisfied: chardet&lt;5,&gt;=3.0.2 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from requests&gt;=2.7-&gt;activitysim&gt;=0.9.9.1-&gt;populationsim) (4.0.0)
+Requirement already satisfied: certifi&gt;=2017.4.17 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from requests&gt;=2.7-&gt;activitysim&gt;=0.9.9.1-&gt;populationsim) (2020.12.5)
+Requirement already satisfied: urllib3&lt;1.27,&gt;=1.21.1 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from requests&gt;=2.7-&gt;activitysim&gt;=0.9.9.1-&gt;populationsim) (1.26.4)
+Requirement already satisfied: idna&lt;3,&gt;=2.5 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from requests&gt;=2.7-&gt;activitysim&gt;=0.9.9.1-&gt;populationsim) (2.10)
+Requirement already satisfied: numexpr&gt;=2.6.2 in c:\users\sisrae\appdata\local\r-miniconda\envs\r-reticulate\lib\site-packages (from tables&gt;=3.5.1-&gt;activitysim&gt;=0.9.9.1-&gt;populationsim) (2.7.3)</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
@@ -239,30 +303,64 @@ pre code {
 <h1>Python Overhead - Conda activation Config</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudXNlX2NvbmRhZW52KFwibXRjX1RQU1wiKVxuYGBgIn0= -->
-<pre class="r"><code>use_condaenv(&quot;mtc_TPS&quot;)</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudXNlX2NvbmRhZW52KFwibXRjX3Rwc1wiKVxuYGBgIn0= -->
+<pre class="r"><code>use_condaenv(&quot;mtc_tps&quot;)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
-<div id="execute-procedures" class="section level1">
-<h1>Execute procedures</h1>
+<div id="clear-cached-files-and-execute-procedures" class="section level1">
+<h1>Clear cached files and execute procedures</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuXG5zb3VyY2UoXCJwcmVwcm9jZXNzLlJcIilcblxucHlfcnVuX2ZpbGUoXCJydW5fcG9wdWxhdGlvbnNpbS5weVwiLCBsb2NhbCA9IEZBTFNFLCBjb252ZXJ0ID0gVFJVRSlcblxuc291cmNlKFwicG9zdHByb2Nlc3MuUlwiKVxuYGBgIn0= -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuXG5pZiAoZmlsZS5leGlzdHMoXCIuL2RhdGEvZ2VvZ1hXYWxrLmNzdlwiKSkge2ZpbGUucmVtb3ZlKFwiLi9kYXRhL2dlb2dYV2Fsay5jc3ZcIil9XG5pZiAoZmlsZS5leGlzdHMoXCIuL2RhdGEvc2VlZF9jb250cm9scy5jc3ZcIikpIHtmaWxlLnJlbW92ZShcIi4vZGF0YS9zZWVkX2NvbnRyb2xzLmNzdlwiKX1cbmBgYCJ9 -->
 <pre class="r"><code>
-source(&quot;preprocess.R&quot;)
-
-py_run_file(&quot;run_populationsim.py&quot;, local = FALSE, convert = TRUE)
-
-source(&quot;postprocess.R&quot;)</code></pre>
+if (file.exists(&quot;./data/geogXWalk.csv&quot;)) {file.remove(&quot;./data/geogXWalk.csv&quot;)}
+if (file.exists(&quot;./data/seed_controls.csv&quot;)) {file.remove(&quot;./data/seed_controls.csv&quot;)}</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFRSVUVcbiJ9 -->
+<pre><code>[1] TRUE</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaWYgKGZpbGUuZXhpc3RzKFwiLi9kYXRhL3NlZWRfaG91c2Vob2xkcy5jc3ZcIikpIHtmaWxlLnJlbW92ZShcIi4vZGF0YS9zZWVkX2hvdXNlaG9sZHMuY3N2XCIpfVxuYGBgIn0= -->
+<pre class="r"><code>if (file.exists(&quot;./data/seed_households.csv&quot;)) {file.remove(&quot;./data/seed_households.csv&quot;)}</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFRSVUVcbiJ9 -->
+<pre><code>[1] TRUE</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaWYgKGZpbGUuZXhpc3RzKFwiLi9kYXRhL3NlZWRfcGVyc29ucy5jc3ZcIikpIHtmaWxlLnJlbW92ZShcIi4vZGF0YS9zZWVkX3BlcnNvbnMuY3N2XCIpfVxuYGBgIn0= -->
+<pre class="r"><code>if (file.exists(&quot;./data/seed_persons.csv&quot;)) {file.remove(&quot;./data/seed_persons.csv&quot;)}</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFRSVUVcbiJ9 -->
+<pre><code>[1] TRUE</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaWYgKGZpbGUuZXhpc3RzKFwiLi9kYXRhL1RQU19wcm9jZXNzZWQuY3N2XCIpKSB7ZmlsZS5yZW1vdmUoXCIuL2RhdGEvVFBTX3Byb2Nlc3NlZC5jc3ZcIil9XG5gYGAifQ== -->
+<pre class="r"><code>if (file.exists(&quot;./data/TPS_processed.csv&quot;)) {file.remove(&quot;./data/TPS_processed.csv&quot;)}</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFRSVUVcbiJ9 -->
+<pre><code>[1] TRUE</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc291cmNlKFwicHJlcHJvY2Vzcy5SXCIpXG5gYGAifQ== -->
+<pre class="r"><code>source(&quot;preprocess.R&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlYXBwZW5kaW5nIGNvbHVtbiBuYW1lcyB0byBmaWxlXG4ifQ== -->
+<pre><code>appending column names to fileappending column names to fileappending column names to fileappending column names to fileappending column names to fileappending column names to fileappending column names to fileappending column names to fileappending column names to fileappending column names to fileappending column names to fileappending column names to fileappending column names to file</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucHlfcnVuX2ZpbGUoXCJydW5fcG9wdWxhdGlvbnNpbS5weVwiLCBsb2NhbCA9IEZBTFNFLCBjb252ZXJ0ID0gVFJVRSlcbmBgYCJ9 -->
+<pre class="r"><code>py_run_file(&quot;run_populationsim.py&quot;, local = FALSE, convert = TRUE)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiSU5GTyAtIFJlYWQgbG9nZ2luZyBjb25maWd1cmF0aW9uIGZyb206IGNvbmZpZ3NcXGxvZ2dpbmcueWFtbFxuIn0= -->
+<pre><code>INFO - Read logging configuration from: configs\logging.yaml</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gcHlfcnVuX2ZpbGVfaW1wbChmaWxlLCBsb2NhbCwgY29udmVydCkgOiBcbiAgUnVudGltZUVycm9yOiBQaXBlbGluZSBpcyBhbHJlYWR5IG9wZW4hXG4ifQ== -->
+<pre><code>Error in py_run_file_impl(file, local, convert) : 
+  RuntimeError: Pipeline is already open!</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 </div>
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIlNlY29uZGFyeSBFeHBhbnNpb24iDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KDQojIFIgT3ZlcmhlYWQNCmBgYHtyIG92ZXJoZWFkLCBpbmNsdWRlID0gRkFMU0V9DQpwYWNrYWdlc192ZWN0b3IgPC0gYygidGlkeXZlcnNlIiwNCiAgICAgICAgICAgICAgICAgICAgICJyZXRpY3VsYXRlIiwNCiAgICAgICAgICAgICAgICAgICAgICJyZXNoYXBlIiwNCiAgICAgICAgICAgICAgICAgICAgICJyZXNoYXBlMiIsDQogICAgICAgICAgICAgICAgICAgICAiZ2dwbG90MiIsDQogICAgICAgICAgICAgICAgICAgICAic2NhbGVzIiwNCiAgICAgICAgICAgICAgICAgICAgICJwbG90bHkiLA0KICAgICAgICAgICAgICAgICAgICAgImh0bWx3aWRnZXRzIikNCg0KbmVlZF90b19pbnN0YWxsIDwtIHBhY2thZ2VzX3ZlY3RvclshKHBhY2thZ2VzX3ZlY3RvciAlaW4lIGluc3RhbGxlZC5wYWNrYWdlcygpWywiUGFja2FnZSJdKV0NCg0KaWYgKGxlbmd0aChuZWVkX3RvX2luc3RhbGwpKSBpbnN0YWxsLnBhY2thZ2VzKG5lZWRfdG9faW5zdGFsbCkNCg0KZm9yIChwYWNrYWdlIGluIHBhY2thZ2VzX3ZlY3Rvcil7DQogIGxpYnJhcnkocGFja2FnZSwgY2hhcmFjdGVyLm9ubHkgPSBUUlVFKQ0KfQ0KDQpgYGANCg0KIyBTZXQgZGlyZWN0b3J5IHRvIHRoZSBjdXJyZW50IGZvbGRlcg0KYGBge3IsIHNldHVwLCBpbmNsdWRlPUZBTFNFfQ0Ka25pdHI6Om9wdHNfa25pdCRzZXQocm9vdC5kaXIgPSBwYXN0ZTAoZGlybmFtZShyc3R1ZGlvYXBpOjpnZXRBY3RpdmVEb2N1bWVudENvbnRleHQoKSRwYXRoKSwiLyIpKQ0KYGBgDQoNCiMgUHl0aG9uIE92ZXJoZWFkIC0gQ29uZGEgY29uZmlnIChvbmx5IG5lZWQgdG8gcnVuIG9uY2UpDQpgYGB7YmFzaH0NCmNvbmRhIGNyZWF0ZSAtbiBtdGNfdHBzIHB5dGhvbj0zLjgNCmNvbmRhIGFjdGl2YXRlIG10Y190cHMgDQpwaXAgaW5zdGFsbCBwb3B1bGF0aW9uc2ltDQpgYGANCg0KIyBQeXRob24gT3ZlcmhlYWQgLSBDb25kYSBhY3RpdmF0aW9uIENvbmZpZw0KYGBge3IgcHl0aG9uLWNvbmZpZ30NCnVzZV9jb25kYWVudigibXRjX1RQUyIpDQpgYGANCg0KIyBFeGVjdXRlIHByb2NlZHVyZXMNCmBgYHtyIHByZS1nYW1lfQ0KDQpzb3VyY2UoInByZXByb2Nlc3MuUiIpDQoNCnB5X3J1bl9maWxlKCJydW5fcG9wdWxhdGlvbnNpbS5weSIsIGxvY2FsID0gRkFMU0UsIGNvbnZlcnQgPSBUUlVFKQ0KDQpzb3VyY2UoInBvc3Rwcm9jZXNzLlIiKQ0KYGBgDQoNCg==</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIlNlY29uZGFyeSBFeHBhbnNpb24iDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KDQojIFIgT3ZlcmhlYWQNCmBgYHtyIG92ZXJoZWFkLCBpbmNsdWRlID0gRkFMU0V9DQpwYWNrYWdlc192ZWN0b3IgPC0gYygidGlkeXZlcnNlIiwNCiAgICAgICAgICAgICAgICAgICAgICJyZXRpY3VsYXRlIiwNCiAgICAgICAgICAgICAgICAgICAgICJyZXNoYXBlIiwNCiAgICAgICAgICAgICAgICAgICAgICJyZXNoYXBlMiIsDQogICAgICAgICAgICAgICAgICAgICAiZ2dwbG90MiIsDQogICAgICAgICAgICAgICAgICAgICAic2NhbGVzIiwNCiAgICAgICAgICAgICAgICAgICAgICJwbG90bHkiLA0KICAgICAgICAgICAgICAgICAgICAgImh0bWx3aWRnZXRzIikNCg0KbmVlZF90b19pbnN0YWxsIDwtIHBhY2thZ2VzX3ZlY3RvclshKHBhY2thZ2VzX3ZlY3RvciAlaW4lIGluc3RhbGxlZC5wYWNrYWdlcygpWywiUGFja2FnZSJdKV0NCg0KaWYgKGxlbmd0aChuZWVkX3RvX2luc3RhbGwpKSBpbnN0YWxsLnBhY2thZ2VzKG5lZWRfdG9faW5zdGFsbCkNCg0KZm9yIChwYWNrYWdlIGluIHBhY2thZ2VzX3ZlY3Rvcil7DQogIGxpYnJhcnkocGFja2FnZSwgY2hhcmFjdGVyLm9ubHkgPSBUUlVFKQ0KfQ0KDQpgYGANCg0KIyBQeXRob24gT3ZlcmhlYWQgLSBDb25kYSBjb25maWcgKG9ubHkgbmVlZCB0byBydW4gb25jZSkNCmBgYHtiYXNofQ0KY29uZGEgY3JlYXRlIC1uIG10Y190cHMgcHl0aG9uPTMuOA0KY29uZGEgYWN0aXZhdGUgbXRjX3RwcyANCnBpcCBpbnN0YWxsIHBvcHVsYXRpb25zaW0NCmBgYA0KDQojIFB5dGhvbiBPdmVyaGVhZCAtIENvbmRhIGFjdGl2YXRpb24gQ29uZmlnDQpgYGB7ciBweXRob24tY29uZmlnfQ0KdXNlX2NvbmRhZW52KCJtdGNfdHBzIikNCmBgYA0KDQojIENsZWFyIGNhY2hlZCBmaWxlcyBhbmQgZXhlY3V0ZSBwcm9jZWR1cmVzDQpgYGB7ciBwcmUtZ2FtZX0NCg0KaWYgKGZpbGUuZXhpc3RzKCIuL2RhdGEvZ2VvZ1hXYWxrLmNzdiIpKSB7ZmlsZS5yZW1vdmUoIi4vZGF0YS9nZW9nWFdhbGsuY3N2Iil9DQppZiAoZmlsZS5leGlzdHMoIi4vZGF0YS9zZWVkX2NvbnRyb2xzLmNzdiIpKSB7ZmlsZS5yZW1vdmUoIi4vZGF0YS9zZWVkX2NvbnRyb2xzLmNzdiIpfQ0KaWYgKGZpbGUuZXhpc3RzKCIuL2RhdGEvc2VlZF9ob3VzZWhvbGRzLmNzdiIpKSB7ZmlsZS5yZW1vdmUoIi4vZGF0YS9zZWVkX2hvdXNlaG9sZHMuY3N2Iil9DQppZiAoZmlsZS5leGlzdHMoIi4vZGF0YS9zZWVkX3BlcnNvbnMuY3N2IikpIHtmaWxlLnJlbW92ZSgiLi9kYXRhL3NlZWRfcGVyc29ucy5jc3YiKX0NCmlmIChmaWxlLmV4aXN0cygiLi9kYXRhL1RQU19wcm9jZXNzZWQuY3N2IikpIHtmaWxlLnJlbW92ZSgiLi9kYXRhL1RQU19wcm9jZXNzZWQuY3N2Iil9DQoNCnNvdXJjZSgicHJlcHJvY2Vzcy5SIikNCg0KcHlfcnVuX2ZpbGUoInJ1bl9wb3B1bGF0aW9uc2ltLnB5IiwgbG9jYWwgPSBGQUxTRSwgY29udmVydCA9IFRSVUUpDQoNCnNvdXJjZSgicG9zdHByb2Nlc3MuUiIpDQpgYGANCg0K</div>
 
 
 
