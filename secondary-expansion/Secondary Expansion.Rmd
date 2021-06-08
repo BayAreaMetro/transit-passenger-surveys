@@ -33,11 +33,17 @@ pip install populationsim
 
 # Python Overhead - Conda activation Config
 ```{r python-config}
-use_condaenv("mtc_TPS")
+use_condaenv("mtc_tps")
 ```
 
-# Execute procedures
+# Clear cached files and execute procedures
 ```{r pre-game}
+
+if (file.exists("./data/geogXWalk.csv")) {file.remove("./data/geogXWalk.csv")}
+if (file.exists("./data/seed_controls.csv")) {file.remove("./data/seed_controls.csv")}
+if (file.exists("./data/seed_households.csv")) {file.remove("./data/seed_households.csv")}
+if (file.exists("./data/seed_persons.csv")) {file.remove("./data/seed_persons.csv")}
+if (file.exists("./data/TPS_processed.csv")) {file.remove("./data/TPS_processed.csv")}
 
 source("preprocess.R")
 
