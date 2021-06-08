@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 import os
 import logging
 
@@ -12,7 +12,7 @@ from activitysim.core import inject
 from activitysim.core.config import handle_standard_args
 from activitysim.core.tracing import print_elapsed_time
 
-from populationsim.util import setting
+from activitysim.core.config import setting
 from populationsim import lp
 from populationsim import multi_integerizer
 
@@ -67,3 +67,4 @@ pipeline.run(models=steps, resume_after=resume_after)
 pipeline.close_pipeline()
 
 t0 = ("all models", t0)
+
