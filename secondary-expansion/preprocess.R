@@ -14,7 +14,7 @@ oldw <- getOption("warn")
 USERPROFILE          <- gsub("\\\\","/", Sys.getenv("USERPROFILE"))
 box_drive_dir        <- file.path(USERPROFILE, "Box", "Modeling and Surveys")
 TPS_Dir         <- "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/"
-POPSIM_Dir <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
+POPSIM_Dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
 BOX_TM2_Dir     <- file.path(box_drive_dir, "Development", "Travel Model Two Development")
 TPS_Anc_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Onboard Survey", "Data")
 TARGETS_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Scaled Transit Ridership Targets")
