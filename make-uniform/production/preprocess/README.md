@@ -19,6 +19,8 @@ Each "preprocessing_[operator].ipynb" file creates the following outputs:
 
 [check_BART_2015_dictionary.ipynb](check_BART_2015_dictionary.ipynb): examine and correct the errors in the variable/response coding for BART 2015 survey in the previous `Dictionary for Standard Database.csv`.
 
+[fix_Caltrain2014_transfer_route_name_errors.ipynb](fix_Caltrain2014_transfer_route_name_errors.ipynb): pre-processing Caltrain (2014) data in Python caused some issues in station name and transfer route due to encoding error when reading the .csv file into Python, e.g. 'Mountain View' became 'Mountain�View'. This script fixes the strings in transfer routes and, and updates the relevant route names in 'canonical_route_crosswalk.csv'. The same string error also occurred in On/Off station name variables, which is fixed in [SuperShuttle_SFOAirTrain_as_Access_Egress_Modes.ipynb](SuperShuttle_SFOAirTrain_as_Access_Egress_Modes.ipynb).
+
 #### Deal with outliers
 
 [truncate_transfers_MUNI_ACTransit.ipynb](truncate_transfers_MUNI_ACTransit.ipynb): these surveys contain responses that show more than three transfers before or after the surveyed route, however, the standard database only tracks up to three before/after transfers. This script modifies the raw data by changing values of "number_transfers_orig_board"/"number_transfers_alight_dest" from 4 to 3.
