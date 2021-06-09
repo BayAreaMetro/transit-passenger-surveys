@@ -469,6 +469,9 @@ survey_flat <- bind_rows(survey_cat, survey_non) %>%
   arrange(operator, survey_year, ID) %>%
   mutate(route = ifelse(operator == "BART", paste0("BART", OPERATOR_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
   mutate(route = ifelse(operator == "Caltrain", paste0("CALTRAIN", OPERATOR_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
+  mutate(route = ifelse(operator == "ACE", paste0("ACE", OPERATOR_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
+  mutate(route = ifelse(operator == "Sonoma-Marin Area Rail Transit", paste0("SMART", OPERATOR_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
+  mutate(route = ifelse(operator == "Capitol Corridor", paste0("CAPITOL CORRIDOR", OPERATOR_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
   left_join(rail_crosswalk_df, by = c("route" = "survey_name")) %>%
   mutate(route = ifelse(!is.na(canonical_name), canonical_name, route)) %>%
   select(-canonical_name)
@@ -939,7 +942,7 @@ tech_crosswalk_df <- canonical_routes_crosswalk %>%
 tech_crosswalk_expansion_list <- tech_crosswalk_df %>%
   select(survey, survey_year) %>%
   unique() %>%
-  filter(!survey %in% c("BART", "Caltrain", "GEOCODE"))
+  filter(!survey %in% c("BART", "Caltrain", "ACE", "Sonoma-Marin Area Rail Transit", "Capitol Corridor", "GEOCODE"))
 
 tech_crosswalk_expansion_df <- tech_crosswalk_df %>%
   filter(survey == "GEOCODE") %>%
