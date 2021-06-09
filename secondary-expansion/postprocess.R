@@ -27,7 +27,7 @@ boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015
 TPS <- TPS[TPS$tripWeight_2015>0,]
 
 # copy new weights from PopSim outputs
-TPS$hh_id <- seed_households$HHNUM[match(TPS$Unique_ID, seed_households$UNIQUE_ID)]
+TPS$hh_id <- seed_households$HHNUM[match(TPS$unique_ID, seed_households$UNIQUE_ID)]
 TPS$final_tripWeight_2015 <- popSim_weights$balanced_weight[match(TPS$hh_id, popSim_weights$hh_id)]
 TPS$final_boardWeight_2015 <- TPS$final_tripWeight_2015 * TPS$boardings
 TPS$final_expansionFactor <- TPS$final_boardWeight_2015/TPS$boardWeight_2015
@@ -145,7 +145,7 @@ ggsave(file.path(VALIDATION_Dir, "EF-Distribution.png"), width=15,height=10)
 
 # Old vs New Boardings Weights Comparison
 #---------------------------------------------
-weights_comparison <- TPS[,c("Unique_ID", "hh_id", "SURVEY_MODE", "operator", "route", "onoff_enter_station", "onoff_exit_station", 
+weights_comparison <- TPS[,c("unique_ID", "hh_id", "SURVEY_MODE", "operator", "route", "onoff_enter_station", "onoff_exit_station", 
                              "final_boardWeight_2015", "boardWeight_2015", "final_expansionFactor")]
 weights_comparison_no_outlier <- weights_comparison[weights_comparison$boardWeight_2015<200,]   # Create a variable that constrains weight to <200
 
