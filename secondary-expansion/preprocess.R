@@ -13,7 +13,7 @@ oldw <- getOption("warn")
 
 USERPROFILE     <- gsub("\\\\","/", Sys.getenv("USERPROFILE"))
 box_drive_dir   <- file.path(USERPROFILE, "Box", "Modeling and Surveys")
-TPS_Dir         <- "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/model_version"
+TPS_Dir         <- "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data"
 POPSIM_Dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
 BOX_TM2_Dir     <- file.path(box_drive_dir, "Development", "Travel Model Two Development")
 TPS_Anc_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Onboard Survey", "Data")
@@ -98,8 +98,8 @@ bay_cap <- c("Jack London Square", "Berkeley", "Suisun-fairfield",
              "Richmond", "Santa Clara University", "Santa Clara Great America", 
              "Fremont", "Hayward", "Oakland Coliseum")
 
-bay_ace <- c("San Jose Station", "Santa Clara University Station", "Great America Station", 
-             "Fremont Station", "Pleasanton Station", "Vasco Station", "Livermore Station")
+bay_ace <- c("SAN JOSE", "SANTA CLARA", "GREAT AMERICA", "FREMONT", "PLEASANTON", 
+             "VASCO ROAD", "LIVERMORE")
 
 TPS <- TPS %>%
   filter((onoff_enter_station %in% bay_cap | operator !="Capitol Corridor") &

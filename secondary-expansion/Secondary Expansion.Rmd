@@ -45,6 +45,15 @@ if (file.exists("./data/seed_households.csv")) {file.remove("./data/seed_househo
 if (file.exists("./data/seed_persons.csv")) {file.remove("./data/seed_persons.csv")}
 if (file.exists("./data/TPS_processed.csv")) {file.remove("./data/TPS_processed.csv")}
 
+if (file.exists("./output/activitysim.log")) {file.remove("./output/activitysim.log")}
+if (file.exists("./output/final_expanded_household_ids.csv")) {file.remove("./output/final_expanded_household_ids.csv")}
+if (file.exists("./output/final_GEOID_weights.csv")) {file.remove("./output/final_GEOID_weights.csv")}
+if (file.exists("./output/final_incidence_table.csv")) {file.remove("./output/final_incidence_table.csv")}
+if (file.exists("./output/final_summary_hh_weights.csv")) {file.remove("./output/final_summary_hh_weights.csv")}
+if (file.exists("./output/mem.csv")) {file.remove("./output/mem.csv")}
+if (file.exists("./output/pipeline.h5")) {file.remove("./output/pipeline.h5")}
+if (file.exists("./output/timing_log.csv")) {file.remove("./output/timing_log.csv")}
+
 source("preprocess.R")
 
 py_run_file("run_populationsim.py", local = FALSE, convert = TRUE)
