@@ -11,14 +11,15 @@ oldw <- getOption("warn")
 # DIRECTORIES AND LIBRARIES
 #=========================================================================================================================
 
-USERPROFILE          <- gsub("\\\\","/", Sys.getenv("USERPROFILE"))
-box_drive_dir        <- file.path(USERPROFILE, "Box", "Modeling and Surveys")
-TPS_Dir         <- "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/"
+USERPROFILE     <- gsub("\\\\","/", Sys.getenv("USERPROFILE"))
+box_drive_dir   <- file.path(USERPROFILE, "Box", "Modeling and Surveys")
+TPS_Dir         <- "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/model_version"
 POPSIM_Dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
 BOX_TM2_Dir     <- file.path(box_drive_dir, "Development", "Travel Model Two Development")
 TPS_Anc_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Onboard Survey", "Data")
 TARGETS_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Scaled Transit Ridership Targets")
 VALIDATION_Dir  <- file.path(POPSIM_Dir, "validation")
+today = Sys.Date()
 
 suppressMessages(library(tidyverse))
 library(reshape2)
@@ -28,7 +29,7 @@ library(reshape2)
 #=========================================================================================================================
 
 # Read TPS dataset survey data
-load(file.path(TPS_Dir,     "survey_combined_2021-05-28.RData"))
+load(file.path(TPS_Dir,     "survey_combined_2021-06-09.RData"))
 
 # Read in target boardings for 2015, with directory coming from Secondary Expansion.Rmd file
 boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE) 
