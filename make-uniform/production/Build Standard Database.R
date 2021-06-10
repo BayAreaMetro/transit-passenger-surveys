@@ -1887,7 +1887,15 @@ survey_standard <- survey_standard %>%
          -second_route_before_survey_board,
          -second_route_after_survey_alight,
          -third_route_before_survey_board,
-         -third_route_after_survey_alight)
+         -third_route_after_survey_alight,
+         -alt_weight,
+         -rate_conductors,
+         -rate_overall,
+         -rate_schedules,
+         -rate_station,
+         -rate_value,
+         -wcode,
+         -tweight)
 
 
 ## Write RDS to disk
