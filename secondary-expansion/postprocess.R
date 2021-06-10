@@ -212,8 +212,8 @@ write.table(caltrain_entry_exit, file.path(VALIDATION_Dir, "PopSim_Summaries_Pas
 # WRITE OUT FINAL TPS DATASET WITH FINAL WEIGHTS
 #=========================================================================================================================
 
-write.csv(TPS, file.path(TPS_Dir, "TPS_PopulationSim_Weights.csv"), row.names = F)
-
+write.csv(TPS, file.path(TPS_Dir, paste0("TPS_Model_Version_PopulationSim_Weights",today,".csv"), row.names = F))
+save(TPS, file=file.path(TPS_Dir, paste0("TPS_Model_Version_PopulationSim_Weights",today,".Rdata")))
 
 ## FINISH
 
