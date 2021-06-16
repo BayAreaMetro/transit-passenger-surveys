@@ -136,7 +136,6 @@ TPS <- TPS %>%
 TPS <- TPS %>% 
   mutate_at(.,vars(access_mode_model,egress_mode_model),~case_when(
             .=="bike"~                           "knr",
-            .=="tnc"~                            "knr",
             .=="other"~                          "missing",
             .=="."~                              "missing",
             .=="Missing - Question Not Asked"~  "missing",
@@ -153,12 +152,14 @@ operator_access_mode <- dcast(molten, operator~access_mode_model, sum)
 
 # Create additional access mode variables (totals and shares) for later application
 
-operator_access_mode$tot <- operator_access_mode$walk+operator_access_mode$knr+operator_access_mode$pnr
+operator_access_mode$tot <- operator_access_mode$walk+operator_access_mode$knr+operator_access_mode$pnr+operator_access_mode$tnc
 operator_access_mode$w <- operator_access_mode$walk/operator_access_mode$tot
 operator_access_mode$k <- operator_access_mode$knr/operator_access_mode$tot
 operator_access_mode$p <- operator_access_mode$pnr/operator_access_mode$tot
+operator_access_mode$t <- operator_access_mode$tnc/operator_access_mode$tot
 operator_access_mode$c1 <- operator_access_mode$w
 operator_access_mode$c2 <- operator_access_mode$w+operator_access_mode$k
+operator_access_mode$c3 <- operator_access_mode$w+operator_access_mode$k+operator_access_mode$t 
 
 # Create simple imputation for missing access mode values based on random number generation and prevailing access modes 
 
@@ -166,8 +167,14 @@ returnAccessMode <- function(op)
 {
   c1 <- operator_access_mode$c1[operator_access_mode$operator==op]
   c2 <- operator_access_mode$c2[operator_access_mode$operator==op]
+  c3 <- operator_access_mode$c3[operator_access_mode$operator==op]
   r <- runif(1)
-  return(ifelse(r<c1, "walk", ifelse(r<c2, "knr", "pnr")))
+  return(case_when(
+    r<c1 ~          "walk",
+    r>=c1 & r<c2  ~ "knr",
+    r>=c2 & r<c3 ~  "tnc",
+    r>=c3 ~         "pnr",
+    TRUE ~          "error"))
 }
 
 TPS$access_mode_model[TPS$access_mode_model=="missing"] <- sapply(as.character(TPS$operator[TPS$access_mode_model=="missing"]),function(x) {returnAccessMode(x)} )
@@ -180,19 +187,28 @@ operator_egress_mode <- xtabs(trip_weight~operator+egress_mode_model, data = TPS
 operator_egress_mode <- data.frame(operator_egress_mode)
 molten <- melt(operator_egress_mode, id = c("operator", "egress_mode_model"))
 operator_egress_mode <- dcast(molten, operator~egress_mode_model, sum)
-operator_egress_mode$tot <- operator_egress_mode$walk+operator_egress_mode$knr+operator_egress_mode$pnr
+
+operator_egress_mode$tot <- operator_egress_mode$walk+operator_egress_mode$knr+operator_egress_mode$pnr+operator_egress_mode$tnc
 operator_egress_mode$w <- operator_egress_mode$walk/operator_egress_mode$tot
 operator_egress_mode$k <- operator_egress_mode$knr/operator_egress_mode$tot
 operator_egress_mode$p <- operator_egress_mode$pnr/operator_egress_mode$tot
+operator_egress_mode$t <- operator_egress_mode$tnc/operator_egress_mode$tot
 operator_egress_mode$c1 <- operator_egress_mode$w
 operator_egress_mode$c2 <- operator_egress_mode$w+operator_egress_mode$k
+operator_egress_mode$c3 <- operator_egress_mode$w+operator_egress_mode$k+operator_egress_mode$t
 
 returnEgressMode <- function(op)
 {
   c1 <- operator_egress_mode$c1[operator_egress_mode$operator==op]
   c2 <- operator_egress_mode$c2[operator_egress_mode$operator==op]
+  c3 <- operator_egress_mode$c3[operator_egress_mode$operator==op]
   r <- runif(1)
-  return(ifelse(r<c1, "walk", ifelse(r<c2, "knr", "pnr")))
+  return(case_when(
+    r<c1 ~          "walk",
+    r>=c1 & r<c2  ~ "knr",
+    r>=c2 & r<c3 ~  "tnc",
+    r>=c3 ~         "pnr",
+    TRUE ~          "error"))
 }
 
 TPS$egress_mode_model[TPS$egress_mode_model=="missing"] <- sapply(as.character(TPS$operator[TPS$egress_mode_model=="missing"]),function(x) {returnEgressMode(x)} )
