@@ -38,6 +38,7 @@ setwd(wd)
 # Run standard database functions
 
 source("Build Standard Database Functions.R")
+source("Combine Legacy Standard Surveys.R")
 
 #### Parameters
 OPERATOR_DELIMITER = "___"
@@ -69,6 +70,7 @@ dir_path <- user_list %>%
   filter(user == Sys.getenv("USERNAME")) %>%
   .$path
 
+# Inputs - dictionary and other utils
 f_dict_standard <- "Dictionary for Standard Database.csv"
 f_canonical_station_path <- paste0(dir_path,"Geography Files/Passenger_Railway_Stations_2018.shp")
 f_taps_coords_path <- paste0(dir_path, "_geocoding Standardized/TAPs/TM2 TAPS/TM2 tap_node.csv")
@@ -78,6 +80,7 @@ f_tm2_maz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/mazs.s
 f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
 f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 
+# Inputs - survey data by operator
 f_actransit_survey_path <- paste0(dir_path,
                                   "AC Transit/2018/As CSV/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_fixTransfers_NO POUND OR SINGLE QUOTE.csv")
 f_bart_survey_path <- paste0(dir_path,
@@ -129,6 +132,10 @@ f_SantaRosaCityBus2018_survey_path <- paste0(dir_path,
 f_capitolcorridor2019_survey_path <- paste0(dir_path,
                                              "Capitol Corridor/OD Survey 2019/As CSV/CAPCO19 Data-For MTC_NO POUND OR SINGLE QUOTE.csv")
 
+# Inputs - legacy survey data
+f_legacy_rdata_path = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy.RData'
+
+# Outputs
 today = Sys.Date()
 f_output_rds_path <- paste0(dir_path,
                             "_data Standardized/survey_standard_", today, ".RDS")
@@ -142,6 +149,11 @@ f_output_decom_rdata_path <- paste0(dir_path,
                                     "_data Standardized/decomposition/survey_decomposition_", today, ".RDS")
 f_output_decom_csv_path <- paste0(dir_path,
                                   "_data Standardized/decomposition/survey_decomposition_", today, ".csv")
+
+f_combined_csv_path = paste0(dir_path,
+                             '_data Standardized/share_data/survey_combined_', today, '.csv')
+f_combined_rdata_path = paste0(dir_path,
+                               '_data Standardized/share_data/survey_combined_', today, '.RData')
 
 # Setup the log file
 #run_log <- file(sprintf("%s_data Standardized/Build_Standard_Database_%s.log",dir_path,today))
@@ -1389,7 +1401,7 @@ survey_standard <- survey_standard %>%
          -depart_hour_ace, -return_hour_ace)
 
 
-## Geocode XY to travel model geographies
+# Step 9:  Geocode XY to travel model geographies---------------------------------------
 print('Geocode XY')
 
 # Prepare and write locations that need to be geo-coded to disk
@@ -1780,7 +1792,7 @@ remove(board_alight_tap,
        survey_coords_spatial_tm2_maz)
 
 
-### Clean up data types
+# Step 10:  Clean up data types and export Standard Survey files------------------------
 print('Final cleanup')
 
 # Cast all factors to numeric or string
@@ -1929,3 +1941,23 @@ sprintf('Export %d rows and %d columns of ancillary data to %s and %s',
 
 saveRDS(ancillary_df, file = f_ancillary_output_rdata_path)
 write.csv(ancillary_df, file = f_ancillary_output_csv_path, row.names = FALSE)
+
+
+# Step 11:  Combine with legacy survey data and export----------------------------------
+
+# load legacy data
+load(f_legacy_rdata_path)
+sprintf('Load %d rows of legacy data', nrow(survey.legacy))
+sprintf('Combine wiht %d rows of standard data', nrow(survey_standard))
+
+survey_combine <- combine_data(survey_standard,
+                               survey.legacy)
+
+# export combined data
+sprintf('Export %d rows and %d columns of legacy-standard combined data to %s and %s',
+        nrow(survey_combine),
+        ncol(survey_combine),
+        f_combined_csv_path,
+        f_combined_rdata_path )
+write.csv(survey_combine, f_combined_csv_path, row.names = FALSE)
+save(survey_combine, file = f_combined_rdata_path)
