@@ -8,7 +8,7 @@ suppressMessages(library(tidyverse))
 # Input survey file
 
 TPS_SURVEY_IN = "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/model_version/TPS_Model_Version_PopulationSim_Weights2021-06-09.Rdata"
-OUTPUT = "M:/Data/Requests/Joel Freedman/"
+OUTPUT = "M:/Data/Requests/Lisa Zorn/"
 load (TPS_SURVEY_IN)
 
 # Subset transbay operators as a first pass
