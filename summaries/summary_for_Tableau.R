@@ -1,7 +1,5 @@
 #### Purpose
-# Combines legacy data (see `Extract Variables from Legacy Surveys` and `Build Legacy Database`)
-# with standard data (see `Build Standard Database`) and then extracts `CSV` files for use in Tableau summaries.
-# Script also writes out combined data sets to disk as `CSV`.
+# Summarize key metrics of Passenger Survey data for Tableau visualization.
 
 
 ######## Preparation ########
@@ -15,8 +13,7 @@ wd <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
 setwd(wd)
 
 # Input
-F_INPUT_LEGACY_RDATA = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy.RData'
-F_INPUT_STANDARD_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_standard_2021-06-09.csv'
+F_COMBINE_RDATA = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-06-09.RData'
 F_STD_DICTIONARY_CSV = paste0('C:/Users/',
                               Sys.getenv("USERNAME"),
                               '/Documents/GitHub/onboard-surveys/util/standard_variable_dict.csv')
@@ -34,9 +31,6 @@ F_PUMS_H_RDATA <- 'M:/Data/Census/PUMS/PUMS 2015-19/hbayarea1519.Rdata'
 F_PUMS_P_RDATA <- 'M:/Data/Census/PUMS/PUMS 2015-19/pbayarea1519.Rdata'
 
 # Output
-F_COMBINED_CSV = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-06-09.csv'
-F_COMBINED_RDATA = 'M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-06-09.RData'
-
 D_OUTPUT_TABLEAU = "M:/Data/OnBoard/Data and Reports/_data Standardized/tableau"
 F_TABLEAU_CSV  = paste0(D_OUTPUT_TABLEAU, '/for_tableau_all_survey_by_passenger.csv')
 F_TAZ_CSV      = paste0(D_OUTPUT_TABLEAU, '/for_tableau_all_survey_by_TM1_TAZ.csv')
@@ -50,98 +44,12 @@ sink(run_log, append=TRUE, type = 'output')
 sink(run_log, append=TRUE, type = "message")
 
 
-######## Combine Legacy and Standard data ########
+
+######## Surveyed-passenger-level Summary ########
 ##################################################
 
-load(F_INPUT_LEGACY_RDATA)
-sprintf('Read %d rows of legacy data', nrow(survey.legacy))
-survey_standard <- read.csv(file = F_INPUT_STANDARD_CSV, header = TRUE)
-sprintf('Read %d rows of standard data', nrow(survey_standard))
-
-# revise legacy data field names to be consistent with standard data field names
-survey.legacy <- survey.legacy %>%
-  rename('unique_ID'         = 'Unique_ID',
-         'dest_tm2_maz'      = 'dest_maz',
-         'dest_tm1_taz'      = 'dest_taz',
-         'home_tm2_maz'      = 'home_maz',
-         'home_tm1_taz'      = 'home_taz',
-         'orig_tm2_maz'      = 'orig_maz',
-         'orig_tm1_taz'      = 'orig_taz',
-         'school_tm2_maz'    = 'school_maz',
-         'school_tm1_taz'    = 'school_taz',
-         'workplace_tm2_maz' = 'workplace_maz',
-         'workplace_tm1_taz' = 'workplace_taz' 
-  )
-
-# DEBUG
-legacy_names <- colnames(survey.legacy)
-std_names <- colnames(survey_standard)
-
-print('variables in standard_database but not in legacy_database:')
-for (std_name in std_names) {
-  if(!(std_name %in% legacy_names)) {
-    print(std_name)
-    # New column in standardized data. Add NA column in legacy so rbind will succeed.
-    survey.legacy[,std_name] <- NA
-    if (typeof(survey_standard[,std_name])=="character") {
-      survey.legacy[,std_name] <- as.character(survey.legacy[,std_name])
-    } else if (typeof(survey_standard[,std_name])=="double") {
-      survey.legacy[,std_name] <- as.numeric(survey.legacy[,std_name])
-    }
-  }
-}
-
-print('variables in legacy_database but not in standard_database:')
-for (legacy_name in legacy_names) {
-  if(!(legacy_name %in% std_names)) {
-    print(legacy_name)
-    # Columns in legacy data but not in standardized data. Add NA column in legacy so rbind will succeed.
-    survey_standard[,legacy_name] <- NA
-    if (typeof(survey.legacy[,legacy_name])=="character") {
-      survey_standard[,legacy_name] <- as.character(survey_standard[,legacy_name])
-    } else if (typeof(survey.legacy[,legacy_name])=="double") {
-      survey_standard[,legacy_name] <- as.numeric(survey_standard[,legacy_name])
-    }
-  }
-}
-# end DEBUG
-
-survey.legacy['survey_batch'] = 'legacy'
-survey_standard['survey_batch'] = 'standard'
-
-data.ready <- rbind(survey_standard, survey.legacy)
-
-# Remove the BART pre-test data
-data.ready <- data.ready %>%
-  filter(operator != "BART PRE-TEST")
-
-# Make operator name consistent
-data.ready <- data.ready %>%
-  # revise operator names in legacy data to be consistent with standard data;
-  # also abbreviate 'Sonoma-Marin Area Rail Transit' to 'SMART' 
-  mutate(operator = recode(operator,
-                           'Golden Gate Transit (ferry)'    = 'Golden Gate Transit',
-                           'Golden Gate Transit (bus)'      = 'Golden Gate Transit',
-                           'Tri-Delta'                      = 'TriDelta',
-                           'Union City'                     = 'Union City Transit',
-                           'Sonoma County'                  = 'Sonoma County Transit',
-                           'Sonoma-Marin Area Rail Transit' = 'SMART',
-                           'Petaluma'                       = 'Petaluma Transit',
-                           'SF Bay Ferry'                   = 'SF Bay Ferry/WETA',
-                           'WETA'                           = 'SF Bay Ferry/WETA'))
-
-# export combined data
-sprintf('Export %d rows and %d columns of legacy-standard combined data to %s and %s',
-        nrow(data.ready),
-        ncol(data.ready),
-        F_COMBINED_CSV,
-        F_COMBINED_RDATA)
-write.csv(data.ready, F_COMBINED_CSV, row.names = FALSE)
-save(data.ready, file = F_COMBINED_RDATA)
-
-
-######## Prepare Data for Tableau: Surveyed-passenger-level ########
-####################################################################
+load(F_COMBINE_RDATA)
+sprintf('Read %d rows of legacy data', nrow(data.ready))
 
 df <- data.ready
 
@@ -246,57 +154,60 @@ for (colname in c('onoff_enter_station', 'onoff_exit_station')){
   df[, colname] <- str_trim(df[, colname])
 }
 
-# fix station names like 'College�Park'
-print('onoff_enter_station before fixing:')
-print(table(df$onoff_enter_station))
-df$onoff_enter_station[(
-  startsWith(df$onoff_enter_station, 'College')) & (endsWith(df$onoff_enter_station, 'Park'))] <- 'College Park'
-df$onoff_enter_station[(
-  startsWith(df$onoff_enter_station, 'Mountain')) & (endsWith(df$onoff_enter_station, 'View'))] <- 'Mountain View'
-df$onoff_enter_station[(
-  startsWith(df$onoff_enter_station, 'San')) & (endsWith(df$onoff_enter_station, 'Antonio'))] <- 'San Antonio'
-df$onoff_enter_station[(
-  startsWith(df$onoff_enter_station, 'Santa')) & (endsWith(df$onoff_enter_station, 'Clara'))] <- 'Santa Clara'
-print('onoff_enter_station after fixing:')
-print(table(df$onoff_enter_station))
-
-print('onoff_exit_station before fixing:')
-print(table(df$onoff_exit_station))
-df$onoff_exit_station[(
-  startsWith(df$onoff_exit_station, 'College')) & (endsWith(df$onoff_exit_station, 'Park'))] <- 'College Park'
-df$onoff_exit_station[(
-  startsWith(df$onoff_exit_station, 'Mountain')) & (endsWith(df$onoff_exit_station, 'View'))] <- 'Mountain View'
-df$onoff_exit_station[(
-  startsWith(df$onoff_exit_station, 'San')) & (endsWith(df$onoff_exit_station, 'Antonio'))] <- 'San Antonio'
-df$onoff_exit_station[(
-  startsWith(df$onoff_exit_station, 'Santa')) & (endsWith(df$onoff_exit_station, 'Clara'))] <- 'Santa Clara'
-print('onoff_exit_station after fixing:')
-print(table(df$onoff_exit_station))
-
-
+# make station names consistent between surveys
 df <- df %>%
   mutate(onoff_enter_station = recode(onoff_enter_station,
-                                      'FREMONT STATION' = 'Fremont Station',
-                                      'GREAT AMERICA STATION' = 'Great America Station',
-                                      'LATHROP-MANTECA STATION' = 'Lathrop/Manteca Station',
-                                      'LIVERMORE STATION' = 'Livermore Station',
-                                      'PLEASANTON STATION' = 'Pleasanton Station',
-                                      'SAN JOSE STATION' = 'San Jose Station',
-                                      'SANTA CLARA STATION' = 'Santa Clara University Station',
-                                      'STOCKTON STATION' = 'Stockton Station',
-                                      'TRACY STATION' = 'Tracy Station',
-                                      'VASCO STATION' = 'Vasco Station')) %>%
+                                      # ACE - 2014 station names
+                                      'FREMONT STATION' = 'Fremont',
+                                      'GREAT AMERICA STATION' = 'Great America',
+                                      'LATHROP-MANTECA STATION' = 'Lathrop/Manteca',
+                                      'LIVERMORE STATION' = 'Livermore',
+                                      'PLEASANTON STATION' = 'Pleasanton',
+                                      'SAN JOSE STATION' = 'San Jose',
+                                      'SANTA CLARA STATION' = 'Santa Clara University',
+                                      'STOCKTON STATION' = 'Stockton',
+                                      'TRACY STATION' = 'Tracy',
+                                      'VASCO STATION' = 'Vasco',
+                                      # ACE - 2019 station names
+                                      'FREMONT' = 'Fremont',
+                                      'GREAT AMERICA' = 'Great America',
+                                      'LATHROP / MANTECA' = 'Lathrop/Manteca',
+                                      'LIVERMORE' = 'Livermore',
+                                      'PLEASANTON' = 'Pleasanton',
+                                      'SAN JOSE' = 'San Jose',
+                                      'SANTA CLARA' = 'Santa Clara University',
+                                      'STOCKTON' = 'Stockton',
+                                      'TRACY' = 'Tracy',
+                                      'VASCO ROAD' = 'Vasco')) %>%
   mutate(onoff_exit_station = recode(onoff_exit_station,
-                                     'FREMONT STATION' = 'Fremont Station',
-                                     'GREAT AMERICA STATION' = 'Great America Station',
-                                     'LATHROP-MANTECA STATION' = 'Lathrop/Manteca Station',
-                                     'LIVERMORE STATION' = 'Livermore Station',
-                                     'PLEASANTON STATION' = 'Pleasanton Station',
-                                     'SAN JOSE STATION' = 'San Jose Station',
-                                     'SANTA CLARA STATION' = 'Santa Clara University Station',
-                                     'STOCKTON STATION' = 'Stockton Station',
-                                     'TRACY STATION' = 'Tracy Station',
-                                     'VASCO STATION' = 'Vasco Station'))
+                                     # ACE - 2014 station names
+                                     'FREMONT STATION' = 'Fremont',
+                                     'GREAT AMERICA STATION' = 'Great America',
+                                     'LATHROP-MANTECA STATION' = 'Lathrop/Manteca',
+                                     'LIVERMORE STATION' = 'Livermore',
+                                     'PLEASANTON STATION' = 'Pleasanton',
+                                     'SAN JOSE STATION' = 'San Jose',
+                                     'SANTA CLARA STATION' = 'Santa Clara University',
+                                     'STOCKTON STATION' = 'Stockton',
+                                     'TRACY STATION' = 'Tracy',
+                                     'VASCO STATION' = 'Vasco',
+                                     # ACE - 2019 station names
+                                     'FREMONT' = 'Fremont',
+                                     'GREAT AMERICA' = 'Great America',
+                                     'LATHROP / MANTECA' = 'Lathrop/Manteca',
+                                     'LIVERMORE' = 'Livermore',
+                                     'PLEASANTON' = 'Pleasanton',
+                                     'SAN JOSE' = 'San Jose',
+                                     'SANTA CLARA' = 'Santa Clara University',
+                                     'STOCKTON' = 'Stockton',
+                                     'TRACY' = 'Tracy',
+                                     'VASCO ROAD' = 'Vasco'))
+
+print('onoff_enter_station:')
+print(table(df$onoff_enter_station, df$operator_survey_year))
+
+print('onoff_exit_station:')
+print(table(df$onoff_exit_station, df$operator_survey_year))
 
 
 # creat a field to represent operator + on/off_station for heavy rail/commuter rail surveys
