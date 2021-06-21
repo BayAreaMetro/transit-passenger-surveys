@@ -212,6 +212,45 @@ write.table(caltrain_entry_exit, file.path(VALIDATION_Dir, "PopSim_Summaries_Pas
 # WRITE OUT FINAL TPS DATASET WITH FINAL WEIGHTS
 #=========================================================================================================================
 
+# Select final variables for sharing
+
+TPS <- TPS %>% 
+  select(c("ID", "operator", "survey_year", "SURVEY_MODE", "access_mode", 
+           "depart_hour", "dest_purp", "direction","egress_mode", "eng_proficient", 
+           "fare_category", "fare_medium","gender", 
+           "hispanic", "household_income", "interview_language", "onoff_enter_station", "onoff_exit_station", 
+           "orig_purp", "persons", "return_hour","route", "student_status", 
+           "survey_type", "time_period", "transit_type", "trip_purp", "vehicles", 
+           "weekpart", "weight", "work_status", "workers", "canonical_operator", "operator_detail", "technology", 
+           "approximate_age", "tour_purp", "tour_purp_case", "vehicle_numeric_cat", 
+           "worker_numeric_cat", "auto_suff", "first_before_operator_detail", 
+           "second_before_operator_detail", "third_before_operator_detail", 
+           "first_after_operator_detail", "second_after_operator_detail", 
+           "third_after_operator_detail", "first_before_operator", "second_before_operator", 
+           "third_before_operator", "first_after_operator", "second_after_operator", 
+           "third_after_operator", "first_before_technology", "second_before_technology", 
+           "third_before_technology", "first_after_technology", "second_after_technology", 
+           "third_after_technology", "transfer_from", "transfer_to", "first_board_tech", 
+           "last_alight_tech", "commuter_rail_present", "heavy_rail_present", 
+           "express_bus_present", "ferry_present", "light_rail_present", 
+           "boardings", "race", "language_at_home", "day_of_the_week", "field_start", 
+           "field_end", "day_part", "unique_ID", "dest_tm1_taz", "home_tm1_taz", 
+           "orig_tm1_taz", "school_tm1_taz", "workplace_tm1_taz", "dest_tm2_taz", 
+           "home_tm2_taz", "orig_tm2_taz", "school_tm2_taz", "workplace_tm2_taz", 
+           "dest_tm2_maz", "home_tm2_maz", "orig_tm2_maz", "school_tm2_maz", 
+           "workplace_tm2_maz", "board_tap", "alight_tap", "trip_weight", 
+           "field_language", "survey_time", "path_access", "path_egress", 
+           "path_line_haul", "path_label", "first_board_tap", "last_alight_tap", 
+           "survey_batch", "agg_tour_purp", "access_mode_model", "egress_mode_model", 
+           "auto_suff_model", "exp_factor", "boardWeight_2015", "tripWeight_2015", 
+           "nTransfers", "period", "transfer_from_tech", "transfer_to_tech", 
+           "usedLB", "usedCR", "usedHR", "usedEB", "usedLR", "usedFR", "usedTotal", 
+           "BEST_MODE", "LB_CR", "LB_HR", "LB_LR", "LB_FR", "LB_EB", "LB_LB", 
+           "EB_CR", "EB_HR", "EB_LR", "EB_FR", "EB_EB", "FR_CR", "FR_HR", 
+           "FR_LR", "FR_FR", "LR_CR", "LR_HR", "LR_LR", "HR_CR", "HR_HR", 
+           "CR_CR", "TRANSFER_TYPE", "hh_id", "final_tripWeight_2015", "final_boardWeight_2015", 
+           "final_expansionFactor"))
+
 write.csv(TPS, file.path(TPS_Dir, "model_version",paste0("TPS_Model_Version_PopulationSim_Weights",today,".csv")), row.names = F)
 save(TPS, file=file.path(TPS_Dir, "model_version",paste0("TPS_Model_Version_PopulationSim_Weights",today,".Rdata")))
 
