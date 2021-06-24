@@ -54,12 +54,13 @@ eastbound_unique <- all_eastbound %>%
   mutate(eastbound_link=1) %>% 
   rename(east_vol_pax=vol_pax)
 
-# Subset transbay operators as a first pass
+# Subset transbay operators as a first pass - remove dummy records, pick right year of survey, weekday only
 
 BB_Operators <- data.ready %>% filter((operator == "AC Transit" & survey_tech=="express bus") |
                                         (operator == "WestCAT" & survey_tech=="express bus") |
                                         operator %in% c("BART","SF Bay Ferry/WETA"))
-BB_Operators <- BB_Operators %>% filter(survey_year>=2015 & weekpart=="WEEKDAY") %>% 
+BB_Operators <- BB_Operators %>% filter(survey_year>=2015 & weekpart=="WEEKDAY" & 
+                                          access_mode != "Missing - Dummy Record") %>% 
   mutate(westbound_transit=0,eastbound_transit=0)
                                       
 
@@ -130,10 +131,42 @@ trial <- BB_Operators %>%
 ----------------------
 
 # Summarize transit by operator, income, and race ethnicity
-  
+
+# Summarize income
+  BB_income <- BB_Operators %>% 
+  mutate(
+    income_rc=case_when(
+      household_income=="under $10,000"        ~"1_less than 25k",
+      household_income=="$10,000 to $25,000"   ~"1_less than 25k",
+      household_income=="$25,000 to $35,000"   ~"2_25-50k",
+      household_income=="$35,000 to $50,000"   ~"2_25-50k",
+      household_income=="$50,000 to $75,000"   ~"3_50-75k",
+      household_income=="$75,000 to $100,000"  ~"4_75-100k",
+      household_income=="$100,000 to $150,000" ~"5_100-150k",
+      household_income=="$150,000 or higher"   ~"6_150k+",
+      TRUE                           ~"Missing or NA")
+    ) %>% 
+  group_by(income_rc) %>% 
+  summarize(total=sum(weight)) %>% 
+  spread(income_rc,total)
+
+# Summarize race/ethnicity
+BB_race <- BB_Operators %>% 
+  mutate(race_general=case_when(
+    hispanic=="HISPANIC/LATINO OR OF SPANISH ORIGIN"                           ~ "hispanic",
+    hispanic=="NOT HISPANIC/LATINO OR OF SPANISH ORIGIN" & race=="WHITE"       ~ "white",
+    hispanic=="NOT HISPANIC/LATINO OR OF SPANISH ORIGIN" & race=="BLACK"       ~ "black",
+    hispanic=="NOT HISPANIC/LATINO OR OF SPANISH ORIGIN" & race=="ASIAN"       ~ "asian",
+    hispanic=="NOT HISPANIC/LATINO OR OF SPANISH ORIGIN" & race=="OTHER"       ~ "other",
+    TRUE                                                                       ~ "NA or missing")
+  ) %>% 
+  group_by(race_general) %>% 
+  summarize(total=sum(weight)) %>% 
+  spread(race_general,total)
 
 
-write.csv(trial, paste0(OUTPUT, "trial.csv"), row.names = FALSE, quote = T)
+write.csv(BB_income, paste0(OUTPUT, "TPS Bay Bridge Income.csv"), row.names = FALSE, quote = T)
+write.csv(BB_race, paste0(OUTPUT, "TPS Bay Bridge Race.csv"), row.names = FALSE, quote = T)
 
 
  
