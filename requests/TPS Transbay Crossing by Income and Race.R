@@ -8,7 +8,7 @@ suppressMessages(library(tidyverse))
 # Input survey file
 
 TPS_SURVEY_IN = "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-06-09.RData"
-OUTPUT = "M:/Data/Requests/Lisa Zorn/"
+OUTPUT = "M:/Data/Requests/Lisa Zorn/TPS Bay Bridge Income and Race/"
 load (TPS_SURVEY_IN)
 
 # Bring in select link files and concatenate all combinations with vol_pax > 0
@@ -119,21 +119,10 @@ BB_Operators <- BB_Operators %>%
   mutate(westbound_transit=if_else(westbound_link==1,1,westbound_transit),
          eastbound_transit=if_else(eastbound_link==1,1,eastbound_transit))
 
----------------------
-
-trial <- BB_Operators %>%
-  filter(is.na(westbound_transit) & is.na(eastbound_transit)) %>% 
-  select(c("ID", "operator", "route", "survey_year", "survey_tech", "direction", 
-           "household_income", "onoff_enter_station", "onoff_exit_station", 
-           "weekpart", "weight", "dest_tm1_taz",  
-           "orig_tm1_taz", "westbound_transit", "eastbound_transit", "west_vol_pax", 
-           "westbound_link", "east_vol_pax", "eastbound_link"))
-----------------------
-
 # Summarize transit by operator, income, and race ethnicity
 
 # Summarize income
-  BB_income <- BB_Operators %>% 
+BB_income <- BB_Operators %>% 
   mutate(
     income_rc=case_when(
       household_income=="under $10,000"        ~"1_less than 25k",
