@@ -7,14 +7,61 @@ suppressMessages(library(tidyverse))
 
 # Input survey file
 
-TPS_SURVEY_IN = "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/model_version/TPS_Model_Version_PopulationSim_Weights2021-06-09.Rdata"
+TPS_SURVEY_IN = "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-06-09.RData"
 OUTPUT = "M:/Data/Requests/Lisa Zorn/"
 load (TPS_SURVEY_IN)
 
+# Bring in select link files and concatenate all combinations with vol_pax > 0
+
+directory <- "M:/Application/Model One/RTP2021/IncrementalProgress/2015_TM152_IPA_16/OUTPUT/BayBridge_and_transit/"
+
+EA_West <- paste0(directory,"loadEA_selectlink_2783-6972_ODs_v2.csv")  # Early AM, Westbound
+AM_West <- paste0(directory,"loadAM_selectlink_2783-6972_ODs_v2.csv")
+MD_West <- paste0(directory,"loadMD_selectlink_2783-6972_ODs_v2.csv")
+PM_West <- paste0(directory,"loadPM_selectlink_2783-6972_ODs_v2.csv")
+EV_West <- paste0(directory,"loadEV_selectlink_2783-6972_ODs_v2.csv")
+  
+EA_East <- paste0(directory,"loadEA_selectlink_6973-2784_ODs_v2.csv")
+AM_East <- paste0(directory,"loadAM_selectlink_6973-2784_ODs_v2.csv")
+MD_East <- paste0(directory,"loadMD_selectlink_6973-2784_ODs_v2.csv")
+PM_East <- paste0(directory,"loadPM_selectlink_6973-2784_ODs_v2.csv")
+EV_East <- paste0(directory,"loadEV_selectlink_6973-2784_ODs_v2.csv")
+
+EA_WB <- read.csv(EA_West,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)  # Early AM, Westbound
+AM_WB <- read.csv(AM_West,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
+MD_WB <- read.csv(MD_West,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
+PM_WB <- read.csv(PM_West,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
+EV_WB <- read.csv(EV_West,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
+
+EA_EB <- read.csv(EA_East,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
+AM_EB <- read.csv(AM_East,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
+MD_EB <- read.csv(MD_East,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
+PM_EB <- read.csv(PM_East,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
+EV_EB <- read.csv(EV_East,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
+
+all_Westbound <- bind_rows(EA_WB,AM_WB,MD_WB,PM_WB,EV_WB)
+all_eastbound <- bind_rows(EA_EB,AM_EB,MD_EB,PM_EB,EV_EB)
+
+westbound_unique <- all_Westbound %>% 
+  filter(vol_pax>0) %>% 
+  distinct(OTAZ,DTAZ, .keep_all = TRUE) %>% 
+  mutate(westbound_link=1) %>% 
+  rename(west_vol_pax=vol_pax)
+
+eastbound_unique <- all_eastbound %>% 
+  filter(vol_pax>0) %>% 
+  distinct(OTAZ,DTAZ, .keep_all = TRUE) %>% 
+  mutate(eastbound_link=1) %>% 
+  rename(east_vol_pax=vol_pax)
+
 # Subset transbay operators as a first pass
 
-BB_Operators <- TPS %>% filter(operator %in% c("AC Transit [EXPRESS]", "BART", "SF Bay Ferry/WETA", 
-                                               "WestCAT [EXPRESS]"))
+BB_Operators <- data.ready %>% filter((operator == "AC Transit" & survey_tech=="express bus") |
+                                        (operator == "WestCAT" & survey_tech=="express bus") |
+                                        operator %in% c("BART","SF Bay Ferry/WETA"))
+BB_Operators <- BB_Operators %>% filter(survey_year>=2015 & weekpart=="WEEKDAY") %>% 
+  mutate(westbound_transit=0,eastbound_transit=0)
+                                      
 
 East_Bay_BART <- c("12th St. Oakland City Center", "19th St. Oakland", 
                    "Ashby", "Bay Fair", "Castro Valley", 
@@ -57,13 +104,36 @@ Transbay_Routes <- c("AC TRANSIT___B Lakeshore Ave Oakland", "AC TRANSIT___C Hig
                      #"WESTCAT___JX Express Del Norte BART to Hercules Transit Center",
                      #"WESTCAT___JL Express Del Norte BART Hilltop Shopping Center"
 
-data.summary <- TPS %>% 
-  filter(!(is.na(fare_category))) %>% 
-  filter(fare_category!="") %>% 
-  group_by(operator,fare_category) %>% 
-  summarize(total=sum(final_boardWeight_2015))
+BB_Operators <- BB_Operators %>% 
+  filter(operator %in% c("BART", "SF Bay Ferry/WETA") |
+                           route %in% Transbay_Routes) %>% 
+  left_join(.,westbound_unique, by=c("orig_tm1_taz"="OTAZ","dest_tm1_taz"="DTAZ")) %>% 
+  left_join(.,eastbound_unique, by=c("orig_tm1_taz"="OTAZ","dest_tm1_taz"="DTAZ")) %>% 
+  mutate(westbound_transit=if_else(operator=="BART" & 
+                                     onoff_enter_station %in% East_Bay_BART &
+                                     onoff_exit_station %in% West_Bay_BART,1,westbound_transit),
+         eastbound_transit=if_else(operator=="BART" &
+                                     onoff_enter_station %in% West_Bay_BART &
+                                     onoff_exit_station %in% East_Bay_BART,1,eastbound_transit)) %>% 
+  mutate(westbound_transit=if_else(westbound_link==1,1,westbound_transit),
+         eastbound_transit=if_else(eastbound_link==1,1,eastbound_transit))
 
-write.csv(data.summary, paste0(OUTPUT, "TPS by operator and fare category.csv"), row.names = FALSE, quote = T)
+---------------------
+
+trial <- BB_Operators %>%
+  filter(is.na(westbound_transit) & is.na(eastbound_transit)) %>% 
+  select(c("ID", "operator", "route", "survey_year", "survey_tech", "direction", 
+           "household_income", "onoff_enter_station", "onoff_exit_station", 
+           "weekpart", "weight", "dest_tm1_taz",  
+           "orig_tm1_taz", "westbound_transit", "eastbound_transit", "west_vol_pax", 
+           "westbound_link", "east_vol_pax", "eastbound_link"))
+----------------------
+
+# Summarize transit by operator, income, and race ethnicity
+  
+
+
+write.csv(trial, paste0(OUTPUT, "trial.csv"), row.names = FALSE, quote = T)
 
 
  
