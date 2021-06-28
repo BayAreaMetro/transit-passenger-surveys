@@ -5,7 +5,7 @@ title: SOP
 
 # Standard Operating Procedures for Conducting Surveys
 
-This page provides information about MTC's Standard Operating Procedures (SOP) for conducting MTC-funded transit passenger surveys within the Bay Area. Please use the Contents links below to find appropriate guidance by section. Please refer any questions or comments to Shimon Israel at sisrael@mtc.ca.gov or 415-778-5239.
+This page provides information about MTC's Standard Operating Procedures (SOP) for conducting MTC-funded transit passenger surveys within the Bay Area. Please use the Contents links below to find appropriate guidance by section. Please refer any questions or comments to Shimon Israel at sisrael@bayareametro.gov or 415-778-5239.
 
 CONTENTS
 
@@ -19,11 +19,11 @@ CONTENTS
 
 ## SOP Goals
 
-The SOPs here describe how Bay Area transit passenger surveys will be administered in cooperation between MTC and operators. Through this process, it is our current goal to cooperatively survey the entire region's Transportation Development Act (TDA) funded fixed-route transit ridership over a five- to seven-year period. Survey goals include supporting operator Title VI reporting requirements; refinement of analytical planning tools, such as MTC's travel demand model; and providing data for regional and operator-specific ridership market and equity analyses. 
+The SOPs here describe how the Bay Area Transit Passenger Survey (TPS) program will be administered in cooperation between MTC and operators. Through this process, it is our current goal to cooperatively survey the entire region's Transportation Development Act (TDA) funded fixed-route transit ridership over a five- to seven-year period. Survey goals include supporting operator Title VI reporting requirements; refinement of analytical planning tools, such as MTC's travel demand model; and providing data for regional and operator-specific ridership market and equity analyses. 
 
 ## Procurement and Contracting
 
-MTC will procure consulting resources to carry out the Survey Program, and oversee consultant performance to ensure delivery of high quality data and survey summary products. MTC's current contracting environment includes a "bench" of three consultants to spread the work among. All three were selected in a competitive recruitment and all have a lot of experience in transit passenger surveying. The three bench consultants from MTC's most recent procurement are Corey, Canapary, & Galanis of San Francisco, California; ETC Institute of Olathe, Kansas; and, Redhill Group of Irvine, California. 
+MTC will procure consulting resources to carry out the TPS program, and oversee consultant performance to ensure delivery of high quality data and survey summary products. MTC's current contracting environment includes a "bench" of three consultants to spread the work among. All three were selected in a competitive recruitment and all have a lot of experience in transit passenger surveying. The three bench consultants from MTC's most recent procurement are Corey, Canapary, & Galanis of San Francisco, California; ETC Institute of Olathe, Kansas; and, Redhill Group of Irvine, California. 
 
 MTC staff works closely with operator liaisons in all matters related to survey scheduling (see Survey Scheduling, below), contracting, and administration. Work is assigned to contractors via MTC-issued task orders, which include work scope, requested deliverables, budget, anticipated schedule, and other relevant items such as disadvantaged business enterprise (DBE) subcontracting goals, etc. A recent example executed task order is available [here](https://mtcdrive.box.com/Example-Task-Order).
 

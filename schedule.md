@@ -3,9 +3,9 @@ layout: page
 title: Schedule
 ---
 
-# Survey Schedule
+# TPS Survey Schedule
 
-Below you'll find the operators previously surveyed in MTC's survey program and the tentative schedule for future survey work. 
+Below you'll find the operators previously surveyed in MTC's Transit Passenger Survey program and the tentative schedule for future survey work. 
 
 CONTENTS
 
