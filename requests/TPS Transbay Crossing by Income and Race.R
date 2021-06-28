@@ -15,32 +15,44 @@ load (TPS_SURVEY_IN)
 
 directory <- "M:/Application/Model One/RTP2021/IncrementalProgress/2015_TM152_IPA_16/OUTPUT/BayBridge_and_transit/"
 
-EA_West <- paste0(directory,"loadEA_selectlink_2783-6972_ODs_v2.csv")  # Early AM, Westbound
+EA_West <- paste0(directory,"loadEA_selectlink_2783-6972_ODs_v2.csv")  # Early AM, westbound, etc.
 AM_West <- paste0(directory,"loadAM_selectlink_2783-6972_ODs_v2.csv")
 MD_West <- paste0(directory,"loadMD_selectlink_2783-6972_ODs_v2.csv")
 PM_West <- paste0(directory,"loadPM_selectlink_2783-6972_ODs_v2.csv")
 EV_West <- paste0(directory,"loadEV_selectlink_2783-6972_ODs_v2.csv")
-  
-EA_East <- paste0(directory,"loadEA_selectlink_6973-2784_ODs_v2.csv")
+
+EA_East <- paste0(directory,"loadEA_selectlink_6973-2784_ODs_v2.csv")   # Early AM, eastbound, etc.
 AM_East <- paste0(directory,"loadAM_selectlink_6973-2784_ODs_v2.csv")
 MD_East <- paste0(directory,"loadMD_selectlink_6973-2784_ODs_v2.csv")
 PM_East <- paste0(directory,"loadPM_selectlink_6973-2784_ODs_v2.csv")
 EV_East <- paste0(directory,"loadEV_selectlink_6973-2784_ODs_v2.csv")
 
-EA_WB <- read.csv(EA_West,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)  # Early AM, Westbound
-AM_WB <- read.csv(AM_West,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
-MD_WB <- read.csv(MD_West,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
-PM_WB <- read.csv(PM_West,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
-EV_WB <- read.csv(EV_West,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
+# Import files, append period and direction variables
 
-EA_EB <- read.csv(EA_East,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
-AM_EB <- read.csv(AM_East,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
-MD_EB <- read.csv(MD_East,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
-PM_EB <- read.csv(PM_East,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
-EV_EB <- read.csv(EV_East,header = TRUE) %>% select(OTAZ,DTAZ,vol_pax)
+EA_WB <- read.csv(EA_West,header = TRUE) %>% select(OTAZ,DTAZ,vol) %>% mutate (period="Early AM", direction="Westbound")  # Early AM, westbound, etc.
+AM_WB <- read.csv(AM_West,header = TRUE) %>% select(OTAZ,DTAZ,vol) %>% mutate (period="AM Peak", direction="Westbound")
+MD_WB <- read.csv(MD_West,header = TRUE) %>% select(OTAZ,DTAZ,vol) %>% mutate (period="Midday", direction="Westbound")
+PM_WB <- read.csv(PM_West,header = TRUE) %>% select(OTAZ,DTAZ,vol) %>% mutate (period="PM Peak", direction="Westbound")
+EV_WB <- read.csv(EV_West,header = TRUE) %>% select(OTAZ,DTAZ,vol) %>% mutate (period="Evening", direction="Westbound")
+
+EA_EB <- read.csv(EA_East,header = TRUE) %>% select(OTAZ,DTAZ,vol) %>% mutate (period="Early AM", direction="Eastbound")  # Early AM, eastbound, etc.
+AM_EB <- read.csv(AM_East,header = TRUE) %>% select(OTAZ,DTAZ,vol) %>% mutate (period="AM Peak", direction="Eastbound")
+MD_EB <- read.csv(MD_East,header = TRUE) %>% select(OTAZ,DTAZ,vol) %>% mutate (period="Midday", direction="Eastbound")
+PM_EB <- read.csv(PM_East,header = TRUE) %>% select(OTAZ,DTAZ,vol) %>% mutate (period="PM Peak", direction="Eastbound")
+EV_EB <- read.csv(EV_East,header = TRUE) %>% select(OTAZ,DTAZ,vol) %>% mutate (period="Evening", direction="Eastbound")
 
 all_Westbound <- bind_rows(EA_WB,AM_WB,MD_WB,PM_WB,EV_WB)
 all_eastbound <- bind_rows(EA_EB,AM_EB,MD_EB,PM_EB,EV_EB)
+
+west_sum <- all_Westbound %>% 
+  group_by(OTAZ,DTAZ) %>% 
+  summarize(sum_vol=sum(vol)) %>% 
+  filter(sum_vol>0)
+
+east_sum <- all_eastbound %>% 
+  group_by(OTAZ,DTAZ) %>% 
+  summarize(sum_vol=sum(vol)) %>% 
+  filter(sum_vol>0)
 
 westbound_unique <- all_Westbound %>% 
   filter(vol_pax>0) %>% 
@@ -156,6 +168,17 @@ BB_race <- BB_Operators %>%
 
 write.csv(BB_income, paste0(OUTPUT, "TPS Bay Bridge Income.csv"), row.names = FALSE, quote = T)
 write.csv(BB_race, paste0(OUTPUT, "TPS Bay Bridge Race.csv"), row.names = FALSE, quote = T)
+
+east_sum <- east_sum %>% 
+  mutate(direction="Eastbound")
+
+west_sum <- west_sum %>% 
+  mutate(direction="Westbound")
+
+final <- rbind(east_sum,west_sum)
+
+write.csv(final, paste0(OUTPUT, "final.csv"), row.names = FALSE, quote = T)
+
 
 
  
