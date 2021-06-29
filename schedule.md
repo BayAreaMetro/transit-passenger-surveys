@@ -3,7 +3,7 @@ layout: page
 title: Schedule
 ---
 
-# TPS Survey Schedule
+# TPS Schedule
 
 Below you'll find the operators previously surveyed in MTC's Transit Passenger Survey program and the tentative schedule for future survey work. 
 
@@ -61,15 +61,19 @@ CONTENTS
 
 | **Survey Year**                  | **Spring**             | **Fall**               |
 |:---------------------------------|:-----------------------|:-----------------------|
-| 2020                             | SamTrans (continued)   | BART       |
+| 2020                             | Suspended for COVID    | Suspended for COVID    |
+|                                  |                        |                        |
+| 2021                             | Suspended for COVID    | Suspended for COVID    |
+|                                  |                        |                        |
+| 2022                             | SamTrans (continued)   | BART                   |
 |                                  |                        | Caltrain               |
 |                                  |                        |	                     |
-| 2021                             | BART (continued)       |	                     |
+| 2023                             | BART (continued)       |	                     |
 |                                  |                        |                        |
-| 2022                             | VTA                    | VTA (continued)        |
+| 2024                             | VTA                    | VTA (continued)        |
 |                                  | Muni                   | Muni (continued)       |
 |                                  |                        |                        |
-| 2023                             | FAST                   | AC Transit             |
+| 2025                             | FAST                   | AC Transit             |
 |                                  | Marin Transit          | Dumbarton Express      |
 |                                  | Rio Vista Transit      | Union City Transit     |
 |                                  | SolTrans               | WestCAT                |
