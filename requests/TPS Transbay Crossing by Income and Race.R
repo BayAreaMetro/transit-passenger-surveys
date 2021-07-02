@@ -11,7 +11,7 @@ TPS_SURVEY_IN = "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/
 OUTPUT = "M:/Data/Requests/Lisa Zorn/TPS Bay Bridge Income and Race/"
 load (TPS_SURVEY_IN)
 
-# Bring in select link files and concatenate all combinations with vol_pax > 0
+# Bring in select link files and concatenate all combinations with sum of vol > 0
 
 directory <- "M:/Application/Model One/RTP2021/IncrementalProgress/2015_TM152_IPA_16/OUTPUT/BayBridge_and_transit/"
 
