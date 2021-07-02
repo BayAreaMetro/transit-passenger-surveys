@@ -46,25 +46,14 @@ all_eastbound <- bind_rows(EA_EB,AM_EB,MD_EB,PM_EB,EV_EB)
 
 west_sum <- all_Westbound %>% 
   group_by(OTAZ,DTAZ) %>% 
-  summarize(sum_vol=sum(vol)) %>% 
-  filter(sum_vol>0)
+  summarize(west_vol=sum(vol)) %>% 
+  filter(west_vol>0) 
 
 east_sum <- all_eastbound %>% 
   group_by(OTAZ,DTAZ) %>% 
-  summarize(sum_vol=sum(vol)) %>% 
-  filter(sum_vol>0)
-
-westbound_unique <- all_Westbound %>% 
-  filter(vol_pax>0) %>% 
-  distinct(OTAZ,DTAZ, .keep_all = TRUE) %>% 
-  mutate(westbound_link=1) %>% 
-  rename(west_vol_pax=vol_pax)
-
-eastbound_unique <- all_eastbound %>% 
-  filter(vol_pax>0) %>% 
-  distinct(OTAZ,DTAZ, .keep_all = TRUE) %>% 
-  mutate(eastbound_link=1) %>% 
-  rename(east_vol_pax=vol_pax)
+  summarize(east_vol=sum(vol)) %>% 
+  filter(east_vol>0) 
+  
 
 # Subset transbay operators as a first pass - remove dummy records, pick right year of survey, weekday only
 
@@ -118,18 +107,17 @@ Transbay_Routes <- c("AC TRANSIT___B Lakeshore Ave Oakland", "AC TRANSIT___C Hig
                      #"WESTCAT___JL Express Del Norte BART Hilltop Shopping Center"
 
 BB_Operators <- BB_Operators %>% 
-  filter(operator %in% c("BART", "SF Bay Ferry/WETA") |
-                           route %in% Transbay_Routes) %>% 
-  left_join(.,westbound_unique, by=c("orig_tm1_taz"="OTAZ","dest_tm1_taz"="DTAZ")) %>% 
-  left_join(.,eastbound_unique, by=c("orig_tm1_taz"="OTAZ","dest_tm1_taz"="DTAZ")) %>% 
+  filter(operator=="BART" | route %in% Transbay_Routes) %>% 
+  left_join(.,west_sum, by=c("orig_tm1_taz"="OTAZ","dest_tm1_taz"="DTAZ")) %>% 
+  left_join(.,east_sum, by=c("orig_tm1_taz"="OTAZ","dest_tm1_taz"="DTAZ")) %>% 
   mutate(westbound_transit=if_else(operator=="BART" & 
                                      onoff_enter_station %in% East_Bay_BART &
                                      onoff_exit_station %in% West_Bay_BART,1,westbound_transit),
          eastbound_transit=if_else(operator=="BART" &
                                      onoff_enter_station %in% West_Bay_BART &
-                                     onoff_exit_station %in% East_Bay_BART,1,eastbound_transit)) %>% 
-  mutate(westbound_transit=if_else(westbound_link==1,1,westbound_transit),
-         eastbound_transit=if_else(eastbound_link==1,1,eastbound_transit))
+                                     onoff_exit_station %in% East_Bay_BART,1,eastbound_transit))%>% 
+  mutate(westbound_transit=if_else(west_vol>0 & !is.na(west_vol),1,westbound_transit),
+         eastbound_transit=if_else(east_vol>0 & !is.na(east_vol),1,eastbound_transit))
 
 # Summarize transit by operator, income, and race ethnicity
 
@@ -146,8 +134,17 @@ BB_income <- BB_Operators %>%
       household_income=="$100,000 to $150,000" ~"5_100-150k",
       household_income=="$150,000 or higher"   ~"6_150k+",
       TRUE                           ~"Missing or NA")
-    ) %>% 
-  group_by(income_rc) %>% 
+    ) 
+
+west_income <- BB_income %>% 
+  filter(westbound_transit==1) %>%  
+  group_by(operator,income_rc) %>% 
+  summarize(total=sum(weight)) %>% 
+  spread(income_rc,total)
+
+east_income <- BB_income %>% 
+  filter(eastbound_transit==1) %>%  
+  group_by(operator,income_rc) %>% 
   summarize(total=sum(weight)) %>% 
   spread(income_rc,total)
 
@@ -160,25 +157,22 @@ BB_race <- BB_Operators %>%
     hispanic=="NOT HISPANIC/LATINO OR OF SPANISH ORIGIN" & race=="ASIAN"       ~ "asian",
     hispanic=="NOT HISPANIC/LATINO OR OF SPANISH ORIGIN" & race=="OTHER"       ~ "other",
     TRUE                                                                       ~ "NA or missing")
-  ) %>% 
-  group_by(race_general) %>% 
+  ) 
+
+west_race <- BB_race %>% 
+  filter(westbound_transit==1) %>%  
+  group_by(operator,race_general) %>% 
+  summarize(total=sum(weight)) %>% 
+  spread(race_general,total)
+
+east_race <- BB_race %>% 
+  filter(eastbound_transit==1) %>%  
+  group_by(operator,race_general) %>% 
   summarize(total=sum(weight)) %>% 
   spread(race_general,total)
 
 
-write.csv(BB_income, paste0(OUTPUT, "TPS Bay Bridge Income.csv"), row.names = FALSE, quote = T)
-write.csv(BB_race, paste0(OUTPUT, "TPS Bay Bridge Race.csv"), row.names = FALSE, quote = T)
-
-east_sum <- east_sum %>% 
-  mutate(direction="Eastbound")
-
-west_sum <- west_sum %>% 
-  mutate(direction="Westbound")
-
-final <- rbind(east_sum,west_sum)
-
-write.csv(final, paste0(OUTPUT, "final.csv"), row.names = FALSE, quote = T)
-
-
-
- 
+write.csv(west_income, paste0(OUTPUT, "TPS Westbound Bay Bridge Income by Operator.csv"), row.names = FALSE, quote = T)
+write.csv(east_income, paste0(OUTPUT, "TPS Eastbound Bay Bridge Income by Operator.csv"), row.names = FALSE, quote = T)
+write.csv(west_race, paste0(OUTPUT, "TPS Westbound Bay Bridge Race by Operator.csv"), row.names = FALSE, quote = T)
+write.csv(east_race, paste0(OUTPUT, "TPS Eastbound Bay Bridge Race by Operator.csv"), row.names = FALSE, quote = T)
