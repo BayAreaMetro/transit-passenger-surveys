@@ -140,13 +140,13 @@ west_income <- BB_income %>%
   filter(westbound_transit==1) %>%  
   group_by(operator,income_rc) %>% 
   summarize(total=sum(weight)) %>% 
-  spread(income_rc,total)
+  spread(income_rc,total, fill=0)
 
 east_income <- BB_income %>% 
   filter(eastbound_transit==1) %>%  
   group_by(operator,income_rc) %>% 
   summarize(total=sum(weight)) %>% 
-  spread(income_rc,total)
+  spread(income_rc,total,fill=0)
 
 # Summarize race/ethnicity
 BB_race <- BB_Operators %>% 
@@ -163,13 +163,13 @@ west_race <- BB_race %>%
   filter(westbound_transit==1) %>%  
   group_by(operator,race_general) %>% 
   summarize(total=sum(weight)) %>% 
-  spread(race_general,total)
+  spread(race_general,total, fill = 0)
 
 east_race <- BB_race %>% 
   filter(eastbound_transit==1) %>%  
   group_by(operator,race_general) %>% 
   summarize(total=sum(weight)) %>% 
-  spread(race_general,total)
+  spread(race_general,total, fill = 0)
 
 
 write.csv(west_income, paste0(OUTPUT, "TPS Westbound Bay Bridge Income by Operator.csv"), row.names = FALSE, quote = T)
