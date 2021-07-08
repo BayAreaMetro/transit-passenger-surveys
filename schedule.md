@@ -50,7 +50,7 @@ CONTENTS
 |                | [Santa Rosa CityBus](https://mtcdrive.box.com/s/e5p5a5igsvrwknbjoneierx3rxmoj67d)                 |	                                                                                 |
 |                |                                                                                                   |                                                                                   |
 | 2019           | [ACE](https://mtcdrive.box.com/s/78f7v14yr5tkhcts28zpo94gdty1dkgw)                                | SamTrans                                                                          |
-|                | [Napa VINE Transit](https://mtcdrive.box.com/s/eeyfb7vh7w2cr6e6uu68b68xyd918fhv)                  | County Connection                                                                 |
+|                | [Napa VINE Transit](https://mtcdrive.box.com/s/eeyfb7vh7w2cr6e6uu68b68xyd918fhv)                  | [County Connection](https://mtcdrive.box.com/s/d176rap6cll35ypv1njzf2xo4fr6s578)                                                                 |
 |                | [Tri Delta Transit](https://mtcdrive.box.com/s/ogm5xzoei5jy64s4u12n7ymqfvkc0roo)                  |                                                                                   |
 
 <br/>
