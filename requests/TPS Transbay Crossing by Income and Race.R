@@ -95,7 +95,7 @@ Transbay_Routes <- c("AC TRANSIT___B Lakeshore Ave Oakland", "AC TRANSIT___C Hig
                      "AC TRANSIT___OX San Francisco Alameda Bay Farm Is","AC TRANSIT___P Highland Ave & Highland Way Piedmont", 
                      "AC TRANSIT___S Eden Shores Hayward", "AC TRANSIT___SB Cedar Blvd & Stevenson Blvd Newark", 
                      "AC TRANSIT___V Broadway and Broadway Terr Oakland", "AC TRANSIT___W Broadway & Blanding Ave Alameda",
-                     "ALAMEDA/OAKLAND", "HARBOR BAY","VALLEJO/MARE ISLAND", "WESTCAT___LYNX Transbay Hercules to San Francisco Transbay Terminal") 
+                     "ALAMEDA/OAKLAND", "HARBOR BAY","VALLEJO/MARE ISLAND", "SOUTH SF", "WESTCAT___LYNX Transbay Hercules to San Francisco Transbay Terminal") 
                      
 # Below routes were removed as they either utilize different bridges or don't travel into SF:
                      #"AC TRANSIT___M Hayward BART to Oracle" 
