@@ -344,7 +344,7 @@ basic_info = c('survey_version', 'survey_batch', 'operator_survey_year', 'operat
 
 trip_info = c('board_station', 'alight_station', 'first_board_tech', 'last_alight_tech',
               'access_mode', 'egress_mode', 'immediate_access_mode', 'immediate_egress_mode', 'boardings',
-              'orig_purp', 'dest_purp', 'tour_purp', 'fare_category_summary', 'fare_medium_summary',
+              'orig_purp', 'dest_purp', 'fare_category_summary', 'fare_medium_summary',
               'commuter_rail_present', 'heavy_rail_present', 'ferry_present',
               'light_rail_present', 'express_bus_present')
 
@@ -405,7 +405,7 @@ for (colname in c('orig_tm1_taz', 'dest_tm1_taz', 'home_tm1_taz',
 df_groupby_orig <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
                   survey_tech, weekpart, day_part, board_station, alight_station, 
-                  tour_purp, boardings, race_ethnicity, household_income,
+                  orig_purp, dest_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, orig_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
   rename('TM1_TAZ' = 'orig_tm1_taz',
@@ -421,7 +421,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 df_groupby_dest <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
                   survey_tech, weekpart, day_part, board_station, alight_station,
-                  tour_purp, boardings, race_ethnicity, household_income,
+                  orig_purp, dest_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, dest_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
   rename('TM1_TAZ' = 'dest_tm1_taz',
@@ -437,7 +437,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 df_groupby_home <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
                   survey_tech, weekpart, day_part, board_station, alight_station,
-                  tour_purp, boardings, race_ethnicity, household_income,
+                  orig_purp, dest_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, home_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
   rename('TM1_TAZ' = 'home_tm1_taz',
@@ -453,7 +453,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 df_groupby_workplace <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
                   survey_tech, weekpart, day_part, board_station, alight_station,
-                  tour_purp, boardings, race_ethnicity, household_income,
+                  orig_purp, dest_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, workplace_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
   rename('TM1_TAZ' = 'workplace_tm1_taz',
@@ -469,7 +469,7 @@ sprintf('The survey data contains %d unique %s, representing %.3f of all TM1 TAZ
 df_groupby_school <- df %>%
   dplyr::group_by(survey_version, operator_survey_year, operator, survey_year,
                   survey_tech, weekpart, day_part, board_station, alight_station,
-                  tour_purp, boardings, race_ethnicity, household_income,
+                  orig_purp, dest_purp, boardings, race_ethnicity, household_income,
                   hh_auto_ownership, school_tm1_taz) %>%
   dplyr::summarize(weight = sum(weight), trip_weight = sum(trip_weight), survey_cnt = n()) %>%
   rename('TM1_TAZ' = 'school_tm1_taz',
@@ -488,22 +488,22 @@ all_tm1_taz <- as.data.frame(df_groupby_orig) %>%
   full_join(as.data.frame(df_groupby_dest),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
                    'survey_tech', 'weekpart', 'day_part', 'board_station', 'alight_station',
-                   'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
+                   'orig_purp', 'dest_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_home),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
                    'survey_tech', 'weekpart', 'day_part', 'board_station', 'alight_station',
-                   'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
+                   'orig_purp', 'dest_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_workplace),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
                    'survey_tech', 'weekpart', 'day_part', 'board_station', 'alight_station',
-                   'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
+                   'orig_purp', 'dest_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ')) %>%
   full_join(as.data.frame(df_groupby_school),
             by = c('survey_version', 'operator_survey_year', 'operator', 'survey_year',
                    'survey_tech', 'weekpart', 'day_part', 'board_station', 'alight_station',
-                   'tour_purp', 'boardings', 'race_ethnicity', 'household_income',
+                   'orig_purp', 'dest_purp', 'boardings', 'race_ethnicity', 'household_income',
                    'hh_auto_ownership', 'TM1_TAZ'))
 
 # add TAZ-County crosswalk from ACS demographic data
