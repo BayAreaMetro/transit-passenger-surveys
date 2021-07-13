@@ -99,7 +99,7 @@ It is anticipated that it will take approximately five to seven years to survey 
 4. Balancing the resource and budgetary needs of surveying larger and smaller operators
 5. Clustering sampling of operators by geography to increase efficiency in deploying consultant resources
 
-The tentative schedule for surveying operators is available [here](http://data.mtc.ca.gov/onboard-surveys/schedule/).
+The tentative schedule for surveying operators is available [here](http://data.mtc.ca.gov/transit-passenger-surveys/schedule/).
 
 ## Survey Funding
 
