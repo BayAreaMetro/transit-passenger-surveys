@@ -8,7 +8,7 @@ suppressMessages(library(tidyverse))
 # Input survey file
 
 TPS_SURVEY_IN = "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-06-09.RData"
-OUTPUT = "M:/Data/Requests/Lisa Zorn/TPS Bay Bridge Income and Race/"
+OUTPUT = "M:/Data/OnBoard/Bespoke/BayBridge_IncomeRaceSummaries/"
 load (TPS_SURVEY_IN)
 
 # Bring in select link files and concatenate all combinations with sum of vol > 0
@@ -137,16 +137,20 @@ BB_income <- BB_Operators %>%
     ) 
 
 west_income <- BB_income %>% 
-  filter(westbound_transit==1) %>%  
+  filter(westbound_transit==1 & income_rc != "Missing or NA") %>%  
   group_by(operator,income_rc) %>% 
   summarize(total=sum(weight)) %>% 
-  spread(income_rc,total, fill=0)
+  #spread(income_rc,total, fill=0) %>% 
+  mutate(direction="Westbound")
 
 east_income <- BB_income %>% 
-  filter(eastbound_transit==1) %>%  
+  filter(eastbound_transit==1 & income_rc != "Missing or NA") %>%  
   group_by(operator,income_rc) %>% 
   summarize(total=sum(weight)) %>% 
-  spread(income_rc,total,fill=0)
+  #spread(income_rc,total,fill=0) %>% 
+  mutate(direction="Eastbound")
+
+final_income <- rbind(west_income,east_income)
 
 # Summarize race/ethnicity
 BB_race <- BB_Operators %>% 
@@ -160,19 +164,21 @@ BB_race <- BB_Operators %>%
   ) 
 
 west_race <- BB_race %>% 
-  filter(westbound_transit==1) %>%  
+  filter(westbound_transit==1 & race_general != "NA or missing") %>%  
   group_by(operator,race_general) %>% 
   summarize(total=sum(weight)) %>% 
-  spread(race_general,total, fill = 0)
+  #spread(race_general,total, fill = 0) %>% 
+  mutate(direction="Westbound")
 
 east_race <- BB_race %>% 
-  filter(eastbound_transit==1) %>%  
+  filter(eastbound_transit==1 & race_general != "NA or missing") %>%  
   group_by(operator,race_general) %>% 
   summarize(total=sum(weight)) %>% 
-  spread(race_general,total, fill = 0)
+  #spread(race_general,total, fill = 0) %>% 
+  mutate(direction="Eastbound")
+
+final_race <- rbind(west_race,east_race)
 
 
-write.csv(west_income, paste0(OUTPUT, "TPS Westbound Bay Bridge Income by Operator.csv"), row.names = FALSE, quote = T)
-write.csv(east_income, paste0(OUTPUT, "TPS Eastbound Bay Bridge Income by Operator.csv"), row.names = FALSE, quote = T)
-write.csv(west_race, paste0(OUTPUT, "TPS Westbound Bay Bridge Race by Operator.csv"), row.names = FALSE, quote = T)
-write.csv(east_race, paste0(OUTPUT, "TPS Eastbound Bay Bridge Race by Operator.csv"), row.names = FALSE, quote = T)
+write.csv(final_income, paste0(OUTPUT, "TPS Bay Bridge Income by Operator.csv"), row.names = FALSE, quote = T)
+write.csv(final_race, paste0(OUTPUT, "TPS Bay Bridge Race by Operator.csv"), row.names = FALSE, quote = T)
