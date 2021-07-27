@@ -73,10 +73,10 @@ dir_path <- user_list %>%
 # Inputs - dictionary and other utils
 f_dict_standard <- "Dictionary for Standard Database.csv"
 f_canonical_station_path <- paste0(dir_path,"Geography Files/Passenger_Railway_Stations_2018.shp")
-f_taps_coords_path <- paste0(dir_path, "_geocoding Standardized/TAPs/TM2 TAPS/TM2 tap_node.csv")
-f_tm1_taz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM1_taz/bayarea_rtaz1454_rev1_WGS84.shp")
-f_tm2_taz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/tazs.shp")
-f_tm2_maz_shp_path <- paste0(dir_path, "_geocoding Standardized/TM2_Zones/mazs.shp")
+f_taps_coords_path <- "M:/Data/GIS layers/TM2 taps/TM2 tap_node.csv"
+f_tm1_taz_shp_path <- "M:/Data/GIS layers/TM1_taz/bayarea_rtaz1454_rev1_WGS84.shp"
+f_tm2_taz_shp_path <- "M:/Data/GIS layers/TM2_maz_taz_v2.2/tazs_TM2_v2_2.shp"
+f_tm2_maz_shp_path <- "M:/Data/GIS layers/TM2_maz_taz_v2.2/mazs_TM2_v2_2.shp"
 f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
 f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 
