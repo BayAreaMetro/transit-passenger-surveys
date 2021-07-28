@@ -1588,12 +1588,12 @@ tm1_taz_shp <- bind_cols(tm1_taz_shp, match = 1:nrow(tm1_taz_shp))
 tm1_taz_shp <- st_transform(tm1_taz_shp, 2230)
 
 tm2_taz_shp <- st_read(f_tm2_taz_shp_path) %>%
-  select(tm2_taz = TAZ_ORIGIN)
+  select(tm2_taz = taz)
 tm2_taz_shp <- bind_cols(tm2_taz_shp, match = 1:nrow(tm2_taz_shp))
 tm2_taz_shp <- st_transform(tm2_taz_shp, 2230)
 
 tm2_maz_shp <- st_read(f_tm2_maz_shp_path) %>%
-  select(tm2_maz = MAZ_ORIGIN)
+  select(tm2_maz = maz)
 tm2_maz_shp <- bind_cols(tm2_maz_shp, match = 1:nrow(tm2_maz_shp))
 tm2_maz_shp <- st_transform(tm2_maz_shp, 2230)
 

@@ -29,7 +29,7 @@ library(reshape2)
 #=========================================================================================================================
 
 # Read TPS dataset survey data
-load(file.path(TPS_Dir,     "survey_combined_2021-06-09.RData"))
+load(file.path(TPS_Dir,     "survey_combined_2021-07-27.RData"))
 
 # Read in target boardings for 2015, with directory coming from Secondary Expansion.Rmd file
 boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE) 
@@ -82,7 +82,7 @@ SeedIDs <- c(1)
 # Remove weekend records, all older vintages of operators surveyed more than once, and SMART (not in 2015 network)
 # Also remove "dummy records" (BART, Caltrain, Muni) used for weighting purposes but lacking characteristics
 #------------------------
-TPS <- data.ready %>% filter(weekpart=="WEEKDAY" & 
+TPS <- survey_combine %>% filter(weekpart=="WEEKDAY" & 
                                !(operator %in% c("AC Transit", "ACE", "County Connection", 
                                                  "Golden Gate Transit", "LAVTA", "Napa Vine", 
                                                  "Petaluma Transit", "Santa Rosa CityBus", 
