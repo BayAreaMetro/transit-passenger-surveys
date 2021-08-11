@@ -1,5 +1,7 @@
 # TPS Transbay Crossing by Income and Race.R
 # Analyze BART and Transbay bus riders (Bay Bridge) for income and race
+# Read in output from https://github.com/BayAreaMetro/miscellany/blob/main/Analyze%202011%20BATA%20data%20for%20income%20and%20race.R
+# Append into two total files for ease of use in Tableau
 
 # Import Library
 
@@ -10,6 +12,19 @@ suppressMessages(library(tidyverse))
 TPS_SURVEY_IN = "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/survey_combined_2021-06-09.RData"
 OUTPUT = "M:/Data/OnBoard/Bespoke/BayBridge_IncomeRaceSummaries/"
 load (TPS_SURVEY_IN)
+
+# Input BATA files
+
+BATA_in <- "M:/Data/BATA/2011 Bay Bridge Survey/"
+BATA_race <- read.csv(paste0(BATA_in,"2011 BATA Survey Bay Bridge Race.csv"),header = T) %>% 
+  mutate(operator="BATA 2011 Survey",direction="BATA", race_general=recode(race_general,
+         "1_asian"= "asian",
+         "2_black"="black",
+         "3_hispanic"="hispanic",
+         "4_other"="other",
+         "5_white"="white"))
+BATA_income <- read.csv(paste0(BATA_in,"2011 BATA Survey Bay Bridge Income.csv"),header = T) %>% 
+  mutate(operator="BATA 2011 Survey", direction="BATA")
 
 # Bring in select link files and concatenate all combinations with sum of vol > 0
 
@@ -141,16 +156,16 @@ west_income <- BB_income %>%
   group_by(operator,income_rc) %>% 
   summarize(total=sum(weight)) %>% 
   #spread(income_rc,total, fill=0) %>% 
-  mutate(direction="Westbound")
+  mutate(direction="Westbound Transit")
 
 east_income <- BB_income %>% 
   filter(eastbound_transit==1 & income_rc != "Missing or NA") %>%  
   group_by(operator,income_rc) %>% 
   summarize(total=sum(weight)) %>% 
   #spread(income_rc,total,fill=0) %>% 
-  mutate(direction="Eastbound")
+  mutate(direction="Eastbound Transit")
 
-final_income <- rbind(west_income,east_income)
+final_income <- bind_rows(west_income,east_income,BATA_income)
 
 # Summarize race/ethnicity
 BB_race <- BB_Operators %>% 
@@ -168,16 +183,16 @@ west_race <- BB_race %>%
   group_by(operator,race_general) %>% 
   summarize(total=sum(weight)) %>% 
   #spread(race_general,total, fill = 0) %>% 
-  mutate(direction="Westbound")
+  mutate(direction="Westbound Transit")
 
 east_race <- BB_race %>% 
   filter(eastbound_transit==1 & race_general != "NA or missing") %>%  
   group_by(operator,race_general) %>% 
   summarize(total=sum(weight)) %>% 
   #spread(race_general,total, fill = 0) %>% 
-  mutate(direction="Eastbound")
+  mutate(direction="Eastbound Transit")
 
-final_race <- rbind(west_race,east_race)
+final_race <- bind_rows(west_race,east_race,BATA_race)
 
 
 write.csv(final_income, paste0(OUTPUT, "TPS Bay Bridge Income by Operator.csv"), row.names = FALSE, quote = T)
