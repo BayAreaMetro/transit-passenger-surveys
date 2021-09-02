@@ -1,5 +1,5 @@
 ###########################################################################################################################
-### Script to process MTC TPS Database and produce inputs for weighting using PopualtionSim
+### Script to process MTC TPS Database and produce inputs for weighting using PopulationSim
 ###
 ### Author: Binny M Paul, July 2019
 ### Amended by Shimon Israel, May 2021
@@ -29,7 +29,7 @@ library(reshape2)
 #=========================================================================================================================
 
 # Read TPS dataset survey data
-load(file.path(TPS_Dir,     "survey_combined_2021-07-27.RData"))
+load(file.path(TPS_Dir,     "survey_combined_2021-09-02.RData"))
 
 # Read in target boardings for 2015, with directory coming from Secondary Expansion.Rmd file
 boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE) 
