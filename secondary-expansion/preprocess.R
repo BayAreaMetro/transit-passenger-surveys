@@ -1,5 +1,5 @@
 ###########################################################################################################################
-### Script to process MTC TPS Database and produce inputs for weighting using PopualtionSim
+### Script to process MTC TPS Database and produce inputs for weighting using PopulationSim
 ###
 ### Author: Binny M Paul, July 2019
 ### Amended by Shimon Israel, May 2021
