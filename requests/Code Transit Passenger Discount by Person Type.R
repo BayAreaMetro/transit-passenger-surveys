@@ -25,12 +25,13 @@ wd <- "M:/Data/OnBoard/Bespoke/Fare Discount Model"
 setwd(wd)
 
 # -----------------------------------------------------------------------------------
-# Begin work to create fare discount equivalency
+# Begin work to create fare discount equivalency coding
 # Summarize (non-BART) operators by fare_category and fare_medium for unique fare combinations
 # Process BART separately because it includes an extra variable (FARECATEGORYSUMMARY) for high-value tickets
 # Export BART to CSV for manual assignment of discounts
 
-# Summarize all operators except BART and Capitol Corridor (the latter lacking data to code person type)
+# Summarize all operators except BART and Capitol Corridor (the former done next step and the latter lacking data to code person type)
+# Recode NA values to "z_unknown" so that there will be a value there for later rejoining (the "z" prefix puts it in the last category position)
 
 TPS <- TPS %>% 
   mutate_at(.,vars(fare_category,fare_medium),
@@ -47,7 +48,6 @@ all_no_bart_summary <- TPS %>%
 write.csv(all_no_bart_summary,file = "all_no_BART_fare_categories.csv",row.names = F)
 
 # Now do the same with BART, utilizing the extra variable
-# Input BART survey to get high-value ticket data
 
 dir_path           <- "M:/Data/OnBoard/Data and Reports/"
 
@@ -70,7 +70,7 @@ bart_summary <- TPS %>% filter(operator=="BART") %>%
   summarize(total=n()) %>% 
   ungroup()
 
-# Write out to do calculations, comment out after calcs are completed
+# Write out to do calculations
 write.csv(bart_summary,file="BART_2015_fare_categories.csv",row.names = F)
 
 # End of discount coding text
@@ -89,7 +89,7 @@ all_other_discount  <- read_excel(file.path(wd,"Operator Discounts for 2015.xlsx
 TPS <- TPS %>% 
   left_join(.,BART_discount,by=c("operator","fare_category","fare_medium","FARECATEGORYSUMMARY")) %>% 
   left_join(.,all_other_discount,by=c("operator","fare_category","fare_medium")) %>% mutate(
-    discount_rate=if_else(operator=="BART",BART_discount_rate,all_other_discount_rate))%>% 
+    discount_rate=if_else(operator=="BART",BART_discount_rate,all_other_discount_rate)) %>% 
   select(-BART_discount_rate,-all_other_discount_rate) %>% 
 
 # Hand code a few that didn't merge for some reason
@@ -102,8 +102,6 @@ TPS <- TPS %>%
     operator=="Soltrans [LOCAL]" & ID=="1356"         ~ 0, 
     operator=="Soltrans [LOCAL]" & ID=="1365"         ~ 0.485714285714286,
     TRUE                                              ~ discount_rate))
-
-
 
 # Code Person Type
 # Change age variable from character to numeric
@@ -123,7 +121,7 @@ TPS <- TPS %>%
            work_status %in% c("non-worker", "missing", "Missing") &
              (age>=18 & age<=64)                                           ~ "4",    # Non-working adult
            work_status %in% c("non-worker", "missing", "Missing") &
-             age >= 65                                                     ~ "5",    # Non-working adult
+             age >= 65                                                     ~ "5",    # Non-working senior
            age %in% c(16,17)                                               ~ "6",    # Driving age student
            age >= 6 & age <= 15                                            ~ "7",    # Non-driving student
            age <= 5                                                        ~ "8",    # Pre-school
