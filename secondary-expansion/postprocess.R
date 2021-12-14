@@ -1,5 +1,5 @@
 ###########################################################################################################################
-### Script to process MTC TPS Database and produce inputs for weighting using PopualtionSim
+### Script to process MTC TPS Database and produce inputs for weighting using PopulationSim
 ###
 ### Author: Binny M Paul, July 2019
 ###########################################################################################################################
@@ -248,11 +248,14 @@ TPS <- TPS %>%
            "BEST_MODE", "LB_CR", "LB_HR", "LB_LR", "LB_FR", "LB_EB", "LB_LB", 
            "EB_CR", "EB_HR", "EB_LR", "EB_FR", "EB_EB", "FR_CR", "FR_HR", 
            "FR_LR", "FR_FR", "LR_CR", "LR_HR", "LR_LR", "HR_CR", "HR_HR", 
-           "CR_CR", "TRANSFER_TYPE", "hh_id", "final_tripWeight_2015", "final_boardWeight_2015", 
+           "CR_CR", "TRANSFER_TYPE","orig_lon","orig_lat","first_board_lon","first_board_lat",
+           "survey_board_lon","survey_board_lat","survey_alight_lon","survey_alight_lat",
+           "last_alight_lon","last_alight_lat","dest_lon","dest_lat",
+           "hh_id", "final_tripWeight_2015", "final_boardWeight_2015", 
            "final_expansionFactor"))
 
-write.csv(TPS, file.path(TPS_Dir, "model_version",paste0("TPS_Model_Version_PopulationSim_Weights",today,".csv")), row.names = F)
-save(TPS, file=file.path(TPS_Dir, "model_version",paste0("TPS_Model_Version_PopulationSim_Weights",today,".Rdata")))
+write.csv(TPS, file.path(TPS_Dir, "model_version",paste0("TPS_Model_Version_PopulationSim_Weights_lat_lon_",today,".csv")), row.names = F)
+save(TPS, file=file.path(TPS_Dir, "model_version",paste0("TPS_Model_Version_PopulationSim_Weights_lat_lon_",today,".Rdata")))
 
 ## FINISH
 
