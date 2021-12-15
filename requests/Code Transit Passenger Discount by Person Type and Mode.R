@@ -42,10 +42,11 @@ mode_eq      <- all_other_discount  <- read_excel(file.path(MODE_Dir,"Weighted T
   read.csv(file.path(MODE_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE) %>% 
   select(operator, targets2015)
 
-# Set working directory for file output
+# Set working directory for file output, get today's date to set output file vintage
 
 wd <- "M:/Data/OnBoard/Bespoke/Fare Discount Model"
 setwd(wd)
+today = Sys.Date()
 
 # -----------------------------------------------------------------------------------
 # Begin work to create fare discount equivalency coding
@@ -229,4 +230,4 @@ final <- full_roster2 %>%
   summarize(mean_discount=weighted.mean(mean_discount,boardings)) %>% 
   ungroup()
 
-write.csv(final,file = "Weighted Transit Fare Discount by Mode and Person Type.csv",row.names = F)
+write.csv(final,file = paste0("Weighted Transit Fare Discount by Mode and Person Type_",today,".csv"),row.names = F)
