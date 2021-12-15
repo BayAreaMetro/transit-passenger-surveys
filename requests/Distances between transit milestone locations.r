@@ -63,4 +63,4 @@ TPS_distance = temp %>%
 
 # Write out file
 
-write.csv(TPS_distance,file = "Weighted Transit Fare Discount by Operator and Person Type.csv",row.names = F)
+write.csv(TPS_distance,file = "Transit Passenger Survey with lat lon and distances 121421.csv",row.names = F)
