@@ -23,6 +23,25 @@ BOX_TM        <- file.path(userprofile,"Box","Modeling and Surveys","Share Data"
 SURVEY_IN <- file.path(BOX_TM,"TPS_Model_Version_PopulationSim_Weights2021-09-02.Rdata")
 load (SURVEY_IN)
 
+# Targets directory for 2015 ridership by operator
+
+box_drive_dir   <- file.path(userprofile, "Box", "Modeling and Surveys")
+BOX_TM2_Dir     <- file.path(box_drive_dir, "Development", "Travel Model Two Development")
+TARGETS_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Scaled Transit Ridership Targets")
+boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE) %>% 
+  select(operator, targets2015)
+
+# Input mode equivalency for later joining
+
+MODE_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Transit Fare Discounts")
+mode_eq      <- all_other_discount  <- read_excel(file.path(MODE_Dir,"Weighted Transit Fare Discount by Operator and Person Type.xlsx"),
+                                                  sheet = "Weighted Transit Fare Discount") %>% 
+  select(operator,ptype,Mode)
+
+  
+  read.csv(file.path(MODE_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE) %>% 
+  select(operator, targets2015)
+
 # Set working directory for file output
 
 wd <- "M:/Data/OnBoard/Bespoke/Fare Discount Model"
@@ -143,7 +162,7 @@ discount_summary <- TPS %>%
   ungroup()
 
 missing_discount <- read_excel(file.path(wd,"Operator Discounts for 2015.xlsx"),sheet = "missing_discount_rate") %>% mutate(
-  boardings=-999) # Add this information to allow for later concatenation step
+  boardings=0) # Add this information to allow for later concatenation step
 
 
 # Person type categories, 1 and 2 need to be collapsed based on available data
@@ -160,7 +179,7 @@ NUMBER  PERSON-TYPE                     AGE     WORK STATUS   SCHOOL STATUS
 8	      Pre-school                      0-5     None          None
 '
 
-final <- rbind(discount_summary,missing_discount) %>% 
+full_roster1 <- rbind(discount_summary,missing_discount) %>% 
   mutate(ptype_long = case_when(
     ptype=="1_2"  ~ "Full-time worker (30 hours+)/Part-time worker (<30 hours) (ages 18+)",  # Person type 1 and 2 collapsed
     ptype=="3"    ~ "College student (ages 18+)",                                            # Person type 3
@@ -175,4 +194,39 @@ final <- rbind(discount_summary,missing_discount) %>%
   arrange(.,operator,ptype) %>% 
   select(operator,ptype,ptype_long,mean_discount, boardings)
 
-write.csv(final,file = "Weighted Transit Fare Discount by Operator and Person Type.csv",row.names = F)
+# ----------------------
+
+#Later step added to develop mode-level values for discount by mode/person type
+
+'
+This paragraph describes steps taken to convert operator by person type discount calculations to a mode/person type summary.
+Allow Rio Vista person type 3 to retain 0 boardings (set in above step) due to very low ridership and no better data.
+Remove Capitol Corridor, which is derived data, has low ridership, and will be hard to incorporate with other commuter rail, 
+which has boardings by person type. Next, separate person types 1-5 and 6-8 into two files for separate handling. The data
+for person types 1-5 have sufficient TPS records to calculate a weighted average from actual survey boardings. For person
+types 6-8 append total 2015 operator boardings for later weighted-average calculations. Person types 6-8 do not have sufficient
+boardings in the TPS data and total operator boardings will be used instead - which assumes uniform distribution of ridership by age.
+'
+
+person1_5 <- full_roster1 %>% 
+  filter(ptype %in% c("1_2","3","4","5") & operator != "Capitol Corridor")
+
+person6_8 <- full_roster1 %>% 
+  filter(ptype %in% c("6","7","8") & operator != "Capitol Corridor") %>% 
+  left_join(.,boarding_targets,by="operator") %>% 
+  mutate(boardings=targets2015) %>% 
+  select(-targets2015)
+
+# Rejoin, append mode values, calculate respective weighted averages by person type/mode and export
+
+full_roster2 <- rbind(person1_5,person6_8) %>% 
+  left_join(.,mode_eq,by=c("operator","ptype")) %>% 
+  arrange(.,operator,ptype) %>% 
+  rename(mode=Mode)
+
+final <- full_roster2 %>% 
+  group_by(mode,ptype,ptype_long) %>% 
+  summarize(mean_discount=weighted.mean(mean_discount,boardings)) %>% 
+  ungroup()
+
+write.csv(final,file = "Weighted Transit Fare Discount by Mode and Person Type.csv",row.names = F)
