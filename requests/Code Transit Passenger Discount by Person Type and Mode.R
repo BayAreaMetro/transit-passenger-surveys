@@ -36,7 +36,7 @@ boarding_targets <- read.csv(file.path(TARGETS_Dir, "transitRidershipTargets2015
 MODE_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Transit Fare Discounts")
 mode_eq      <- all_other_discount  <- read_excel(file.path(MODE_Dir,"Weighted Transit Fare Discount by Operator and Person Type.xlsx"),
                                                   sheet = "Weighted Transit Fare Discount") %>% 
-  select(operator,ptype,Mode)
+  select(operator,ptype,mode,mode_long)
 
   
   read.csv(file.path(MODE_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE) %>% 
@@ -222,12 +222,11 @@ person6_8 <- full_roster1 %>%
 
 full_roster2 <- rbind(person1_5,person6_8) %>% 
   left_join(.,mode_eq,by=c("operator","ptype")) %>% 
-  arrange(.,operator,ptype) %>% 
-  rename(mode=Mode)
+  arrange(.,operator,ptype) 
 
 final <- full_roster2 %>% 
-  group_by(mode,ptype,ptype_long) %>% 
-  summarize(mean_discount=weighted.mean(mean_discount,boardings)) %>% 
+  group_by(mode,mode_long,ptype,ptype_long) %>% 
+  summarize(mean_pct_cash_fare=weighted.mean(mean_discount,boardings)) %>% 
   ungroup()
 
 write.csv(final,file = paste0("Weighted Transit Fare Discount by Mode and Person Type_",today,".csv"),row.names = F)
