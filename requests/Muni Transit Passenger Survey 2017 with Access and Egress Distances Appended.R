@@ -13,7 +13,7 @@ load (survey_in)
 
 final <- TPS_distance %>% 
   filter(operator %in% c("SF Muni [LOCAL]","SF Muni [LRT]")) %>% 
-  select(-grep("_lat|_lon|_maz|_taz",names(.)))
+  select(-grep("_lat|_lon|_maz|_taz|_tap",names(.)))
   
 # Export
 
