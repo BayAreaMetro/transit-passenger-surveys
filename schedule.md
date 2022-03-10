@@ -51,11 +51,11 @@ CONTENTS
 |                |                                                                                                   |                                                                                   |
 | 2019           | [ACE](https://mtcdrive.box.com/s/78f7v14yr5tkhcts28zpo94gdty1dkgw)                                | SamTrans                                                                          |
 |                | [Napa VINE Transit](https://mtcdrive.box.com/s/eeyfb7vh7w2cr6e6uu68b68xyd918fhv)                  | [County Connection](https://mtcdrive.box.com/s/d176rap6cll35ypv1njzf2xo4fr6s578)                                                                 |
-|                | [Tri Delta Transit](https://mtcdrive.box.com/s/ogm5xzoei5jy64s4u12n7ymqfvkc0roo)                  | 									   | 2020           | Suspended for COVID              | Suspended for COVID                                            |
+|                | [Tri Delta Transit](https://mtcdrive.box.com/s/ogm5xzoei5jy64s4u12n7ymqfvkc0roo)                  | 		 |							   | 2020           | Suspended for COVID              | Suspended for COVID                                            |
 |                |                        		    |                                                                |
 | 2021           | Suspended for COVID              | Suspended for COVID                                            |
 |                |                                  |                                                                |
-| 2022           | SamTrans (continued from 2019)   | BART                                                           |                                                                                  
+                                                                                  
 
 <br/>
 
@@ -65,9 +65,9 @@ CONTENTS
 
 | **Survey Year**                  | **Spring**                       | **Fall**               |
 |:---------------------------------|:---------------------------------|:-----------------------|
-|                                  |                        | Caltrain               |
+| 2022                             | SamTrans (continued from 2019)   | BART                                                           |
 |                                  |                        |	                     |
-| 2023                             | BART (continued)       |	                     |
+| 2023                             | BART (continued)       | Caltrain               |
 |                                  |                        |                        |
 | 2024                             | VTA                    | VTA (continued)        |
 |                                  | Muni                   | Muni (continued)       |
