@@ -52,6 +52,7 @@ CONTENTS
 | 2019           | [ACE](https://mtcdrive.box.com/s/78f7v14yr5tkhcts28zpo94gdty1dkgw)                                | SamTrans                                                                          |
 |                | [Napa VINE Transit](https://mtcdrive.box.com/s/eeyfb7vh7w2cr6e6uu68b68xyd918fhv)                  | [County Connection](https://mtcdrive.box.com/s/d176rap6cll35ypv1njzf2xo4fr6s578)                                                                 |
 |                | [Tri Delta Transit](https://mtcdrive.box.com/s/ogm5xzoei5jy64s4u12n7ymqfvkc0roo)                  |                                                                                   |
+|                                  |                        |                        |
 | 2020                             | Suspended for COVID    | Suspended for COVID    |
 |                                  |                        |                        |
 | 2021                             | Suspended for COVID    | Suspended for COVID    |
@@ -66,17 +67,27 @@ CONTENTS
 |:---------------------------------|:-----------------------|:-----------------------|
 | 2022                             | SamTrans (continued)   | BART                   |
 |                                  |                        |	                     |
-| 2023                             | BART (continued)       |                        |
-|                                  | Caltrain               |                        |
+| 2023                             | BART (continued)       | VTA                    |
+|                                  | Caltrain               | Muni                   |
 |                                  |                        |                        |
-| 2024                             | VTA                    | VTA (continued)        |
-|                                  | Muni                   | Muni (continued)       |
+| 2024                             | VTA (continued)        | AC Transit             |
+|                                  | Muni (continued)       | Dumbarton Express      |
+|                                  |                        | Union City Transit     |
+|                                  |                        | WestCAT                |
 |                                  |                        |                        |
-| 2025                             | FAST                   | AC Transit             |
-|                                  | Marin Transit          | Dumbarton Express      |
-|                                  | Rio Vista Transit      | Union City Transit     |
-|                                  | SolTrans               | WestCAT                |
+| 2025                             | FAST                   | Wheels (LAVTA)         |
+|                                  | Marin Transit          | Golden Gate Transit    |
+|                                  | Rio Vista Transit      |                        |
+|                                  | SolTrans               |                        |
 |                                  | Vacaville Transit      |                        |
+| 2026                             |                        |                        |
+|                                  | SMART                  | ACE                    |
+|                                  | Petaluma Transit       | Napa VINE Transit      |
+|                                  | Sonoma County Transit  | Tri Delta Transit      |
+|                                  | Santa Rosa CityBus     | County Connection      |
+|                                  | WETA Ferries           |                        |
+|                                  |                        |                        |
+| 2027                             | SamTrans               |                        |
 
 
 
