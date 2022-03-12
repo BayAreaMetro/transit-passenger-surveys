@@ -127,8 +127,5 @@ ix_Dublin_sum <- ix_Dublin %>%
 
 # Write out final CSV files
 
-write.csv(ACE2,paste0(output_location,"ACE 2019.csv"),row.names = FALSE)
-write.csv(UC2,paste0(output_location,"Union City 2017.csv"),row.names = FALSE)
-write.csv(AC2,paste0(output_location,"AC Transit 2018.csv"),row.names = FALSE)
-
-
+write.csv(xi_Dublin_sum,paste0(output_location,"BART Dublin Pleasanton External to Internal Tap to Tap.csv"),row.names = FALSE)
+write.csv(ix_Dublin_sum,paste0(output_location,"BART Dublin Pleasanton Internal to External Tap to Tap.csv"),row.names = FALSE)
