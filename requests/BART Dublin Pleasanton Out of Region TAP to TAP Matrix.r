@@ -107,11 +107,22 @@ xi_Dublin <- BART %>%
 ix_Dublin <- BART %>% 
   filter(onoff_exit_station=="Dublin/Pleasanton") %>% 
   left_join(.,station_name_eq,by=c("onoff_exit_station"="BART_station")) %>% 
-  rename(RSG_board_tap=tap) %>% 
-  left_join(.,station_name_eq,by=c("onoff_enter_station"="BART_station")) %>%
   rename(RSG_alight_tap=tap) %>% 
+  left_join(.,station_name_eq,by=c("onoff_enter_station"="BART_station")) %>%
+  rename(RSG_board_tap=tap) %>% 
   filter(!(destination_county %in% bay_counties))
 
+xi_Dublin_sum <- xi_Dublin %>% 
+  group_by(day_part,RSG_board_tap,RSG_alight_tap,origin_county,
+           destination_county) %>% 
+  summarize(boardings=sum(final_boardWeight_2015)) %>% 
+  ungroup()
+
+ix_Dublin_sum <- ix_Dublin %>% 
+  group_by(day_part,RSG_board_tap,RSG_alight_tap,origin_county,
+           destination_county) %>% 
+  summarize(boardings=sum(final_boardWeight_2015)) %>% 
+  ungroup()
 
 
 # Write out final CSV files
