@@ -91,10 +91,12 @@ BART <- BART %>%
 # Now join TAP file to boarding and alighting stations
 # Bring in MTC RSG BART station name equivalency
 # Create xi and ix matrices
+# Append a row for Oakland International Airport, as not in the original station attribute file
 
 station_name_eq <- read.csv(station_name_eq_in,header = TRUE) %>% 
   left_join(.,tap,by=c("RSG_BART_list"="stName")) %>% 
-  select(BART_station=MTC_BART_list,tap)
+  select(BART_station=MTC_BART_list,tap) %>% 
+  add_row(BART_station="Oakland International Airport",tap=2735)
 
 xi_Dublin <- BART %>% 
   filter(onoff_enter_station=="Dublin/Pleasanton") %>% 
@@ -127,5 +129,7 @@ ix_Dublin_sum <- ix_Dublin %>%
 
 # Write out final CSV files
 
-write.csv(xi_Dublin_sum,paste0(output_location,"BART Dublin Pleasanton External to Internal Tap to Tap.csv"),row.names = FALSE)
-write.csv(ix_Dublin_sum,paste0(output_location,"BART Dublin Pleasanton Internal to External Tap to Tap.csv"),row.names = FALSE)
+write.csv(xi_Dublin_sum,file = file.path(output_location,
+                                         "BART Dublin Pleasanton External to Internal Tap to Tap.csv"),row.names = FALSE)
+write.csv(ix_Dublin_sum,file=file.path (output_location,
+                                        "BART Dublin Pleasanton Internal to External Tap to Tap.csv"),row.names = FALSE)
