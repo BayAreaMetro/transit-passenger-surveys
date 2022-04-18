@@ -58,7 +58,7 @@ SMART_race <- SMART %>%
 # Write out final CSV files
 
 write.csv(SMART_income,"SMART_income.csv",row.names = FALSE)
-write.csv(SMART_income,"SMART_race.csv",row.names = FALSE)
+write.csv(SMART_race,"SMART_race.csv",row.names = FALSE)
 
 
 
