@@ -38,10 +38,6 @@ mode_eq      <- all_other_discount  <- read_excel(file.path(MODE_Dir,"Weighted T
                                                   sheet = "Weighted Transit Fare Discount") %>% 
   select(operator,ptype,mode,mode_long)
 
-  
-  read.csv(file.path(MODE_Dir, "transitRidershipTargets2015.csv"), header = TRUE, stringsAsFactors = FALSE) %>% 
-  select(operator, targets2015)
-
 # Set working directory for file output, get today's date to set output file vintage
 
 wd <- "M:/Data/OnBoard/Bespoke/Fare Discount Model"
@@ -230,3 +226,13 @@ final <- full_roster2 %>%
   ungroup()
 
 write.csv(final,file = paste0("Weighted Transit Fare Discount by Mode and Person Type_",today,".csv"),row.names = F)
+
+# Now summarize for just person type (not mode)
+
+final2 <- full_roster2 %>% 
+  group_by(ptype,ptype_long) %>% 
+  summarize(mean_pct_cash_fare=weighted.mean(mean_discount,boardings)) %>% 
+  ungroup()
+
+write.csv(final2,file = paste0("Weighted Transit Fare Discount by Person Type_",today,".csv"),row.names = F)
+
