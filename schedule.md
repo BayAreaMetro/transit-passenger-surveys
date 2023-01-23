@@ -13,7 +13,7 @@ CONTENTS
 2. [Tentative Future Schedule](#tentative-future-schedule)
 
 
-## Operators Completed to Date and Currently in the Field
+## MTC Ongoing Transit Passesnger Survey Operators Completed to Date and Currently in the Field
 
 | **Survey Year**| **Spring**                                                                                        | **Fall**                                                                          |
 |:---------------|:--------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------|
@@ -60,7 +60,7 @@ CONTENTS
 <br/>
 
 
-## Tentative Future Schedule
+## MTC Ongoing Transit Passenger Survey Tentative Future Schedule
 
 
 | **Survey Year**                  | **Spring**               | **Fall**                               |
