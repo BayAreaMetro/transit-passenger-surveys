@@ -9,8 +9,8 @@ Below you'll find the operators previously surveyed in MTC's Transit Passenger S
 
 CONTENTS
 
-1. [Operators Completed to Date](#operators-completed-to-date)
-2. [Tentative Future Schedule](#tentative-future-schedule)
+1. [Operators Completed to Date](#mtc-ongoing-transit-passenger-survey-tentative-operators)
+2. [Tentative Future Schedule](#mtc-ongoing-transit-passenger-survey-tentative)
 
 
 ## MTC Ongoing Transit Passesnger Survey Operators Completed to Date and Currently in the Field
