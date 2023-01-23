@@ -63,31 +63,34 @@ CONTENTS
 ## Tentative Future Schedule
 
 
-| **Survey Year**                  | **Spring**             | **Fall**               |
-|:---------------------------------|:-----------------------|:-----------------------|
-| 2022                             | SamTrans (continued)   | BART                   |
-|                                  |                        |	                     |
-| 2023                             | BART (continued)       | VTA                    |
-|                                  | Caltrain               | Muni                   |
-|                                  |                        |                        |
-| 2024                             | VTA (continued)        | AC Transit             |
-|                                  | Muni (continued)       | Dumbarton Express      |
-|                                  |                        | Union City Transit     |
-|                                  |                        | WestCAT                |
-|                                  |                        |                        |
-| 2025                             | FAST                   | Wheels (LAVTA)         |
-|                                  | Marin Transit          | Golden Gate Transit    |
-|                                  | Rio Vista Transit      |                        |
-|                                  | SolTrans               |                        |
-|                                  | Vacaville Transit      |                        |
-| 2026                             |                        |                        |
-|                                  | SMART                  | ACE                    |
-|                                  | Petaluma Transit       | Napa VINE Transit      |
-|                                  | Sonoma County Transit  | Tri Delta Transit      |
-|                                  | Santa Rosa CityBus     | County Connection      |
-|                                  | WETA Ferries           |                        |
-|                                  |                        |                        |
-| 2027                             | SamTrans               |                        |
+| **Survey Year**                  | **Spring**               | **Fall**                               |
+|:---------------------------------|:-------------------------|:---------------------------------------|
+| 2022                             | SamTrans (continued)     | Planning for Regional Snapshot Survey  |
+|                                  |                          |	                                       |
+| 2023                             | Regional Snapshot Survey | Regional Snapshot Survey (continued)   |
+|                                  |                          |                                        |  
+| 2024                             | BART                     | BART (continued)                       |
+|                                  | Caltrain                 | VTA                                    |
+|                                  |                          | Muni                                   |
+|                                  |                          |                        |
+| 2024                             | VTA (continued)          | AC Transit             |
+|                                  | Muni (continued)         | Dumbarton Express      |
+|                                  |                          | Union City Transit     |
+|                                  |                          | WestCAT                |
+|                                  |                          |                        |
+| 2025                             | FAST                     | Wheels (LAVTA)         |
+|                                  | Marin Transit            | Golden Gate Transit    |
+|                                  | Rio Vista Transit        |                        |
+|                                  | SolTrans                 |                        |
+|                                  | Vacaville Transit        |                        |
+| 2026                             |                          |                        |
+|                                  | SMART                    | ACE                    |
+|                                  | Petaluma Transit         | Napa VINE Transit      |
+|                                  | Sonoma County Transit    | Tri Delta Transit      |
+|                                  | Santa Rosa CityBus       | County Connection      |
+|                                  | WETA Ferries             |                        |
+|                                  |                          |                        |
+| 2027                             | SamTrans                 |                        |
 
 
 
