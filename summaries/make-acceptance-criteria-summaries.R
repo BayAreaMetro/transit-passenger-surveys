@@ -21,6 +21,8 @@ output_filename <- paste0(
   "Survey_Database_122717/acceptance-criteria-summaries-year-2015.csv"
 )
 
+output_access_filename <- paste0(box_dir, "Survey_Database_122717/acceptance-criteria-access-summaries-year-2015.csv")
+
 # Parameters -------------------------------------------------------------------
 time_period_dict_df <- tibble(
   day_part = c("EARLY AM", "AM PEAK", "MIDDAY", "PM PEAK", "EVENING", "NIGHT"),
@@ -52,7 +54,7 @@ make_direction_from_route <- function(input_df, input_reg_ex_word, brackets_bool
 # Data Reads -------------------------------------------------------------------
 load(survey_filename)
 
-# Reductions -------------------------------------------------------------------
+# Reductions 01: Boardings by route --------------------------------------------
 by_time_period_df <- survey %>%
   filter(weekpart != "WEEKEND") %>%
   filter(survey_year %in% survey_years_to_summarise) %>%
@@ -81,7 +83,25 @@ output_df <- bind_rows(by_time_period_df, daily_df) %>%
          survey_route = route,
          survey_direction = direction)
 
+# Reductions 02: Access shares for rail stations -------------------------------
+access_df <- survey %>%
+  filter(weekpart != "WEEKEND") %>%
+  filter(survey_year %in% survey_years_to_summarise) %>%
+  left_join(., time_period_dict_df, by = c("day_part")) %>%
+  filter(operator %in% rail_operators_vector) %>%
+  group_by(onoff_enter_station, time_period, access_mode) %>%
+  summarise(survey_trips = sum(trip_weight), .groups = "drop") %>%
+  filter(!is.na(time_period)) %>%
+  filter(!is.na(access_mode)) %>%
+  select(boarding_station = onoff_enter_station,
+         time_period,
+         access_mode,
+         survey_trips)
+  
+  
+
 # Write ------------------------------------------------------------------------
 write_csv(output_df, output_filename)
+write_csv(access_df, output_access_filename)
 
 
