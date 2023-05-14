@@ -22,6 +22,7 @@ library(reshape2)
 library(tidyverse)
 library(sf)
 library(tigris)
+library(rgdal)
 
 baycounty <- c("Alameda","Contra Costa","Marin","Napa","San Francisco","San Mateo",
                "Santa Clara","Solano","Sonoma")
@@ -376,12 +377,39 @@ matched_tracts <- matched_tracts %>%
   select(unique_ID,variable,GEOID) %>% 
   pivot_wider(., names_from = variable, values_from = GEOID, values_fill = NA)
 
-write.csv(TPS, file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_PopulationSim_Weights_lat_lon_",today,".csv")), row.names = F)
-save(TPS, file=file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_PopulationSim_Weights_lat_lon_",today,".Rdata")))
-
-
-
-
+final <- left_join(TPS,matched_tracts,by="unique_ID") %>% 
+  select(unique_ID, operator, ID, survey_year, SURVEY_MODE, access_mode, 
+         access_mode_imputed, depart_hour, dest_purp, direction, egress_mode, 
+         egress_mode_imputed, eng_proficient, fare_category, fare_medium, 
+         gender, hispanic, household_income, interview_language, onoff_enter_station, 
+         onoff_exit_station, orig_purp, persons, return_hour, route, student_status, 
+         survey_type, time_period, vehicles, weekpart, work_status, workers, canonical_operator, 
+         operator_detail, technology, approximate_age, tour_purp, tour_purp_case, 
+         vehicle_numeric_cat, worker_numeric_cat, auto_suff, auto_suff_imputed, 
+         first_before_operator_detail, second_before_operator_detail, 
+         third_before_operator_detail, first_after_operator_detail, 
+         second_after_operator_detail, third_after_operator_detail, 
+         first_before_operator, second_before_operator, third_before_operator, 
+         first_after_operator, second_after_operator, third_after_operator, 
+         first_before_technology, second_before_technology, third_before_technology, 
+         first_after_technology, second_after_technology, third_after_technology, 
+         transfer_from, transfer_to, first_board_tech, last_alight_tech, 
+         boardings, race, language_at_home, day_of_the_week, field_start, field_end, 
+         day_part, dest_tm1_taz, home_tm1_taz, orig_tm1_taz, school_tm1_taz, 
+         workplace_tm1_taz, dest_tm2_taz, home_tm2_taz, orig_tm2_taz, 
+         school_tm2_taz, workplace_tm2_taz, dest_tm2_maz, home_tm2_maz, 
+         orig_tm2_maz, school_tm2_maz, workplace_tm2_maz, board_tap, 
+         alight_tap, field_language, survey_time, path_access, 
+         path_egress, path_line_haul, path_label, first_board_tap, 
+         last_alight_tap, survey_batch, agg_tour_purp,  
+         nTransfers, period, transfer_from_tech, transfer_to_tech, 
+         first_board_lon, first_board_lat, survey_board_lon, survey_board_lat, 
+         survey_alight_lon, survey_alight_lat, last_alight_lon, last_alight_lat, 
+         dest_tract=dest, home_tract=home, orig_tract=orig, school_tract=school, 
+         workplace_tract=workplace, first_board_tract=first_board, last_alight_tract=last_alight, 
+         survey_board_tract=survey_board, weight, trip_weight)
+write.csv(final, file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_",today,".csv")), row.names = F)
+save(final, file=file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_",today,".Rdata")))
 
 
 
