@@ -7,14 +7,7 @@ options(scipen = 99999)
 # DIRECTORIES AND LIBRARIES
 #=========================================================================================================================
 
-USERPROFILE     <- gsub("\\\\","/", Sys.getenv("USERPROFILE"))
-box_drive_dir   <- file.path(USERPROFILE, "Box", "Modeling and Surveys")
 TPS_Dir         <- "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data"
-POPSIM_Dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
-BOX_TM2_Dir     <- file.path(box_drive_dir, "Development", "Travel Model Two Development")
-TPS_Anc_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Onboard Survey", "Data")
-TARGETS_Dir     <- file.path(BOX_TM2_Dir, "Observed Data", "Transit", "Scaled Transit Ridership Targets")
-VALIDATION_Dir  <- file.path(POPSIM_Dir, "validation")
 today = Sys.Date()
 
 suppressMessages(library(tidyverse))
@@ -22,7 +15,6 @@ library(reshape2)
 library(tidyverse)
 library(sf)
 library(tigris)
-library(rgdal)
 
 baycounty <- c("Alameda","Contra Costa","Marin","Napa","San Francisco","San Mateo",
                "Santa Clara","Solano","Sonoma")
@@ -411,6 +403,43 @@ final <- left_join(TPS,matched_tracts,by="unique_ID") %>%
 write.csv(final, file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_",today,".csv")), row.names = F)
 save(final, file=file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_",today,".Rdata")))
 
+# Create Tableau version with fewer variables for easier loading
 
+tableau <- left_join(TPS,matched_tracts,by="unique_ID") %>% 
+  select(unique_ID, operator, ID, survey_year, SURVEY_MODE, access_mode, 
+         access_mode_imputed, depart_hour, dest_purp, direction, egress_mode, 
+         egress_mode_imputed, eng_proficient, fare_category, fare_medium, 
+         gender, hispanic, household_income, onoff_enter_station, 
+         onoff_exit_station, orig_purp, persons, return_hour, route, student_status, 
+         time_period, vehicles, work_status, workers, canonical_operator, 
+         operator_detail, technology, approximate_age, vehicle_numeric_cat, worker_numeric_cat, 
+         auto_suff, auto_suff_imputed, transfer_from, transfer_to, first_board_tech, 
+         last_alight_tech, boardings, race, language_at_home, day_of_the_week, day_part, 
+         path_access, path_egress, path_line_haul, path_label, survey_batch,  
+         nTransfers, period, transfer_from_tech, transfer_to_tech, 
+         dest_tract=dest, home_tract=home, orig_tract=orig, school_tract=school, 
+         workplace_tract=workplace, first_board_tract=first_board, last_alight_tract=last_alight, 
+         survey_board_tract=survey_board, weight, trip_weight)
 
+write.csv(tableau, file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_Tableau_Version",today,".csv")), row.names = F)
 
+# Export geography file after removing NA values and joining operator and weight values to file
+
+joiner <- TPS %>% 
+  select(unique_ID,operator,weight,trip_weight) 
+
+st_geometry(matched_tracts_interim) <- NULL
+matched_tracts_interim <- matched_tracts_interim %>% filter(!is.na(GEOID)) %>% 
+  select(unique_ID,location=variable,GEOID)
+
+geography <- left_join(matched_tracts_interim,joiner,by="unique_ID") %>% 
+  mutate(location=recode(location,
+                "dest"="dest_tract","home"="home_tract", "orig"="orig_tract", "school"="school_tract", 
+                "workplace"="workplace_tract", "first_board"="first_board_tract", "last_alight"="last_alight_tract", 
+                "survey_board"="survey_board_tract"))
+
+final_geography <- left_join(geography,tracts_proj,by="GEOID")
+st_write(final_geography,file.path(TPS_Dir,"public_version",paste0("TPS_Public_Version_Locations_CensusTract",today,".shp")))
+write.csv(geography,file.path(TPS_Dir,"public_version",paste0("TPS_Public_Version_Locations_CensusTract",today,".csv")),row.names = F)
+          
+          
