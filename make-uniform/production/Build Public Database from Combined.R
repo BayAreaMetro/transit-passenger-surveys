@@ -321,7 +321,8 @@ TPS <- TPS %>%
            "path_line_haul", "path_label", "first_board_tap", "last_alight_tap", 
            "survey_batch", "agg_tour_purp", "access_mode_imputed", "egress_mode_imputed", 
            "auto_suff_imputed", "nTransfers", "period", "transfer_from_tech", "transfer_to_tech", 
-           "orig_lon","orig_lat","first_board_lon","first_board_lat","survey_board_lon","survey_board_lat","survey_alight_lon","survey_alight_lat",
+           "orig_lon","orig_lat","first_board_lon","first_board_lat","survey_board_lon","survey_board_lat",
+           "survey_alight_lon","survey_alight_lat",
            "last_alight_lon","last_alight_lat","dest_lon","dest_lat","home_lon","home_lat",
            "workplace_lon","workplace_lat","school_lon","school_lat"))
 
@@ -330,12 +331,12 @@ TPS <- TPS %>%
 survey_lat <- TPS %>%
   select(unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat,
          school = school_lat, workplace = workplace_lat, first_board=first_board_lat,
-         last_alight=last_alight_lat,survey_board=survey_board_lat)
+         last_alight=last_alight_lat,survey_board=survey_board_lat,survey_alight=survey_alight_lat)
 
 survey_lon <- TPS %>%
   select(unique_ID, dest = dest_lon, home = home_lon, orig = orig_lon,
          school = school_lon, workplace = workplace_lon, first_board=first_board_lon,
-         last_alight=last_alight_lon,survey_board=survey_board_lon)
+         last_alight=last_alight_lon,survey_board=survey_board_lon,survey_alight=survey_alight_lat)
 
 survey_lat <- survey_lat %>%
   gather(variable, y_coord, -unique_ID)
@@ -399,7 +400,7 @@ final <- left_join(TPS,matched_tracts,by="unique_ID") %>%
          survey_alight_lon, survey_alight_lat, last_alight_lon, last_alight_lat, 
          dest_tract=dest, home_tract=home, orig_tract=orig, school_tract=school, 
          workplace_tract=workplace, first_board_tract=first_board, last_alight_tract=last_alight, 
-         survey_board_tract=survey_board, weight, trip_weight)
+         survey_board_tract=survey_board, survey_alight_tract=survey_alight,weight, trip_weight)
 write.csv(final, file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_",today,".csv")), row.names = F)
 save(final, file=file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_",today,".Rdata")))
 
@@ -419,27 +420,27 @@ tableau <- left_join(TPS,matched_tracts,by="unique_ID") %>%
          nTransfers, period, transfer_from_tech, transfer_to_tech, 
          dest_tract=dest, home_tract=home, orig_tract=orig, school_tract=school, 
          workplace_tract=workplace, first_board_tract=first_board, last_alight_tract=last_alight, 
-         survey_board_tract=survey_board, weight, trip_weight)
+         survey_board_tract=survey_board, survey_alight_tract=survey_alight, weight, trip_weight)
 
 write.csv(tableau, file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_Tableau_Version",today,".csv")), row.names = F)
 
 # Export geography file after removing NA values and joining operator and weight values to file
+# Remove Night and NA records for time of day
 
 joiner <- TPS %>% 
-  select(unique_ID,operator,weight,trip_weight) 
+  select(unique_ID,operator,day_part,day_part,weight,trip_weight) 
 
 st_geometry(matched_tracts_interim) <- NULL
 matched_tracts_interim <- matched_tracts_interim %>% filter(!is.na(GEOID)) %>% 
-  select(unique_ID,location=variable,GEOID)
+  select(unique_ID,location=variable,STATEFP,COUNTYFP,TRACTCE, GEOID)
 
 geography <- left_join(matched_tracts_interim,joiner,by="unique_ID") %>% 
   mutate(location=recode(location,
                 "dest"="dest_tract","home"="home_tract", "orig"="orig_tract", "school"="school_tract", 
                 "workplace"="workplace_tract", "first_board"="first_board_tract", "last_alight"="last_alight_tract", 
-                "survey_board"="survey_board_tract"))
+                "survey_board"="survey_board_tract")) %>% 
+  filter(!(day_part == "NIGHT" | is.na(day_part)))
 
-final_geography <- left_join(geography,tracts_proj,by="GEOID")
-st_write(final_geography,file.path(TPS_Dir,"public_version",paste0("TPS_Public_Version_Locations_CensusTract",today,".shp")))
 write.csv(geography,file.path(TPS_Dir,"public_version",paste0("TPS_Public_Version_Locations_CensusTract",today,".csv")),row.names = F)
           
-          
+
