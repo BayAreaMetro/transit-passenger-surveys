@@ -51,38 +51,7 @@ CONTENTS
 | Robert Thompson                        | Western Contra Costa Transit Authority                 |
 | Cyrus Sheik                            | Wheels (Livermore-Amador Valley Transit Authority)     |
 
-<br/>
 
-## Meeting Agendas
-
-### Meeting 2 - 2016
-
-Tuesday, December 6, 2016  
-10:00 AM  
-CR-6102 (Bay Area Conference Room), 6th Floor  
-375 Beale Street  
-San Francisco, CA 94105  
-
-Call-in Number: 888-273-3658  
-Access Code: 9427202  
-
-#### Agenda
-
-1, Introductions  
-2. New website for the group  
-3. Gabe Murchison, Senior Research Manager, Human Rights Campaign Foundation  
-4. Lynette Little, Civil Rights Officer, Region IX FTA   
-5. Finalize standard operating procedures  
-6. Title VI data poll   
-7. Next Meeting ideas:  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a. Results from Title VI data use poll  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b. Survey results to data presentation (specific interests?)  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c. Evolution of data collection (consultant?)  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d. Alternate approaches to weighting data  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e. Anything you or your agency would like to present?  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f. Suggested speakers?  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g. Other ideas?  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;h. Meeting planned for April 27, 2017 - 10 AM
 
 
 

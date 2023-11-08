@@ -83,8 +83,8 @@ CONTENTS
 |                                  | Rio Vista Transit        |                        |
 |                                  | SolTrans                 |                        |
 |                                  | Vacaville Transit        |                        |
-| 2027                             |                          |                        |
-|                                  | SMART                    | ACE                    |
+|                                  |                          |                        |
+| 2027                             | SMART                    | ACE                    |
 |                                  | Petaluma Transit         | Napa VINE Transit      |
 |                                  | Sonoma County Transit    | Tri Delta Transit      |
 |                                  | Santa Rosa CityBus       | County Connection      |
