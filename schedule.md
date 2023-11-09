@@ -3,95 +3,265 @@ layout: page
 title: Schedule
 ---
 
-# TPS Schedule
+# Transit Passenger Survey Schedule and Reports
 
-Below you'll find the operators previously surveyed in MTC's Transit Passenger Survey program and the tentative schedule for future survey work. 
+## Completed to Date and Currently in the Field
 
-CONTENTS
+<p>In the below table, each operator links to the relevant report and/or data from that survey.</p>
 
-1. [Operators Completed to Date](#mtc-ongoing-transit-passenger-survey-tentative-operators-completed-to-date-and-currently-in-the-field)
-2. [Tentative Future Schedule](#mtc-ongoing-transit-passenger-survey-tentative-future-schedule)
+<p>Also see the <a href="#future-schedule">Future Schedule</a></p>
 
-
-## MTC Ongoing Transit Passenger Survey Operators Completed to Date and Currently in the Field
-
-| **Survey Year**| **Spring**                                                                                        | **Fall**                                                                          |
-|:---------------|:--------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------|
-| 2012           | [County Connection](https://mtcdrive.box.com/s/s39viozqi7uqf3je3vgu9q3j96hbjgru)                  | [AC Transit](https://mtcdrive.app.box.com/folder/4228881949)	                 |
-|                | [Petaluma Transit](https://mtcdrive.box.com/s/h0ndf41kwrpeqh8uhytrorojm2pgkpu3)                   |                                                                                   |
-|                | [Santa Rosa CityBus](https://mtcdrive.box.com/s/stt03t3prplqp7uikzfwc9p9g39yrp7s)                 |                                                                                   |
-|                | [Sonoma County Transit](https://mtcdrive.box.com/s/b3fp2jk4wp229mt3i3bdptgdlccnb4d9)              |                                                                                   |
-|                |                                                                                                   |                                                                                   |
-| 2013           | [Union City Transit](https://mtcdrive.box.com/s/c9kklaussay2nqeca7c4coikn3e391mp)                 | [Golden Gate Transit](https://mtcdrive.app.box.com/folder/4229006491)             |
-|                | [SamTrans](https://mtcdrive.app.box.com/folder/4229011869)                                        | [WETA Ferries](https://mtcdrive.app.box.com/folder/4229013973)                    |
-| 		 |                                                                                                   | [Wheels (LAVTA)](https://mtcdrive.app.box.com/folder/4229007801)                  |
-|                |                                                                                                   |	                                                                                 |
-| 2014           | [ACE](https://mtcdrive.box.com/s/p5bviohkhlxfph8lpkft37hbqiqazvvq)                                | [Caltrain](https://mtcdrive.app.box.com/folder/4229004533)                        |
-|                | [Tri Delta Transit](https://mtcdrive.app.box.com/folder/4229016295)                               |                                                                                 | 
-|                | [Napa Vine Transit](https://mtcdrive.app.box.com/folder/4229009259)                               |                                                                                   |
-|                |                                                                                                   |                                                                                   |
-| 2015           | [BART](https://www.bart.gov/about/reports/profile)                                                |                                                                                   |
-|                |                                                                                                   |                                                                                   |
-| 2016           |                                                                                                   | [Muni](https://mtcdrive.app.box.com/folder/75147326756)                           |
-|                |                                                                                                   | [VTA](https://mtcdrive.app.box.com/folder/49675628429)                            |
-|                |                                                                                                   |                                                                                   |
-| 2017           | [Muni (continued)](https://mtcdrive.app.box.com/folder/75147326756)                               | [AC Transit](https://mtcdrive.box.com/s/qb6tc4x5crpc9mz3o6pg5hijcn83kk1p)                     |
-|                | [VTA (continued)](https://mtcdrive.app.box.com/folder/49675628429)                                | [Dumbarton Express](https://mtcdrive.box.com/s/qb6tc4x5crpc9mz3o6pg5hijcn83kk1p)              |
-|                | [FAST](https://mtcdrive.app.box.com/folder/75143896283)                                           | [Union City Transit](https://mtcdrive.box.com/s/0753iyn1aajm41s5y9o617gemmpd7thw) |
-|                | [SolTrans](https://mtcdrive.app.box.com/folder/75143896283)                                       | [WestCAT](https://mtcdrive.app.box.com/folder/75146902472)                        |
-| 		 | [Rio Vista Delta Breeze](https://mtcdrive.app.box.com/folder/75143896283)                         |                                                                                   |
-| 		 | [Vacaville City Coach](https://mtcdrive.app.box.com/folder/75143896283)                           |                                                                                   |
-|                | [Marin Transit](https://mtcdrive.app.box.com/folder/36199576500)                                  |	                                                                                 |
-|                |                                                                                                   |                                                                                   |
-| 2018           | [SMART](https://mtcdrive.box.com/s/y3b82wxecqm4irduqz0m5w7017fabkb7)                              | [Wheels (LAVTA)](https://mtcdrive.app.box.com/folder/75149642352)                 |
-|                | [Golden Gate Transit](https://mtcdrive.app.box.com/folder/75148643908)                            | [WETA Ferries](https://mtcdrive.app.box.com/folder/75149464708)                   |
-|                | [Petaluma Transit](https://mtcdrive.box.com/s/u74n2dou8qtdczhk9brp8qu3h8vlbdy1)                   |                                                                                   |
-|                | [Sonoma County Transit](https://mtcdrive.box.com/s/b3fp2jk4wp229mt3i3bdptgdlccnb4d9)              |	                                                                                 |
-|                | [Santa Rosa CityBus](https://mtcdrive.box.com/s/e5p5a5igsvrwknbjoneierx3rxmoj67d)                 |	                                                                                 |
-|                |                                                                                                   |                                                                                   |
-| 2019           | [ACE](https://mtcdrive.box.com/s/78f7v14yr5tkhcts28zpo94gdty1dkgw)                                | SamTrans                                                                          |
-|                | [Napa VINE Transit](https://mtcdrive.box.com/s/eeyfb7vh7w2cr6e6uu68b68xyd918fhv)                  | [County Connection](https://mtcdrive.box.com/s/d176rap6cll35ypv1njzf2xo4fr6s578)                                                                 |
-|                | [Tri Delta Transit](https://mtcdrive.box.com/s/ogm5xzoei5jy64s4u12n7ymqfvkc0roo)                  |                                                                                   |
-|                                  |                        |                        |
-| 2020                             | Suspended for COVID    | Suspended for COVID    |
-|                                  |                        |                        |
-| 2021                             | Suspended for COVID    | Suspended for COVID    |
+<table style="table-layout:fixed; width:700px">
+ <thead><tr class="header" style="background-color:lightblue;">
+   <th style="width:10%">Survey Year</th>
+   <th style="width:40%">Spring</th>
+   <th style="width:40%">Fall</th>
+ </tr></thead>
+ <tbody>
+  <tr>
+    <td style="text-align:center; vertical-align:middle;">2023</td>
+    <td colspan="2"><strong>2023-2024 Regional Transit Passenger Snapshot Survey</strong></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td style="text-align:center; vertical-align:middle;">2022</td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-samtrans-2022">SamTrans</a><br /><small>(Continued from 2019)</small></td>
+    <td>Planning for <strong>2023-2024 Regional Transit Passenger Snapshot Survey</strong></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td style="text-align:center; vertical-align:middle">2021</td>
+    <td colspan="2"><em>Suspended for COVID</em></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td style="text-align:center; vertical-align:middle">2020</td>
+    <td colspan="2"><em>Suspended for COVID</em></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td rowspan="3" style="text-align:center; vertical-align:middle">2019</td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-ace-2019">ACE</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-samtrans-2022">SamTrans</a><br /><small>(Continued in 2022)</small></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-napa-vine-2019">Napa VINE Transit</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-countyconn-2019">County Connection</a></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-tri-delta-2019">Tri Delta Transit</a></td>
+    <td></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td rowspan="5" style="text-align:center; vertical-align:middle">2018</td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-smart-2018">SMART</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-lavta-2018">Wheels (LAVTA)</a></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-ggt-2018">Golden Gate Transit</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-weta-2018">WETA Ferries</a></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-petaluma-2018">Petaluma Transit</a></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-sonoma-2018">Sonoma County Transit</a></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-santa-rosa-2018">Santa Rosa Citybus</a></td>
+    <td></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td rowspan="7" style="text-align:center; vertical-align:middle">2017</td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-muni-2017">Muni</a><br /><small>(Continued from 2016)</small></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-actransit-2017">AC Transit</a></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-vta-2017">VTA</a><br /><small>(Continued from 2016)</small></td>
+    <td>Dumbarton Express<br /><small>See <a href="https://mtcdrive.box.com/v/transit-survey-actransit-2017">AC Transit 2017 report</a> for information about this (Search for <em>DB</em>)</small></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-fast-2017">FAST</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-union-city-2017">Union City Transit</a></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-soltrans-2017">SolTrans</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-westcat-2017">WestCAT</a></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-breeze-2017">Rio Vista Delta Breeze</a></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-city-coach-2017">Vacaville City Coach</a></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-marin-2017">Marin Transit</a></td>
+    <td></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td rowspan="2" style="text-align:center; vertical-align:middle">2016</td>
+    <td colspan="2"><a href="https://mtcdrive.box.com/v/transit-survey-muni-2017">Muni</a><br /><small>(Continued in 2017)</small></td>
+  </tr>
+  <tr>
+    <td colspan="2"><a href="https://mtcdrive.box.com/v/transit-survey-vta-2017">VTA</a><br /><small>(Continued in 2017)</small></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td style="text-align:center; vertical-align:middle">2015</td>
+    <td><a href="https://www.bart.gov/about/reports/profile">BART</a></td>
+    <td></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td rowspan="3" style="text-align:center; vertical-align:middle">2014</td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-ACE-2014">ACE</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-caltrain-2014">Caltrain</a></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-tri-delta-2014">Tri Delta Transit</a></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-napa-vine-2014">Napa VINE Transit</a></td>
+    <td></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td rowspan="3" style="text-align:center; vertical-align:middle">2013</td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-union-city-2013">Union City Transit</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-ggt-2013">Golden Gate Transit</a></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-samtrans-2013">SamTrans</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-weta-2013">WETA Ferries</a></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-lavta-2013">Wheels (LAVTA)</a></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td rowspan="4" style="text-align:center; vertical-align:middle">2012</td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-countyconn-2012">County Connection</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-actransit-2012">AC Transit</a></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-petaluma-2012">Petaluma Transit</a></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-santa-rosa-2012">Santa Rosa CityBus</a></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-sonoma-2012">Sonoma County Transit</a></td>
+    <td></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+ </tbody>
+</table>
 
 <br/>
 
 
-## MTC Ongoing Transit Passenger Survey Tentative Future Schedule
+## Future Schedule
 
+Also see the surveys [Completed to Date and Currently in the Field](#completed-to-date-and-currently-in-the-field)
 
-| **Survey Year**                  | **Spring**               | **Fall**                               |
-|:---------------------------------|:-------------------------|:---------------------------------------|
-| 2022                             | SamTrans (continued)     | Planning for Regional Snapshot Survey  |
-|                                  |                          |	                                       |
-| 2023                             | Regional Snapshot Survey | Regional Snapshot Survey (continued)   |
-|                                  |                          |                                        |  
-| 2024                             | BART                     | BART (continued)                       |
-|                                  | Caltrain                 | VTA                                    |
-|                                  |                          | Muni                                   |
-|                                  |                          |                        |
-| 2025                             | VTA (continued)          | AC Transit             |
-|                                  | Muni (continued)         | Dumbarton Express      |
-|                                  |                          | Union City Transit     |
-|                                  |                          | WestCAT                |
-|                                  |                          |                        |
-| 2026                             | FAST                     | Wheels (LAVTA)         |
-|                                  | Marin Transit            | Golden Gate Transit    |
-|                                  | Rio Vista Transit        |                        |
-|                                  | SolTrans                 |                        |
-|                                  | Vacaville Transit        |                        |
-|                                  |                          |                        |
-| 2027                             | SMART                    | ACE                    |
-|                                  | Petaluma Transit         | Napa VINE Transit      |
-|                                  | Sonoma County Transit    | Tri Delta Transit      |
-|                                  | Santa Rosa CityBus       | County Connection      |
-|                                  | WETA Ferries             |                        |
-|                                  |                          |                        |
-| 2028                             | SamTrans                 |                        |
-
-
-
-
+<table style="table-layout:fixed; width:700px">
+ <thead><tr class="header" style="background-color:lightblue;">
+   <th style="width:10%">Survey Year</th>
+   <th style="width:40%">Spring</th>
+   <th style="width:40%">Fall</th>
+ </tr></thead>
+ <tbody>
+  <tr>
+    <td rowspan="3" style="text-align:center; vertical-align:middle;">2024</td>
+    <td colspan="2">BART</td>
+  </tr>
+  <tr>
+    <td>Caltrain</td>
+    <td>VTA<br /><small>(Continued in 2025)</small></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Muni<br /><small>(Continued in 2025)</small></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td rowspan="4" style="text-align:center; vertical-align:middle;">2025</td>
+    <td>VTA</td>
+    <td>AC Transit</td>
+  </tr>
+  <tr>
+    <td>Muni<br /></td>
+    <td>Dumbarton Express</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Union City Transit</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>WestCAT</td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td rowspan="5" style="text-align:center; vertical-align:middle;">2026</td>
+    <td>FAST</td>
+    <td>Wheels (LAVTA)</td>
+  </tr>
+  <tr>
+    <td>Marin Transit</td>
+    <td>Golden Gate Transit</td>
+  </tr>
+  <tr>
+    <td>Rio Vista Transit</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>SolTrans</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Vacaville Transit</td>
+    <td></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td rowspan="5" style="text-align:center; vertical-align:middle;">2027</td>
+    <td>SMART</td>
+    <td>ACE</td>
+  </tr>
+  <tr>
+    <td>Petaluma Transit</td>
+    <td>Napa VINE Transit</td>
+  </tr>
+  <tr>
+    <td>Sonoma County Transit</td>
+    <td>Tri Delta Transit</td>
+  </tr>
+  <tr>
+    <td>Santa Rosa CityBus</td>
+    <td>County Connection</td>
+  </tr>
+  <tr>
+    <td>WETA Ferries</td>
+    <td></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
+    <td rowspan="1" style="text-align:center; vertical-align:middle;">2028</td>
+    <td>SamTrans</td>
+    <td></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+ </tbody>
+</table>

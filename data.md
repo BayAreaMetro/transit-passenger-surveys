@@ -3,15 +3,10 @@ layout: page
 title: Data
 ---
 
-# Data and Reports
+# Survey Data and Reports
 
-Below you'll find some links to access aggregate summaries of survey data and also consultant reports for completed survey efforts. 
+Reports are available on [Box](https://mtcdrive.box.com/v/onboard-survey-reports):
 
-## Available Data
+<iframe src="https://mtcdrive.app.box.com/embed/s/7a4ro4z4ngpk8ywlj395agydol5evuuu?sortColumn=date&showParentPath=false" width="800" height="550" frameborder="0" allowfullscreen webkitallowfullscreen msallowfullscreen></iframe>
 
-*	To gain access to the data summaries or the raw data, please contact Shimon Israel at SIsrael@bayareametro.gov or 415-778-5239. 
-
-## Available Reports
-
-You can find a repository of downloadable operator-specific reports with detailed methodology and findings [here](https://mtcdrive.box.com/v/onboard-survey-reports)
-
+To request access to the data summaries or the raw data, please contact Shimon Israel at <a href="mailto:SIsrael@bayareametro.gov">SIsrael@bayareametro.gov</a> or 415-778-5239. 
