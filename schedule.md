@@ -3,7 +3,7 @@ layout: page
 title: Schedule
 ---
 
-# Transit Passenger Survey Schedule and Reports
+# Survey Schedule and Reports
 
 ## Completed to Date and Currently in the Field
 
