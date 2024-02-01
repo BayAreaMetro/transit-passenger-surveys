@@ -214,8 +214,8 @@ TPS_distance <- temp %>%
   ))
 
 
-save(TPS_distance, file=file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_Distances_Appended",today,".Rdata")))
+save(TPS_distance, file=file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_Distances_Appended_",today,".Rdata")))
 
-write.csv(TPS_distance,file.path(TPS_Dir,"public_version",paste0("TPS_Public_Version_Distances_Appended",today,".csv")),row.names = F)
+write.csv(TPS_distance,file.path(TPS_Dir,"public_version",paste0("TPS_Public_Version_Distances_Appended_",today,".csv")),row.names = F)
           
 
