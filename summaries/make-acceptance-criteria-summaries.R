@@ -103,7 +103,7 @@ access_df <- common_df %>%
          survey_trips)
 
 # Reductions 03: Flows by technology -------------------------------------------
-flows_df <- common_df %>%
+working_df <- common_df %>%
   filter(orig_taz > 0) %>%
   filter(dest_taz > 0) %>%
   mutate(temp = (first_board_tech == "local bus") | (last_alight_tech == "local bus") | (survey_tech == "local bus")) %>%
@@ -118,14 +118,24 @@ flows_df <- common_df %>%
   mutate(is_hvy_in_path = if_else(temp, 1.0, 0.0)) %>%
   mutate(temp = (first_board_tech == "commuter rail") | (last_alight_tech == "commuter rail") | (survey_tech == "commuter rail")) %>%
   mutate(is_com_in_path = if_else(temp, 1.0, 0.0)) %>%
+  mutate(techs_in_path = is_loc_in_path + is_exp_in_path + is_lrt_in_path + is_fry_in_path + is_hvy_in_path + is_com_in_path) %>%
+  select(Unique_ID, orig_taz, dest_taz, time_period, is_loc_in_path, is_exp_in_path, is_lrt_in_path, is_fry_in_path, is_hvy_in_path, is_com_in_path, techs_in_path, trip_weight)
+
+flows_df <- working_df %>%
   group_by(orig_taz, dest_taz, time_period) %>%
-  summarise(is_loc_in_path = mean(is_loc_in_path),
-            is_exp_in_path = mean(is_exp_in_path),
-            is_lrt_in_path = mean(is_lrt_in_path),
-            is_fry_in_path = mean(is_fry_in_path),
-            is_hvy_in_path = mean(is_hvy_in_path),
-            is_com_in_path = mean(is_com_in_path),
-            observed_trips = sum(trip_weight), .groups = "drop")
+  summarise(is_loc_in_path = sum(is_loc_in_path)/sum(techs_in_path),
+            is_exp_in_path = sum(is_exp_in_path)/sum(techs_in_path),
+            is_lrt_in_path = sum(is_lrt_in_path)/sum(techs_in_path),
+            is_fry_in_path = sum(is_fry_in_path)/sum(techs_in_path),
+            is_hvy_in_path = sum(is_hvy_in_path)/sum(techs_in_path),
+            is_com_in_path = sum(is_com_in_path)/sum(techs_in_path),
+            observed_trips = sum(trip_weight),
+            .groups = "drop")
+
+check_df <- flows_df %>%
+  mutate(sum_check = is_loc_in_path + is_exp_in_path + is_lrt_in_path + is_hvy_in_path + is_fry_in_path + is_com_in_path) %>%
+  filter(sum_check > 1.0)
+
 
 # Write ------------------------------------------------------------------------
 write_csv(output_df, output_filename)
