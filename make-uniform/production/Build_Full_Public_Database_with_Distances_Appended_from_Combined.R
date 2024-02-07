@@ -213,6 +213,20 @@ TPS_distance <- temp %>%
     approximate_age >= 75                             ~ "8_75 and above",
   ))
 
+# Create a composite race category
+
+TPS_distance<-TPS_distance %>% 
+  mutate(composite_race=case_when(
+    (hispanic=="NOT HISPANIC/LATINO OR OF SPANISH ORIGIN" | is.na(hispanic)) & race=="WHITE"         ~ "White",
+    (hispanic=="NOT HISPANIC/LATINO OR OF SPANISH ORIGIN" | is.na(hispanic)) & race=="BLACK"         ~ "Black",
+    (hispanic=="NOT HISPANIC/LATINO OR OF SPANISH ORIGIN" | is.na(hispanic)) & race=="ASIAN"         ~ "Asian",
+    (hispanic=="NOT HISPANIC/LATINO OR OF SPANISH ORIGIN" | is.na(hispanic)) & race=="OTHER"         ~ "Other",
+    hispanic=="HISPANIC/LATINO OR OF SPANISH ORIGIN"                             ~ "Hispanic",
+    race=="Missing"                                                              ~ "Missing",
+    hispanic %in% c("missing","Missing")                                         ~ "Missing",
+    TRUE                                                                         ~ "Not coded properly"
+  ))
+
 
 save(TPS_distance, file=file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_Distances_Appended_",today,".Rdata")))
 
