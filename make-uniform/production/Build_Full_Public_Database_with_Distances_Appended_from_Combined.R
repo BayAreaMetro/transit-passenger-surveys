@@ -227,6 +227,10 @@ TPS_distance<-TPS_distance %>%
     TRUE                                                                         ~ "Not coded properly"
   ))
 
+# Fix limited-English proficiency by adding "very well" to English-only speakers
+
+TPS_distance <- TPS_distance %>% mutate(
+  eng_proficient=if_else(language_at_home=="ENGLISH ONLY","VERY WELL",eng_proficient))
 
 save(TPS_distance, file=file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_Distances_Appended_",today,".Rdata")))
 
