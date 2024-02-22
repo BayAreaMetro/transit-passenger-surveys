@@ -10,8 +10,14 @@ input <- "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data/public_
 
 load(input)
 
-# Take out lat/long and TM2 geography, keep in TM1 and census tract geos
-# Filter out BART and ACE records only
+# Take out TAP, and TM2 geography; keep in TM1 and census tract geos
+# Leave in lat/lon for boarding/alighting locations only
+# Filter for BART 2015 and ACE 2019 records only
 
 export <- final %>% 
-  select(-grep("lat|lon|tm2",names(.)))
+  select(-grep("tm2|tap",names(.))) %>% 
+  filter(operator %in% c("ACE","BART"))
+
+# Export dataset
+
+write.csv(export,file = "M:/Data/Requests/Valley Link Transit/MTC Dataset BART and ACE.csv",row.names = F)
