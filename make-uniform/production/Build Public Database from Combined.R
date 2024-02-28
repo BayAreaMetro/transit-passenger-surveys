@@ -16,8 +16,11 @@ library(tidyverse)
 library(sf)
 library(tigris)
 
-baycounty <- c("Alameda","Contra Costa","Marin","Napa","San Francisco","San Mateo",
-               "Santa Clara","Solano","Sonoma")
+# Use megaregion for census spatial aggregation geographies
+
+megaregion <- c("Alameda","Contra Costa","Marin","Napa","San Francisco","San Mateo","Santa Clara","Solano","Sonoma",
+                "Santa Cruz","San Benito","Monterey","San Joaquin","Stanislaus","Merced","Yuba","Placer","El Dorado",
+                "Sutter","Yolo","Sacramento","Lake","Mendocino")
 
 #=========================================================================================================================
 # READ INPUTS
@@ -361,7 +364,7 @@ survey_coords_spatial <- st_transform(survey_coords_spatial,crs = utm_ftus)
 # Remove geometry and join census tract data with survey file
 # Find nearest feature within a quarter mile
 
-tracts <- tracts(state = "CA", county = baycounty, cb = FALSE, year = 2020)
+tracts <- tracts(state = "CA", county = megaregion, cb = FALSE, year = 2020)
 tracts_proj <- st_transform(tracts, crs = st_crs(survey_coords_spatial))
 matched_tracts_interim <- st_join(survey_coords_spatial, tracts_proj, join = st_nearest_feature, maxdist=5280/4)
 matched_tracts <- matched_tracts_interim
@@ -401,28 +404,9 @@ final <- left_join(TPS,matched_tracts,by="unique_ID") %>%
          dest_tract=dest, home_tract=home, orig_tract=orig, school_tract=school, 
          workplace_tract=workplace, first_board_tract=first_board, last_alight_tract=last_alight, 
          survey_board_tract=survey_board, survey_alight_tract=survey_alight,weight, trip_weight)
-write.csv(final, file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_",today,".csv")), row.names = F)
-save(final, file=file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_",today,".Rdata")))
+write.csv(final, file.path(TPS_Dir, "public_version", paste0("TPS_Public_Version_",today,".csv")), row.names = F)
+save(final, file=file.path(TPS_Dir, "public_version", paste0("TPS_Public_Version_",today,".Rdata")))
 
-# Create Tableau version with fewer variables for easier loading
-
-tableau <- left_join(TPS,matched_tracts,by="unique_ID") %>% 
-  select(unique_ID, operator, ID, survey_year, SURVEY_MODE, access_mode, 
-         access_mode_imputed, depart_hour, dest_purp, direction, egress_mode, 
-         egress_mode_imputed, eng_proficient, fare_category, fare_medium, 
-         gender, hispanic, household_income, onoff_enter_station, 
-         onoff_exit_station, orig_purp, persons, return_hour, route, student_status, 
-         time_period, vehicles, work_status, workers, canonical_operator, 
-         operator_detail, technology, approximate_age, vehicle_numeric_cat, worker_numeric_cat, 
-         auto_suff, auto_suff_imputed, transfer_from, transfer_to, first_board_tech, 
-         last_alight_tech, boardings, race, language_at_home, day_of_the_week, day_part, 
-         path_access, path_egress, path_line_haul, path_label, survey_batch,  
-         nTransfers, period, transfer_from_tech, transfer_to_tech, 
-         dest_tract=dest, home_tract=home, orig_tract=orig, school_tract=school, 
-         workplace_tract=workplace, first_board_tract=first_board, last_alight_tract=last_alight, 
-         survey_board_tract=survey_board, survey_alight_tract=survey_alight, weight, trip_weight)
-
-write.csv(tableau, file.path(TPS_Dir, "public_version",paste0("TPS_Public_Version_Tableau_Version",today,".csv")), row.names = F)
 
 # Export geography file after removing NA values and joining operator and weight values to file
 # Remove Night and NA records for time of day
