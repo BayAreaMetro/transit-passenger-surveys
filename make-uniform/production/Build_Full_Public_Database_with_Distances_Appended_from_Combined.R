@@ -8,12 +8,16 @@ options(scipen = 99999)
 TPS_Dir         <- "M:/Data/OnBoard/Data and Reports/_data Standardized/share_data"
 today = Sys.Date()
 
+
 suppressMessages(library(tidyverse))
+library(reshape2)
+library(sf)
+library(tigris)
 library(geosphere)
 library(reldist)
 
 # Read TPS dataset survey data
-load(file.path(TPS_Dir,     "survey_combined_2021-09-02.RData"))
+load(file.path(TPS_Dir,     "survey_combined_2024-03-04.RData"))
 
 # Create operator equivalency with technology
 
@@ -147,22 +151,70 @@ full_TPS <- TPS %>%
            "last_alight_lon","last_alight_lat","dest_lon","dest_lat","home_lon","home_lat",
            "workplace_lon","workplace_lat","school_lon","school_lat"))
 
-fewer_variables_TPS <- TPS %>% 
-  select(c("ID", "operator", "survey_year", "SURVEY_MODE", "access_mode", 
-           "depart_hour", "dest_purp", "direction","egress_mode", "eng_proficient", 
-           "fare_category", "fare_medium","gender", 
-           "hispanic", "household_income", "interview_language", "onoff_enter_station", "onoff_exit_station", 
-           "orig_purp", "persons", "return_hour","route", "student_status", 
-           "survey_type", "time_period", "transit_type", "trip_purp", "vehicles", 
-           "weekpart", "weight", "work_status", "workers", "canonical_operator", "operator_detail", "technology", 
-           "approximate_age", "vehicle_numeric_cat", 
-           "worker_numeric_cat", "auto_suff",  "transfer_from", "transfer_to", "first_board_tech", 
-           "last_alight_tech", "boardings", "race", "language_at_home", "day_of_the_week",
-           "day_part", "unique_ID",  "trip_weight", "field_language", "survey_time",
-           "survey_batch", "nTransfers", "period","orig_lon","orig_lat","first_board_lon",
-           "first_board_lat","survey_board_lon","survey_board_lat",
-           "survey_alight_lon","survey_alight_lat", "last_alight_lon","last_alight_lat","dest_lon","dest_lat","home_lon","home_lat",
-           "workplace_lon","workplace_lat","school_lon","school_lat"))
+# Spatial match to counties in California
+
+survey_lat <- TPS %>%
+  select(unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat,
+         school = school_lat, workplace = workplace_lat, first_board=first_board_lat,
+         last_alight=last_alight_lat,survey_board=survey_board_lat,survey_alight=survey_alight_lat)
+
+survey_lon <- TPS %>%
+  select(unique_ID, dest = dest_lon, home = home_lon, orig = orig_lon,
+         school = school_lon, workplace = workplace_lon, first_board=first_board_lon,
+         last_alight=last_alight_lon,survey_board=survey_board_lon,survey_alight=survey_alight_lon)
+
+survey_lat <- survey_lat %>%
+  gather(variable, y_coord, -unique_ID)
+
+survey_lon <- survey_lon %>%
+  gather(variable, x_coord, -unique_ID)
+
+survey_coords <- left_join(survey_lat, survey_lon, by = c("unique_ID", "variable")) %>%     # remove records with no lat/lon
+  mutate(x_coord = as.numeric(x_coord)) %>%
+  mutate(y_coord = as.numeric(y_coord)) %>%
+  filter(!is.na(x_coord)) %>%
+  filter(!is.na(y_coord))
+
+# Create an sf object with the NAD83 / UTM zone 10N (ftUS) projection
+utm_ftus <- st_crs(26910, proj4string = "+units=us-ft")
+
+survey_coords_spatial <- st_as_sf(survey_coords, coords = c("x_coord", "y_coord"), crs = 4326)
+survey_coords_spatial <- st_transform(survey_coords_spatial,crs = utm_ftus)
+
+# Get counties for spatially matching. CB=false means that boundaries are not clipped to shoreline
+# CB=TRUE often omits locations close to the shoreline
+# Remove geometry and join county data with survey file
+
+
+counties <- counties(state = "CA", cb = FALSE, year = 2020)
+counties_proj <- st_transform(counties, crs = st_crs(survey_coords_spatial))
+matched_counties_interim <- st_join(survey_coords_spatial, counties_proj, join = st_nearest_feature)
+matched_counties <- matched_counties_interim
+st_geometry(matched_counties) <- NULL
+matched_counties <- matched_counties %>% 
+  select(unique_ID,variable,NAME) %>% 
+  pivot_wider(., names_from = variable, values_from = NAME, values_fill = NA)
+
+# Fewer variables for TPS
+
+fewer_variables_TPS <- left_join (TPS,matched_counties,by="unique_ID") %>% 
+  select(c(ID, operator, survey_year, SURVEY_MODE, access_mode, 
+           depart_hour, dest_purp, direction,egress_mode, eng_proficient, 
+           fare_category, fare_medium,gender, 
+           hispanic, household_income, interview_language, onoff_enter_station, onoff_exit_station, 
+           orig_purp, persons, return_hour,route, student_status, 
+           survey_type, time_period, transit_type, trip_purp, vehicles, 
+           weekpart, weight, work_status, workers, canonical_operator, operator_detail, technology, 
+           approximate_age, vehicle_numeric_cat, 
+           worker_numeric_cat, auto_suff,  transfer_from, transfer_to, first_board_tech, 
+           last_alight_tech, boardings, race, language_at_home, day_of_the_week,
+           day_part, unique_ID,  trip_weight, field_language, survey_time,
+           survey_batch, nTransfers, period,orig_lon,orig_lat,first_board_lon,
+           first_board_lat,survey_board_lon,survey_board_lat,
+           survey_alight_lon,survey_alight_lat, last_alight_lon,last_alight_lat,dest_lon,dest_lat,home_lon,home_lat,
+           workplace_lon,workplace_lat,school_lon,school_lat, dest_county=dest, home_county=home, orig_county=orig, school_county=school, 
+           workplace_county=workplace, first_board_county=first_board, last_alight_county=last_alight, 
+           survey_board_county=survey_board, survey_alight_county=survey_alight))
 
 # Calculate distances
 # Set radius of the earth for Haversine distance calculation
