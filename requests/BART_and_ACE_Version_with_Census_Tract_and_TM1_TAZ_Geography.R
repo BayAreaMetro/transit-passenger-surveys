@@ -16,8 +16,8 @@ load(input)
 
 export <- final %>% 
   select(-grep("tm2|tap",names(.))) %>% 
-  filter(operator %in% c("ACE","BART"))
+  filter(operator %in% c("ACE","BART","LAVTA","County Connection [LOCAL]","County Connection [EXPRESS]"))
 
 # Export dataset
 
-write.csv(export,file = "M:/Data/Requests/Valley Link Transit/MTC Dataset BART and ACE.csv",row.names = F)
+write.csv(export,file = "M:/Data/Requests/Valley Link Transit/MTC Dataset BART ACE LAVTA and County Connection.csv",row.names = F)
