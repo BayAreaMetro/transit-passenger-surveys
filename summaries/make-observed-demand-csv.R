@@ -22,6 +22,8 @@ output_filename <- paste0(
   "Survey_Database_090221/observed-demand-year-2015.csv"
 )
 output_01_filename <- paste0(box_dir, "Survey_Database_090221/observed-demand-year-2015-emme-taz-by-path.csv")
+output_02_filename <- paste0(box_dir, "Survey_Database_090221/observed-demand-am-year-2015-emme-taz-by-path.csv")
+output_03_filename <- paste0(box_dir, "Survey_Database_090221/observed-demand-ea-year-2015-emme-taz-by-path.csv")
 
 # TODO: need to update to more stable path
 tm2_zone_system_filename <- paste0(github_dir, "tm2py/examples/temp_acceptance/inputs/landuse/taz_data.csv") 
@@ -62,6 +64,7 @@ sum(output_df$trips)
 # Write ------------------------------------------------------------------------
 write_csv(output_df, output_filename)
 
+
 # Variations -------------------------------------------------------------------
 taz_dict_df <- select(taz_df, external_taz = TAZ_ORIGINAL, emme_taz = TAZ)
 
@@ -97,3 +100,63 @@ output_01_df <- working_df %>%
 sum(output_01_df$trips)
 
 write_csv(output_01_df, output_01_filename)
+
+## Variation 2: Same as 1 for AM period
+output_02_df <- output_01_df %>%
+  filter(model_time == "am")
+
+sum(output_02_df$trips)
+
+sum(filter(output_02_df, orig_emme_taz < 637 & dest_emme_taz < 637)$trips)
+
+write_csv(output_02_df, output_02_filename)
+
+## Variation 3: Get transfer rate
+transfer_df <- TPS %>%
+  filter(weekpart != "WEEKEND") %>%
+  left_join(., time_period_dict_df, by = c("day_part")) %>%
+  filter(!is.na(orig_tm2_taz)) %>%
+  filter(!is.na(dest_tm2_taz)) %>%
+  group_by(model_time, access_mode_model, egress_mode_model, orig_tm2_taz, dest_tm2_taz) %>%
+  summarise(trips = sum(final_tripWeight_2015),
+            boardings = sum(final_boardWeight_2015),
+            .groups = "drop") %>%
+  filter(model_time == "am")
+
+sum(transfer_df$boardings) / sum(transfer_df$trips)
+
+## Variation 4: Same as 1 for EA period
+output_03_df <- output_01_df %>%
+  filter(model_time == "ea")
+
+sum(output_03_df$trips)
+
+write_csv(output_03_df, output_03_filename)
+
+## Debug: Operator Distribution for Marin-SF or SF-Marin Movements
+debug_df <- TPS %>%
+  filter(weekpart != "WEEKEND") %>%
+  left_join(., time_period_dict_df, by = c("day_part")) %>%
+  filter(!is.na(orig_tm2_taz)) %>%
+  filter(!is.na(dest_tm2_taz)) %>%
+  mutate(orig_in_sf = orig_tm2_taz < 100000) %>%
+  mutate(orig_in_marin = orig_tm2_taz > 800000) %>%
+  mutate(dest_in_sf = dest_tm2_taz < 100000) %>%
+  mutate(dest_in_marin = dest_tm2_taz > 800000) %>%
+  filter((orig_in_sf & dest_in_marin) | (orig_in_marin & dest_in_sf)) %>%
+  filter(model_time == "am") %>%
+  group_by(operator) %>%
+  summarise(trips = sum(final_tripWeight_2015), .groups = "drop")
+
+debug_df <- TPS %>%
+  filter(weekpart != "WEEKEND") %>%
+  left_join(., time_period_dict_df, by = c("day_part")) %>%
+  filter(!is.na(orig_tm2_taz)) %>%
+  filter(!is.na(dest_tm2_taz)) %>%
+  filter(model_time == "am") %>%
+  group_by(operator, survey_year) %>%
+  summarise(trips = sum(final_tripWeight_2015), .groups = "drop")
+
+
+
+
