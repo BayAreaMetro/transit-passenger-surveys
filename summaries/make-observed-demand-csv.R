@@ -27,6 +27,7 @@ output_03_filename <- paste0(box_dir, "Survey_Database_090221/observed-demand-ea
 
 # TODO: need to update to more stable path
 tm2_zone_system_filename <- paste0(github_dir, "tm2py/examples/temp_acceptance/inputs/landuse/taz_data.csv") 
+maz_filename <- paste0(github_dir, "tm2py/examples/temp_acceptance/inputs/landuse/maz_data.csv") 
 
 
 # Parameters -------------------------------------------------------------------
@@ -50,12 +51,83 @@ taz_df <- read_csv(tm2_zone_system_filename, col_types = cols(
   TERMINALTIME = col_double()
 ))
 
+maz_df <- read_csv(maz_filename, col_types = cols(
+  MAZ_ORIGINAL = col_integer(),
+  TAZ_ORIGINAL = col_integer(),
+  DistID = col_double(),
+  DistName = col_character(),
+  CountyID = col_double(),
+  CountyName = col_character(),
+  ACRES = col_double(),
+  HH = col_double(),
+  POP = col_double(),
+  ag = col_double(),
+  art_rec = col_double(),
+  constr = col_double(),
+  eat = col_double(),
+  ed_high = col_double(),
+  ed_k12 = col_double(),
+  ed_oth = col_double(),
+  fire = col_double(),
+  gov = col_double(),
+  health = col_double(),
+  hotel = col_double(),
+  info = col_double(),
+  lease = col_double(),
+  logis = col_double(),
+  man_bio = col_double(),
+  man_lgt = col_double(),
+  man_hvy = col_double(),
+  man_tech = col_double(),
+  natres = col_double(),
+  prof = col_double(),
+  ret_loc = col_double(),
+  ret_reg = col_double(),
+  serv_bus = col_double(),
+  serv_pers = col_double(),
+  serv_soc = col_double(),
+  transp = col_double(),
+  util = col_double(),
+  emp_total = col_double(),
+  publicEnrollGradeKto8 = col_double(),
+  privateEnrollGradeKto8 = col_double(),
+  publicEnrollGrade9to12 = col_double(),
+  privateEnrollGrade9to12 = col_double(),
+  comm_coll_enroll = col_double(),
+  EnrollGradeKto8 = col_double(),
+  EnrollGrade9to12 = col_double(),
+  collegeEnroll = col_double(),
+  otherCollegeEnroll = col_double(),
+  AdultSchEnrl = col_double(),
+  hstallsoth = col_double(),
+  hstallssam = col_double(),
+  dstallsoth = col_double(),
+  dstallssam = col_double(),
+  mstallsoth = col_double(),
+  mstallssam = col_double(),
+  park_area = col_double(),
+  hparkcost = col_double(),
+  numfreehrs = col_double(),
+  dparkcost = col_double(),
+  mparkcost = col_double(),
+  ech_dist = col_double(),
+  hch_dist = col_double(),
+  parkarea = col_double(),
+  TERMINAL = col_double()
+))
+
 # Reductions -------------------------------------------------------------------
+
+# SamTrans records are missing TAZ codes, use MAZ and update
 output_df <- TPS %>%
   filter(weekpart != "WEEKEND") %>%
   left_join(., time_period_dict_df, by = c("day_part")) %>%
+  select(-orig_tm2_taz, -dest_tm2_taz) %>%
+  left_join(., select(maz_df, orig_tm2_taz = TAZ_ORIGINAL, orig_tm2_maz = MAZ_ORIGINAL), by = c("orig_tm2_maz")) %>%
+  left_join(., select(maz_df, dest_tm2_taz = TAZ_ORIGINAL, dest_tm2_maz = MAZ_ORIGINAL), by = c("dest_tm2_maz")) %>%
   filter(!is.na(orig_tm2_taz)) %>%
   filter(!is.na(dest_tm2_taz)) %>%
+  filter(!is.na(model_time)) %>%
   group_by(model_time, access_mode_model, egress_mode_model, orig_tm2_taz, dest_tm2_taz) %>%
   summarise(trips = sum(final_tripWeight_2015), .groups = "drop")
 
