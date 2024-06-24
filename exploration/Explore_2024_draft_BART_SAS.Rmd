@@ -1,0 +1,582 @@
+---
+title: "MTC Draft 2024 BART SAS Data Review"
+output:
+  html_document:
+    theme: cosmo
+    toc: true
+---
+
+```{r setup, echo=FALSE}
+# Load necessary packages
+library(tidyverse)
+library(readxl)
+
+# Load the data
+USERPROFILE       <- gsub("////","/", Sys.getenv("USERPROFILE"))
+Folder            <- file.path(USERPROFILE, "Box", "Modeling and Surveys")
+Box_Surveys       <- file.path(Folder,"Surveys/Transit Passenger Surveys/Ongoing TPS/Individual Operator Efforts/BART 2024/BART MTC ETC RSG Project Folder/BART Pilot DATA - SAS/Renamed Versions")
+other_stations_in <- file.path(Box_Surveys,"other_stations.xlsx")
+oak_in            <- file.path(Box_Surveys,"oak.xlsx")
+sfo_in            <- file.path(Box_Surveys,"sfo.xlsx")
+
+other_stations    <- read_xlsx(other_stations_in,sheet = "BART ALL OTHER SAS Pilot Data")
+oak               <- read_xlsx(oak_in, sheet = "OAK SAS PILOT DATA")
+sfo               <- read_xlsx(sfo_in, sheet = "SFO SAS Pilot Data")
+
+
+```
+
+# Surveys by home county
+
+```{r home_county, echo=FALSE}
+
+household <- hh %>% 
+  mutate(home_county = recode(home_county,
+    "6001" = "Alameda",
+    "6013" = "Contra Costa",
+    "6041" = "Marin",
+    "6055" = "Napa",
+    "6075" = "San Francisco",
+    "6081" = "San Mateo",
+    "6085" = "Santa Clara",
+    "6095" = "Solano",
+    "6097" = "Sonoma"))
+
+table(household$home_county)
+
+household_joiner <- household %>% 
+  select(hh_id,home_county)
+
+```
+
+# Trip characteristics
+
+## Auto trip occupancy share - all trips
+
+```{r all_trips_occupancy, echo=FALSE}
+auto_trips <- trip %>%
+  left_join(.,household_joiner,by="hh_id") %>% 
+  mutate(num_travelers=recode(num_travelers,
+                              "1"="1_Person",
+                              "2"="2_Persons",
+                              "3"="3_Persons",
+                              "4"="4_Persons",
+                              "5"="5p_Persons",
+                              "995"="Missing")) %>% 
+  filter(mode_type==8) 
+
+all_auto_trips <- auto_trips %>% 
+  group_by(home_county,num_travelers) %>% 
+  summarize(occupancy=n()) %>% 
+  mutate(share=round(100*occupancy/sum(occupancy),0)) %>% 
+  select(-occupancy) %>% 
+  pivot_wider(., names_from = num_travelers,values_from = share,values_fill = 0) %>% 
+  select(-Missing)
+
+bay_all_auto_trips <- auto_trips %>% 
+  group_by(num_travelers) %>% 
+  summarize(occupancy=n()) %>% 
+  mutate(share=round(100*occupancy/sum(occupancy),0)) %>% 
+  select(-occupancy) %>% 
+  pivot_wider(., names_from = num_travelers,values_from = share,values_fill = 0) %>% 
+  select(-Missing) %>% 
+  mutate(home_county="Bay Area") %>% 
+  relocate(home_county,.before = "1_Person")
+
+all_auto_trips <- rbind(all_auto_trips,bay_all_auto_trips)
+
+all_auto_trips
+```
+
+## Auto trip occupancy share - work trips
+
+```{r work_trips_occupancy, echo=FALSE}
+
+work_auto_trips <- auto_trips %>% 
+  filter(d_purpose_category %in% c(2,3)) %>% 
+  group_by(home_county,num_travelers) %>% 
+  summarize(occupancy=n()) %>% 
+  mutate(share=round(100*occupancy/sum(occupancy),0)) %>% 
+  select(-occupancy) %>% 
+  pivot_wider(., names_from = num_travelers,values_from = share,values_fill = 0) %>% 
+  select(-Missing)
+
+bay_work_auto_trips <- auto_trips %>% 
+  filter(d_purpose_category %in% c(2,3)) %>% 
+  group_by(num_travelers) %>% 
+  summarize(occupancy=n()) %>% 
+  mutate(share=round(100*occupancy/sum(occupancy),0)) %>% 
+  select(-occupancy) %>% 
+  pivot_wider(., names_from = num_travelers,values_from = share,values_fill = 0) %>% 
+  select(-Missing) %>% 
+  mutate(home_county="Bay Area") %>% 
+  relocate(home_county,.before = "1_Person")
+
+work_auto_trips <- rbind(work_auto_trips,bay_work_auto_trips)
+
+work_auto_trips
+```
+
+# Demographics
+## Compare race with ACS 2022 (Table C03002)
+
+```{r compare_race, echo=FALSE}
+
+race_variables <- c("Total"    = "C03002_001",
+                    "White"    = "C03002_003",
+                    "Black"    = "C03002_004",
+                    "Other"    = "C03002_005",
+                    "Asian"    = "C03002_006",
+                    "Other"    = "C03002_007",
+                    "Other"    = "C03002_008",
+                    "Other"    = "C03002_009",
+                    "Hispanic" = "C03002_012")
+
+race <- get_acs(
+  geography = "county",
+  county = c("Alameda","Contra Costa","Marin","Napa","San Francisco","San Mateo","Santa Clara","Solano","Sonoma"),
+  state = "california",
+  variables = race_variables,
+  year = 2022,
+  survey = "acs1",
+) %>% 
+  group_by(NAME,variable) %>% 
+  summarize(estimate=sum(estimate)) %>% 
+  pivot_wider(.,names_from = variable,values_from = estimate) %>% 
+  select(County=NAME,White,Black,Asian,Other,Hispanic,Total) %>% 
+   mutate(County = gsub(" County, California", "", County))
+
+race_bay <- get_acs(
+  geography = "county",
+  county = c("Alameda","Contra Costa","Marin","Napa","San Francisco","San Mateo","Santa Clara","Solano","Sonoma"),
+  state = "california",
+  variables = race_variables,
+  year = 2022,
+  survey = "acs1",
+) %>% 
+  group_by(variable) %>% 
+  summarize(estimate=sum(estimate)) %>% 
+  pivot_wider(.,names_from = variable,values_from = estimate) %>% 
+  mutate(County="Bay Area") %>% 
+  select(County,White,Black,Asian,Other,Hispanic, Total) 
+  
+race_all <- rbind(race,race_bay) %>% 
+  mutate(
+    ACS_White_Share    = round(100*White/Total,0),
+    ACS_Black_Share    = round(100*Black/Total,0),
+    ACS_Asian_Share    = round(100*Asian/Total,0),
+    ACS_Other_Share    = round(100*Other/Total,0),
+    ACS_Hispanic_Share = round(100*Hispanic/Total,0)) %>% 
+  select(County,ACS_White_Share,ACS_Black_Share,ACS_Asian_Share,ACS_Other_Share,ACS_Hispanic_Share) %>% 
+  mutate(ACS_Missing_Share=0) %>% 
+  rename(Home_County=County)
+
+# Now do survey
+
+survey_race <- person %>% 
+  filter(age>3) %>% 
+  left_join(.,household_joiner,by="hh_id") %>% 
+  mutate(race_recode=case_when(
+    ethnicity_1==1 & race_5==1 & race_1==0 & race_2==0 & 
+      race_3==0 & race_4==0 & race_997==0                                              ~ "White",
+    ethnicity_1==1 & race_1==1 & race_5==0 & race_2==0 & 
+      race_3==0 & race_4==0 & race_997==0                                              ~ "Black",
+    ethnicity_1==1 & race_3==1 & race_5==0 & race_1==0 & race_2==0 & 
+      race_4==0 & race_997==0                                                          ~ "Asian",
+    ethnicity_1==1                                                                     ~ "Other",
+    ethnicity_2==1 | ethnicity_3==1 | ethnicity_4==1 | ethnicity_997==1                ~ "Hispanic",
+    ethnicity_999==1 | ethnicity_other==1                                              ~ "Other",
+    ethnicity_1==995 & ethnicity_2==995 & ethnicity_3==995 & ethnicity_4==995 &
+      ethnicity_997==995 & ethnicity_999==995 & race_1==995 & race_2==995 &
+      race_3==995 & race_4==995 & race_5==995 & race_997==995 & race_999==995          ~ "Missing",
+    TRUE                                                                               ~ "Miscoded")) 
+
+survey_race_county <- survey_race %>% 
+  group_by(home_county,race_recode) %>% 
+  summarize(total=n()) %>% 
+  pivot_wider(names_from = race_recode,values_from = total) %>% 
+  select(home_county,White,Black,Asian,Other,Hispanic,Missing)
+
+survey_race_bay <- survey_race %>% 
+  mutate(home_county="Bay Area") %>% 
+  group_by(home_county,race_recode) %>% 
+  summarize(total=n()) %>% 
+  pivot_wider(names_from = race_recode,values_from = total) %>% 
+  select(home_county,White,Black,Asian,Other,Hispanic,Missing)
+
+survey_race_all <- rbind(survey_race_county,survey_race_bay) %>% 
+  mutate(Total=White+Black+Asian+Other+Hispanic+Missing,
+         Survey_White_Share    = round(100*White/Total,0),
+         Survey_Black_Share    = round(100*Black/Total,0),
+         Survey_Asian_Share    = round(100*Asian/Total,0),
+         Survey_Other_Share    = round(100*Other/Total,0),
+         Survey_Hispanic_Share = round(100*Hispanic/Total,0),
+         Survey_Missing_Share  = round(100*Missing/Total,0)) %>% 
+  rename(Home_County=home_county)
+
+combined_race <- left_join(race_all,survey_race_all,by="Home_County") %>% 
+  select(Home_County,Survey_White_Share,ACS_White_Share,Survey_Black_Share,ACS_Black_Share,
+         Survey_Asian_Share,ACS_Asian_Share,Survey_Other_Share,ACS_Other_Share,Survey_Hispanic_Share,
+         ACS_Hispanic_Share,Survey_Missing_Share,ACS_Missing_Share)
+
+```
+### White
+
+```{r white, echo=FALSE}
+
+combined_race_white <- combined_race %>% 
+  select(Home_County,Survey_White_Share,ACS_White_Share)
+
+combined_race_white
+```
+### Black
+
+```{r black, echo=FALSE}
+
+combined_race_black <- combined_race %>% 
+  select(Home_County,Survey_Black_Share,ACS_Black_Share)
+
+combined_race_black
+```
+### Asian
+
+```{r asian, echo=FALSE}
+
+combined_race_asian <- combined_race %>% 
+  select(Home_County,Survey_Asian_Share,ACS_Asian_Share)
+
+combined_race_asian
+```
+### Other Race
+
+```{r other, echo=FALSE}
+
+combined_race_other <- combined_race %>% 
+  select(Home_County,Survey_Other_Share,ACS_Other_Share)
+
+combined_race_other
+```
+### Hispanic
+
+```{r hispanic, echo=FALSE}
+
+combined_race_hispanic <- combined_race %>% 
+  select(Home_County,Survey_Hispanic_Share,ACS_Hispanic_Share)
+
+combined_race_hispanic
+```
+### Missing Race
+
+```{r missing_race, echo=FALSE}
+
+combined_race_missing <- combined_race %>% 
+  select(Home_County,Survey_Missing_Share,ACS_Missing_Share)
+
+combined_race_missing
+```
+## Compare income with ACS 2022 (Table B19001)
+
+```{r compare_income, echo=FALSE}
+
+income_variables <- c("ACS_Total"         = "B19001_001",
+                      "ACS_Under_25k"     = "B19001_002",
+                      "ACS_Under_25k"     = "B19001_003",
+                      "ACS_Under_25k"     = "B19001_004",
+                      "ACS_Under_25k"     = "B19001_005",
+                      "ACS_25k_to_50k"    = "B19001_006",
+                      "ACS_25k_to_50k"    = "B19001_007",
+                      "ACS_25k_to_50k"    = "B19001_008",
+                      "ACS_25k_to_50k"    = "B19001_009",
+                      "ACS_25k_to_50k"    = "B19001_010",
+                      "ACS_50k_to_75k"    = "B19001_011",
+                      "ACS_50k_to_75k"    = "B19001_012",
+                      "ACS_75k_to_100k"   = "B19001_013",
+                      "ACS_100k_to_200k"  = "B19001_014",
+                      "ACS_100k_to_200k"  = "B19001_015",
+                      "ACS_100k_to_200k"  = "B19001_016",
+                      "ACS_Over_200k"     = "B19001_017")
+
+income <- get_acs(
+  geography = "county",
+  county = c("Alameda","Contra Costa","Marin","Napa","San Francisco","San Mateo","Santa Clara","Solano","Sonoma"),
+  state = "california",
+  variables = income_variables,
+  year = 2022,
+  survey = "acs1",
+) %>% 
+  group_by(NAME,variable) %>% 
+  summarize(estimate=sum(estimate)) %>% 
+  pivot_wider(.,names_from = variable,values_from = estimate) %>% 
+  select(County=NAME,ACS_Under_25k,ACS_25k_to_50k,ACS_50k_to_75k,ACS_75k_to_100k,ACS_100k_to_200k,ACS_Over_200k, ACS_Total) %>% 
+   mutate(County = gsub(" County, California", "", County))
+
+income_bay <- get_acs(
+  geography = "county",
+  county = c("Alameda","Contra Costa","Marin","Napa","San Francisco","San Mateo","Santa Clara","Solano","Sonoma"),
+  state = "california",
+  variables = income_variables,
+  year = 2022,
+  survey = "acs1",
+) %>% 
+  group_by(variable) %>% 
+  summarize(estimate=sum(estimate)) %>% 
+  pivot_wider(.,names_from = variable,values_from = estimate) %>% 
+  mutate(County="Bay Area") %>% 
+  select(County,ACS_Under_25k,ACS_25k_to_50k,ACS_50k_to_75k,ACS_75k_to_100k,ACS_100k_to_200k,ACS_Over_200k, ACS_Total) 
+
+ACS_income_all <- rbind(income,income_bay) %>% 
+  mutate(ACS_Missing=0,
+         ACS_Under_25k_Share    =round(100*ACS_Under_25k/ACS_Total,0),
+         ACS_25k_to_50k_Share   =round(100*ACS_25k_to_50k/ACS_Total,0),
+         ACS_50k_to_75k_Share   =round(100*ACS_50k_to_75k/ACS_Total,0),
+         ACS_75k_to_100k_Share  =round(100*ACS_75k_to_100k/ACS_Total,0),
+         ACS_100k_to_200k_Share =round(100*ACS_100k_to_200k/ACS_Total,0),
+         ACS_Over_200k_Share    =round(100*ACS_Over_200k/ACS_Total,0), 
+         ACS_Missing_Share      =0)%>% 
+  rename(Home_County=County)
+
+survey_income <- household %>% 
+  mutate(income_recode=case_when(
+    income_broad==1                  ~ "Survey_Under_25k",
+    income_broad==2                  ~ "Survey_25k_to_50k",
+    income_broad==3                  ~ "Survey_50k_to_75k",
+    income_broad==4                  ~ "Survey_75k_to_100k",
+    income_broad==5                  ~ "Survey_100k_to_200k",
+    income_broad==6                  ~ "Survey_Over_200k",
+    income_broad %in% c(995,999)     ~ "Survey_Missing",
+    TRUE                             ~ "Miscoded"
+  ))
+
+
+survey_income_county <- survey_income %>% 
+  group_by(home_county,income_recode) %>% 
+  summarize(total=n()) %>% 
+  pivot_wider(names_from = income_recode,values_from = total) %>% 
+  select(home_county,Survey_Under_25k,Survey_25k_to_50k,Survey_50k_to_75k,Survey_75k_to_100k, 
+    Survey_100k_to_200k,Survey_Over_200k,Survey_Missing) 
+    
+
+survey_income_bay <- survey_income %>% 
+  mutate(home_county="Bay Area") %>% 
+  group_by(home_county,income_recode) %>% 
+  summarize(total=n()) %>% 
+  pivot_wider(names_from = income_recode,values_from = total) %>% 
+  select(home_county,Survey_Under_25k,Survey_25k_to_50k,Survey_50k_to_75k,Survey_75k_to_100k, 
+    Survey_100k_to_200k,Survey_Over_200k,Survey_Missing)
+
+survey_income_all <- rbind(survey_income_county,survey_income_bay)%>% 
+  mutate(Survey_Total=Survey_Under_25k + Survey_25k_to_50k + Survey_50k_to_75k + Survey_75k_to_100k + 
+    Survey_100k_to_200k + Survey_Over_200k+Survey_Missing,
+         Survey_Under_25k_Share    =round(100*Survey_Under_25k/Survey_Total,0),
+         Survey_25k_to_50k_Share   =round(100*Survey_25k_to_50k/Survey_Total,0),
+         Survey_50k_to_75k_Share   =round(100*Survey_50k_to_75k/Survey_Total,0),
+         Survey_75k_to_100k_Share  =round(100*Survey_75k_to_100k/Survey_Total,0),
+         Survey_100k_to_200k_Share =round(100*Survey_100k_to_200k/Survey_Total,0),
+         Survey_Over_200k_Share    =round(100*Survey_Over_200k/Survey_Total,0), 
+         Survey_Missing_Share      =round(100*Survey_Missing/Survey_Total,0))%>% 
+  rename(Home_County=home_county)    
+
+combined_income <- left_join(ACS_income_all,survey_income_all,by="Home_County") %>% 
+  select(Home_County,Survey_Under_25k_Share,ACS_Under_25k_Share,Survey_25k_to_50k_Share,ACS_25k_to_50k_Share,
+         Survey_50k_to_75k_Share,ACS_50k_to_75k_Share,Survey_75k_to_100k_Share,ACS_75k_to_100k_Share,
+         Survey_100k_to_200k_Share,ACS_100k_to_200k_Share,Survey_Over_200k_Share,ACS_Over_200k_Share,
+         Survey_Missing_Share, ACS_Missing_Share)
+
+```
+ 
+### Under_25k share
+
+```{r under_25k, echo=FALSE}
+combined_income_under_25k <- combined_income %>% 
+  select(Home_County,Survey_Under_25k_Share,ACS_Under_25k_Share)
+
+combined_income_under_25k
+
+```
+### 25_to_50k share
+
+```{r 25_to_50k, echo=FALSE}
+combined_income_25_to_50k <- combined_income %>% 
+  select(Home_County,Survey_25k_to_50k_Share,ACS_25k_to_50k_Share)
+
+combined_income_25_to_50k
+
+```
+
+### 50_to_75k share
+
+```{r 50_to_75k, echo=FALSE}
+combined_income_50_to_75k <- combined_income %>% 
+  select(Home_County,Survey_50k_to_75k_Share,ACS_50k_to_75k_Share)
+
+combined_income_50_to_75k
+
+```
+
+### 75_to_100k share
+
+```{r 75_to_100k, echo=FALSE}
+combined_income_75_to_100k <- combined_income %>% 
+  select(Home_County,Survey_75k_to_100k_Share,ACS_75k_to_100k_Share)
+
+combined_income_75_to_100k
+
+```
+
+### 100_to_200k share
+
+```{r 100_to_200k, echo=FALSE}
+combined_income_100_to_200k <- combined_income %>% 
+  select(Home_County,Survey_100k_to_200k_Share,ACS_100k_to_200k_Share)
+
+combined_income_100_to_200k
+
+```
+
+### Over 200k share
+
+```{r 200kp, echo=FALSE}
+combined_income_200kp <- combined_income %>% 
+  select(Home_County,Survey_Over_200k_Share,ACS_Over_200k_Share)
+
+combined_income_200kp
+
+```
+
+### Missing income share
+
+```{r missing_income, echo=FALSE}
+combined_income_missing <- combined_income %>% 
+  select(Home_County,Survey_Missing_Share,ACS_Missing_Share)
+
+combined_income_missing
+
+```
+
+# Compare rMove vs. browser vs. phone
+## Distribution of survey method by county
+
+```{r method_compare, echo=FALSE}
+
+participation_joiner <- household %>% 
+  mutate(participation_mode = case_when(
+    participation_group %in% c(1,4,7)                ~ "browserMove",
+    participation_group %in% c(2,5,8)                ~ "Call_Center",
+    participation_group %in% c(3,6,9)                ~ "rMove",
+    TRUE                                             ~ "Miscoded"
+  )) %>% 
+  select(hh_id,home_county,participation_mode,participation_group)
+
+method_comparison <- participation_joiner %>% 
+  group_by(home_county,participation_mode) %>% 
+  summarize(total=n()) %>% 
+  pivot_wider(names_from = participation_mode,values_from = total) %>% 
+  mutate(Total=Call_Center+browserMove+rMove)
+
+method_comparison_bay <- participation_joiner %>% 
+  group_by(participation_mode) %>% 
+  summarize(total=n()) %>% 
+  pivot_wider(names_from = participation_mode,values_from = total) %>% 
+  mutate(home_county="Bay Area",Total=Call_Center+browserMove+rMove)
+
+method_comparison_all <- rbind(method_comparison,method_comparison_bay) %>% 
+  rename(Home_County=home_county)
+
+method_comparison_all
+
+```
+
+## Zero-trip days by data collection mode
+
+```{r zero_trips, echo=FALSE}
+
+zero_trip_days <- day %>% 
+  left_join(.,participation_joiner,by="hh_id") %>% 
+  filter(num_trips==0) %>% 
+  group_by(home_county,participation_mode) %>% 
+  summarize(total=n()) %>% 
+  pivot_wider(names_from = participation_mode,values_from = total) %>%
+  rename(Call_Center0=Call_Center,browserMove0=browserMove,rMove0=rMove) %>% 
+  mutate(Total0=Call_Center0+browserMove0+rMove0)
+
+zero_trip_days_bay <- day %>% 
+  left_join(.,participation_joiner,by="hh_id") %>% 
+  filter(num_trips==0) %>% 
+  group_by(participation_mode) %>% 
+  summarize(total=n()) %>% 
+  pivot_wider(names_from = participation_mode,values_from = total) %>%
+  rename(Call_Center0=Call_Center,browserMove0=browserMove,rMove0=rMove) %>% 
+  mutate(home_county="Bay Area",Total0=Call_Center0+browserMove0+rMove0)
+
+zero_trip_days_all <- rbind (zero_trip_days,zero_trip_days_bay)
+
+num_days_mode <- day %>% 
+  left_join(.,participation_joiner,by="hh_id") %>% 
+  group_by(home_county,participation_mode) %>% 
+  summarize(total=n()) %>% 
+  pivot_wider(names_from = participation_mode,values_from = total) %>% 
+  mutate(Total=Call_Center+browserMove+rMove)
+
+num_days_mode_bay <- day %>% 
+  left_join(.,participation_joiner,by="hh_id") %>% 
+  group_by(participation_mode) %>% 
+  summarize(total=n()) %>% 
+  pivot_wider(names_from = participation_mode,values_from = total) %>% 
+  mutate(home_county="Bay Area",Total=Call_Center+browserMove+rMove)
+
+num_days_mode_all <- rbind(num_days_mode,num_days_mode_bay)
+
+share_zero <- zero_trip_days_all %>% 
+  left_join(.,num_days_mode_all,by="home_county") %>% 
+  mutate(Call_Center_Share0=round(100*Call_Center0/Call_Center,0),
+         browserMove_Share0=round(100*browserMove0/browserMove,0),
+         rMove_Share0=round(100*rMove0/rMove,0),
+         Total_Share0=round(100*Total0/Total,0)) %>% 
+  rename(Home_County=home_county) %>% 
+  select(Home_County,Call_Center_Share0,browserMove_Share0,rMove_Share0,Total_Share0)
+
+share_zero
+
+```
+
+## Age of householder (Person 1) by collection mode
+
+```{r participation_age, echo=FALSE}
+
+person_joiner <- person %>% 
+  select(hh_id,person_num,age) %>% 
+  filter(person_num==1)
+
+age_group <- participation_joiner %>% 
+  left_join(.,person_joiner,by="hh_id") %>% 
+  mutate(age_recode=case_when(
+    age==1                           ~"Under 5",
+    age==2                           ~"Ages 5 to 15",
+    age==3                           ~"Ages 16 to 17",
+    age==4                           ~"Ages 18 to 24",
+    age==5                           ~"Ages 25 to 34",
+    age==6                           ~"Ages 35 to 44",
+    age==7                           ~"Ages 45 to 54",
+    age==8                           ~"Ages 55 to 64",
+    age==9                           ~"Ages 65 to 74",
+    age==10                          ~"Ages 75 to 84",
+    age==11                          ~"Ages 85 and up")) %>% 
+  group_by(age_recode,participation_mode) %>%
+  summarize(Total=n()) %>% 
+  pivot_wider(names_from = participation_mode,values_from = Total) %>% 
+  mutate(Total=Call_Center+browserMove+rMove)
+
+age_group
+
+```
+## Share collection mode by age 
+```{r participation_age_share, echo=FALSE}
+age_group_share <- age_group %>% 
+  mutate(
+         Call_Center_Share=round(100*Call_Center/Total,0),
+         browserMove_Share=round(100*browserMove/Total,0),
+         rMove_Share=round(100*rMove/Total,0)) %>% 
+  select (age_recode,Call_Center_Share,browserMove_Share,rMove_Share)
+
+age_group_share
+```
