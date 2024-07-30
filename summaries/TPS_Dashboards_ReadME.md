@@ -6,6 +6,7 @@ It will eventually be merged with a post-COVID transit rider dataset to compare 
 **Key Links:**
 - [Asana Task](https://app.asana.com/0/12291104512642/1206214494718647/f)
 - [Internal Tableau Dashboard online](https://10ay.online.tableau.com/#/site/metropolitantransportationcommission/views/TransitPassengerSurveyDraft7_22_DRAFT/LandingPage?:iid=1)
+- [Tableau Workbook](https://github.com/BayAreaMetro/transit-passenger-surveys/blob/master/summaries/Kyler_Full%20TPS%20Dataset%20with%20Distances%20Appended.twb)
 
 ## Navigating the Workbook
 These colors proceed in the workbook from left to right in order. 
