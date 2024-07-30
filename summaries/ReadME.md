@@ -4,8 +4,7 @@ This Tableau workbook contains the dashboards and underlying worksheets for the 
 It will eventually be merged with a post-COVID transit rider dataset to compare changes in ridership between the two periods. 
 
 **Key Links:**
--[Instrument and Dictionary](https://github.com/BayAreaMetro/onboard-surveys/tree/master/instrument-and-dictionary)
--  [Asana Task](https://app.asana.com/0/12291104512642/1206214494718647/f)
+- [Asana Task](https://app.asana.com/0/12291104512642/1206214494718647/f)
 - [Internal Tableau Dashboard online](https://10ay.online.tableau.com/#/site/metropolitantransportationcommission/views/TransitPassengerSurveyDraft7_22_DRAFT/LandingPage?:iid=1)
 
 ## Navigating the Workbook
