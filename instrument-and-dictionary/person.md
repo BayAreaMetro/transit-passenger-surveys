@@ -51,10 +51,11 @@ responses are provided, the racial category will be indicated as "multi-racial."
 ## Worker Status
 
 
-| **Responses**                      |
-|:-----------------------------------|
-| 1. Full- or part-time status       |
-| 2. Non-worker                      |
+| **Responses**                         |
+|:--------------------------------------|
+| 1. Full-time status (35+ hours/week)  |
+| 2. Part-time status (<35 hours/week)  |
+| 2. Non-worker                         |
 
 
 ## Student Status
