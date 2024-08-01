@@ -18,7 +18,7 @@ Tabs underlined in yellow also feed into the dashboards, but are demographic pro
 Tabs underlined in red are other exploratory worksheets that do not appear in any current dashboards. 
 
 ## Key Data Notes
-Trip counts are generally represented by the "Weight" variable. This is a "weighted representation of boardings (unlinked transit trips), which is distinct from the variable for Boardings or Trips or Weighted Trips or Wtd Avg Boardings, and should be used for most cases. 
+Trip counts are generally represented by the "Weight" variable. This is a weighted representation of boardings (unlinked transit trips), which is distinct from the variable for Boardings or Trips or Weighted Trips or Wtd Avg Boardings, and should be used for most cases. 
 The workbook also reflects decisions around grouping key variables with an unwieldy number of categories like Fare Category, Destination Purpose (Dest Purp), and Language at Home. Some other variables have been grouped as a renaming technique for clarity. 
 
 ## Data Sources
