@@ -32,13 +32,15 @@ for (p in list_of_packages){
 
 # The working directory is set as the location of the script. All other paths will be relative.
 
-wd <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
-setwd(wd)
+tryCatch(
+  { wd <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/"); setwd(wd) },
+  error = function(e) {}
+)
 
-# Run standard database functions
+# Define standard database functions
 
-source("Build Standard Database Functions.R")
-source("Combine Legacy Standard Surveys.R")
+source("Build_Standard_Database_Functions.R")
+source("Combine_Legacy_Standard_Surveys.R")
 
 #### Parameters
 OPERATOR_DELIMITER = "___"
@@ -55,24 +57,40 @@ ROUTE_DELIMITER = "&&&"
 user_list <- data.frame(
   user = c("helseljw",
            "ywang",
-           "SIsrael"),
-  path = c("~/GitHub/onboard-surveys/Data and Reports/",
-           "M:/Data/OnBoard/Data and Reports/",
-           "M:/Data/OnBoard/Data and Reports/"
+           "SIsrael",
+           "lzorn"),
+  path = c("~/GitHub/onboard-surveys/Data and Reports",
+           "M:/Data/OnBoard/Data and Reports",
+           "M:/Data/OnBoard/Data and Reports", 
+           "M:/Data/OnBoard/Data and Reports"
   )
 )
 
-# _User Intervention_
-# When adding a new operator, the user must: add the path to the survey data in
-# the code block below, e.g., `f_bart_survey_path`
-
-dir_path <- user_list %>%
+today = Sys.Date()
+TPS_SURVEY_PATH <- user_list %>%
   filter(user == Sys.getenv("USERNAME")) %>%
   .$path
+TPS_SURVEY_STANDARDIZED_PATH <- file.path(
+  TPS_SURVEY_PATH,
+  sprintf("_data_Standardized_%s",today)
+)
+
+if (!file.exists(TPS_SURVEY_STANDARDIZED_PATH)) {
+  dir.create(TPS_SURVEY_STANDARDIZED_PATH)
+  print(paste("Created",TPS_SURVEY_STANDARDIZED_PATH))
+}
+
+# Setup the log file
+run_log <- file.path(TPS_SURVEY_STANDARDIZED_PATH,
+  "Build_Standard_Database.log")
+print(paste("Writing log to",run_log))
+# print wide since it's to a log file
+options(width = 1000)
+sink(run_log, append=FALSE, type = c('output', 'message'))
 
 # Inputs - dictionary and other utils
-f_dict_standard <- "Dictionary for Standard Database.csv"
-f_canonical_station_path <- paste0(dir_path,"Geography Files/Passenger_Railway_Stations_2018.shp")
+f_dict_standard <- "Dictionary_for_Standard_Database.csv"
+f_canonical_station_path <- file.path(TPS_SURVEY_PATH,"Geography Files","Passenger_Railway_Stations_2018.shp")
 f_taps_coords_path <- "M:/Data/GIS layers/TM2 taps/TM2 tap_node.csv"
 f_tm1_taz_shp_path <- "M:/Data/GIS layers/TM1_taz/bayarea_rtaz1454_rev1_WGS84.shp"
 f_tm2_taz_shp_path <- "M:/Data/GIS layers/TM2_maz_taz_v2.2/tazs_TM2_v2_2.shp"
@@ -81,85 +99,285 @@ f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
 f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 
 # Inputs - survey data by operator
-f_actransit_survey_path <- paste0(dir_path,
-                                  "AC Transit/2018/As CSV/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_fixTransfers_NO POUND OR SINGLE QUOTE.csv")
-f_bart_survey_path <- paste0(dir_path,
-                             "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight_fixColname_modifyTransfer_NO POUND OR SINGLE QUOTE.csv")
-f_caltrain_survey_path <- paste0(dir_path,
-                              "Caltrain/As CSV/Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE_modifyTransfer_fixRouteNames_NO POUND OR SINGLE QUOTE.csv")
-f_marin_survey_path <- paste0(dir_path,
-                              "Marin Transit/As CSV/marin transit_data file_final01222021_NO POUND OR SINGLE QUOTE.csv")
-f_muni_survey_path <- paste0(dir_path,
-                             "Muni/As CSV/MUNI_DRAFTFINAL_20171114_fixedTransferNum_NO POUND OR SINGLE QUOTE.csv")
-f_napa_survey_path <- paste0(dir_path,
-                             "Napa Vine/As CSV/Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv")
-f_vta_survey_path <- paste0(dir_path,
-                            "VTA/As CSV/VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv")
-f_fast_survey_path <- paste0(dir_path,
-                            "Solano County/As CSV/FAST_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
-f_rvdb_survey_path <- paste0(dir_path,
-                             "Solano County/As CSV/Rio Vista Delta Breeze_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
-f_vcc_survey_path <- paste0(dir_path,
-                             "Solano County/As CSV/Vacaville City Coach_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
-f_soltrans_survey_path <- paste0(dir_path,
-                             "Solano County/As CSV/SolTrans_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv")
-f_ace_survey_path <- paste0(dir_path,
-                             "ACE/2019/As CSV/ACE19_Final Data_AddCols_RecodeRoute_NO POUND OR SINGLE QUOTE.csv")
-f_unioncity_survey_path <- paste0(dir_path,
-                                  "Union City/2017/As CSV/Union City Transit_fix_error_add_time_route_NO POUND OR SINGLE QUOTE.csv")
-f_sonomact_survey_path <- paste0(dir_path,
-                                 "Sonoma County/2018/As CSV/sc transit_data file_final_spring 2018_addRoutesCols NO POUND NO SINGLE QUOTE.csv")
-f_smart_survey_path <- paste0(dir_path,
-                              "SMART/As CSV/SMART Standardized Final Data_addRouteCols_NO POUND NO SINGLE QUOTE.csv")
-f_weta_survey_path <- paste0(dir_path,
-                             "WETA/WETA 2018/As CSV/WETA-Final Weighted Data-Standardized_addCols_NO POUND OR SINGLE QUOTE.csv")
-f_westcat_survey_path <- paste0(dir_path,
-                                "WestCAT/As CSV/WestCAT_addCols_recodeRoute_NO POUND OR SINGLE QUOTE.csv")
-f_lavta_survey_path <- paste0(dir_path,
-                              "LAVTA/2018/As CSV/OD_20181207_LAVTA_Submittal_FINAL_addCols_NO POUND OR SINGLE QUOTE.csv")
-f_tridelta2019_survey_path <- paste0(dir_path,
-                                     "Tri Delta/2019/As CSV/TriDelta_ODSurvey_Dataset_Weights_03272019_FinalDeliv_addCols_NO POUND OR SINGLE QUOTE.csv")
-f_cccta2019_survey_path <- paste0(dir_path,
-                                  "County Connection/2019/As CSV/OD_20191105_CCCTA_Submittal_FINAL Expanded_Revised_05192021_addCols_NO POUND OR SINGLE QUOTE.csv")
-f_ggtransit_survey_path <- paste0(dir_path,
-                                  "Golden Gate Transit/2018/As CSV/20180907_OD_GoldenGate_allDays_addCols_modifyTransfer_NO POUND OR SINGLE QUOTE.csv")
-f_napavine2019_survey_path <- paste0(dir_path,
-                                     "Napa Vine/2019/As CSV/Napa Vine_FINAL Data_addCols_NO POUND OR SINGLE QUOTE.csv")
-f_petaluma2018_survey_path <- paste0(dir_path,
-                                     "Petaluma/2018/As CSV/20180530_OD_Petaluma_Submittal_addCols_FINAL NO POUND NO SINGLE QUOTE.csv")
-f_SantaRosaCityBus2018_survey_path <- paste0(dir_path,
-                                             "Santa Rosa CityBus/2018/As CSV/20180522_OD_SantaRosa_Submittal_addCols_FINAL NO POUND NO SINGLE QUOTE.csv")
-f_capitolcorridor2019_survey_path <- paste0(dir_path,
-                                             "Capitol Corridor/OD Survey 2019/As CSV/CAPCO19 Data-For MTC_NO POUND OR SINGLE QUOTE.csv")
+
+# _User Intervention_
+# When adding a new operator, the user must: add the path to the survey data in
+# the code block below, e.g., `f_bart_survey_path`
+
+survey_input_df <- data.frame(
+  operator_name    = character(),
+  survey_year      = numeric(),
+  default_tech     = character(),
+  raw_data_path    = character(),
+  stringsAsFactors = FALSE
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'AC Transit',
+  survey_year     = 2018,
+  default_tech    = 'local_bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "AC Transit","2018","As CSV",
+    "OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_fixTransfers_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'BART',
+  survey_year     = 2015,
+  default_tech    = 'heavy rail',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "BART","As CSV",
+    "BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight_fixColname_modifyTransfer_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Caltrain',
+  survey_year     = 2014,
+  default_tech    = 'commuter rail',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Caltrain","As CSV",
+    "Caltrain_Final_Submitted_1_5_2015_TYPE_WEIGHT_DATE_modifyTransfer_fixRouteNames_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'SF Muni',
+  survey_year     = 2017,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Muni","As CSV",
+    "MUNI_DRAFTFINAL_20171114_fixedTransferNum_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Marin Transit',
+  survey_year     = 2017,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Marin Transit","As CSV",
+    "marin transit_data file_final01222021_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Napa Vine',
+  survey_year     = 2014,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Napa Vine","As CSV",
+    "Napa Vine Transit OD Survey Data_Dec10_Submitted_toAOK_with_transforms NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'VTA',
+  survey_year     = 2017,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+  TPS_SURVEY_PATH,
+  "VTA","As CSV",
+  "VTA_DRAFTFINAL_20171114 NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'FAST',
+  survey_year     = 2017,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Solano County","As CSV",
+    "FAST_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Delta Breeze',
+  survey_year     = 2017,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Solano County","As CSV",
+    "Rio Vista Delta Breeze_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'City Coach',
+  survey_year     = 2017,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Solano County","As CSV",
+    "Vacaville City Coach_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Soltrans',
+  survey_year     = 2017,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Solano County","As CSV",
+    "SolTrans_removeTypos_add_route_time_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Union City Transit',
+  survey_year     = 2017,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Union City","2017","As CSV",
+    "Union City Transit_fix_error_add_time_route_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'WestCAT',
+  survey_year     = 2017,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "WestCAT","As CSV",
+    "WestCAT_addCols_recodeRoute_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Sonoma County Transit',
+  survey_year     = 2018,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Sonoma County",
+    "2018","As CSV",
+    "sc transit_data file_final_spring 2018_addRoutesCols NO POUND NO SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Sonoma-Marin Area Rail Transit',
+  survey_year     = 2018,
+  default_tech    = 'commuter rail',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "SMART","As CSV",
+    "SMART Standardized Final Data_addRouteCols_NO POUND NO SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'LAVTA',
+  survey_year     = 2018,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "LAVTA","2018","As CSV",
+    "OD_20181207_LAVTA_Submittal_FINAL_addCols_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Golden Gate Transit',
+  survey_year     = 2018,
+  default_tech    = 'express bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Golden Gate Transit","2018","As CSV",
+    "20180907_OD_GoldenGate_allDays_addCols_modifyTransfer_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Petaluma Transit',
+  survey_year     = 2018,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Petaluma","2018","As CSV",
+    "20180530_OD_Petaluma_Submittal_addCols_FINAL NO POUND NO SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Santa Rosa CityBus',
+  survey_year     = 2018,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Santa Rosa CityBus","2018","As CSV",
+    "20180522_OD_SantaRosa_Submittal_addCols_FINAL NO POUND NO SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'ACE',
+  survey_year     = 2019,
+  default_tech    = 'commuter rail',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "ACE","2019","As CSV",
+    "ACE19_Final Data_AddCols_RecodeRoute_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'WETA',
+  survey_year     = 2019,
+  default_tech    = 'ferry',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "WETA","WETA 2018","As CSV",
+    "WETA-Final Weighted Data-Standardized_addCols_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'TriDelta',
+  survey_year     = 2019,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Tri Delta","2019","As CSV",
+    "TriDelta_ODSurvey_Dataset_Weights_03272019_FinalDeliv_addCols_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'County Connection',
+  survey_year     = 2019,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "County Connection","2019","As CSV",
+    "OD_20191105_CCCTA_Submittal_FINAL Expanded_Revised_05192021_addCols_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Napa Vine',
+  survey_year     = 2019,
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Napa Vine","2019","As CSV",
+    "Napa Vine_FINAL Data_addCols_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'Capitol Corridor',
+  survey_year     = 2019,
+  default_tech    = 'commuter rail',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Capitol Corridor","OD Survey 2019","As CSV",
+    "CAPCO19 Data-For MTC_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
 
 # Inputs - legacy survey data
-f_legacy_rdata_path = 'M:/Data/OnBoard/Data and Reports/_data Standardized/survey_legacy.RData'
+f_legacy_rdata_path = file.path(TPS_SURVEY_PATH,"_data Standardized","survey_legacy.RData")
 
 # Outputs
-today = Sys.Date()
-f_output_rds_path <- paste0(dir_path,
-                            "_data Standardized/survey_standard_", today, ".RDS")
-f_output_csv_path <- paste0(dir_path,
-                            "_data Standardized/survey_standard_", today, ".csv")
-f_ancillary_output_rdata_path <- paste0(dir_path,
-                                        "_data Standardized/ancillary_variables_", today, ".RDS")
-f_ancillary_output_csv_path <- paste0(dir_path,
-                                      "_data Standardized/ancillary_variables_", today, ".csv")
-f_output_decom_rdata_path <- paste0(dir_path,
-                                    "_data Standardized/decomposition/survey_decomposition_", today, ".RDS")
-f_output_decom_csv_path <- paste0(dir_path,
-                                  "_data Standardized/decomposition/survey_decomposition_", today, ".csv")
+f_output_rds_path <- file.path(TPS_SURVEY_STANDARDIZED_PATH,"survey_standard.RDS")
+f_output_csv_path <- str_replace(f_output_rds_path, ".RDS", ".csv")
 
-f_combined_csv_path = paste0(dir_path,
-                             '_data Standardized/share_data/survey_combined_', today, '.csv')
-f_combined_rdata_path = paste0(dir_path,
-                               '_data Standardized/share_data/survey_combined_', today, '.RData')
+f_ancillary_output_rdata_path <- file.path(TPS_SURVEY_STANDARDIZED_PATH,"ancillary_variables.RDS")
+f_ancillary_output_csv_path   <- str_replace(f_ancillary_output_rdata_path, ".RDS", ".csv")
 
-# Setup the log file
-#run_log <- file(sprintf("%s_data Standardized/Build_Standard_Database_%s.log",dir_path,today))
-#sink(run_log, append=TRUE, type = 'output')
-#sink(run_log, append=TRUE, type = "message")
+f_output_decom_rdata_path <- file.path(TPS_SURVEY_STANDARDIZED_PATH,"survey_decomposition.RDS")
+f_output_decom_csv_path   <- str_replace(f_output_decom_rdata_path, ".RDS", ".csv")
 
+f_combined_rdata_path <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "survey_combined.Rdata")
+f_combined_csv_path   <- str_replace(f_combined_rdata_path,".Rdata", ".csv")
 
 # _User Intervention_
 # When adding a new operator, the user must update the dictionary files that translate
@@ -168,6 +386,14 @@ f_combined_rdata_path = paste0(dir_path,
 # dictionary *should* explicate the expected task.
 
 ## Prepare dictionaries
+# > str(dictionary_all)
+# 'data.frame':   6208 obs. of  6 variables:
+#  $ operator        : chr  "AC Transit" "AC Transit" "ACE" "ACE" ...
+#  $ survey_year     : int  2018 2018 2019 2019 2014 2017 2017 2017 2017 2017 ...
+#  $ survey_variable : chr  "final_suggested_access_mode" "final_suggested_access_mode" "Access_mode_final" "Access_mode_final" ...
+#  $ survey_response : chr  "Personal Bike" "BIKE SHARE" "2" "9" ...
+#  $ generic_variable: chr  "access_mode" "access_mode" "access_mode" "access_mode" ...
+#  $ generic_response: chr  "bike" "bike" "bike" "bike" ...
 dictionary_all <- read.csv(f_dict_standard,
                            header = TRUE) %>%
   rename_all(tolower) %>% 
@@ -196,6 +422,23 @@ dictionary_cat <- dictionary_all %>%
 
 
 ## Add canonical station locations and crosswalk for recode
+# > str(canonical_station_shp)
+# Classes 'sf' and 'data.frame':  673 obs. of  12 variables:
+#  $ objectid  : num  1 2 3 4 5 6 7 8 9 10 ...
+#  $ cpt_mode  : chr  "LR" "T" "T" "T" ...
+#  $ stoptype  : chr  "TS" "TS" "TS" "TS" ...
+#  $ ts_locatio: chr  "CROPLEY STATION" "Caltrain - 22nd St Station" "Caltrain - Millbrae Station" "Caltrain - San Mateo Station" ...
+#  $ at_street : chr  "CROPLEY" NA NA NA ...
+#  $ on_street : chr  "CAPITOL" NA NA NA ...
+#  $ sp_citynam: chr  "San Jose" NA NA NA ...
+#  $ agencyname: chr  "Santa Clara VTA" "CALTRAIN" "CALTRAIN" "CALTRAIN" ...
+#  $ routename : chr  NA NA NA NA ...
+#  $ station_na: chr  "Cropley Station" "22nd St Station" "Millbrae Station" "San Mateo Station" ...
+#  $ mode      : chr  "Light Rail" "Commuter Rail" "Commuter Rail" "Commuter Rail" ...
+#  $ geometry  :sfc_POINT of length 673; first list element:  'XY' num  -121.9 37.4
+#  - attr(*, "sf_column")= chr "geometry"
+#  - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA NA NA NA ...
+#   ..- attr(*, "names")= chr [1:11] "objectid" "cpt_mode" "stoptype" "ts_locatio" ...
 canonical_station_shp <- st_read(f_canonical_station_path)
 
 # Create index of stations
@@ -215,237 +458,24 @@ print('Read and combine survey raw data from multiple operators')
 # across multiple technologies, enter the dominant technology here and add route-specific
 # changes to the `canonical` route database (e.g., SF Muni Metro routes are `light rail`)
 
-ac_transit_df <- read_operator('AC Transit',
-                               2018,
-                               'local bus',
-                               f_actransit_survey_path,
-                               dictionary_all,
-                               canonical_station_shp)
+survey_combine <- data.frame()
+for( i in rownames(survey_input_df) ) {
+   print(paste("Processing", survey_input_df[i, "operator_name"], 
+               "for", survey_input_df[i, "survey_year"],
+               "and", survey_input_df[i, "default_tech"]))
 
-bart_df <- read_operator('BART',
-                         2015,
-                         'heavy rail',
-                         f_bart_survey_path,
-                         dictionary_all,
-                         canonical_station_shp)
-
-caltrain_df <- read_operator('Caltrain',
-                             2014,
-                             'commuter rail',
-                             f_caltrain_survey_path,
-                             dictionary_all,
-                             canonical_station_shp)
-
-muni_df <- read_operator('SF Muni',
-                         2017,
-                         'local bus',
-                         f_muni_survey_path,
-                         dictionary_all,
-                         canonical_station_shp)
-
-marin_df <- read_operator('Marin Transit',
-                          2017,
-                          'local bus',
-                          f_marin_survey_path,
-                          dictionary_all,
-                          canonical_station_shp)
-
-napa_vine_df <- read_operator('Napa Vine',
-                              2014,
-                              'local bus',
-                              f_napa_survey_path,
-                              dictionary_all,
-                              canonical_station_shp)
-
-vta_df <- read_operator('VTA',
-                        2017,
-                        'local bus',
-                        f_vta_survey_path,
-                        dictionary_all,
-                        canonical_station_shp)
-
-fast_df <- read_operator('FAST',
-                         2017,
-                         'local bus',
-                         f_fast_survey_path,
-                         dictionary_all,
-                         canonical_station_shp)
-
-rvdb_df <- read_operator('Delta Breeze',
-                         2017,
-                         'local bus',
-                         f_rvdb_survey_path,
-                         dictionary_all,
-                         canonical_station_shp)
-
-vcc_df <- read_operator('City Coach',
-                        2017,
-                        'local bus',
-                        f_vcc_survey_path,
-                        dictionary_all,
-                        canonical_station_shp)
-
-soltrans_df <- read_operator('Soltrans',
-                             2017,
-                             'local bus',
-                             f_soltrans_survey_path,
-                             dictionary_all,
-                             canonical_station_shp)
-
-ace_df <- read_operator('ACE',
-                        2019,
-                        'commuter rail',
-                        f_ace_survey_path,
-                        dictionary_all,
-                        canonical_station_shp)
-
-unioncity_df <- read_operator('Union City Transit',
-                              2017,
-                              'local bus',
-                              f_unioncity_survey_path,
-                              dictionary_all,
-                              canonical_station_shp)
-
-sonomact_df <- read_operator('Sonoma County Transit',
-                              2018,
-                              'local bus',
-                              f_sonomact_survey_path,
-                              dictionary_all,
-                              canonical_station_shp)
-
-smart_df <- read_operator('Sonoma-Marin Area Rail Transit',
-                          2018,
-                          'commuter rail',
-                          f_smart_survey_path,
-                          dictionary_all,
-                          canonical_station_shp)
-
-weta_df <- read_operator('WETA',
-                          2019,
-                          'ferry',
-                          f_weta_survey_path,
-                          dictionary_all,
-                          canonical_station_shp)
-
-westcat_df <- read_operator('WestCAT',
-                             2017,
-                             'local bus',
-                             f_westcat_survey_path,
-                             dictionary_all,
-                             canonical_station_shp)
-
-lavta_df <- read_operator('LAVTA',
-                          2018,
-                          'local bus',
-                          f_lavta_survey_path,
-                          dictionary_all,
-                          canonical_station_shp)
-
-tridelta2019_df <- read_operator('TriDelta',
-                                 2019,
-                                 'local bus',
-                                 f_tridelta2019_survey_path,
-                                 dictionary_all,
-                                 canonical_station_shp)
-
-cccta2019_df <- read_operator('County Connection',
-                              2019,
-                              'local bus',
-                              f_cccta2019_survey_path,
-                              dictionary_all,
-                              canonical_station_shp)
-
-ggtransit_df <- read_operator('Golden Gate Transit',
-                              2018,
-                              'express bus',
-                              f_ggtransit_survey_path,
-                              dictionary_all,
-                              canonical_station_shp)
-
-napavine2019_df <- read_operator('Napa Vine',
-                                 2019,
-                                 'local bus',
-                                 f_napavine2019_survey_path,
-                                 dictionary_all,
-                                 canonical_station_shp)
-
-petaluma2018_df <- read_operator('Petaluma Transit',
-                                 2018,
-                                 'local bus',
-                                 f_petaluma2018_survey_path,
-                                 dictionary_all,
-                                 canonical_station_shp)
-
-SantaRosaCityBus2018_df <- read_operator('Santa Rosa CityBus',
-                                         2018,
-                                         'local bus',
-                                         f_SantaRosaCityBus2018_survey_path,
-                                         dictionary_all,
-                                         canonical_station_shp)
-
-capitolcorridor2019_df <- read_operator('Capitol Corridor',
-                                        2019,
-                                        'commuter rail',
-                                        f_capitolcorridor2019_survey_path,
-                                        dictionary_all,
-                                        canonical_station_shp)
-
-survey_combine <- bind_rows(
-  ac_transit_df,
-  bart_df,
-  caltrain_df,
-  muni_df,
-  marin_df,
-  napa_vine_df,
-  vta_df,
-  fast_df,
-  rvdb_df,
-  vcc_df,
-  soltrans_df,
-  ace_df,
-  unioncity_df,
-  sonomact_df,
-  smart_df,
-  weta_df,
-  westcat_df,
-  lavta_df,
-  tridelta2019_df,
-  cccta2019_df,
-  ggtransit_df,
-  napavine2019_df,
-  petaluma2018_df,
-  SantaRosaCityBus2018_df,
-  capitolcorridor2019_df
-)
-
-remove(
-       ac_transit_df,
-       bart_df,
-       caltrain_df,
-       muni_df,
-       marin_df,
-       napa_vine_df,
-       vta_df,
-       fast_df,
-       rvdb_df,
-       vcc_df,
-       soltrans_df,
-       ace_df,
-       unioncity_df,
-       sonomact_df,
-       smart_df,
-       weta_df,
-       westcat_df,
-       lavta_df,
-       tridelta2019_df,
-       cccta2019_df,
-       ggtransit_df,
-       napavine2019_df,
-       petaluma2018_df,
-       SantaRosaCityBus2018_df,
-       capitolcorridor2019_df
-      )
-
+   survey_data_df <- read_operator(
+      name         = survey_input_df[i, "operator_name"],
+      year         = survey_input_df[i, "survey_year"],
+      default_tech = survey_input_df[i, "default_tech"],
+      file_path    = survey_input_df[i, "raw_data_path"],
+      variable_dictionary = dictionary_all,
+      canonical_shp       = canonical_station_shp
+   )
+   survey_combine <- rbind(survey_combine, survey_data_df)
+   print(paste("survey_combine has", nrow(survey_combine),"rows"))
+   remove(survey_data_df)
+}
 
 ## Flatten
 print('Join standard_variable and standard_response to raw data')
