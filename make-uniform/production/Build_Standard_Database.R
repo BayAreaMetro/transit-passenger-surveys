@@ -86,12 +86,12 @@ run_log <- file.path(TPS_SURVEY_STANDARDIZED_PATH,
 print(paste("Writing log to",run_log))
 # print wide since it's to a log file
 options(width = 1000)
+options(error=traceback)
 sink(run_log, append=FALSE, type = c('output', 'message'))
 
 # Inputs - dictionary and other utils
 f_dict_standard <- "Dictionary_for_Standard_Database.csv"
 f_canonical_station_path <- file.path(TPS_SURVEY_PATH,"Geography Files","Passenger_Railway_Stations_2018.shp")
-f_taps_coords_path <- "M:/Data/GIS layers/TM2 taps/TM2 tap_node.csv"
 f_tm1_taz_shp_path <- "M:/Data/GIS layers/TM1_taz/bayarea_rtaz1454_rev1_WGS84.shp"
 f_tm2_taz_shp_path <- "M:/Data/GIS layers/TM2_maz_taz_v2.2/tazs_TM2_v2_2.shp"
 f_tm2_maz_shp_path <- "M:/Data/GIS layers/TM2_maz_taz_v2.2/mazs_TM2_v2_2.shp"
@@ -103,6 +103,11 @@ f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 # _User Intervention_
 # When adding a new operator, the user must: add the path to the survey data in
 # the code block below, e.g., `f_bart_survey_path`
+
+# set to empty for all operators
+TEST_MODE_OPERATORS = c()
+print("TEST_MODE_OPERATORS:")
+print(TEST_MODE_OPERATORS)
 
 survey_input_df <- data.frame(
   operator_name    = character(),
@@ -362,6 +367,16 @@ survey_input_df <- survey_input_df %>% add_row(
     "CAPCO19 Data-For MTC_NO POUND OR SINGLE QUOTE.csv"
   )
 )
+survey_input_df <- survey_input_df %>% add_row(
+  operator_name   = 'ACE',
+  survey_year     = 2023,
+  default_tech    = 'commuter rail',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "ACE","2023",
+    "ACE_Onboard_preprocessed.csv"
+  )
+)
 
 # Inputs - legacy survey data
 f_legacy_rdata_path = file.path(TPS_SURVEY_PATH,"_data Standardized","survey_legacy.RData")
@@ -460,21 +475,27 @@ print('Read and combine survey raw data from multiple operators')
 
 survey_combine <- data.frame()
 for( i in rownames(survey_input_df) ) {
-   print(paste("Processing", survey_input_df[i, "operator_name"], 
-               "for", survey_input_df[i, "survey_year"],
-               "and", survey_input_df[i, "default_tech"]))
+  # if we are only processing TEST_MODE_OPERATORS then skip others
+  if ((length(TEST_MODE_OPERATORS) > 0) & 
+        !(survey_input_df[i, "operator_name"] %in% TEST_MODE_OPERATORS))
+  {
+    next
+  }
+  print(paste("Processing", survey_input_df[i, "operator_name"], 
+              "for", survey_input_df[i, "survey_year"],
+              "and", survey_input_df[i, "default_tech"]))
 
-   survey_data_df <- read_operator(
-      name         = survey_input_df[i, "operator_name"],
-      year         = survey_input_df[i, "survey_year"],
-      default_tech = survey_input_df[i, "default_tech"],
-      file_path    = survey_input_df[i, "raw_data_path"],
-      variable_dictionary = dictionary_all,
-      canonical_shp       = canonical_station_shp
-   )
-   survey_combine <- rbind(survey_combine, survey_data_df)
-   print(paste("survey_combine has", nrow(survey_combine),"rows"))
-   remove(survey_data_df)
+  survey_data_df <- read_operator(
+     name         = survey_input_df[i, "operator_name"],
+     year         = survey_input_df[i, "survey_year"],
+     default_tech = survey_input_df[i, "default_tech"],
+     file_path    = survey_input_df[i, "raw_data_path"],
+     variable_dictionary = dictionary_all,
+     canonical_shp       = canonical_station_shp
+  )
+  survey_combine <- rbind(survey_combine, survey_data_df)
+  print(paste("survey_combine has", nrow(survey_combine),"rows"))
+  remove(survey_data_df)
 }
 
 ## Flatten
@@ -588,7 +609,7 @@ table(survey_standard$year_born, useNA = 'ifany')
 # Compute approximate respondent age
 survey_standard <- survey_standard %>%
   mutate(approximate_age = ifelse(!is.na(year_born) & survey_year >= year_born, survey_year - year_born, NA)) %>%
-  mutate(approximate_age = ifelse(approximate_age == 0, NA, approximate_age))
+  mutate(approximate_age = ifelse(approximate_age < 0, NA, approximate_age))
 
 print('Stats on approximate_age:')
 table(survey_standard$approximate_age, useNA = 'ifany')
@@ -617,14 +638,17 @@ survey_standard <- survey_standard %>%
                             "grade_school", orig_purp)) %>%
   mutate(dest_purp = ifelse(dest_purp == "school", "high school", dest_purp)) %>%
   mutate(dest_purp = ifelse(dest_purp == "school" & approximate_age < 14,
-                            "grade_school", dest_purp)) %>%
+                            "grade_school", dest_purp))
 
-  # for Capitol Corridor 2019 survey, use 'trip_purp'
-  mutate(trip_purp = ifelse(trip_purp == "school", "high school", trip_purp)) %>%
-  mutate(trip_purp = ifelse(trip_purp == "school" & approximate_age < 14,
-                            "grade_school", trip_purp)) %>%
-  mutate(trip_purp = ifelse(trip_purp == "school" & approximate_age > 18,
-                            "college", trip_purp))
+# for Capitol Corridor 2019 survey, use 'trip_purp'
+if ('trip_purp' %in% colnames(survey_standard)) {
+  survey_standard <- survey_standard %>%
+    mutate(trip_purp = ifelse(trip_purp == "school", "high school", trip_purp)) %>%
+    mutate(trip_purp = ifelse(trip_purp == "school" & approximate_age < 14,
+                              "grade_school", trip_purp)) %>%
+    mutate(trip_purp = ifelse(trip_purp == "school" & approximate_age > 18,
+                              "college", trip_purp))
+}
 
 # (Approximate) Tour purpose
 # Create temporary tour purpose variable that includes both (approximate) tour purpose and imputation name
@@ -1487,101 +1511,13 @@ remove(survey_lat, survey_lon)
 
 ## Geocode Transit Locations
 
-taps_coords <- read.csv(f_taps_coords_path, stringsAsFactors = FALSE) %>%
-  rename_all(tolower) %>%
-  rowwise %>% mutate(mode=as.list(strsplit(mode_recode,","))) %>%                 # Create a list of tap modes for each row
-  select(n, mode, lat, lon = long)
 
 # CRS = 4326 sets the lat/long coordinates in the WGS1984 geographic survey
 # CRS = 2230 sets the projection for NAD 1983 California Zone 6 in US Feet
-taps_spatial <- st_as_sf(taps_coords, coords = c("lon", "lat"), crs = 4326)
-taps_spatial <- st_transform(taps_spatial, crs = 2230)
 survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "first_board_lat"), crs = 4326)
 survey_board_spatial <- st_transform(survey_board_spatial, crs = 2230)
 survey_alight_spatial <- st_as_sf(survey_alight, coords = c("last_alight_lon", "last_alight_lat"), crs = 4326)
 survey_alight_spatial <- st_transform(survey_alight_spatial, crs = 2230)
-
-survey_board_spatial <- survey_board_spatial %>%
-  mutate(board_tap = NA)#,
-# distance = NA)
-survey_alight_spatial <- survey_alight_spatial %>%
-  mutate(alight_tap = NA)#,
-# distance = NA)
-
-for (item in unique(unlist(taps_spatial$mode))) {
-  temp_tap_spatial <- taps_spatial %>%
-    filter(item %in% mode)
-  temp_tap_spatial <- temp_tap_spatial %>%
-    bind_cols(match = 1:nrow(temp_tap_spatial))
-
-  temp_board <- survey_board_spatial %>%
-    filter(first_board_tech == item)
-  temp_board <- temp_board %>%
-    bind_cols(temp_board_tap = st_nearest_feature(temp_board, temp_tap_spatial))
-
-  # temp_distance <- temp_board %>%
-  #   select(temp_board_tap)
-  # st_geometry(temp_distance) <- NULL
-  # temp_distance <- temp_tap_spatial %>%
-  #   right_join(temp_distance, by = c("match" = "temp_board_tap"))
-  # temp_distance <- temp_distance %>%
-  #   mutate(dist = st_distance(temp_board, temp_distance, by_element = TRUE))
-  # st_geometry(temp_distance) <- NULL
-  # temp_board <- temp_board %>%
-  #   bind_cols(temp_distance %>% select(dist)) %>%
-  #   mutate(distance = dist) %>%
-  #   select(-dist)
-
-  temp_alight <- survey_alight_spatial %>%
-    filter(last_alight_tech == item)
-  temp_alight <- temp_alight %>%
-    bind_cols(temp_alight_tap = st_nearest_feature(temp_alight, temp_tap_spatial))
-
-  # temp_distance <- temp_alight %>%
-  #   select(temp_alight_tap)
-  # st_geometry(temp_distance) <- NULL
-  # temp_distance <- temp_tap_spatial %>%
-  #   right_join(temp_distance, by = c("match" = "temp_alight_tap"))
-  # temp_distance <- temp_distance %>%
-  #   mutate(dist = st_distance(temp_alight, temp_distance, by_element = TRUE))
-  # st_geometry(temp_distance) <- NULL
-  # temp_alight <- temp_alight %>%
-  #   bind_cols(temp_distance %>% select(dist)) %>%
-  #   mutate(distance = dist) %>%
-  #   select(-dist)
-
-  st_geometry(temp_tap_spatial) <- NULL
-
-  temp_board <- temp_board %>%
-    left_join(as.data.frame(temp_tap_spatial) %>% select(match, n), by = c("temp_board_tap" = "match")) %>%
-    select(-temp_board_tap) %>%
-    rename(temp_board_tap = n)
-
-  survey_board_spatial <- survey_board_spatial %>%
-    left_join(as.data.frame(temp_board) %>% select(unique_ID, temp_board_tap
-                                                   # temp_dist = distance
-    ), by = "unique_ID") %>%
-    mutate(board_tap = ifelse(!is.na(temp_board_tap), temp_board_tap, board_tap)
-           # distance = ifelse(!is.na(temp_dist), temp_dist, distance)
-    ) %>%
-    select(-temp_board_tap)#, -temp_dist)
-
-  temp_alight <- temp_alight %>%
-    left_join(as.data.frame(temp_tap_spatial) %>% select(match, n), by = c("temp_alight_tap" = "match")) %>%
-    select(-temp_alight_tap) %>%
-    rename(temp_alight_tap = n)
-
-  survey_alight_spatial <- survey_alight_spatial %>%
-    left_join(as.data.frame(temp_alight) %>% select(unique_ID, temp_alight_tap
-                                                    # temp_dist = distance
-    ), by = "unique_ID") %>%
-    mutate(alight_tap = ifelse(!is.na(temp_alight_tap), temp_alight_tap, alight_tap)
-           # distance = ifelse(!is.na(temp_dist), temp_dist, distance)
-    ) %>%
-    select(-temp_alight_tap)#, -temp_dist)
-
-  rm(temp_tap_spatial, temp_board, temp_alight)
-}
 
 board_coords <- as.data.frame(st_coordinates(survey_board_spatial)) %>%
   rename(first_board_lat = Y,
@@ -1599,12 +1535,9 @@ survey_alight_spatial <- survey_alight_spatial %>%
   select(-last_alight_tech)
 st_geometry(survey_alight_spatial) <- NULL
 
-board_alight_tap <- survey_board_spatial %>%
-  left_join(survey_alight_spatial, by = c("unique_ID"))
 
 remove(alight_coords, board_coords,
-       survey_board_spatial, survey_alight_spatial,
-       taps_coords, taps_spatial)
+       survey_board_spatial, survey_alight_spatial)
 
 
 ## Geocode Other Locations
@@ -1650,7 +1583,6 @@ bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
   mutate(tm1_taz = ifelse(as.numeric(dist) / 5280 <= 0.25, tm1_taz, NA))
 
 # Plot distribution of distance between locations and TAZ where location not in TAZ
-# Plot distribution of distance between boarding/alighting locations and TAP
 # qplot(as.numeric(bad_survey_coords_spatial$dist),
 #       geom = "histogram",
 #       main = "Distribution of distance between \ncoordinates and TAZ",
@@ -1696,7 +1628,6 @@ bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
   mutate(tm2_taz = ifelse(as.numeric(dist) / 5280 <= 0.25, tm2_taz, NA))
 
 # Plot distribution of distance between locations and TAZ where location not in TAZ
-# Plot distribution of distance between boarding/alighting locations and TAP
 # qplot(as.numeric(bad_survey_coords_spatial$dist),
 #       geom = "histogram",
 #       main = "Distribution of distance between \ncoordinates and TAZ",
@@ -1752,7 +1683,6 @@ bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
   mutate(tm2_maz = ifelse(as.numeric(dist) / 5280 <= 0.25, tm2_maz, NA))
 
 # Plot distribution of distance between locations and maz where location not in maz
-# Plot distribution of distance between boarding/alighting locations and TAP
 # qplot(as.numeric(bad_survey_coords_spatial$dist),
 #       geom = "histogram",
 #       main = "Distribution of distance between \ncoordinates and maz",
@@ -1804,18 +1734,13 @@ survey_coords_spatial_tm2_maz <- survey_coords_spatial %>%
   rename(dest_tm2_maz = dest, home_tm2_maz = home, orig_tm2_maz = orig,
          school_tm2_maz = school, workplace_tm2_maz = workplace)
 
-board_alight_tap <- board_alight_tap %>%
-  select(unique_ID, board_tap, alight_tap)
-
 # Joins
 survey_standard <- survey_standard %>%
   left_join(survey_coords_spatial_tm1_taz, by = c("unique_ID")) %>%
   left_join(survey_coords_spatial_tm2_taz, by = c("unique_ID")) %>%
-  left_join(survey_coords_spatial_tm2_maz, by = c("unique_ID")) %>%
-  left_join(board_alight_tap, by = c("unique_ID"))
+  left_join(survey_coords_spatial_tm2_maz, by = c("unique_ID"))
 
-remove(board_alight_tap,
-       survey_coords,
+remove(survey_coords,
        survey_coords_spatial,
        survey_coords_spatial_tm1_taz,
        survey_coords_spatial_tm2_taz,
@@ -1978,7 +1903,7 @@ write.csv(ancillary_df, file = f_ancillary_output_csv_path, row.names = FALSE)
 # load legacy data
 load(f_legacy_rdata_path)
 sprintf('Load %d rows of legacy data', nrow(survey.legacy))
-sprintf('Combine wiht %d rows of standard data', nrow(survey_standard))
+sprintf('Combine with %d rows of standard data', nrow(survey_standard))
 
 survey_combine <- combine_data(survey_standard,
                                survey.legacy)

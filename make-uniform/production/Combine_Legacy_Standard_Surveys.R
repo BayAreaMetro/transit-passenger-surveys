@@ -5,6 +5,9 @@
 combine_data <- function(data_standard,
                          data_legacy){
   
+  # taps are deprecated -- remove from legacy
+  data_legacy <- data_legacy %>% select(!ends_with("_tap"))
+
   # modify legacy data field names to be consistent with standard data field names
   data_legacy <- data_legacy %>%
     rename('unique_ID'         = 'Unique_ID',
