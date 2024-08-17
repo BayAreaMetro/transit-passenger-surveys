@@ -23,7 +23,7 @@ for (p in list_of_packages){
 # of further changes to the main geocoding script.
 
 list_of_helpers <- c(
-  "../production/Build Standard Database Functions.R"
+  "../production/Build_Standard_Database_Functions.R"
 )
 
 for (f in list_of_helpers){
@@ -38,10 +38,12 @@ user_list <- data.frame(
   
   user = c("helseljw", 
            "John Helsel",
-           "USDO225024"), 
+           "USDO225024",
+           "lzorn"), 
   path = c("../../Data and Reports/", 
            "../../Data and Reports/", 
-           "~/GitHub/onboard-surveys/Data and Reports/")
+           "~/GitHub/onboard-surveys/Data and Reports/",
+           "M:/Data/OnBoard/Data and Reports/")
 )
 
 me <- Sys.getenv("USERNAME")
@@ -55,7 +57,7 @@ get_rail_names_inputs_path <- "get_rail_names_inputs.csv"
 
 # Input data paths
 ac_transit_path <- paste0(dir_path,
-  "AC Transit/2018/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_ADD_STANDARD_VARS.csv")
+  "AC Transit/2018/As CSV/OD_20180703_ACTransit_DraftFinal_Income_Imputation (EasyPassRecode)_fixTransfers_NO POUND OR SINGLE QUOTE.csv")
 
 bart_path <- paste0(dir_path,
   "BART/As CSV/BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight NO POUND OR SINGLE QUOTE.csv")
@@ -73,7 +75,7 @@ canonical_station_path <- paste0(dir_path,
   "Geography Files/Passenger_Railway_Stations_2018.shp")
 
 # Output data paths
-canonical_route_path <- "../production/canonical_route_crosswalk.csv"
+canonical_route_path <- "canonical_route_crosswalk.csv"
 
 
 # Read crosswalk files
