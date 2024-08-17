@@ -217,7 +217,7 @@ read_operator <- function(name,
   
   return_df <- updated_df %>%
     select(one_of(variables_vector)) %>%
-    rename_at(vars(contains('id')), funs(sub('id', 'ID', .))) %>%
+    rename_at(vars(contains('id')), ~sub('id', 'ID', .)) %>%
     gather(survey_variable, survey_response, -ID) %>%
     mutate(ID = as.character(ID),
            operator = name,
