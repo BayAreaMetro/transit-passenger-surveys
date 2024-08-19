@@ -180,8 +180,8 @@ read_operator <- function(name,
     .$survey_variable %>%
     unique()
   
-  input_df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"") 
-  
+  input_df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"")
+  print(paste("Read",nrow(input_df),"rows from",file_path))
   updated_df <- input_df
   
   # if (name %in% rail_names_df$survey_name) {
