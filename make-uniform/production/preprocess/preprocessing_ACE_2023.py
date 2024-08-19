@@ -34,6 +34,7 @@ KEEP_COLUMNS = [
     "employment",
     "english_level",
     # 09 Household Demographics
+    "lang_binary", # created from lang
     "lang",
     "hh_size",
     "hh_emp",
@@ -44,7 +45,9 @@ KEEP_COLUMNS = [
     "weight",
     "survey_lang",
     "board",
-    "alight"
+    "alight",
+    "direction",
+    "survey_time_estimate"
 ]
 ACE_dir = pathlib.Path("M:\Data\OnBoard\Data and Reports\ACE\\2023")
 ACE_xlsx = ACE_dir / "ACE Onboard Data (sent 7.7.23).xlsx"
@@ -72,6 +75,27 @@ age_cat_to_year_born = {
     8: 1943, # 65+, 2023-70 = 
 }
 ACE_data_df["year_born_four_digit"] = ACE_data_df["age"].map(age_cat_to_year_born)
+
+# create lang_binary from lang
+ACE_data_df["lang_binary"] = "OTHER"
+ACE_data_df.loc[ACE_data_df.lang == 1, "lang_binary"] = "ENGLISH ONLY"
+
+# Survey time: This wasn't a question but the survey notes (via train_number) that it
+# was conducted on trains ACE 04, ACE 06, ACE 08 and ACE 10
+# which are eastbound trains to Stockton (https://acerail.com/schedules/)
+ACE_data_df["direction"] = "EASTBOUND"
+# Impute survey_time from the train_number / schedule and the board station
+# First, assume ACE 04
+ACE_data_df["survey_time_estimate"] = 15
+ACE_data_df.loc[ACE_data_df.board >= 4, "survey_time_estimate"] = 16  # Fremont
+ACE_data_df.loc[ACE_data_df.board >= 8, "survey_time_estimate"] = 17  # Tracy
+# now shift an hour for later trains
+ACE_data_df.loc[ACE_data_df.train_number == 2, "survey_time_estimate"] = ACE_data_df["survey_time_estimate"] + 1  # ACE 06
+ACE_data_df.loc[ACE_data_df.train_number == 3, "survey_time_estimate"] = ACE_data_df["survey_time_estimate"] + 2  # ACE 08
+ACE_data_df.loc[ACE_data_df.train_number == 4, "survey_time_estimate"] = ACE_data_df["survey_time_estimate"] + 3  # ACE 10
+# Finally convert to time string
+ACE_data_df["survey_time_estimate"] = ACE_data_df["survey_time_estimate"].apply(lambda x: f"{x}:00:00")
+
 # save to csv
 ACE_csv = ACE_dir / "ACE_Onboard_preprocessed.csv"
 ACE_data_df[KEEP_COLUMNS].to_csv(ACE_csv)
