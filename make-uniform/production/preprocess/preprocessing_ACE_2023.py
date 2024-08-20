@@ -47,6 +47,7 @@ KEEP_COLUMNS = [
     "board",
     "alight",
     "direction",
+    "survey_date",
     "survey_time_estimate"
 ]
 ACE_dir = pathlib.Path("M:\Data\OnBoard\Data and Reports\ACE\\2023")
@@ -71,8 +72,8 @@ age_cat_to_year_born = {
     4: 1983, # 35-44, 2023-40 = 1983
     5: 1973, # 45-54, 2023-50 = 1973
     6: 1965, # 55-61, 2023-58 = 1965
-    7: 1950, # 62-64, 2023-63 = 1960
-    8: 1943, # 65+, 2023-70 = 
+    7: 1960, # 62-64, 2023-63 = 1960
+    8: 1953, # 65+,   2023-70 = 1953
 }
 ACE_data_df["year_born_four_digit"] = ACE_data_df["age"].map(age_cat_to_year_born)
 
@@ -84,6 +85,16 @@ ACE_data_df.loc[ACE_data_df.lang == 1, "lang_binary"] = "ENGLISH ONLY"
 # was conducted on trains ACE 04, ACE 06, ACE 08 and ACE 10
 # which are eastbound trains to Stockton (https://acerail.com/schedules/)
 ACE_data_df["direction"] = "EASTBOUND"
+
+# Set survey_date based on report Table 3
+train_number_to_survey_date = {
+    1: "2023-04-20", # ACE 04
+    2: "2023-04-19", # ACE 06
+    3: "2023-04-18", # ACE 08
+    4: "2023-04-17", # ACE 10
+}
+ACE_data_df["survey_date"] = ACE_data_df.train_number.map(train_number_to_survey_date)
+
 # Impute survey_time from the train_number / schedule and the board station
 # First, assume ACE 04
 ACE_data_df["survey_time_estimate"] = 15
@@ -98,5 +109,6 @@ ACE_data_df["survey_time_estimate"] = ACE_data_df["survey_time_estimate"].apply(
 
 # save to csv
 ACE_csv = ACE_dir / "ACE_Onboard_preprocessed.csv"
-ACE_data_df[KEEP_COLUMNS].to_csv(ACE_csv)
+ACE_data_df[KEEP_COLUMNS].to_csv(ACE_csv, index=False)
+print(f"ACE_data_df[KEEP_COLUMNS].head()=\n{ACE_data_df[KEEP_COLUMNS].head()}")
 print(f"Saved {ACE_csv}")
