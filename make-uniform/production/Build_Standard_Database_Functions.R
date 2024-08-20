@@ -148,7 +148,7 @@ check_duplicate_variables <- function(df_duplicates) {
   
   # Check for duplicate rows in dataframe
   ref_count <- df_duplicates %>% 
-    group_by(ID, operator, survey_year, survey_tech, survey_variable) %>% 
+    group_by(ID, survey_name, survey_year, survey_tech, survey_variable) %>% 
     summarise(count = n())
   
   mult_ref_count  <- ref_count %>%
@@ -159,29 +159,42 @@ check_duplicate_variables <- function(df_duplicates) {
   
 }
 
-read_operator <- function(name, 
-                          year, 
-                          default_tech, 
-                          file_path, 
-                          variable_dictionary,
-                         # rail_names_df,
-                          canonical_shp) {
-  # 
-  # name <- 'AC Transit'
-  # year <- 2018
-  # default_tech <- 'local bus'
-  # file_path <- f_actransit_survey_path
-  # variable_dictionary <- dictionary_all
-  # rail_names_df <- rail_names_inputs_df
-  # canonical_shp <- canonical_station_shp
-  
-  variables_vector <- variable_dictionary %>%
-    filter((operator == name) & (survey_year == year)) %>%
+# see https://github.com/BayAreaMetro/modeling-website/wiki/TransitModes
+TECHNOLOGY_OPTIONS <- c(
+  "commuter rail",
+  "heavy rail",
+  "light rail",
+  "ferry",
+  "express bus",
+  "local bus"
+)
+# Reads the survey data
+# parameters:
+# * survey_name: typically operator when surveys are operator-based, but "Regional Snapshot" was done in 2023
+# * survey_year: year in which survey was conducted
+# * default_tech: the predominant tech for the survey; one of TECHNOLOGY_OPTIONS
+# * file_path: the path of the survey data file to read
+# * variable_dictionary: the data dictionary with columns
+#        Survey Name, Survey Year, Survey Variable, Survey Response, Generic Variable, Generic Response
+# * canonical_shp: currently unused
+read_survey_data <- function(
+  p_survey_name, 
+  p_survey_year, 
+  p_default_tech, 
+  p_file_path, 
+  p_variable_dictionary,
+  p_canonical_shp)
+{  
+  variables_vector <- p_variable_dictionary %>%
+    filter((survey_name == p_survey_name) & (survey_year == p_survey_year)) %>%
     .$survey_variable %>%
     unique()
   
-  input_df <- read.csv(file_path, header = TRUE, comment.char = "", quote = "\"")
-  print(paste("Read",nrow(input_df),"rows from",file_path))
+  input_df <- read.csv(p_file_path, header = TRUE, comment.char = "", quote = "\"")
+  print(paste("Read",nrow(input_df),"rows from",p_file_path))
+  # print(head(input_df))
+  # print(tail(input_df))
+
   updated_df <- input_df
   
   # if (name %in% rail_names_df$survey_name) {
@@ -202,6 +215,7 @@ read_operator <- function(name,
   #   }
   # } 
   # 
+
   df_variable_levels <- updated_df %>%
     gather(survey_variable, survey_response) %>%
     group_by(survey_variable, survey_response) %>%
@@ -209,8 +223,8 @@ read_operator <- function(name,
     select(-count) %>% 
     ungroup()
   
-  external_variable_levels <- variable_dictionary %>%
-    filter(operator == name & generic_response != "NONCATEGORICAL")
+  external_variable_levels <- p_variable_dictionary %>%
+    filter(survey_name == p_survey_name & generic_response != "NONCATEGORICAL")
   
   # check_dropped_variables(df_variable_levels, 
   #                         external_variable_levels)
@@ -220,9 +234,9 @@ read_operator <- function(name,
     rename_at(vars(contains('id')), ~sub('id', 'ID', .)) %>%
     gather(survey_variable, survey_response, -ID) %>%
     mutate(ID = as.character(ID),
-           operator = name,
-           survey_year = year,
-           survey_tech = default_tech)
+           survey_name = p_survey_name,
+           survey_year = p_survey_year,
+           survey_tech = p_default_tech)
   
   check_duplicate_variables(return_df)
   
@@ -268,7 +282,7 @@ technology_present <- function(survey_data_df,
     # check if the transfer technology column exists
     stopifnot(i %in% colnames(survey_data_df))
     
-    # update the value of the labeling to "TRUE" if the technology exisit
+    # update the value of the labeling to "TRUE" if the technology exists
     survey_data_df[new_col_name][survey_data_df[i] == technology] = TRUE 
   }
   

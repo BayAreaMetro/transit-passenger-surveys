@@ -11,6 +11,7 @@ combine_data <- function(data_standard,
   # modify legacy data field names to be consistent with standard data field names
   data_legacy <- data_legacy %>%
     rename('unique_ID'         = 'Unique_ID',
+           'survey_name'       = 'operator',
            'dest_tm2_maz'      = 'dest_maz',
            'dest_tm1_taz'      = 'dest_taz',
            'home_tm2_maz'      = 'home_maz',
@@ -62,13 +63,13 @@ combine_data <- function(data_standard,
   
   # Remove the BART pre-test data
   data_combine <- data_combine %>%
-    filter(operator != "BART PRE-TEST")
+    filter(survey_name != "BART PRE-TEST")
   
-  # Make operator name consistent
+  # Make survey_name name consistent
   data_combine <- data_combine %>%
-    # revise operator names in legacy data to be consistent with standard data;
+    # revise survey_name names in legacy data to be consistent with standard data;
     # also abbreviate 'Sonoma-Marin Area Rail Transit' to 'SMART' 
-    mutate(operator = recode(operator,
+    mutate(survey_name = recode(survey_name,
                              'Golden Gate Transit (ferry)'    = 'Golden Gate Transit',
                              'Golden Gate Transit (bus)'      = 'Golden Gate Transit',
                              'Tri-Delta'                      = 'TriDelta',
