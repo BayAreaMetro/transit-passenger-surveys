@@ -13,7 +13,7 @@
 
 ### Reference files
 
-* [canonical_route_crosswalk.csv](canonical_route_crosswalk.csv): maps transit route names used in different surveys (*"survey name"*) to standard transit route names (*"canonical_name"*), operator names (*"canonical_operator"*), and *"technology"* - heavy rail, local bus, express, light rail, ferry, etc. 
+* [canonical_route_crosswalk.csv](canonical_route_crosswalk.csv): maps transit route names used in different surveys (*`survey_route_name`*) to standard transit route names (*`canonical_route`*), operator names (*`canonical_operator`, `operator_detail`*), and *`technology`/,`technology_detail`* - heavy rail, local bus, express, light rail, ferry, etc. 
 Each route in the Bay Area has a `canonical` or reference name. Each route name from a survey should be matched to the `canonical` route name. Using this match to assign technologies to each of the routes collected in the survey allows travel model path labels to be assigned to each trip. When the survey data is read in, it assumes every route in the survey uses the same technology (e.g., all Muni routes are local bus). However, some operators operate multiple technologies. These bespoke technologies are added in this file. 
 
 * When a new survey's data is added, update this file either by directly adding rows to the .csv file, or using [standard_route_name_db.R](../canonical_names/standard_route_name_db.R) in folder [canonical_names](../canonical_names).  Please note that the `canonical` station names for BART and Caltrain are stored in the `f_canonical_station_path` shape file and appended via spatial matching to other surveys.

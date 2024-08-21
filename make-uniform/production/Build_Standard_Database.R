@@ -86,7 +86,11 @@ run_log <- file.path(TPS_SURVEY_STANDARDIZED_PATH,
 print(paste("Writing log to",run_log))
 # print wide since it's to a log file
 options(width = 1000)
-options(error=traceback)
+options(warn=2) # error on warning
+# options(error=traceback)
+# don't warn: "summarise()` has grouped output by ... You can override using the `.groups` argument."
+options(dplyr.summarise.inform=F) 
+
 sink(run_log, append=FALSE, type = c('output', 'message'))
 
 # Inputs - dictionary and other utils
@@ -497,6 +501,10 @@ for( i in rownames(survey_input_df) ) {
 print('Join standard_variable and standard_response to raw data')
 
 # Join the dictionary and prepare the categorical variables
+print("str(survey_combine)")
+str(survey_combine)
+print("str(dictionary_cat)")
+str(dictionary_cat)
 
 survey_cat <- survey_combine %>%
   left_join(dictionary_cat, by = c("survey_name", "survey_year", "survey_variable", "survey_response")) %>%
@@ -505,20 +513,31 @@ survey_cat <- survey_combine %>%
 # Join the dictionary and prepare the non-categorical variables
 
 rail_crosswalk_df <- canonical_routes_crosswalk %>%
-  filter(survey == "GEOCODE") %>%
-  select(survey_name, canonical_name)
+  filter(survey_name == "GEOCODE") %>%
+  select(survey_route_name, canonical_route)
 
 survey_non <- survey_combine %>%
   left_join(dictionary_non, by = c("survey_name", "survey_year", "survey_variable")) %>%
   filter(!is.na(generic_variable)) %>%
-  mutate(generic_response = survey_response) %>%
+  mutate(generic_response = survey_response)
+
+# This transforms generic_response to the canonical_routes_crosswalk's canonical_route if:
+# * survey_name/survey_year match and 
+# * the generic variable name contains 'route' and
+# * the survey_response matches survey_route_name
+survey_non <- survey_non %>%
   left_join(canonical_routes_crosswalk %>% select(-technology, -technology_detail, -operator_detail),
-            by = c("survey_name" = "survey", "survey_year", "survey_response" = "survey_name")) %>%
-  mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_name), canonical_name, generic_response)) %>%
-  select(-canonical_name, -canonical_operator) %>%
-  left_join(rail_crosswalk_df, by = c("generic_response" = "survey_name")) %>%
-  mutate(generic_response = ifelse(!is.na(canonical_name), canonical_name, generic_response)) %>%
-  select(-canonical_name)
+            by = c("survey_name", "survey_year", "survey_response" = "survey_route_name")) %>%
+  mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_route), canonical_route, generic_response)) %>%
+  select(-canonical_route, -canonical_operator)
+
+# This transforms generic_response to the canonical_routes_crosswalk's canonical_route if:
+# * canonical_routes_crosswalk's survey_name == GEOCODE
+# * generic_response == canonical_routes_crosswalk's survey_route_name
+survey_non <- survey_non %>%
+  left_join(rail_crosswalk_df, by = c("generic_response" = "survey_route_name")) %>%
+  mutate(generic_response = ifelse(!is.na(canonical_route), canonical_route, generic_response)) %>%
+  select(-canonical_route)
 
 # Combine the categorical and non-categorical survey data and prepare to flatten
 survey_flat <- bind_rows(survey_cat, survey_non) %>%
@@ -530,9 +549,9 @@ survey_flat <- bind_rows(survey_cat, survey_non) %>%
   mutate(route = ifelse(survey_name == "ACE", paste0("ACE", OPERATOR_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
   mutate(route = ifelse(survey_name == "Sonoma-Marin Area Rail Transit", paste0("SMART", OPERATOR_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
   mutate(route = ifelse(survey_name == "Capitol Corridor", paste0("CAPITOL CORRIDOR", OPERATOR_DELIMITER, onoff_enter_station, ROUTE_DELIMITER, onoff_exit_station), route)) %>%
-  left_join(rail_crosswalk_df, by = c("route" = "survey_name")) %>%
-  mutate(route = ifelse(!is.na(canonical_name), canonical_name, route)) %>%
-  select(-canonical_name)
+  left_join(rail_crosswalk_df, by = c("route" = "survey_route_name")) %>%
+  mutate(route = ifelse(!is.na(canonical_route), canonical_route, route)) %>%
+  select(-canonical_route)
 
 print("str(survey_flat):")
 str(survey_flat)
@@ -544,15 +563,28 @@ remove(survey_cat,
 ## Update survey technology
 print('Update technology for multiple-tech surveys')
 
+print('Initial tabulation on technology by survey:')
+print(nrow(survey_flat))
+table(paste(survey_flat$survey_name,survey_flat$survey_year), 
+      survey_flat$survey_tech, useNA = 'ifany')
+
 # _User Intervention_
 # As noted above, when the survey data is read in, it assumes every route in the survey uses
 # the same technology (e.g., all Muni routes are local bus). In fact, some surveys operate
 # multiple technologies. These bespoke technologies are added here. These changes are recorded
 # in the `canonical route name database` and must be updated manually.
 
+# columns from canonical_routes_crosswalk:
+#  survey_name, survey_year, canonical_route, canonical_operator, operator_detail, technology
+#  so this is adding: canonical_operator, operator_detail, technology based on the route matching canonical_route
+#  But the join is using canonical_route rather than survey_route_name so does it succeed for that many?
+
+print("str(canonical_routes_crosswalk %>% select(-survey_route_name, -technology_detail) %>% unique()):")
+str(canonical_routes_crosswalk %>% select(-survey_route_name, -technology_detail) %>% unique())
+
 survey_flat <- survey_flat %>%
-  left_join(canonical_routes_crosswalk %>% select(-survey_name, -technology_detail) %>% unique(),
-            by = c("survey_name" = "survey", "route" = "canonical_name", "survey_year"))
+  left_join(canonical_routes_crosswalk %>% select(-survey_route_name, -technology_detail) %>% unique(),
+            by = c("survey_name", "route" = "canonical_route", "survey_year"))
 
 # for multi-tech surveys, survey_tech = technology
 survey_flat <- survey_flat %>%
@@ -567,10 +599,21 @@ survey_flat <- survey_flat %>%
                                               'County Connection'),
                               technology,
                               survey_tech))
+# we're done with technology so remove it; survey_tech is the one to use
+survey_flat <- select(survey_flat, -technology)
 
-print('Stats on technology by survey:')
-table(survey_flat$survey_name, survey_flat$survey_tech, useNA = 'ifany')
+print('Final tabulation on survey_tech by survey:')
+print(nrow(survey_flat))
+table(paste(survey_flat$survey_name,survey_flat$survey_year), 
+      survey_flat$survey_tech, useNA = 'ifany')
 
+print('Final tabulation on canonical_operator by survey:')
+table(paste(survey_flat$survey_name,survey_flat$survey_year), 
+      survey_flat$canonical_operator, useNA = 'ifany')
+
+print('Final tabulation on operator_detail by survey:')
+table(paste(survey_flat$survey_name,survey_flat$survey_year), 
+      survey_flat$operator_detail, useNA = 'ifany')
 
 # _User Intervention_
 # User should run each of the `Steps` below individually and make sure the results make sense.
@@ -590,10 +633,15 @@ survey_standard <- survey_flat %>%
     str_detect(year_born_four_digit,"Not Provided") | 
     str_detect(year_born_four_digit,'REFUSED'),
     NA,
-    year_born_four_digit)) %>%
-  mutate(year_born = ifelse(is.na(year_born), NA, as.numeric(year_born))) %>%
-  select(-year_born_four_digit)
+    year_born_four_digit))
 
+# don't warn on NAs introduced by coercion
+suppressWarnings(
+  survey_standard <- survey_standard %>%
+    mutate(year_born = ifelse(is.na(year_born), NA, as.numeric(year_born)))
+)
+survey_standard <- survey_standard %>%
+  select(-year_born_four_digit)
 
 # Manual fixes to year born
 survey_standard <- survey_standard %>%
@@ -603,7 +651,7 @@ survey_standard <- survey_standard %>%
   mutate(year_born = ifelse(year_born == 3884, 1984, year_born)) %>%
   mutate(year_born = ifelse(year_born == 1899, NA, year_born))
 
-print('Stats on year_born:')
+print('Tabulation of year_born:')
 table(survey_standard$year_born, useNA = 'ifany')
 
 # Compute approximate respondent age
@@ -611,7 +659,7 @@ survey_standard <- survey_standard %>%
   mutate(approximate_age = ifelse(!is.na(year_born) & survey_year >= year_born, survey_year - year_born, NA)) %>%
   mutate(approximate_age = ifelse(approximate_age < 0, NA, approximate_age))
 
-print('Stats on approximate_age:')
+print('Tabulation of approximate_age:')
 table(survey_standard$approximate_age, useNA = 'ifany')
 
 
@@ -961,11 +1009,12 @@ survey_standard <- survey_standard %>%
 
 # convert detailed transfer operator to less granular categories
 operator_canonical_detail_crosswalk <- canonical_routes_crosswalk %>%
-  select(canonical_name, canonical_operator, operator_detail) %>%
+  select(canonical_route, canonical_operator, operator_detail) %>%
   unique() %>%
-  rename(transfer_route_name = canonical_name,
+  rename(transfer_route_name = canonical_route,
          transfer_operator_canonical = canonical_operator,
          transfer_operator_detail = operator_detail)
+str(operator_canonical_detail_crosswalk)
 
 # > str(operator_canonical_detail_crosswalk)
 # 'data.frame':	4792 obs. of  3 variables:
@@ -1011,26 +1060,36 @@ survey_standard <- survey_standard %>%
 
 # Set the technology for each of the six legs
 tech_crosswalk_df <- canonical_routes_crosswalk %>%
-  select(-survey_name) %>%
+  select(-survey_route_name) %>%
   rename(temp_tech = technology) %>%
   unique()
+print("str(tech_crosswalk_df)")
+str(tech_crosswalk_df)
 
 tech_crosswalk_expansion_list <- tech_crosswalk_df %>%
-  select(survey, survey_year) %>%
+  select(survey_name, survey_year) %>%
   unique() %>%
-  filter(!survey %in% c("BART", "Caltrain", "ACE", "Sonoma-Marin Area Rail Transit", "Capitol Corridor", "GEOCODE"))
+  filter(!survey_name %in% c("BART", "Caltrain", "ACE", "Sonoma-Marin Area Rail Transit", "Capitol Corridor", "GEOCODE"))
+print("str(tech_crosswalk_expansion_list)")
+str(tech_crosswalk_expansion_list)
 
 tech_crosswalk_expansion_df <- tech_crosswalk_df %>%
-  filter(survey == "GEOCODE") %>%
-  select(-survey, -survey_year)
+  filter(survey_name == "GEOCODE") %>%
+  select(-survey_name, -survey_year)
+print("str(tech_crosswalk_expansion_df)")
+str(tech_crosswalk_expansion_df)
 
 tech_crosswalk_expansion_df <- tech_crosswalk_expansion_list %>%
   merge(tech_crosswalk_expansion_df, by = NULL)
+print("str(tech_crosswalk_expansion_df)")
+str(tech_crosswalk_expansion_df)
 
 tech_crosswalk_df <- tech_crosswalk_df %>%
   bind_rows(tech_crosswalk_expansion_df) %>%
-  filter(survey != "GEOCODE") %>%
+  filter(survey_name != "GEOCODE") %>%
   select(-operator_detail, -technology_detail)
+print("str(tech_crosswalk_df)")
+str(tech_crosswalk_df)
 
 remove(tech_crosswalk_expansion_df, tech_crosswalk_expansion_list)
 
@@ -1038,40 +1097,40 @@ remove(tech_crosswalk_expansion_df, tech_crosswalk_expansion_list)
 #'data.frame':	82777 obs. of  5 variables:
 # $ survey            : chr  "AC Transit" "AC Transit" "AC Transit" "FAST" ...
 # $ survey_year       : int  2018 2018 2018 2017 2018 2018 2018 2018 2018 2018 ...
-# $ canonical_name    : chr  "AC TRANSIT___1 Berkeley BART to Bay Fair BART" "AC TRANSIT___10 San Leandro BART Hayward BART" "AC TRANSIT___12 Berkeley BART to Downtown Oakland" "AC TRANSIT___12 Berkeley BART to Downtown Oakland" ...
+# $ canonical_route    : chr  "AC TRANSIT___1 Berkeley BART to Bay Fair BART" "AC TRANSIT___10 San Leandro BART Hayward BART" "AC TRANSIT___12 Berkeley BART to Downtown Oakland" "AC TRANSIT___12 Berkeley BART to Downtown Oakland" ...
 # $ canonical_operator: chr  "AC TRANSIT" "AC TRANSIT" "AC TRANSIT" "AC TRANSIT" ...
 # $ temp_tech         : chr  "local bus" "local bus" "local bus" "local bus" ...
 
 
 survey_standard <- survey_standard %>%
-  left_join(tech_crosswalk_df, by =c("survey_name" = "survey", "survey_year",
+  left_join(tech_crosswalk_df, by =c("survey_name", "survey_year",
                                      "first_before_operator" = "canonical_operator",
-                                     "first_route_before_survey_board" = "canonical_name")) %>%
+                                     "first_route_before_survey_board" = "canonical_route")) %>%
   rename(first_before_technology = temp_tech) %>%
 
-  left_join(tech_crosswalk_df, by =c("survey_name" = "survey", "survey_year",
+  left_join(tech_crosswalk_df, by =c("survey_name", "survey_year",
                                      "second_before_operator" = "canonical_operator",
-                                     "second_route_before_survey_board" = "canonical_name")) %>%
+                                     "second_route_before_survey_board" = "canonical_route")) %>%
   rename(second_before_technology = temp_tech) %>%
 
-  left_join(tech_crosswalk_df, by =c("survey_name" = "survey", "survey_year",
+  left_join(tech_crosswalk_df, by =c("survey_name", "survey_year",
                                      "third_before_operator" = "canonical_operator",
-                                     "third_route_before_survey_board" = "canonical_name")) %>%
+                                     "third_route_before_survey_board" = "canonical_route")) %>%
   rename(third_before_technology = temp_tech) %>%
 
-  left_join(tech_crosswalk_df, by =c("survey_name" = "survey", "survey_year",
+  left_join(tech_crosswalk_df, by =c("survey_name", "survey_year",
                                      "first_after_operator" = "canonical_operator",
-                                     "first_route_after_survey_alight" = "canonical_name")) %>%
+                                     "first_route_after_survey_alight" = "canonical_route")) %>%
   rename(first_after_technology = temp_tech) %>%
 
-  left_join(tech_crosswalk_df, by =c("survey_name" = "survey", "survey_year",
+  left_join(tech_crosswalk_df, by =c("survey_name", "survey_year",
                                      "second_after_operator" = "canonical_operator",
-                                     "second_route_after_survey_alight" = "canonical_name")) %>%
+                                     "second_route_after_survey_alight" = "canonical_route")) %>%
   rename(second_after_technology = temp_tech) %>%
 
-  left_join(tech_crosswalk_df, by =c("survey_name" = "survey", "survey_year",
+  left_join(tech_crosswalk_df, by =c("survey_name", "survey_year",
                                      "third_after_operator" = "canonical_operator",
-                                     "third_route_after_survey_alight" = "canonical_name")) %>%
+                                     "third_route_after_survey_alight" = "canonical_route")) %>%
   rename(third_after_technology = temp_tech)
 
 print('Stats on first_before_technology/first_after_technology for debug:')
@@ -1448,8 +1507,10 @@ survey_standard <- survey_standard %>%
 
 # compare time_period (based on 'strata') and day_part_temp (based on 'time_string') values
 print('Examine time_period and day_part_temp variables to debug:')
-table(survey_standard$survey_name, survey_standard$time_period, useNA = 'ifany')
-table(survey_standard$survey_name, survey_standard$day_part_temp, useNA = 'ifany')
+table(paste(survey_standard$survey_name, survey_standard$survey_year), 
+      survey_standard$time_period, useNA = 'ifany')
+table(paste(survey_standard$survey_name, survey_standard$survey_year),
+      survey_standard$day_part_temp, useNA = 'ifany')
 
 # the final 'day_part' variable defaults to time_period/strata, and use day_part_temp when time_period is na
 survey_standard <- survey_standard %>%
@@ -1507,11 +1568,14 @@ survey_coords <- left_join(survey_lat, survey_lon, by = c("unique_ID", "variable
 # check duplicates
 dup_survey_coords <- survey_coords[duplicated(survey_coords),]
 
-survey_coords <- survey_coords %>%                  # remove records with no lat/lon
-  mutate(x_coord = as.numeric(x_coord)) %>%
-  mutate(y_coord = as.numeric(y_coord)) %>%
-  filter(!is.na(x_coord)) %>%
-  filter(!is.na(y_coord))
+# don't warn on NAs introduced by coercion
+suppressWarnings(
+  survey_coords <- survey_coords %>%                  # remove records with no lat/lon
+    mutate(x_coord = as.numeric(x_coord)) %>%
+    mutate(y_coord = as.numeric(y_coord)) %>%
+    filter(!is.na(x_coord)) %>%
+    filter(!is.na(y_coord))
+)
 
 survey_standard <- survey_standard %>%
   mutate(first_board_lat  = ifelse(number_transfers_orig_board == 0,  survey_board_lat,  first_board_lat)) %>%
@@ -1519,19 +1583,25 @@ survey_standard <- survey_standard %>%
   mutate(last_alight_lat  = ifelse(number_transfers_alight_dest == 0, survey_alight_lat, last_alight_lat)) %>%
   mutate(last_alight_lon  = ifelse(number_transfers_alight_dest == 0, survey_alight_lon, last_alight_lon))
 
-survey_board <- survey_standard %>%
-  select(unique_ID, first_board_lat, first_board_lon, first_board_tech) %>%
-  mutate(first_board_lat = as.numeric(first_board_lat)) %>%
-  mutate(first_board_lon = as.numeric(first_board_lon)) %>%
-  filter(!is.na(first_board_lat)) %>%
-  filter(!is.na(first_board_lon))
+# don't warn on NAs introduced by coercion
+suppressWarnings(
+  survey_board <- survey_standard %>%
+    select(unique_ID, first_board_lat, first_board_lon, first_board_tech) %>%
+    mutate(first_board_lat = as.numeric(first_board_lat)) %>%
+    mutate(first_board_lon = as.numeric(first_board_lon)) %>%
+    filter(!is.na(first_board_lat)) %>%
+    filter(!is.na(first_board_lon))
+)
 
-survey_alight <- survey_standard %>%
-  select(unique_ID, last_alight_lat, last_alight_lon, last_alight_tech) %>%
-  mutate(last_alight_lat = as.numeric(last_alight_lat)) %>%
-  mutate(last_alight_lon = as.numeric(last_alight_lon)) %>%
-  filter(!is.na(last_alight_lat)) %>%
-  filter(!is.na(last_alight_lon))
+# don't warn on NAs introduced by coercion
+suppressWarnings(
+  survey_alight <- survey_standard %>%
+    select(unique_ID, last_alight_lat, last_alight_lon, last_alight_tech) %>%
+    mutate(last_alight_lat = as.numeric(last_alight_lat)) %>%
+    mutate(last_alight_lon = as.numeric(last_alight_lon)) %>%
+    filter(!is.na(last_alight_lat)) %>%
+    filter(!is.na(last_alight_lon))
+)
 
 remove(survey_lat, survey_lon)
 
@@ -1779,18 +1849,21 @@ str(survey_standard)
 print('Final cleanup')
 
 # Cast all factors to numeric or string
-survey_standard <- survey_standard %>%
-  mutate_at(vars(contains("survey_name")), as.character) %>%
-  mutate_at(vars(contains("hour")), as.numeric) %>%
-  mutate(survey_board_lat       = as.numeric(survey_board_lat)) %>%
-  mutate(survey_board_lon       = as.numeric(survey_board_lon)) %>%
-  mutate(survey_alight_lat      = as.numeric(survey_alight_lat)) %>%
-  mutate(survey_alight_lon      = as.numeric(survey_alight_lon)) %>%
-  mutate(first_board_lat        = as.numeric(first_board_lat)) %>%
-  mutate(first_board_lon        = as.numeric(first_board_lon)) %>%
-  mutate(last_alight_lat        = as.numeric(last_alight_lat)) %>%
-  mutate(last_alight_lon        = as.numeric(last_alight_lon)) %>%
-  mutate(weight                 = as.numeric(weight))
+# don't warn on NAs introduced by coercion
+suppressWarnings(
+  survey_standard <- survey_standard %>%
+    mutate_at(vars(contains("survey_name")), as.character) %>%
+    mutate_at(vars(contains("hour")), as.numeric) %>%
+    mutate(survey_board_lat       = as.numeric(survey_board_lat)) %>%
+    mutate(survey_board_lon       = as.numeric(survey_board_lon)) %>%
+    mutate(survey_alight_lat      = as.numeric(survey_alight_lat)) %>%
+    mutate(survey_alight_lon      = as.numeric(survey_alight_lon)) %>%
+    mutate(first_board_lat        = as.numeric(first_board_lat)) %>%
+    mutate(first_board_lon        = as.numeric(first_board_lon)) %>%
+    mutate(last_alight_lat        = as.numeric(last_alight_lat)) %>%
+    mutate(last_alight_lon        = as.numeric(last_alight_lon)) %>%
+    mutate(weight                 = as.numeric(weight))
+)
 
 print("str(survey_standard):")
 str(survey_standard)
