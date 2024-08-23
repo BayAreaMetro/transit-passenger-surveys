@@ -24,12 +24,15 @@ Each route in the Bay Area has a `canonical` or reference name. Each route name 
 
   * **Survey Metadata** required in the data and dictionary:
 
-    1. `ID` represents the survey taker ID. This is used to create `unique_ID` (which also includes `survey_name` and `survey_year`).
+    1. `ID` represents the survey taker ID. This is used to create `unique_ID` (which also includes `survey_name` and `survey_year`). Note: this field must be named ID (case-insensitive) in the survey data as well.
     1. `weight` represents [TODO: get details on this]
     1. `date_string` represents the interview date/time. This is used to create the output variables `day_of_the_week`, `weekpart`, `field_start`, `field_end`.
     1. `time_string` represents the interview time which is standardized to `survey_time`
     1. `time_period` is the time period of the boarding time for the surveyed vehicle; [Build_Standard_Database.R](Build_Standard_Database.R) standardizes it to one of the [MTC Travel Model time periods](https://github.com/BayAreaMetro/modeling-website/wiki/TimePeriods) or *`WEEKEND`*.
        * The output variable `day_part` is based upon `time_period` if it exists and it's set based upon `survey_time` otherwise.
+    1. **Non Operator-based Surveys**
+       * The `survey_tech` variable must be included in the survey dataset. Each row should have one of the following values: `heavy rail`, `commuter rail`, `ferry`, `light rail`, `express bus` or `local bus`. It does not need to be in the `Dictionary_for_Standard_Database.csv`
+       * The 'canoncial_operator' variable must be included in the survey dataset. It does not need to be in the `Dictionary_for_Standard_Database.csv`.
 
 * [Passenger_Railway_Stations_2018.shp (internal link)](https://mtcdrive.box.com/s/dq6f8ca95os4sbsd9aste54dx0c3zrks): lists the agency name, mode (Rapid Rail, Light Rail, Commuter Rail), lat/lon coordinates for all rail stations. Don't need to update now. Need to update when new stations are added (?).
 
@@ -37,4 +40,3 @@ Each route in the Bay Area has a `canonical` or reference name. Each route name 
 
 * [mazs.shp (internal link)](https://mtcdrive.box.com/s/k7tpfjq11pqpfewdpexqfz7uyw6p7nx9): MAZs inventory with geometry metrics.
 Don't need to update now.
-

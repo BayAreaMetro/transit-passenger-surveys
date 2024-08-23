@@ -117,6 +117,7 @@ print(TEST_MODE_OPERATORS)
 survey_input_df <- data.frame(
   survey_name      = character(),
   survey_year      = numeric(),
+  operator         = character(),
   default_tech     = character(),
   raw_data_path    = character(),
   stringsAsFactors = FALSE
@@ -124,6 +125,7 @@ survey_input_df <- data.frame(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'AC Transit',
   survey_year     = 2018,
+  operator        = 'AC TRANSIT',
   default_tech    = 'local_bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -134,6 +136,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'BART',
   survey_year     = 2015,
+  operator        = 'BART',
   default_tech    = 'heavy rail',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -144,6 +147,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Caltrain',
   survey_year     = 2014,
+  operator        = 'Caltrain',
   default_tech    = 'commuter rail',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -154,6 +158,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'SF Muni',
   survey_year     = 2017,
+  operator        = 'MUNI',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -164,6 +169,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Marin Transit',
   survey_year     = 2017,
+  operator        = 'MARIN TRANSIT',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -174,6 +180,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Napa Vine',
   survey_year     = 2014,
+  operator        = 'NAPA VINE',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -184,6 +191,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'VTA',
   survey_year     = 2017,
+  operator        = 'VTA',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
   TPS_SURVEY_PATH,
@@ -194,6 +202,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'FAST',
   survey_year     = 2017,
+  operator        = 'FAST',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -204,6 +213,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Delta Breeze',
   survey_year     = 2017,
+  operator        = 'RIO-VISTA',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -214,6 +224,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'City Coach',
   survey_year     = 2017,
+  operator        = 'VACAVILLE CITY COACH',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -224,6 +235,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Soltrans',
   survey_year     = 2017,
+  operator        = 'SOLTRANS',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -234,6 +246,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Union City Transit',
   survey_year     = 2017,
+  operator        = 'UNION CITY',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -244,6 +257,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'WestCAT',
   survey_year     = 2017,
+  operator        = 'WESTCAT',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -254,6 +268,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Sonoma County Transit',
   survey_year     = 2018,
+  operator        = 'Sonoma County Transit',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -265,6 +280,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Sonoma-Marin Area Rail Transit',
   survey_year     = 2018,
+  operator        = 'SMART',
   default_tech    = 'commuter rail',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -275,6 +291,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'LAVTA',
   survey_year     = 2018,
+  operator        = 'LAVTA',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -285,6 +302,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Golden Gate Transit',
   survey_year     = 2018,
+  operator        = 'GOLDEN GATE TRANSIT',
   default_tech    = 'express bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -295,6 +313,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Petaluma Transit',
   survey_year     = 2018,
+  operator        = 'PETALUMA TRANSIT',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -305,6 +324,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Santa Rosa CityBus',
   survey_year     = 2018,
+  operator        = 'Santa Rosa CityBus',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -315,6 +335,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'ACE',
   survey_year     = 2019,
+  operator        = 'ACE',
   default_tech    = 'commuter rail',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -325,6 +346,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'WETA',
   survey_year     = 2019,
+  operator        = 'SF BAY FERRY',
   default_tech    = 'ferry',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -335,6 +357,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'TriDelta',
   survey_year     = 2019,
+  operator        = 'TRI-DELTA',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -345,6 +368,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'County Connection',
   survey_year     = 2019,
+  operator        = 'COUNTY CONNECTION',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -355,6 +379,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Napa Vine',
   survey_year     = 2019,
+  operator        = 'NAPA VINE',
   default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -365,6 +390,7 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'Capitol Corridor',
   survey_year     = 2019,
+  operator        = 'CAPITOL CORRIDOR',
   default_tech    = 'commuter rail',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
@@ -375,11 +401,23 @@ survey_input_df <- survey_input_df %>% add_row(
 survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'ACE',
   survey_year     = 2023,
+  operator        = 'ACE',
   default_tech    = 'commuter rail',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
     "ACE","2023",
     "ACE_Onboard_preprocessed.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  survey_name     = 'Regional Snapshot',
+  survey_year     = 2023,
+  operator        = NA,
+  default_tech    = NA,
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Snapshot Survey",
+    "mtc_snapshot_preprocessed.csv"
   )
 )
 
@@ -418,6 +456,7 @@ dictionary_all <- read.csv(f_dict_standard,
                            header = TRUE) %>%
   rename_all(tolower) %>% 
   mutate(generic_variable=str_trim(generic_variable))        # Remove outside whitespace
+print(paste("Read", nrow(dictionary_all),"rows from",f_dict_standard))
 
 # Prepare separate dictionaries for categorical and non-categorical variables
 dictionary_non <- dictionary_all %>%
@@ -462,6 +501,7 @@ for( i in rownames(survey_input_df) ) {
   survey_data_df <- read_survey_data(
      p_survey_name  = survey_input_df[i, "survey_name"],
      p_survey_year  = survey_input_df[i, "survey_year"],
+     p_operator     = survey_input_df[i, "operator"],
      p_default_tech = survey_input_df[i, "default_tech"],
      p_file_path    = survey_input_df[i, "raw_data_path"],
      p_variable_dictionary = dictionary_all
@@ -500,10 +540,10 @@ survey_non <- survey_combine %>%
 # * the generic variable name contains 'route' and
 # * the survey_response matches survey_route_name
 survey_non <- survey_non %>%
-  left_join(canonical_routes_crosswalk %>% select(-technology, -technology_detail, -operator_detail),
+  left_join(canonical_routes_crosswalk %>% select(-technology, -technology_detail, -canonical_operator, -operator_detail),
             by = c("survey_name", "survey_year", "survey_response" = "survey_route_name")) %>%
   mutate(generic_response = ifelse(str_detect(generic_variable, "route") & !is.na(canonical_route), canonical_route, generic_response)) %>%
-  select(-canonical_route, -canonical_operator)
+  select(-canonical_route)
 
 # This transforms generic_response to the canonical_routes_crosswalk's canonical_route if:
 # * canonical_routes_crosswalk's survey_name == GEOCODE
@@ -527,6 +567,10 @@ survey_flat <- bind_rows(survey_cat, survey_non) %>%
   mutate(route = ifelse(!is.na(canonical_route), canonical_route, route)) %>%
   select(-canonical_route)
 
+# for summarizing
+survey_flat <- mutate(survey_flat,
+  survey_name_year = paste(survey_name, survey_year))
+
 print("str(survey_flat):")
 str(survey_flat)
 
@@ -539,8 +583,11 @@ print('Update technology for multiple-tech surveys')
 
 print('Initial tabulation on technology by survey:')
 print(nrow(survey_flat))
-table(paste(survey_flat$survey_name,survey_flat$survey_year), 
+table(survey_flat$survey_name_year, 
       survey_flat$survey_tech, useNA = 'ifany')
+
+print('Tabulation of canonical_operator by survey:')
+survey_flat %>% count(survey_name_year, canonical_operator)
 
 # _User Intervention_
 # As noted above, when the survey data is read in, it assumes every route in the survey uses
@@ -550,14 +597,13 @@ table(paste(survey_flat$survey_name,survey_flat$survey_year),
 
 # columns from canonical_routes_crosswalk:
 #  survey_name, survey_year, canonical_route, canonical_operator, operator_detail, technology
-#  so this is adding: canonical_operator, operator_detail, technology based on the route matching canonical_route
+#  so this is adding: technology based on the route matching canonical_route
 #  But the join is using canonical_route rather than survey_route_name so does it succeed for that many?
 
-print("str(canonical_routes_crosswalk %>% select(-survey_route_name, -technology_detail) %>% unique()):")
-str(canonical_routes_crosswalk %>% select(-survey_route_name, -technology_detail) %>% unique())
-
 survey_flat <- survey_flat %>%
-  left_join(canonical_routes_crosswalk %>% select(-survey_route_name, -technology_detail) %>% unique(),
+  left_join(canonical_routes_crosswalk %>% 
+            select(survey_name, survey_year, canonical_route, technology) %>% 
+            unique(),
             by = c("survey_name", "route" = "canonical_route", "survey_year"))
 
 # for multi-tech surveys, survey_tech = technology
@@ -576,18 +622,10 @@ survey_flat <- survey_flat %>%
 # we're done with technology so remove it; survey_tech is the one to use
 survey_flat <- select(survey_flat, -technology)
 
-print('Final tabulation on survey_tech by survey:')
+print('Final tabulation of survey_tech by survey:')
 print(nrow(survey_flat))
-table(paste(survey_flat$survey_name,survey_flat$survey_year), 
+table(survey_flat$survey_name_year, 
       survey_flat$survey_tech, useNA = 'ifany')
-
-print('Final tabulation on canonical_operator by survey:')
-table(paste(survey_flat$survey_name,survey_flat$survey_year), 
-      survey_flat$canonical_operator, useNA = 'ifany')
-
-print('Final tabulation on operator_detail by survey:')
-table(paste(survey_flat$survey_name,survey_flat$survey_year), 
-      survey_flat$operator_detail, useNA = 'ifany')
 
 # _User Intervention_
 # User should run each of the `Steps` below individually and make sure the results make sense.
@@ -1408,7 +1446,7 @@ survey_standard <- survey_standard %>%
   mutate(day_of_the_week = ifelse(is.na(date), "Missing", day_of_the_week))
 
 print('Stats on day_of_the_week for debug:')
-table(paste(survey_standard$survey_name,survey_standard$survey_year), 
+table(survey_standard$survey_name_year, 
       survey_standard$day_of_the_week, useNA = 'ifany')
 
 # Fill in missing weekpart
@@ -1422,7 +1460,7 @@ survey_standard <- survey_standard %>%
   mutate(weekpart = ifelse(is.na(weekpart) & day_of_the_week == "SATURDAY", "WEEKEND", weekpart))
 
 print('Stats on final weekpart:')
-table(paste(survey_standard$survey_name,survey_standard$survey_year), 
+table(survey_standard$survey_name_year, 
       survey_standard$weekpart, useNA = 'ifany')
 
 # Get field dates from date
@@ -1481,9 +1519,9 @@ survey_standard <- survey_standard %>%
 
 # compare time_period (based on 'strata') and day_part_temp (based on 'time_string') values
 print('Examine time_period and day_part_temp variables to debug:')
-table(paste(survey_standard$survey_name, survey_standard$survey_year), 
+table(survey_standard$survey_name_year,
       survey_standard$time_period, useNA = 'ifany')
-table(paste(survey_standard$survey_name, survey_standard$survey_year),
+table(survey_standard$survey_name_year,
       survey_standard$day_part_temp, useNA = 'ifany')
 
 # the final 'day_part' variable defaults to time_period/strata, and use day_part_temp when time_period is na
@@ -1491,7 +1529,7 @@ survey_standard <- survey_standard %>%
   mutate(day_part = ifelse(is.na(time_period), day_part_temp, time_period))
 
 print('Tabulations of final day_part variable:')
-table(paste(survey_standard$survey_name,survey_standard$survey_year),
+table(survey_standard$survey_name_year,
       survey_standard$day_part, useNA = 'ifany')
 
 # recode 'depart_time/return_time' of ACE 2019 survey to 'depart_hour/return_hour'
