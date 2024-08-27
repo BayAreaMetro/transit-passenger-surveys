@@ -3,7 +3,7 @@
 ### Steps
 
 1. Obtain raw survey data from vendors.
-2. Format raw survey data into a CSV file. Note: no pound or single quote in data. Preprocessing scripts for fixing the raw data are in [preprocess](preprocess)
+2. Format raw survey data into a CSV file. Note: no pound or single quote in data. Preprocessing scripts for fixing the raw data are in [preprocess](preprocess). Make notes about missing data or unintuitive caveats in `preprocess\notes_[Survey Name] [Survey Year].csv`.
 3. Update relevant index files:
    1. [canonical_route_crosswalk.csv](canonical_route_crosswalk.csv) add new transit routes and define the canonical route name, canonical operator name, and technology following the standard format.
    2. [Dictionary_for_Standard_Database.csv](Dictionary_for_Standard_Database.csv): add the variable names used in the new survey.

@@ -72,7 +72,8 @@ TPS_SURVEY_PATH <- user_list %>%
   .$path
 TPS_SURVEY_STANDARDIZED_PATH <- file.path(
   TPS_SURVEY_PATH,
-  sprintf("_data_Standardized_%s",today)
+  "_data_Standardized",
+  sprintf("standardized_%s",today)
 )
 
 if (!file.exists(TPS_SURVEY_STANDARDIZED_PATH)) {
@@ -422,7 +423,7 @@ survey_input_df <- survey_input_df %>% add_row(
 )
 
 # Inputs - legacy survey data
-f_legacy_rdata_path = file.path(TPS_SURVEY_PATH,"_data Standardized","survey_legacy.RData")
+f_legacy_rdata_path = file.path(TPS_SURVEY_PATH,"_data_Standardized","survey_legacy.RData")
 
 # Outputs
 f_output_rds_path <- file.path(TPS_SURVEY_STANDARDIZED_PATH,"survey_standard.RDS")
@@ -1994,7 +1995,8 @@ write.csv(survey_decomposition, file = f_output_decom_csv_path,  row.names = FAL
 
 # Drop variables we don't want to carry forward to standard dataset
 survey_standard <- survey_standard %>%
-  select(-at_school_after_dest_purp,
+  select(-survey_name_year,
+         -at_school_after_dest_purp,
          -at_school_prior_to_orig_purp,
          -at_work_after_dest_purp,
          -at_work_prior_to_orig_purp,

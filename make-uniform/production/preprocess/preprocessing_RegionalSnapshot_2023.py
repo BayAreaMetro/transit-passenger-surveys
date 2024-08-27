@@ -13,6 +13,7 @@ import geopandas # for home zip => lat/long
 pd.options.display.max_rows = 999
 logger = logging.getLogger("survey_preprocessor")
 
+# See notes_Regional Snapshot_2023.csv
 KEEP_COLUMNS = [
     # 01 Geocoded Location Data
     "orig_lat", # trip origin

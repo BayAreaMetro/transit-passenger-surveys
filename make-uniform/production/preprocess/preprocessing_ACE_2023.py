@@ -6,6 +6,7 @@ import pandas as pd
 
 pd.options.display.max_rows = 999
 
+# See notes_ACE_2023.csv
 KEEP_COLUMNS = [
     # 01 Geocoded Location Data
     "d_lat",
