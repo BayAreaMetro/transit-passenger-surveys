@@ -7,6 +7,15 @@ combine_data <- function(data_standard,
   
   # taps are deprecated -- remove from legacy
   data_legacy <- data_legacy %>% select(!ends_with("_tap"))
+  # auto_suff is auto-biased; use the more clear autos_vs_workers
+  data_legacy <- data_legacy %>%
+    mutate(autos_vs_workers = case_when(
+      auto_suff == "zero autos"       ~ "zero autos",
+      auto_suff == "auto negotiating" ~ "workers > autos",
+      auto_suff == "auto sufficient"  ~ "workers <= autos",
+      # "Missing" doesn't need to be coded as such; leaving unset is more standard
+    )) %>% 
+    select(-auto_suff)
 
   # modify legacy data field names to be consistent with standard data field names
   data_legacy <- data_legacy %>%

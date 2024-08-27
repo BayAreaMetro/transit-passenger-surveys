@@ -1318,33 +1318,80 @@ survey_standard <- survey_standard %>%
 print('Configure demographic variables')
 
 # fill n/a in race columns with 0 so that they won't affect race_dmy_sum calculation
-survey_standard[c('race_dmy_ind', 'race_dmy_asn', 'race_dmy_blk', 'race_dmy_hwi', 'race_dmy_wht', 'race_dmy_mdl_estn',
-                  'race_other_string', 'race_cat')][is.na(survey_standard[c('race_dmy_ind', 'race_dmy_asn', 'race_dmy_blk',
-                                                                            'race_dmy_hwi', 'race_dmy_wht', 'race_dmy_mdl_estn',
-                                                                            'race_other_string', 'race_cat')])] <- 0
-
+suppressWarnings(
+  survey_standard <- survey_standard %>%
+    mutate(race_dmy_ind = as.numeric(race_dmy_ind),
+           race_dmy_asn = as.numeric(race_dmy_asn),
+           race_dmy_blk = as.numeric(race_dmy_blk),
+           race_dmy_hwi = as.numeric(race_dmy_hwi),
+           race_dmy_wht = as.numeric(race_dmy_wht),
+           race_dmy_mdl_estn = as.numeric(race_dmy_mdl_estn))
+)
 survey_standard <- survey_standard %>%
+  replace_na(list(
+    race_dmy_ind = 0,
+    race_dmy_asn = 0,
+    race_dmy_blk = 0,
+    race_dmy_hwi = 0,
+    race_dmy_wht = 0,
+    race_dmy_mdl_estn = 0,
+    # str_length checks > 2
+    race_other_string = 'NA',
+    race_cat = 'NA'
+  ))
 
+print('Tabulation of race_cat by survey')
+table(survey_standard$survey_name_year, survey_standard$race_cat, useNA = 'ifany')
+
+# Note that the "race_categories" variable codes race_cat strings (0=na, 1=specified)
+#      And then that tally is added to race_dmy_sum
+# Therefore race_cat OR race_dmy_[asn,blk,ind,hwi,wht,mdl_estn,oth] should be used but NOT BOTH
+# Or respondents will be counted as multi-racial and tabulated as OTHER just from the same race twice
+survey_standard <- survey_standard %>%
   # Race
-  mutate(race_dmy_ind = as.numeric(race_dmy_ind)) %>%
-  mutate(race_dmy_asn = as.numeric(race_dmy_asn)) %>%
-  mutate(race_dmy_blk = as.numeric(race_dmy_blk)) %>%
-  mutate(race_dmy_hwi = as.numeric(race_dmy_hwi)) %>%
-  mutate(race_dmy_wht = as.numeric(race_dmy_wht)) %>%
-  mutate(race_dmy_mdl_estn = as.numeric(race_dmy_mdl_estn)) %>%
   mutate(race_dmy_oth = ifelse(str_length(as.character(race_other_string)) > 2, 1L, 0L)) %>%
   mutate(race_categories = ifelse(str_length(as.character(race_cat)) > 2, 1L, 0L)) %>%
-  mutate(race_dmy_sum = race_dmy_ind + race_dmy_asn + race_dmy_blk + race_dmy_hwi + race_dmy_wht + race_dmy_mdl_estn + race_dmy_oth + race_categories) %>%
+  mutate(race_dmy_sum = race_dmy_ind + race_dmy_asn + race_dmy_blk + race_dmy_hwi + race_dmy_wht + race_dmy_mdl_estn + race_dmy_oth + race_categories)
 
+print('Tabulation of race_categories by survey')
+table(survey_standard$survey_name_year, survey_standard$race_categories, useNA = 'ifany')
+
+print(head(filter(survey_standard, survey_name=="Regional Snapshot") %>% 
+  select(race_dmy_ind, race_dmy_asn, race_dmy_blk, race_dmy_hwi, race_dmy_wht, race_dmy_mdl_estn,
+         race_other_string, race_dmy_oth, 
+         race_categories, race_cat, 
+         race_dmy_sum), n=30))
+
+survey_standard <- survey_standard %>%
   mutate(race = 'OTHER') %>%
-  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_asn == 1 | race_cat == 'ASIAN'), 'ASIAN', race)) %>%
-  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_blk == 1 | race_cat == 'BLACK'), 'BLACK', race)) %>%
-  mutate(race = ifelse(race_dmy_sum == 1 & (race_dmy_wht == 1 | race_cat == 'WHITE'), 'WHITE', race)) %>%
-  mutate(race = ifelse(race_dmy_sum == 1 & race_dmy_mdl_estn == 1, 'WHITE', race)) %>%
-  mutate(race = ifelse(race_dmy_sum == 2 & (
-         race_dmy_wht == 1 | race_cat == 'WHITE') & (race_dmy_mdl_estn == 1), 'WHITE', race)) %>%
+  mutate(race = ifelse((race_dmy_sum == 1) & ((race_dmy_asn == 1) | (race_cat == 'ASIAN')), 'ASIAN', race)) %>%
+  mutate(race = ifelse((race_dmy_sum == 1) & ((race_dmy_blk == 1) | (race_cat == 'BLACK')), 'BLACK', race)) %>%
+  mutate(race = ifelse((race_dmy_sum == 1) & ((race_dmy_wht == 1) | (race_cat == 'WHITE')), 'WHITE', race)) %>%
+  mutate(race = ifelse((race_dmy_sum == 1) & (race_dmy_mdl_estn == 1), 'WHITE', race)) %>%
+  mutate(race = ifelse((race_dmy_sum == 2) & ((race_dmy_wht == 1) | (race_cat == 'WHITE')) & (race_dmy_mdl_estn == 1), 'WHITE', race))
+
+print('Tabulation of race_cat by race')
+table(survey_standard$race_cat, survey_standard$race, useNA = 'ifany')
+
+
+print('Tabulation of race by survey')
+table(survey_standard$survey_name_year, survey_standard$race, useNA = 'ifany')
+
+survey_standard <- survey_standard %>% 
+select(-race_dmy_ind,
+       -race_dmy_asn,
+       -race_dmy_blk,
+       -race_dmy_hwi,
+       -race_dmy_wht,
+       -race_dmy_mdl_estn,
+       -race_dmy_oth,
+       -race_dmy_sum,
+       -race_cat,
+       -race_categories,
+       -race_other_string)
 
   # Language at home
+survey_standard <- survey_standard %>%
   mutate(language_at_home = ifelse(as.character(language_at_home_binary) == 'OTHER',
                                    as.character(language_at_home_detail),
                                    as.character(language_at_home_binary))) %>%
@@ -1354,18 +1401,8 @@ survey_standard <- survey_standard %>%
   mutate(language_at_home = toupper(language_at_home)) %>%
   select(-language_at_home_binary,
          -language_at_home_detail,
-         -language_at_home_detail_other,
-         -race_dmy_ind,
-         -race_dmy_asn,
-         -race_dmy_blk,
-         -race_dmy_hwi,
-         -race_dmy_wht,
-         -race_dmy_mdl_estn,
-         -race_dmy_oth,
-         -race_dmy_sum,
-         -race_cat,
-         -race_categories,
-         -race_other_string)
+         -language_at_home_detail_other)
+         
 
 # check if all records have the "race" variable filled, race_chk should be empty
 race_chk <- survey_standard[which(is.na(survey_standard$race)),]
@@ -1430,10 +1467,11 @@ survey_standard <- survey_standard %>%
   # second, add fixing for BART
   mutate(weekpart = ifelse((is.na(date_string) & survey_name == "BART"), "WEEKDAY", weekpart))
 
-print('Stats on date_string and time_string for debug:')
-table(survey_standard$date_string, useNA = 'ifany')
+print('Count of date_string for debug:')
+survey_standard %>% count(date_string)
 # This is way too long
-# table(survey_standard$time_string, useNA = 'ifany')
+# print('Count of time_string for debug:')
+# survey_standard %>% count(time_string)
 
 # Get day of the week from date
 survey_standard <- survey_standard %>%
@@ -1468,6 +1506,9 @@ field_dates <- survey_standard %>%
   group_by(survey_name, survey_year) %>%
   filter(!is.na(date)) %>%
   summarise(field_start = min(date), field_end = max(date))
+
+print('Field_dates')
+print(field_dates)
 
 survey_standard <- survey_standard %>%
   left_join(field_dates, by = c("survey_name", "survey_year"))

@@ -32,7 +32,7 @@ Each route in the Bay Area has a `canonical` or reference name. Each route name 
        * The output variable `day_part` is based upon `time_period` if it exists and it's set based upon `survey_time` otherwise.
     1. **Non Operator-based Surveys**
        * The `survey_tech` variable must be included in the survey dataset. Each row should have one of the following values: `heavy rail`, `commuter rail`, `ferry`, `light rail`, `express bus` or `local bus`. It does not need to be in the `Dictionary_for_Standard_Database.csv`
-       * The 'canoncial_operator' variable must be included in the survey dataset. It does not need to be in the `Dictionary_for_Standard_Database.csv`.
+       * The `canoncial_operator` variable must be included in the survey dataset. It does not need to be in the `Dictionary_for_Standard_Database.csv`.
 
 * [Passenger_Railway_Stations_2018.shp (internal link)](https://mtcdrive.box.com/s/dq6f8ca95os4sbsd9aste54dx0c3zrks): lists the agency name, mode (Rapid Rail, Light Rail, Commuter Rail), lat/lon coordinates for all rail stations. Don't need to update now. Need to update when new stations are added (?).
 
