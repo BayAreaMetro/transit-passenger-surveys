@@ -1186,16 +1186,16 @@ survey_standard <- survey_standard %>%
                                    third_after_technology,
                                    last_alight_tech))
 
-print('Stats on transfer_from:')
-table(survey_standard$transfer_from, useNA = 'ifany')
-print('Stats on transfer_to:')
-table(survey_standard$transfer_to, useNA = 'ifany')
-print('Stats on survey_tech:')
-table(survey_standard$survey_tech, useNA = 'ifany')
-print('Stats on first_board_tech:')
-table(survey_standard$first_board_tech, useNA = 'ifany')
-print('Stats on last_alight_tech:')
-table(survey_standard$last_alight_tech, useNA = 'ifany')
+print('Tabulation of transfer_from by survey:')
+table(survey_standard$survey_name_year, survey_standard$transfer_from, useNA = 'ifany')
+print('Tabulation of transfer_to by survey:')
+table(survey_standard$survey_name_year, survey_standard$transfer_to, useNA = 'ifany')
+print('Tabulation of survey_tech by survey:')
+table(survey_standard$survey_name_year, survey_standard$survey_tech, useNA = 'ifany')
+print('Tabulation of first_board_tech by survey:')
+table(survey_standard$survey_name_year, survey_standard$first_board_tech, useNA = 'ifany')
+print('Tabulation of last_alight_tech by survey:')
+table(survey_standard$survey_name_year, survey_standard$last_alight_tech, useNA = 'ifany')
 
 
 # Technology present calculations
@@ -1234,9 +1234,44 @@ for (technology_type in names(technology_exist_labels)) {
 }
 
 
-# Boardings
+# Boardings 
+
+# Figure out for which surveys we have no transfer information at all
+transfer_from_df <- as.data.frame.matrix(table(survey_standard$survey_name_year, survey_standard$transfer_from, useNA = 'ifany'))
+transfer_to_df   <- as.data.frame.matrix(table(survey_standard$survey_name_year, survey_standard$transfer_to,   useNA = 'ifany'))
+# the last column is NA -- rename it
+names(transfer_from_df)[length(names(transfer_from_df))] <-"no_xfer_from"
+names(transfer_to_df  )[length(names(transfer_to_df  ))] <-"no_xfer_to"
+
+# summarize to two columns: has transfer operator from or not, and has transfer operator to or not
+transfer_from_df <- transfer_from_df %>%
+  mutate(has_xfer_from = select(., -no_xfer_from) %>% apply(1, sum)) %>%
+  select(has_xfer_from, no_xfer_from)
+transfer_to_df <- transfer_to_df %>%
+  mutate(has_xfer_to = (select(., -no_xfer_to) %>% apply(1, sum))) %>%
+  select(has_xfer_to, no_xfer_to)
+
+# make survey_name_year a column instead of the names
+transfer_from_df <- cbind(survey_name_year = rownames(transfer_from_df), transfer_from_df)
+transfer_to_df   <- cbind(survey_name_year = rownames(transfer_to_df  ), transfer_to_df  )
+rownames(transfer_from_df) <- 1:nrow(transfer_from_df)
+rownames(transfer_to_df  ) <- 1:nrow(transfer_to_df  )
+
+# put them together and determine if transfers were surveyed
+transfer_operator_df <- full_join(transfer_from_df, transfer_to_df, by = join_by(survey_name_year))
+transfer_operator_df <- transfer_operator_df %>%
+  mutate(transfers_surveyed = (has_xfer_from + has_xfer_to) > 0)
+
+print("transfer_operator_df:")
+print(transfer_operator_df)
+
+# set boardings = 1 IFF transfers were surveyed; otherwise leave as NA
 survey_standard <- survey_standard %>%
-  mutate(boardings = 1L) %>%
+  left_join(select(transfer_operator_df, survey_name_year, transfers_surveyed),
+            by = join_by(survey_name_year)) %>%
+  mutate(boardings = ifelse(transfers_surveyed, 1L, NA))
+
+survey_standard <- survey_standard %>%
   mutate(boardings = ifelse(!(first_before_technology  == "Missing"), boardings + 1, boardings)) %>%
   mutate(boardings = ifelse(!(second_before_technology == "Missing"), boardings + 1, boardings)) %>%
   mutate(boardings = ifelse(!(third_before_technology  == "Missing"), boardings + 1, boardings)) %>%
@@ -1244,8 +1279,8 @@ survey_standard <- survey_standard %>%
   mutate(boardings = ifelse(!(second_after_technology  == "Missing"), boardings + 1, boardings)) %>%
   mutate(boardings = ifelse(!(third_after_technology   == "Missing"), boardings + 1, boardings))
 
-print('Stats on number of boardings:')
-table(survey_standard$boardings, useNA = 'ifany')
+print('Tabulation of boardings by survey:')
+table(survey_standard$survey_name_year, survey_standard$boardings, useNA = 'ifany')
 
 # If missing, compute number_transfers_orig_board and number_transfers_alight_dest
 survey_standard <- survey_standard %>%
@@ -1261,15 +1296,18 @@ survey_standard <- survey_standard %>%
                                                first + second + third, number_transfers_alight_dest)) %>%
   select(-first, -second, -third)
 
-print('Stats on number_transfers_orig_board:')
-table(survey_standard$number_transfers_orig_board, useNA = 'ifany')
-print('Stats on number_transfers_alight_dest:')
-table(survey_standard$number_transfers_alight_dest, useNA = 'ifany')
+print('Tabulation of number_transfers_orig_board by survey:')
+table(survey_standard$survey_name_year, survey_standard$number_transfers_orig_board, useNA = 'ifany')
+print('Tabulation of number_transfers_alight_dest by survey:')
+table(survey_standard$survey_name_year, survey_standard$number_transfers_alight_dest, useNA = 'ifany')
 
 survey_standard <- survey_standard %>%
   mutate(survey_boardings = 1L +
            as.numeric(number_transfers_orig_board) +
            as.numeric(number_transfers_alight_dest) )
+
+print('Tabulation of survey_boardings by survey:')
+table(survey_standard$survey_name_year, survey_standard$survey_boardings, useNA = 'ifany')
 
 print('Stats on boardings/survey_boardings for debug:')
 table(survey_standard$boardings, survey_standard$survey_boardings, useNA = 'ifany')
