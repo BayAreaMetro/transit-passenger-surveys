@@ -801,9 +801,11 @@ survey_standard <- survey_standard %>% mutate(
 
   separate(temp_tour,c("tour_purp", "tour_purp_case"), sep="_") %>%
 
-# for Capitol Corridor 2019 survey, use 'trip_purp' instead of 'orig/dest_purp'
-  mutate(tour_purp = ifelse(survey_name == 'Capitol Corridor', trip_purp, tour_purp)) %>%
-  mutate(tour_purp_case = ifelse(survey_name == 'Capitol Corridor', 'CC trip_purp', tour_purp_case)) %>%
+# for surveys that include 'trip_purp' instead of 'orig/dest_purp', assume that's the tour purpose
+  mutate(tour_purp = ifelse(
+    (tour_purp == 'missing') & (!is.na(trip_purp)), trip_purp, tour_purp)) %>%
+  mutate(tour_purp_case = ifelse(
+    (tour_purp == 'missing') & (!is.na(trip_purp)), 'trip_purp', tour_purp_case)) %>%
   
 # finally, if work-related or business apt, categorize as 'other maintenance'
 
@@ -811,8 +813,8 @@ survey_standard <- survey_standard %>% mutate(
       
 # Output frequency file, test file to review missing cases, and test of duplicates
 
-print('Stats on tour_purp:')
-table(survey_standard$tour_purp, useNA = 'ifany')
+print('Tabulation of tour_purp by survey:')
+table(survey_standard$survey_name_year, survey_standard$tour_purp, useNA = 'ifany')
 
 print('Examine interim output check_missing_tour.csv for records with missing tour_purp')
 missing_tour_df <- survey_standard %>% 
