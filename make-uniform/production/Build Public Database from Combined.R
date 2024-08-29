@@ -1,5 +1,22 @@
 # Build Public Database from Combined.R
 # Get rid of scientific notation
+# What this script does:"
+"
+1. Brings in combined (legacy + standard) dataset
+2. Associates each operator with its technology
+3. Removes weekend records and dummy records (placeholder weight values with no characteristic data. Created
+   for some operators when ridership data shows a station-to-station combination that wasn't found in the survey.
+   An example would be something like a BART trip from North Concord to Castro Valley - rare, but not impossible.
+4. Remove older instances of surveys conducted more than once, with the first survey instance being before 2015.
+5. Create aggregate tour purposes. 
+6. Create access/egress mode imputation variables - not ultimately used outside of a modeling context. 
+7. Name operators in a consistent way, particularly multi-modal operators - e.g., SamTrans [Local]
+8. Populate values for transfer_from and transfer_tech technology.
+9. Update 'period' variable with abbreviated names from day_part 
+10. Subset variables for export
+11. Perform spatial match of lat/long variables to census tract geography
+12. Append census tract information, remove lat/long variables, and export dataset to CSV
+"
 
 options(scipen = 99999)
 
