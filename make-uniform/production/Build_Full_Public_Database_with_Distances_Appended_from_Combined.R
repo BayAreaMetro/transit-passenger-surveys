@@ -16,7 +16,7 @@
 12. Subset variables for export
 13. Perform Haversine (crow-fly) boarding-to-alighting distance calculation
 14. Recode continuous age data into categories
-15. Recode race/ethnicity data into white, Black, Asian, Hispanic other
+15. Recode race/ethnicity data into white, Black, Asian, Hispanic, other
 16. Recode English proficiency data by adding *very well* for English-only speakers
 17. Output R and CSV versions
 "
