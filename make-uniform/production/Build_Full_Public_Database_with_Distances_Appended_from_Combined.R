@@ -1,4 +1,26 @@
 # Build_Public_Database_with_Raw_Lat_Long_from_Combined.R
+
+# This script created the input for the MTC pre-Covid transit dashboard. What the script does:
+"
+1. Brings in combined (legacy + standard) dataset
+2. Associates each operator with its technology
+3. Removes Capitol Corridor from the dataset
+4. Removes weekend records and dummy records (placeholder weight values with no characteristic data. Created
+   for some operators when ridership data shows a station-to-station combination that wasn't found in the survey.
+   An example would be something like a BART trip from North Concord to Castro Valley - rare, but not impossible.
+5. Leaves in all survey instances, including repeat surveys for some operators
+8. Name operators in a consistent way, particularly multi-modal operators - e.g., SamTrans [Local]
+9. Populate values for transfer_from and transfer_to operator technology.
+10. Update 'period' variable with abbreviated names from day_part 
+11. Perform spatial match of lat/long variables to California counties
+12. Subset variables for export
+13. Perform Haversine (crow-fly) boarding-to-alighting distance calculation
+14. Recode continuous age data into categories
+15. Recode race/ethnicity data into white, Black, Asian, other
+16. Recode English proficiency data by adding *very well* for English-only speakers
+17. Output R and CSV versions
+"
+
 # Get rid of scientific notation
 
 options(scipen = 99999)

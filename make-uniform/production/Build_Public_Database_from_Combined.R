@@ -14,7 +14,7 @@
 9. Update 'period' variable with abbreviated names from day_part 
 10. Subset variables for export
 11. Perform spatial match of lat/long variables to census tract geography
-12. Append census tract information, remove lat/long variables, and export dataset to CSV
+12. Append census tract information, remove lat/long variables, and export dataset to R and CSV versions
 "
 
 # Get rid of scientific notation
