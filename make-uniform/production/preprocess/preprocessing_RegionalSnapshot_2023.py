@@ -62,7 +62,7 @@ KEEP_COLUMNS = [
     "Strata"             # time_period: note AM is not split into EA/AM and PM is not split into PM/EV
 ]
 snapshot_dir = pathlib.Path("M:\Data\OnBoard\Data and Reports\Snapshot Survey")
-snapshot_xlsx = snapshot_dir / "mtc snapshot survey_final data file.xlsx"
+snapshot_xlsx = snapshot_dir / "mtc snapshot survey_final data file_for regional MTC only_REVISED 28 August 2024.xlsx"
 
 LOG_FILE = "mtc_snapshot_preprocess.log"
 # ================= Create logger =================
