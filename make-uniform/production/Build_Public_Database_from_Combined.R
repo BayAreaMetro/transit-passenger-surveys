@@ -10,7 +10,7 @@
 5. Create aggregate tour purposes. 
 6. Create access/egress mode imputation variables - not ultimately used outside of a modeling context. 
 7. Name operators in a consistent way, particularly multi-modal operators - e.g., SamTrans [Local]
-8. Populate values for transfer_from and transfer_tech technology.
+8. Populate values for transfer_from and transfer_to operator technology.
 9. Update 'period' variable with abbreviated names from day_part 
 10. Subset variables for export
 11. Perform spatial match of lat/long variables to census tract geography
