@@ -1,5 +1,5 @@
 # Build Public Database from Combined.R
-# What this script does:"
+# What this script does:
 "
 1. Brings in combined (legacy + standard) dataset
 2. Associates each operator with its technology
