@@ -1,5 +1,4 @@
 # Build Public Database from Combined.R
-# Get rid of scientific notation
 # What this script does:"
 "
 1. Brings in combined (legacy + standard) dataset
@@ -17,6 +16,8 @@
 11. Perform spatial match of lat/long variables to census tract geography
 12. Append census tract information, remove lat/long variables, and export dataset to CSV
 "
+
+# Get rid of scientific notation
 
 options(scipen = 99999)
 
