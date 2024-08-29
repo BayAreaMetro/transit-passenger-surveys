@@ -7,9 +7,16 @@
 3. Update relevant index files:
    1. [canonical_route_crosswalk.csv](canonical_route_crosswalk.csv) add new transit routes and define the canonical route name, canonical operator name, and technology following the standard format.
    2. [Dictionary_for_Standard_Database.csv](Dictionary_for_Standard_Database.csv): add the variable names used in the new survey.
-4. Run the [Build_Standard_Database.R](Build_Standard_Database.R) script. This script contains notes where user interventions are needed ("# _User Intervention_") and where file directories, reference files, etc. need to be updated when adding a new survey's data.
-5. Check that things look correct for the complete dataset by refreshing [TransitPassengerSurvey_fullStandardizedDataset.twb](TransitPassengerSurvey_fullStandardizedDataset.twb), which is published internally [here](https://10ay.online.tableau.com/#/site/metropolitantransportationcommission/workbooks/1896779?:origin=card_share_link) 
 
+4. Run the [Build_Standard_Database.R](Build_Standard_Database.R) script. This script contains notes where user interventions are needed ("# _User Intervention_") and where file directories, reference files, etc. need to be updated when adding a new survey's data. This will create a subdirectory `M:\Data\OnBoard\Data and Reports\_data_Standardized\standardized_[yyyy-mm-dd]` and output the following files into that subdirectory:
+    1. `Build_Standard_Database.log` - detailed log file created during processing
+    1. `survey_standard.[csv,RDS]` - standardized survey dataset, not including legacy datasets
+    1. `ancillary_variables.[csv,RDS]` - ancillary variables for survey dataset, not including legacy datasets. Ancillary variables are: `at_school_after_dest_purp`, `at_school_prior_to_orig_purp`, `at_work_after_dest_purp`, `at_work_prior_to_orig_purp`
+    1. `survey_decomposition.[csv,RDS]` - ancillary variables for survey dataset for decomposition analysis. (TODO: explain this, link)
+    1. `survey_combined.[csv,Rdata]` - legacy and standardized survey datasets combined.
+    1. `check_missing_tour.csv` and `check_transfers.csv` - files for debugging processing.
+    
+5. Check that things look correct for the complete dataset by refreshing [TransitPassengerSurvey_fullStandardizedDataset.twb](TransitPassengerSurvey_fullStandardizedDataset.twb), which is published internally [here](https://10ay.online.tableau.com/#/site/metropolitantransportationcommission/workbooks/1896779?:origin=card_share_link) 
 
 ### Reference files
 

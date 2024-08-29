@@ -16,12 +16,15 @@ logger = logging.getLogger("survey_preprocessor")
 # See notes_Regional Snapshot_2023.csv
 KEEP_COLUMNS = [
     # 01 Geocoded Location Data
-    "orig_lat", # trip origin
+    "orig_lat",          # trip origin
     "orig_lon",
-    "dest_lat", # trip destination
+    "orig_geo_level",    # specification level of origin, one of "point" or "city"
+    "dest_lat",          # trip destination
     "dest_lon",
-    "home_lat", # home location is via zipcode
-    "home_lon",
+    "dest_geo_level",    # specification level of destination, one of "point" or "city"
+    "home_lat",          # home location is via zipcode
+    "home_lon",        
+    "home_geo_level",    # specification level of home, here it's "zip"
     # 02 Access and Egress Modes
     # 03 Transit Transfers - no data
     # 04 Origin and Destination Trip Purpose - we only have trip purpose
@@ -100,19 +103,137 @@ logging.debug(f"head:\n{snapshot_df.head()}")
 logging.debug(f"dtypes:\n{snapshot_df.dtypes}")
 
 # 01 Geocoded Location Data
+
+# first, read place (city) shapefile
+PLACE_SHAPEFILE = "M:\\Data\\GIS layers\\Census\\2023\\tl_2023_06_place\\tl_2023_06_place.shp"
+fh.setLevel(logging.INFO)
+place_gdf = geopandas.read_file(PLACE_SHAPEFILE)
+fh.setLevel(logging.DEBUG)
+logging.info(f"Read {len(place_gdf):,} rows from {PLACE_SHAPEFILE}")
+logging.debug(f"head:\n{place_gdf.head()}")
+logging.debug(f"dtypes:\n{place_gdf.dtypes}")
+logging.debug(f"crs:\n{place_gdf.crs}")
+
+# There are a number of entires with duplicate names; choose the one with the larger area
+place_gdf.sort_values(by=['NAME','ALAND'], ascending=[True,False], inplace=True)
+logging.debug(f"Places with duplicate names:\n{place_gdf.loc[place_gdf.duplicated(subset='NAME', keep=False)]}")
+place_gdf = place_gdf.loc[place_gdf.duplicated(subset='NAME', keep='first')]
+
+# transform to WGS84
+place_gdf.to_crs(epsg=4326, inplace=True)
+logging.debug(f"converted to crs:\n{place_gdf.crs}")
+
+# calculate centroid
+place_centroid_coords = place_gdf.geometry.centroid.get_coordinates()
+place_centroid_coords["PLACE_NAME"] = place_gdf.NAME.str.upper()
+place_centroid_coords.rename(columns={"x":"place_lon", "y":"place_lat"}, inplace=True)
+logging.debug(f"place_centroid_coords.head():\n{place_centroid_coords.head(10)}")
+
 # ==== trip origin ====
 snapshot_df.loc[ snapshot_df["Orig_Lat/Long"].str.lower()=="unspecified", "Orig_Lat/Long"] = None
 lat_lon = snapshot_df["Orig_Lat/Long"].str.split(",", expand=True)
 snapshot_df["orig_lat"] = pd.to_numeric(lat_lon[0], errors='coerce') # invalid parsing will be set as NaN
 snapshot_df["orig_lon"] = pd.to_numeric(lat_lon[1], errors='coerce')
+# note specifcation level for these
+snapshot_df.loc[ pd.notna(snapshot_df.orig_lat), "orig_geo_level" ] = "point"
+
+# a few spelling fixes
+for city_col in ["Q3a", "Q4a"]:
+    snapshot_df[city_col] = snapshot_df[city_col].str.upper()
+    snapshot_df[city_col] = snapshot_df[city_col].str.strip() # strip whitespace
+    snapshot_df[city_col] = snapshot_df[city_col].str.strip(".") # strip periods
+    snapshot_df.loc[ snapshot_df[city_col]=="UNSPECIFED",       city_col] = "UNSPECIFIED"
+    snapshot_df.loc[ snapshot_df[city_col]=="HILLSDALE",        city_col] = "SAN MATEO"  # shopping mall/Caltrain station in San Mateo
+    snapshot_df.loc[ snapshot_df[city_col]=="SAINT HELENA",     city_col] = "ST. HELENA"
+    snapshot_df.loc[ snapshot_df[city_col]=="SANTA HELENA",     city_col] = "ST. HELENA"
+    snapshot_df.loc[ snapshot_df[city_col]=="TERRA LINDA",      city_col] = "SAN RAFAEL" # district of San Rafael
+    snapshot_df.loc[ snapshot_df[city_col]=="BENECIA",          city_col] = "BENICIA"
+    snapshot_df.loc[ snapshot_df[city_col]=="SAN FRANCICO",     city_col] = "SAN FRANCISCO"
+    snapshot_df.loc[ snapshot_df[city_col]=="BERNAL HEIGHTS",   city_col] = "SAN FRANCISCO"
+    snapshot_df.loc[ snapshot_df[city_col]=="SUISUN",           city_col] = "SUISUN CITY"
+    snapshot_df.loc[ snapshot_df[city_col]=="VACAVILLLE",       city_col] = "VACAVILLE"
+    snapshot_df.loc[ snapshot_df[city_col]=="PETAALUMA",        city_col] = "PETALUMA"
+    snapshot_df.loc[ snapshot_df[city_col]=="MILBRAE",          city_col] = "MILLBRAE"
+    snapshot_df.loc[ snapshot_df[city_col]=="MARE ISLAND",      city_col] = "VALLEJO" # https://en.wikipedia.org/wiki/Mare_Island
+    snapshot_df.loc[ snapshot_df[city_col]=="WINDSOR CA",       city_col] = "WINDSOR"
+    snapshot_df.loc[ snapshot_df[city_col]=="BERRYESSA",        city_col] = "SAN JOSE"
+    snapshot_df.loc[ snapshot_df[city_col]=="PITTSBURGH",       city_col] = "PITTSBURG"
+    snapshot_df.loc[ snapshot_df[city_col]=="BAYPOINT",         city_col] = "BAY POINT"
+    #  stations
+    snapshot_df.loc[ snapshot_df[city_col]=="NORTH BERKELEY",   city_col] = "BERKELEY"
+    snapshot_df.loc[ snapshot_df[city_col]=="BLOSSOM HILL",     city_col] = "SAN JOSE"
+    snapshot_df.loc[ snapshot_df[city_col]=="LAWRENCE",         city_col] = "SUNNYVALE"
+    snapshot_df.loc[ snapshot_df[city_col]=="LAURENCE STATION", city_col] = "SUNNYVALE"
+    snapshot_df.loc[ snapshot_df[city_col]=="SOUTH HAYWARD",    city_col] = "HAYWARD"
+    snapshot_df.loc[ snapshot_df[city_col]=="MONTGOMERY",       city_col] = "SAN FRANCISCO"
+
+# try for place-based join on origin city
+snapshot_df = pd.merge(
+    left      = snapshot_df,
+    right     = place_centroid_coords,
+    how       = 'left',
+    left_on   = 'Q3a', # origin city
+    right_on  = 'PLACE_NAME',
+    indicator = True,
+    validate  = 'many_to_one'
+)
+logging.debug("success joining on origin city:\n" + 
+              str(snapshot_df.loc[ pd.isna(snapshot_df.orig_lat) &
+                                   pd.notna(snapshot_df.Q3a), '_merge'].value_counts()))
+logging.debug("unmached: \n" + 
+              str(snapshot_df.loc[ pd.isna(snapshot_df.orig_lat) &
+                                   pd.notna(snapshot_df.Q3a) & 
+                                   (snapshot_df._merge=='left_only'), ['Q3a','_merge']].value_counts()))
+# set it
+snapshot_df.loc[ pd.isna(snapshot_df.orig_lat) &
+                 pd.notna(snapshot_df.place_lat), "orig_geo_level"] = "city"
+snapshot_df.loc[ pd.isna(snapshot_df.orig_lat) &
+                 pd.notna(snapshot_df.place_lat), "orig_lat"] = snapshot_df.place_lat
+snapshot_df.loc[ pd.isna(snapshot_df.orig_lon) &
+                 pd.notna(snapshot_df.place_lon), "orig_lon"] = snapshot_df.place_lon
+snapshot_df.drop(columns=['_merge','place_lat','place_lon'], inplace=True)
+logging.debug(f"orig_geo_level:\n{snapshot_df.orig_geo_level.value_counts(dropna=False)}")
 
 # ==== trip destination ====
 snapshot_df.loc[ snapshot_df["Dest_Lat/Long"].str.lower()=="unspecified", "Dest_Lat/Long"] = None
 lat_lon = snapshot_df["Dest_Lat/Long"].str.split(",", expand=True)
 snapshot_df["dest_lat"] = pd.to_numeric(lat_lon[0], errors='coerce') # invalid parsing will be set as NaN
 snapshot_df["dest_lon"] = pd.to_numeric(lat_lon[1], errors='coerce')
+# note specifcation level for these
+snapshot_df.loc[ pd.notna(snapshot_df.orig_lat), "dest_geo_level" ] = "point"
 
-logging.debug(f"Location head():\n{snapshot_df[['CCGID','Orig_Lat/Long','orig_lat','orig_lon','Dest_Lat/Long','dest_lat','dest_lon']].head()}")
+logging.debug(f"Location head():\n" + str(snapshot_df[[
+    'CCGID',
+    'Orig_Lat/Long','orig_lat','orig_lon','orig_geo_level',
+    'Dest_Lat/Long','dest_lat','dest_lon','dest_geo_level']].head()))
+
+# try for place-based join on origin city
+snapshot_df = pd.merge(
+    left      = snapshot_df,
+    right     = place_centroid_coords,
+    how       = 'left',
+    left_on   = 'Q4a', # origin city
+    right_on  = 'PLACE_NAME',
+    indicator = True,
+    validate  = 'many_to_one'
+)
+
+logging.debug("success joining on destination city:\n" + 
+              str(snapshot_df.loc[ pd.isna(snapshot_df.dest_lat) &
+                                   pd.notna(snapshot_df.Q4a), '_merge'].value_counts()))
+logging.debug("unmached: \n" + 
+              str(snapshot_df.loc[ pd.isna(snapshot_df.dest_lat) &
+                                   pd.notna(snapshot_df.Q4a) & 
+                                   (snapshot_df._merge=='left_only'), ['Q4a','_merge']].value_counts()))
+# set it
+snapshot_df.loc[ pd.isna(snapshot_df.dest_lat) &
+                 pd.notna(snapshot_df.place_lat), "dest_geo_level"] = "city"
+snapshot_df.loc[ pd.isna(snapshot_df.dest_lat) &
+                 pd.notna(snapshot_df.place_lat), "dest_lat"] = snapshot_df.place_lat
+snapshot_df.loc[ pd.isna(snapshot_df.dest_lon) &
+                 pd.notna(snapshot_df.place_lon), "dest_lon"] = snapshot_df.place_lon
+snapshot_df.drop(columns=['_merge','place_lat','place_lon'], inplace=True)
+logging.debug(f"dest_geo_level:\n{snapshot_df.dest_geo_level.value_counts(dropna=False)}")
 
 # zip code
 logging.debug(f"Zip_Code value_counts().head():\n{snapshot_df.Zip_Code.value_counts(dropna=False).head(20)}")
@@ -147,6 +268,7 @@ snapshot_df = pd.merge(
     indicator=True)
 logging.debug(f"Zip_Code join results\n{snapshot_df._merge.value_counts(dropna=False)}")
 snapshot_df.drop(columns=['_merge'], inplace=True)
+snapshot_df["home_geo_level"] = "zip"
 
 # 04 Origin and Destination Trip Purpose - we only have trip purpose
 logging.debug(f"trip_purpose:\n{snapshot_df.Q1.value_counts(dropna=False)}")
@@ -283,6 +405,11 @@ logging.debug(f"Q15 (Language at home) M for multiple: {len(snapshot_df[snapshot
 
 # 10 Survey Metadata
 snapshot_df.rename(columns={'CCGID':'ID'}, inplace=True)
+logging.debug(f"Duplicated IDs:\n{snapshot_df.loc[ snapshot_df.duplicated(subset=['ID'], keep=False) ]}")
+# verify it's unique and always set
+assert(len(snapshot_df.ID.unique()) == len(snapshot_df))
+assert(len(snapshot_df.loc[ pd.isna(snapshot_df.ID)]) == 0)
+
 SYSCODE_TO_OPERATOR = {
     1 : "AC TRANSIT",
     2 : "BART",

@@ -96,6 +96,10 @@ check_duplicate_variables <- function(df_duplicates) {
     filter(count > 1) %>%
     nrow()
   
+  if (mult_ref_count > 0) {
+    print("Found duplicate rows in dataframe:")
+    print(ref_count %>% filter(count > 1))
+  }
   stopifnot(mult_ref_count == 0)
   
 }
