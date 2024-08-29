@@ -5,7 +5,7 @@
 2. Associates each operator with its technology
 3. Removes weekend records and dummy records (placeholder weight values with no characteristic data. Created
    for some operators when ridership data shows a station-to-station combination that wasn't found in the survey.
-   An example would be something like a BART trip from North Concord to Castro Valley - rare, but not impossible.
+   An example would be something like a BART trip from North Concord to Castro Valley - rare, but not impossible.)
 4. Remove older instances of surveys conducted more than once, with the first survey instance being before 2015.
 5. Create aggregate tour purposes. 
 6. Create access/egress mode imputation variables - not ultimately used outside of a modeling context. 

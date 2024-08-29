@@ -7,7 +7,7 @@
 3. Removes Capitol Corridor from the dataset
 4. Removes weekend records and dummy records (placeholder weight values with no characteristic data. Created
    for some operators when ridership data shows a station-to-station combination that wasn't found in the survey.
-   An example would be something like a BART trip from North Concord to Castro Valley - rare, but not impossible.
+   An example would be something like a BART trip from North Concord to Castro Valley - rare, but not impossible.)
 5. Leaves in all survey instances, including repeat surveys for some operators
 8. Name operators in a consistent way, particularly multi-modal operators - e.g., SamTrans [Local]
 9. Populate values for transfer_from and transfer_to operator technology.
