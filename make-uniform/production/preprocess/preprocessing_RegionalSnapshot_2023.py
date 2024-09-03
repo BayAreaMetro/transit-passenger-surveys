@@ -57,7 +57,7 @@ KEEP_COLUMNS = [
     "Weight",            # weight
     "Source",            # survey_type
     "Lang",              # interview_language
-    "Date",              # interivew date
+    "Date",              # interview date
     "canonical_operator",# from Syscode
     "survey_tech",       # from Type and Syscode
     "Route",             # survey route, to be added to canonical_route_crosswalk
@@ -117,7 +117,7 @@ logging.debug(f"crs:\n{place_gdf.crs}")
 # There are a number of entires with duplicate names; choose the one with the larger area
 place_gdf.sort_values(by=['NAME','ALAND'], ascending=[True,False], inplace=True)
 logging.debug(f"Places with duplicate names:\n{place_gdf.loc[place_gdf.duplicated(subset='NAME', keep=False)]}")
-place_gdf = place_gdf.loc[place_gdf.duplicated(subset='NAME', keep='first')]
+place_gdf.drop_duplicates(subset='NAME', keep='first', inplace=True)
 
 # transform to WGS84
 place_gdf.to_crs(epsg=4326, inplace=True)
