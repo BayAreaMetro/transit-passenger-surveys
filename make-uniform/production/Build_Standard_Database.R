@@ -128,7 +128,7 @@ survey_input_df <- survey_input_df %>% add_row(
   survey_name     = 'AC Transit',
   survey_year     = 2018,
   operator        = 'AC TRANSIT',
-  default_tech    = 'local_bus',
+  default_tech    = 'local bus',
   raw_data_path   = file.path(
     TPS_SURVEY_PATH,
     "AC Transit","2018","As CSV",
@@ -621,15 +621,7 @@ survey_flat <- survey_flat %>%
 
 # for multi-tech surveys, survey_tech = technology
 survey_flat <- survey_flat %>%
-  mutate(survey_tech = ifelse(survey_name %in% c('AC Transit',
-                                              'FAST',
-                                              'Golden Gate Transit',
-                                              'Napa Vine',
-                                              'SF Muni',
-                                              'VTA',
-                                              'WestCAT',
-                                              'Soltrans',
-                                              'County Connection'),
+  mutate(survey_tech = ifelse(!is.na(technology),
                               technology,
                               survey_tech))
 # we're done with technology so remove it; survey_tech is the one to use
