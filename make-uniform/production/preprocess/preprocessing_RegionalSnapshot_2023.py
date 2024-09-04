@@ -57,7 +57,7 @@ KEEP_COLUMNS = [
     "Weight",            # weight
     "Source",            # survey_type
     "Lang",              # interview_language
-    "Date",              # interview date
+    "interview_date",    # from Intdate
     "canonical_operator",# from Syscode
     "survey_tech",       # from Type and Syscode
     "Route",             # survey route, to be added to canonical_route_crosswalk
@@ -97,7 +97,6 @@ snapshot_df = pd.read_excel(
     }
 )
 
-snapshot_df["Date"] = pd.to_datetime(snapshot_df.Date)
 logging.info(f"Read {len(snapshot_df):,} lines from {snapshot_xlsx}")
 logging.debug(f"head:\n{snapshot_df.head()}")
 logging.debug(f"dtypes:\n{snapshot_df.dtypes}")
@@ -409,6 +408,35 @@ logging.debug(f"Duplicated IDs:\n{snapshot_df.loc[ snapshot_df.duplicated(subset
 # verify it's unique and always set
 assert(len(snapshot_df.ID.unique()) == len(snapshot_df))
 assert(len(snapshot_df.loc[ pd.isna(snapshot_df.ID)]) == 0)
+
+INTERVIEW_DATE_RANGE = pd.concat([
+    pd.date_range(start="2023-08-17", end="2023-08-17", freq="1D").to_series(index=[1],           name='interview_date'),
+    pd.date_range(start="2023-08-22", end="2023-08-25", freq="1D").to_series(index=[2,3,4,5],     name='interview_date'),
+    pd.date_range(start="2023-09-19", end="2023-11-09", freq="1D").to_series(index=range(6,58),   name='interview_date'),
+    pd.date_range(start="2023-11-12", end="2023-11-16", freq="1D").to_series(index=range(58,63),  name='interview_date'),
+    pd.date_range(start="2023-11-28", end="2023-12-02", freq="1D").to_series(index=range(63,68),  name='interview_date'),
+    pd.date_range(start="2023-12-04", end="2023-12-09", freq="1D").to_series(index=range(68,74),  name='interview_date'),
+    pd.date_range(start="2023-12-11", end="2023-12-15", freq="1D").to_series(index=range(74,79),  name='interview_date'),
+    pd.date_range(start="2024-02-01", end="2024-02-03", freq="1D").to_series(index=range(79,82),  name='interview_date'),
+    pd.date_range(start="2024-02-05", end="2024-02-15", freq="1D").to_series(index=range(82,93),  name='interview_date'),
+    pd.date_range(start="2024-02-17", end="2024-02-18", freq="1D").to_series(index=range(93,95),  name='interview_date'),
+    pd.date_range(start="2024-02-20", end="2024-02-23", freq="1D").to_series(index=range(95,99),  name='interview_date'),
+    pd.date_range(start="2024-02-26", end="2024-03-02", freq="1D").to_series(index=range(99,105), name='interview_date'),
+    pd.date_range(start="2024-03-04", end="2024-03-09", freq="1D").to_series(index=range(105,111),name='interview_date'),
+    pd.date_range(start="2024-03-11", end="2024-03-30", freq="1D").to_series(index=range(111,131),name='interview_date'),
+    pd.date_range(start="2024-04-01", end="2024-05-23", freq="1D").to_series(index=range(131,184),name='interview_date'),
+]).to_frame()
+INTERVIEW_DATE_RANGE["Intdate"] = INTERVIEW_DATE_RANGE.index
+snapshot_df = pd.merge(
+    left=snapshot_df,
+    right=INTERVIEW_DATE_RANGE,
+    on=['Intdate'],
+    how='left',
+    indicator=True,
+    validate='many_to_one'
+)
+logging.debug(f'Intdate merge:\n{snapshot_df._merge.value_counts()}')
+snapshot_df.drop(columns=['_merge'], inplace=True)
 
 SYSCODE_TO_OPERATOR = {
     1 : "AC TRANSIT",
