@@ -87,6 +87,7 @@ run_log <- file.path(TPS_SURVEY_STANDARDIZED_PATH,
 print(paste("Writing log to",run_log))
 # print wide since it's to a log file
 options(width = 1000)
+options(datatable.print.nrows = 100)
 options(warn=2) # error on warning
 # options(error=traceback)
 # don't warn: "summarise()` has grouped output by ... You can override using the `.groups` argument."
@@ -408,6 +409,17 @@ survey_input_df <- survey_input_df %>% add_row(
     TPS_SURVEY_PATH,
     "ACE","2023",
     "ACE_Onboard_preprocessed.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  survey_name     = 'Golden Gate Transit',
+  survey_year     = 2023,
+  operator        = NA,
+  default_tech    = NA,
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "Golden Gate Transit","2023",
+    "GoldenGate_Transit_Ferry_preprocessed.csv"
   )
 )
 survey_input_df <- survey_input_df %>% add_row(
