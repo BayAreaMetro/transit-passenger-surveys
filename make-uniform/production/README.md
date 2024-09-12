@@ -14,7 +14,7 @@
     1. `ancillary_variables.[csv,RDS]` - ancillary variables for survey dataset, not including legacy datasets. Ancillary variables are: `at_school_after_dest_purp`, `at_school_prior_to_orig_purp`, `at_work_after_dest_purp`, `at_work_prior_to_orig_purp`
     1. `survey_decomposition.[csv,RDS]` - ancillary variables for survey dataset for decomposition analysis. (TODO: explain this, link)
     1. `survey_combined.[csv,Rdata]` - legacy and standardized survey datasets combined.
-    1. `check_missing_tour.csv` and `check_transfers.csv` - files for debugging processing.
+    1. `check_missing_tour.csv` and `check_transfers.csv` - files for debugging processing
     
 5. Check that things look correct for the complete dataset by refreshing [TransitPassengerSurvey_fullStandardizedDataset.twb](TransitPassengerSurvey_fullStandardizedDataset.twb), which is published internally [here](https://10ay.online.tableau.com/#/site/metropolitantransportationcommission/workbooks/1896779?:origin=card_share_link) 
 

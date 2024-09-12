@@ -6,7 +6,27 @@
 # procedures to process surveys into a standard database.  See
 # `Extract Variables from Legacy Surveys.Rmd` for procedures to extract
 # variables from legacy surveys (i.e., those with SAS summary scripts).
-
+#
+# This script does the following:
+# 1. Reads a bunch of survey data input files. Most of these are operator-specific, but not all.
+#    Each dataset needs accompanying information on how the variables are standardized,
+#    which can be found in `Dictionary_for_Standard_Database.csv`
+#
+# 2. Clean up some messy variables
+#    [todo: add more info]
+#
+# 3. Geocoding - for location variables (home, work and school location, 
+#    trip origin and destination, survey board and alight location,
+#    first board and last alight location), use spatial join to assign those
+#    locations to:
+#    - TM1 TAZ, TM2 TAZ, TM2 MAZ
+#    - Census 2020 PUMA, county, tract
+#
+# 4. [More stuff here]
+#
+# 5. Combine with legacy data and write a bunch output files; see the README.md in
+#    this directory for detail.
+#
 # To use these scripts, analysts must intervene at specific locations. To assist
 # in this work, we've added notes where interventions are necessary.
 
@@ -15,17 +35,13 @@
 
 list_of_packages <- c(
   "geosphere",
-  "ggplot2",
-  "knitr",
-  "rlang",
   "sf",
-  "tidyverse"
+  "tidyverse",
+  "tigris",
+  "reldist"
 )
-
 new_packages <- list_of_packages[!(list_of_packages %in% installed.packages()[,"Package"])]
-
 if(length(new_packages)) install.packages(new_packages)
-
 for (p in list_of_packages){
   library(p, character.only = TRUE)
 }
@@ -45,6 +61,21 @@ source("Combine_Legacy_Standard_Surveys.R")
 #### Parameters
 OPERATOR_DELIMITER = "___"
 ROUTE_DELIMITER = "&&&"
+
+CRS_NAD83_CAZ6_FT <- 2230    # https://epsg.io/2230
+CRS_WGS84 <- 4326            # https://epsg.io/4326
+# Set radius of the earth for Haversine distance calculation
+# https://www.space.com/17638-how-big-is-earth.html
+# Distance is calculated in miles (3963.20 mi.)
+# Alternate distance in meters would be 6378137 m. 
+EARTH_RADIUS_MILES <- 3963.2
+
+# Use megaregion for census tract aggregation
+MEGAREGION <- c(
+  "Alameda","Contra Costa","Marin","Napa","San Francisco","San Mateo","Santa Clara","Solano","Sonoma",
+  "Santa Cruz","San Benito","Monterey","San Joaquin","Stanislaus","Merced","Yuba","Placer","El Dorado",
+  "Sutter","Yolo","Sacramento","Lake","Mendocino"
+)
 
 
 # _User Intervention_
@@ -86,22 +117,57 @@ run_log <- file.path(TPS_SURVEY_STANDARDIZED_PATH,
   "Build_Standard_Database.log")
 print(paste("Writing log to",run_log))
 # print wide since it's to a log file
-options(width = 1000)
-options(datatable.print.nrows = 100)
+options(width = 10000)
+options(dplyr.width = 10000)
+options(datatable.print.nrows = 1000)
 options(warn=2) # error on warning
-# options(error=traceback)
 # don't warn: "summarise()` has grouped output by ... You can override using the `.groups` argument."
 options(dplyr.summarise.inform=F) 
+# enable caching
+options(tigris_use_cache = TRUE)
 
 sink(run_log, append=FALSE, type = c('output', 'message'))
 
 # Inputs - dictionary and other utils
 f_dict_standard <- "Dictionary_for_Standard_Database.csv"
 f_canonical_station_path <- file.path(TPS_SURVEY_PATH,"Geography Files","Passenger_Railway_Stations_2018.shp")
-f_tm1_taz_shp_path <- "M:/Data/GIS layers/TM1_taz/bayarea_rtaz1454_rev1_WGS84.shp"
-f_tm2_taz_shp_path <- "M:/Data/GIS layers/TM2_maz_taz_v2.2/tazs_TM2_v2_2.shp"
-f_tm2_maz_shp_path <- "M:/Data/GIS layers/TM2_maz_taz_v2.2/mazs_TM2_v2_2.shp"
-f_geocode_column_names_path <- "bespoke_survey_station_column_names.csv"
+f_shapefile_paths <- data.frame(
+  shape     = character(),
+  shapefile = character(),
+  shape_col = character()
+)
+f_shapefile_paths <- f_shapefile_paths %>% add_row(
+  shape     = "tm1_taz",
+  shapefile = "M:/Data/GIS layers/TM1_taz/bayarea_rtaz1454_rev1_WGS84.shp",
+  shape_col = "TAZ1454",
+)
+f_shapefile_paths <- f_shapefile_paths %>% add_row(
+  shape     = "tm2_taz",
+  shapefile = "M:/Data/GIS layers/TM2_maz_taz_v2.2/tazs_TM2_v2_2.shp",
+  shape_col = "taz",
+)
+f_shapefile_paths <- f_shapefile_paths %>% add_row(
+  shape     = "tm2_maz",
+  shapefile = "M:/Data/GIS layers/TM2_maz_taz_v2.2/mazs_TM2_v2_2.shp",
+  shape_col = "maz",
+)
+f_shapefile_paths <- f_shapefile_paths %>% add_row(
+  shape     = "tract_GEOID",
+  shapefile = "tigris",
+  shape_col = "GEOID",
+)
+# Initially, this used the tigris library
+# But it's helpful to have the shapefiles on disk to use for joins to see other fields
+f_shapefile_paths <- f_shapefile_paths %>% add_row(
+  shape     = "county_GEOID",
+  shapefile = "M:/Data/GIS layers/Census/2020/tl_2020_us_county/tl_2020_us_county.shp",
+  shape_col = "GEOID",
+)
+f_shapefile_paths <- f_shapefile_paths %>% add_row(
+  shape     = "PUMA_GEOID20",
+  shapefile = "M:/Data/GIS layers/Census/2020/tl_2020_06_puma20/",
+  shape_col = "GEOID20",  # "NAMELSAD10 is very long...
+)
 f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 
 # Inputs - survey data
@@ -583,6 +649,16 @@ survey_flat <- bind_rows(survey_cat, survey_non) %>%
 # for summarizing
 survey_flat <- mutate(survey_flat,
   survey_name_year = paste(survey_name, survey_year))
+
+# Cast certain columns to numeric - hour, lat/lon, weight
+# don't warn on NAs introduced by coercion
+suppressWarnings(
+  survey_flat <- survey_flat %>%
+    mutate_at(vars(contains("hour")), as.numeric) %>%
+    mutate(across(ends_with('_lat'), as.double)) %>%
+    mutate(across(ends_with('_lon'), as.double)) %>%
+    mutate(weight = as.numeric(weight))
+)
 
 print("str(survey_flat):")
 str(survey_flat)
@@ -1512,11 +1588,8 @@ survey_standard <- survey_standard %>%
   # second, add fixing for BART
   mutate(weekpart = ifelse((is.na(date_string) & survey_name == "BART"), "WEEKDAY", weekpart))
 
-print('Count of date_string for debug:')
-survey_standard %>% count(date_string)
-# This is way too long
-# print('Count of time_string for debug:')
-# survey_standard %>% count(time_string)
+# print('Count of Regional Snapshot 2023 date_string for debug:')
+# print(survey_standard %>% filter(survey_name_year == "Regional Snapshot 2023") %>% count(date_string))
 
 # Get day of the week from date
 survey_standard <- survey_standard %>%
@@ -1642,329 +1715,235 @@ survey_standard <- survey_standard %>%
 
 # Step 9:  Geocode XY to travel model geographies---------------------------------------
 print('Geocode XY')
+print("survey_standard size:")
+print(object.size(survey_standard), units="auto")
 
-# Prepare and write locations that need to be geo-coded to disk
-survey_standard <- survey_standard %>%
-  mutate(unique_ID = paste(ID, survey_name, survey_year, sep = "___"))
-
-survey_lat <- survey_standard %>%
-  select(unique_ID, dest = dest_lat, home = home_lat, orig = orig_lat,
-         school = school_lat, workplace = workplace_lat)
-
-survey_lon <- survey_standard %>%
-  select(unique_ID, dest = dest_lon, home = home_lon, orig = orig_lon,
-         school = school_lon, workplace = workplace_lon)
-
-survey_lat <- survey_lat %>%
-  gather(variable, y_coord, -unique_ID)
-
-survey_lon <- survey_lon %>%
-  gather(variable, x_coord, -unique_ID)
-
-survey_coords <- left_join(survey_lat, survey_lon, by = c("unique_ID", "variable"))
-
-# check duplicates
-dup_survey_coords <- survey_coords[duplicated(survey_coords),]
-
-# don't warn on NAs introduced by coercion
-suppressWarnings(
-  survey_coords <- survey_coords %>%                  # remove records with no lat/lon
-    mutate(x_coord = as.numeric(x_coord)) %>%
-    mutate(y_coord = as.numeric(y_coord)) %>%
-    filter(!is.na(x_coord)) %>%
-    filter(!is.na(y_coord))
-)
-
+# set first_board_[lat,lon] and last_alight_[lat,lon]
 survey_standard <- survey_standard %>%
   mutate(first_board_lat  = ifelse(number_transfers_orig_board == 0,  survey_board_lat,  first_board_lat)) %>%
   mutate(first_board_lon  = ifelse(number_transfers_orig_board == 0,  survey_board_lon,  first_board_lon)) %>%
   mutate(last_alight_lat  = ifelse(number_transfers_alight_dest == 0, survey_alight_lat, last_alight_lat)) %>%
   mutate(last_alight_lon  = ifelse(number_transfers_alight_dest == 0, survey_alight_lon, last_alight_lon))
 
-# don't warn on NAs introduced by coercion
-suppressWarnings(
-  survey_board <- survey_standard %>%
-    select(unique_ID, first_board_lat, first_board_lon, first_board_tech) %>%
-    mutate(first_board_lat = as.numeric(first_board_lat)) %>%
-    mutate(first_board_lon = as.numeric(first_board_lon)) %>%
-    filter(!is.na(first_board_lat)) %>%
-    filter(!is.na(first_board_lon))
-)
+# get nation lat/lon bounding box for later basic fixing
+USA <- tigris::nation(year = 2020, progress_bar=FALSE)
+USA_bounding_box <- st_bbox(st_transform(USA, crs=CRS_WGS84))
+print("USA_bounding_box:")
+str(USA_bounding_box)
 
-# don't warn on NAs introduced by coercion
-suppressWarnings(
-  survey_alight <- survey_standard %>%
-    select(unique_ID, last_alight_lat, last_alight_lon, last_alight_tech) %>%
-    mutate(last_alight_lat = as.numeric(last_alight_lat)) %>%
-    mutate(last_alight_lon = as.numeric(last_alight_lon)) %>%
-    filter(!is.na(last_alight_lat)) %>%
-    filter(!is.na(last_alight_lon))
-)
+# convert outside of USA bounding box to NA
+print("NAs before bounding box check")
+print(survey_standard %>% summarise(across(ends_with('_lat'), ~ sum(is.na(.)))))
+print(survey_standard %>% summarise(across(ends_with('_lon'), ~ sum(is.na(.)))))
 
+survey_standard <- survey_standard %>% mutate(
+  across(ends_with('_lat'), ~ifelse(. < USA_bounding_box$ymin, NA, .)),
+  across(ends_with('_lat'), ~ifelse(. > USA_bounding_box$ymax, NA, .)),
+  across(ends_with('_lon'), ~ifelse(. < USA_bounding_box$xmin, NA, .)),
+  across(ends_with('_lon'), ~ifelse(. > USA_bounding_box$xmax, NA, .)),
+)
+print("NAs after USA bounding box check")
+print(survey_standard %>% summarise(across(ends_with('_lat'), ~ sum(is.na(.)))))
+print(survey_standard %>% summarise(across(ends_with('_lon'), ~ sum(is.na(.)))))
+
+# Prepare and write locations that need to be geo-coded to disk
+survey_standard <- survey_standard %>%
+  mutate(unique_ID = paste(ID, survey_name, survey_year, sep = "___"))
+
+survey_lat <- survey_standard %>% 
+  select(unique_ID, ends_with("_lat")) %>%
+  pivot_longer(
+    cols = ends_with("_lat"), 
+    names_to="location", 
+    values_to="y_coord",
+    values_drop_na = TRUE) %>% mutate(
+      location = str_sub(location, 0, -5))
+print("survey_lat")
+print(survey_lat)
+
+survey_lon <- survey_standard %>% 
+  select(unique_ID, ends_with("_lon")) %>%
+  pivot_longer(
+    cols = ends_with("_lon"), 
+    names_to="location", 
+    values_to="x_coord",
+    values_drop_na = TRUE) %>% mutate(
+      location = str_sub(location, 0, -5))
+print("survey_lon")
+print(survey_lon)
+
+survey_coords <- inner_join(survey_lat, survey_lon, by = c("unique_ID", "location")) 
 remove(survey_lat, survey_lon)
 
-## Geocode Transit Locations
+## Geocode All Locations to shapes
 
+survey_coords_spatial <- sf::st_as_sf(survey_coords, coords = c("x_coord", "y_coord"), crs = CRS_WGS84)
+survey_coords_spatial <- sf::st_transform(survey_coords_spatial, crs = CRS_NAD83_CAZ6_FT)
+survey_coords_spatial <- rowid_to_column(survey_coords_spatial, var = "spatial_id")
+num_coords <- nrow(survey_coords_spatial)
 
-# CRS = 4326 sets the lat/long coordinates in the WGS1984 geographic survey
-# CRS = 2230 sets the projection for NAD 1983 California Zone 6 in US Feet
-survey_board_spatial <- st_as_sf(survey_board, coords = c("first_board_lon", "first_board_lat"), crs = 4326)
-survey_board_spatial <- st_transform(survey_board_spatial, crs = 2230)
-survey_alight_spatial <- st_as_sf(survey_alight, coords = c("last_alight_lon", "last_alight_lat"), crs = 4326)
-survey_alight_spatial <- st_transform(survey_alight_spatial, crs = 2230)
+# this is a lot of rows, 1M+
+print("survey_coords_spatial:")
+print(paste("num_coords: ",num_coords))
+str(survey_coords_spatial)
+print(head(survey_coords_spatial))
 
-board_coords <- as.data.frame(st_coordinates(survey_board_spatial)) %>%
-  rename(first_board_lat = Y,
-         first_board_lon = X)
-survey_board_spatial <- survey_board_spatial %>%
-  bind_cols(board_coords) %>%
-  select(-first_board_tech)
-st_geometry(survey_board_spatial) <- NULL
+for (i in rownames(f_shapefile_paths)) {
+  shape_name = f_shapefile_paths[i, "shape"]
+  shape_col = f_shapefile_paths[i, "shape_col"]
+  print(paste("======= Mapping locations to",shape_name,"======="))
 
-alight_coords <- as.data.frame(st_coordinates(survey_alight_spatial)) %>%
-  rename(last_alight_lat = Y,
-         last_alight_lon = X)
-survey_alight_spatial <- survey_alight_spatial %>%
-  bind_cols(alight_coords) %>%
-  select(-last_alight_tech)
-st_geometry(survey_alight_spatial) <- NULL
+  # read shapefile
+  if (f_shapefile_paths[i, "shapefile"] == "tigris") {
+    shapefile <- tigris::tracts(state = "CA", county=MEGAREGION, cb=FALSE, year=2020, progress_bar=FALSE)
+  } else {
+    shapefile <- sf::st_read(f_shapefile_paths[i, "shapefile"])
+  }
+  shapefile <- select(shapefile, !!shape_col, geometry)
+  # transform to match survey_coords_spatial
+  shapefile <- st_transform(shapefile, crs = st_crs(survey_coords_spatial))
+  # create area column and sort descending
+  shapefile <- shapefile %>% 
+    mutate(area = st_area(shapefile)) %>%
+    arrange(desc(area))
+  # create row_id from rowid
+  shapefile <- rowid_to_column(shapefile, var = "row_id")
 
+  print(paste("Read",nrow(shapefile),"rows from",f_shapefile_paths[i, "shapefile"]))
+  print(shapefile)
+  str(shapefile)
 
-remove(alight_coords, board_coords,
-       survey_board_spatial, survey_alight_spatial)
+  # Use st_intersects() first.  This is very fast!  less than one minute
+  start.time <- Sys.time()
+  print(paste("Starting st_intersects at",format(start.time, "%a %b %d %X %Y")))
+  shapefile_intersect <- st_intersects(x=survey_coords_spatial, y=shapefile, sparse=TRUE)
 
+  end.time <- Sys.time()
+  print(paste("Finished st_intersects at",format(end.time, "%a %b %d %X %Y")))
+  time.taken <- round((end.time - start.time)/60.0,2)
+  print(paste("This took",time.taken,"minutes"))
 
-## Geocode Other Locations
+  # print("shapefile_intersect:")
+  # this is a list of lists of ints
+  # print(shapefile_intersect)
+  # str(shapefile_intersect)
 
-survey_coords_spatial <- st_as_sf(survey_coords, coords = c("x_coord", "y_coord"), crs = 4326)
-survey_coords_spatial <- st_transform(survey_coords_spatial, crs = 2230)
+  # convert list of lists to dataframe
+  shapefile_intersect_df <- data.frame(
+    spatial_id = rep(seq_along(shapefile_intersect), lengths(shapefile_intersect)),
+    row_id = unlist(shapefile_intersect)
+  )
+  print("shapefile_intersect_df:")
+  print(head(shapefile_intersect_df))
+  str(shapefile_intersect_df)
 
-tm1_taz_shp <- st_read(f_tm1_taz_shp_path, crs = 4326)%>%
-  select(tm1_taz = TAZ1454)
-tm1_taz_shp <- bind_cols(tm1_taz_shp, match = 1:nrow(tm1_taz_shp))
-tm1_taz_shp <- st_transform(tm1_taz_shp, 2230)
+  # is there more than one row for spatial_id ?  log it:
+  dup_spatial_id <- shapefile_intersect_df %>% add_count(spatial_id) %>% filter(n > 1)
+  print("dup_spatial_id:")
+  print(dup_spatial_id)
 
-tm2_taz_shp <- st_read(f_tm2_taz_shp_path) %>%
-  select(tm2_taz = taz)
-tm2_taz_shp <- bind_cols(tm2_taz_shp, match = 1:nrow(tm2_taz_shp))
-tm2_taz_shp <- st_transform(tm2_taz_shp, 2230)
+  # keep only first row for each spatial_id
+  shapefile_intersect_df <- dplyr::distinct(shapefile_intersect_df, spatial_id, .keep_all=TRUE)
 
-tm2_maz_shp <- st_read(f_tm2_maz_shp_path) %>%
-  select(tm2_maz = maz)
-tm2_maz_shp <- bind_cols(tm2_maz_shp, match = 1:nrow(tm2_maz_shp))
-tm2_maz_shp <- st_transform(tm2_maz_shp, 2230)
+  print("survey_coords_spatial:")
+  print(paste("Before left_join, nrow=",nrow(survey_coords_spatial)))
 
-#### Find nearest TM1 TAZ (within 1/4 mile, else NA)
-survey_coords_spatial <- survey_coords_spatial %>%
-  st_join(tm1_taz_shp, join = st_within)
+  # left_join to survey_coords_spatial
+  survey_coords_spatial <- left_join(
+    survey_coords_spatial,
+    shapefile_intersect_df,
+    by = "spatial_id"
+  )
 
-bad_survey_coords_spatial <- survey_coords_spatial %>%
-  filter(is.na(tm1_taz))
+  # and again to shapefile
+  survey_coords_spatial <- left_join(
+    survey_coords_spatial,
+    st_drop_geometry(shapefile),
+    by = "row_id"
+  ) %>% select(-row_id, -area)
 
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(taz_index = st_nearest_feature(bad_survey_coords_spatial, tm1_taz_shp))
+  # rename from shape_col to shape_name
+  names(survey_coords_spatial)[names(survey_coords_spatial) == shape_col] <- shape_name
 
-bad_survey_coords_dist <- tm1_taz_shp %>%
-  right_join(data.frame(match = bad_survey_coords_spatial$taz_index), by = "match")  %>%
-  rename(bad_taz = tm1_taz)
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(dist = st_distance(bad_survey_coords_spatial, bad_survey_coords_dist, by_element = TRUE))
+  print(paste("After left_joins, nrow=",nrow(survey_coords_spatial)))
+  print(head(survey_coords_spatial))
+  stopifnot(nrow(survey_coords_spatial)==num_coords)
 
-# If there is no TM1 TAZ within 1/4 mile, the TM1 TAZ is replaced with NA to indicate a failure
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(tm1_taz = bad_survey_coords_dist$bad_taz) %>%
-  select(-taz_index) %>%
-  mutate(tm1_taz = ifelse(as.numeric(dist) / 5280 <= 0.25, tm1_taz, NA))
+  print(st_drop_geometry(survey_coords_spatial) %>% dplyr::count(!!as.name(shape_name)))
 
-# Plot distribution of distance between locations and TAZ where location not in TAZ
-# qplot(as.numeric(bad_survey_coords_spatial$dist),
-#       geom = "histogram",
-#       main = "Distribution of distance between \ncoordinates and TAZ",
-#       xlab = "Distance (m)",
-#       binwidth = 10)
+  null_shape <- filter(survey_coords_spatial, is.na(!!shape_name))
+  print(paste("Number of rows with null",shape_name,":",nrow(null_shape)))
 
-st_geometry(bad_survey_coords_spatial) <- NULL
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  select(-match, -dist) %>%
-  rename(dist_taz = tm1_taz)
+  # use nearest: sf::st_nearest_feature
+}
 
-survey_coords_spatial <- survey_coords_spatial %>%
-  left_join(bad_survey_coords_spatial, by = c("unique_ID", "variable")) %>%
-  mutate(tm1_taz = ifelse(is.na(tm1_taz), dist_taz, tm1_taz)) %>%
-  select(-dist_taz, -match)
-
-# check for duplicated unique_ID+variable
-# "chk" should have 0 record
-chk_tm1_taz = survey_coords_spatial[duplicated(survey_coords_spatial[,1:2]), ]
-
-
-#### Find nearest TM2 TAZ (within 1/4 mile, else NA)
-survey_coords_spatial <- survey_coords_spatial %>%
-  st_join(tm2_taz_shp, join = st_within)
-
-bad_survey_coords_spatial <- survey_coords_spatial %>%
-  filter(is.na(tm2_taz)) %>%
-  select(-tm1_taz)
-
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(taz_index = st_nearest_feature(bad_survey_coords_spatial, tm2_taz_shp))
-
-bad_survey_coords_dist <- tm2_taz_shp %>%
-  right_join(data.frame(match = bad_survey_coords_spatial$taz_index), by = "match")  %>%
-  rename(bad_taz = tm2_taz)
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(dist = st_distance(bad_survey_coords_spatial, bad_survey_coords_dist, by_element = TRUE))
-
-# If there is no TM2 TAZ within 1/4 mile, the TM2 TAZ is replaced with NA to indicate a failure
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(tm2_taz = bad_survey_coords_dist$bad_taz) %>%
-  select(-taz_index) %>%
-  mutate(tm2_taz = ifelse(as.numeric(dist) / 5280 <= 0.25, tm2_taz, NA))
-
-# Plot distribution of distance between locations and TAZ where location not in TAZ
-# qplot(as.numeric(bad_survey_coords_spatial$dist),
-#       geom = "histogram",
-#       main = "Distribution of distance between \ncoordinates and TAZ",
-#       xlab = "Distance (m)",
-#       binwidth = 10)
-
-st_geometry(bad_survey_coords_spatial) <- NULL
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  select(-match, -dist) %>%
-  rename(dist_taz = tm2_taz)
-
-survey_coords_spatial <- survey_coords_spatial %>%
-  left_join(bad_survey_coords_spatial, by = c("unique_ID", "variable")) %>%
-  mutate(tm2_taz = ifelse(is.na(tm2_taz), dist_taz, tm2_taz)) %>%
-  select(-dist_taz, -match)
-
-# check for duplicated unique_ID+variable
-# "chk" should have 0 record
-chk_tm2_taz = survey_coords_spatial[duplicated(survey_coords_spatial[,1:2]), ]
-
-# (April 6, 2021) The following lat/lon points are located at or too close to the boundary of two TM2 TAZs,
-# therefore were joined to two TM2 TAZs
-#     40113___BART___2015, dest_lat/lon	38.0815140, -122.2400470
-#     40113___BART___2015, home_lat/lon	38.0815140, -122.2400470
-#     1204___Caltrain___2014, home_lat/lon	37.761126, -122.399303
-#     1204___Caltrain___2014, orig_lat/lon	37.761126, -122.399303
-#     23645___SF Muni___2017, home_lat/lon  38.081514, -122.240047
-
-# Temporarily manually drop the duplicates
-survey_coords_spatial <- survey_coords_spatial[!duplicated(survey_coords_spatial[,1:2]), ]
-
-#### Find nearest MAZ within 1/4 mile (else NA)
-survey_coords_spatial <- survey_coords_spatial %>%
-  st_join(tm2_maz_shp, join = st_within)
-
-bad_survey_coords_spatial <- survey_coords_spatial %>%
-  filter(is.na(tm2_maz)) %>%
-  select(-tm1_taz, -tm2_taz)
-
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(maz_index = st_nearest_feature(bad_survey_coords_spatial, tm2_maz_shp))
-
-bad_survey_coords_dist <- tm2_maz_shp %>%
-  right_join(data.frame(match = bad_survey_coords_spatial$maz_index), by = "match")  %>%
-  rename(bad_maz = tm2_maz)
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(dist = st_distance(bad_survey_coords_spatial, bad_survey_coords_dist, by_element = TRUE))
-
-# If there is no maz within 1/4 mile, the maz is replaced with NA to indicate a failure
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  mutate(tm2_maz = bad_survey_coords_dist$bad_maz) %>%
-  select(-maz_index) %>%
-  mutate(tm2_maz = ifelse(as.numeric(dist) / 5280 <= 0.25, tm2_maz, NA))
-
-# Plot distribution of distance between locations and maz where location not in maz
-# qplot(as.numeric(bad_survey_coords_spatial$dist),
-#       geom = "histogram",
-#       main = "Distribution of distance between \ncoordinates and maz",
-#       xlab = "Distance (m)",
-#       binwidth = 10)
-
-st_geometry(bad_survey_coords_spatial) <- NULL
-bad_survey_coords_spatial <- bad_survey_coords_spatial %>%
-  select(-match, -dist) %>%
-  rename(dist_maz = tm2_maz)
-
-survey_coords_spatial <- survey_coords_spatial %>%
-  left_join(bad_survey_coords_spatial, by = c("unique_ID", "variable")) %>%
-  mutate(tm2_maz = ifelse(is.na(tm2_maz), dist_maz, tm2_maz)) %>%
-  select(-dist_maz, -match)
-
-# check for duplicated unique_ID+variable
-# "chk" should have 0 record
-chk_tm2_maz = survey_coords_spatial[duplicated(survey_coords_spatial[,1:2]), ]
-
-# (April 6, 2021) The following lat/lon points are located at the boundary of two TM2 TAZs,
-# therefore were joined to two TM2 MAZs
-#     1204___Caltrain___2014, home_lat/lon 	 37.761126, -122.399303
-#     1204___Caltrain___2014, orig_lat/lon   37.761126, -122.399303
-#     31___Napa Vine___2019, home_lat/lon    38.161992,	-122.260128
-#     31___Napa Vine___2019, dest_lat/lon    38.161992,	-122.260128
-#     1226___Napa Vine___2014, orig_lat/lon  37.72195, -122.478136
-# Temporarily manually drop the duplicates
-survey_coords_spatial <- survey_coords_spatial[!duplicated(survey_coords_spatial[,1:2]), ]
-
-# Bring in the geocoding results
-st_geometry(survey_coords_spatial) <- NULL
-
-survey_coords_spatial_tm1_taz <- survey_coords_spatial %>%
-  select(-tm2_taz, -tm2_maz) %>%
-  spread(variable, tm1_taz) %>%
-  rename(dest_tm1_taz = dest, home_tm1_taz = home, orig_tm1_taz = orig,
-         school_tm1_taz = school, workplace_tm1_taz = workplace)
-
-survey_coords_spatial_tm2_taz <- survey_coords_spatial %>%
-  select(-tm1_taz, -tm2_maz) %>%
-  spread(variable, tm2_taz) %>%
-  rename(dest_tm2_taz = dest, home_tm2_taz = home, orig_tm2_taz = orig,
-         school_tm2_taz = school, workplace_tm2_taz = workplace)
-
-survey_coords_spatial_tm2_maz <- survey_coords_spatial %>%
-  select(-tm1_taz, -tm2_taz) %>%
-  spread(variable, tm2_maz) %>%
-  rename(dest_tm2_maz = dest, home_tm2_maz = home, orig_tm2_maz = orig,
-         school_tm2_maz = school, workplace_tm2_maz = workplace)
+# go back to wide form
+survey_coords <- st_drop_geometry(survey_coords_spatial) %>%
+  pivot_wider(
+    id_cols = unique_ID,
+    names_from = location,
+    values_from = f_shapefile_paths$shape,
+    names_glue = "{location}_{.value}",
+  )
+print("head(survey_coords):")
+print(head(survey_coords))
 
 # Joins
 survey_standard <- survey_standard %>%
-  left_join(survey_coords_spatial_tm1_taz, by = c("unique_ID")) %>%
-  left_join(survey_coords_spatial_tm2_taz, by = c("unique_ID")) %>%
-  left_join(survey_coords_spatial_tm2_maz, by = c("unique_ID"))
+  left_join(survey_coords, by = c("unique_ID"))
+
+print("survey_standard size:")
+print(object.size(survey_standard), units="auto")
+print("str(survey_standard):")
+str(survey_standard, list.len=ncol(survey_standard))
 
 remove(survey_coords,
-       survey_coords_spatial,
-       survey_coords_spatial_tm1_taz,
-       survey_coords_spatial_tm2_taz,
-       survey_coords_spatial_tm2_maz)
+       survey_coords_spatial)
 
-print("str(survey_standard):")
-str(survey_standard)
+# calculate some distances between points
+survey_standard <- survey_standard %>% 
+  rowwise() %>% 
+  mutate(distance_orig.dest = distHaversine(
+    c(orig_lon,orig_lat),
+    c(dest_lon,dest_lat),
+    r=EARTH_RADIUS_MILES
+  ),
+  distance_board.alight = distHaversine(
+    c(survey_board_lon, survey_board_lat),
+    c(survey_alight_lon,survey_alight_lat),
+    r=EARTH_RADIUS_MILES
+  ),
+  distance_orig.first_board = distHaversine(
+    c(orig_lon,       orig_lat),
+    c(first_board_lon,first_board_lat),
+    r=EARTH_RADIUS_MILES
+  ),
+  distance_orig.survey_board = distHaversine(
+    c(orig_lon,        orig_lat),
+    c(survey_board_lon,survey_board_lat),
+    r=EARTH_RADIUS_MILES
+  ),
+  distance_survey_alight.dest = distHaversine(
+    c(survey_alight_lon,survey_alight_lat),
+    c(dest_lon,         dest_lat),
+    r=EARTH_RADIUS_MILES
+  ),
+  distance_last_alight.dest = distHaversine(
+    c(last_alight_lon,last_alight_lat),
+    c(dest_lon,       dest_lat),
+    r=EARTH_RADIUS_MILES
+  )
+) %>% ungroup()
+print("survey_standard distance variables:")
+print(head(survey_standard %>% select(starts_with("distance_"))))
 
 # Step 10:  Clean up data types and export Standard Survey files------------------------
 print('Final cleanup')
 
-# Cast all factors to numeric or string
-# don't warn on NAs introduced by coercion
-suppressWarnings(
-  survey_standard <- survey_standard %>%
-    mutate_at(vars(contains("survey_name")), as.character) %>%
-    mutate_at(vars(contains("hour")), as.numeric) %>%
-    mutate(survey_board_lat       = as.numeric(survey_board_lat)) %>%
-    mutate(survey_board_lon       = as.numeric(survey_board_lon)) %>%
-    mutate(survey_alight_lat      = as.numeric(survey_alight_lat)) %>%
-    mutate(survey_alight_lon      = as.numeric(survey_alight_lon)) %>%
-    mutate(first_board_lat        = as.numeric(first_board_lat)) %>%
-    mutate(first_board_lon        = as.numeric(first_board_lon)) %>%
-    mutate(last_alight_lat        = as.numeric(last_alight_lat)) %>%
-    mutate(last_alight_lon        = as.numeric(last_alight_lon)) %>%
-    mutate(weight                 = as.numeric(weight))
-)
-
+print("survey_standard size:")
+print(object.size(survey_standard), units="auto")
 print("str(survey_standard):")
-str(survey_standard)
+str(survey_standard, list.len=ncol(survey_standard))
 
 # Create an ancillary data set for requested variables
 ancillary_df <- survey_standard %>%
@@ -2112,12 +2091,18 @@ sprintf('Combine with %d rows of standard data', nrow(survey_standard))
 
 survey_combine <- combine_data(survey_standard,
                                survey.legacy)
+print("survey_combine size:")
+print(object.size(survey_combine), units="auto")
+print("head(survey_combine):")
+print(head(survey_combine))
+print("survey_combine (standard + legacy):")
+str(survey_combine, list.len=ncol(survey_combine))
 
 # export combined data
 sprintf('Export %d rows and %d columns of legacy-standard combined data to %s and %s',
         nrow(survey_combine),
         ncol(survey_combine),
-        f_combined_csv_path,
-        f_combined_rdata_path )
-write.csv(survey_combine, f_combined_csv_path, row.names = FALSE)
+        f_combined_rdata_path,
+        f_combined_csv_path)
 save(survey_combine, file = f_combined_rdata_path)
+write.csv(survey_combine, f_combined_csv_path, row.names = FALSE)
