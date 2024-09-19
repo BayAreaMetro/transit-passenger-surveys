@@ -66,6 +66,7 @@ KEEP_COLUMNS = [
 GG_dir = pathlib.Path("M:\Data\OnBoard\Data and Reports\Golden Gate Transit\\2023")
 GG_ferry_xlsx = GG_dir / "GGFerry2023 Final Data.xlsx"
 GG_transit_xlsx = GG_dir / "GGT2023 Final Data.xlsx"
+GG_ridership_xlsx = GG_dir / "Average Daily Ridership for GGT and GGF - Snapshot Survey Period.xlsx"
 
 LOG_FILE = "GG_Transit_Ferry_preprocess.log"
 # ================= Create logger =================
@@ -525,10 +526,73 @@ logging.debug(f'IntDate merge:\n{GG_df._merge.value_counts()}')
 GG_df.drop(columns=['_merge'], inplace=True)
 logging.debug(f'Strata:\n{GG_df.Strata.value_counts()}')
 
-# TODO: add weighting
-GG_df['weight'] = 1.0
+# add weighting
 
-# save to csv
+import pandas as pd
+
+# Read the total ridership data
+ridership_df = pd.read_excel(
+        io=GG_ridership_xlsx,
+        sheet_name="Ridership"
+    )
+
+def distribute_ridership(survey, ridership): 
+    # Check if necessary columns exist in both files
+    if 'Route' not in survey.columns or 'Strata' not in survey.columns:
+        raise ValueError("The survey file must have 'Route' and 'Strata' columns.")
+    if 'Route' not in ridership.columns or 'Weekday' not in ridership.columns or 'Weekend' not in ridership.columns:
+        raise ValueError("The ridership file must have 'Route', 'Weekday', and 'Weekend' columns.")
+    
+    # Merge the survey data with ridership data based on the 'Route' column
+    merged_df = pd.merge(survey, ridership, on='Route', how='left')
+    
+    # Mapping from more detailed strata to collapsed strata
+    strata_mapping = {
+        'AM OFF': 'Weekday',
+        'AM PEAK': 'Weekday',
+        'EVENING': 'Weekday',
+        'MIDDAY': 'Weekday',
+        'PM PEAK': 'Weekday',
+        'SAT': 'Weekend',
+        'SUN': 'Weekend'
+    }
+    
+    # Add a new column for distributed ridership, initially empty
+    merged_df['weight'] = 0
+    
+    # Set ridership to zero for 'Event' and 'Giants' routes
+    merged_df.loc[merged_df['Route'].isin(['LARKSPUR - EVENT', 'lARKSPUR - GIANTS']), 'weight'] = 0
+    
+    # Distribute ridership based on the collapsed strata and ridership totals
+    for route in merged_df['Route'].unique():
+        if route in ['LARKSPUR - EVENT', 'lARKSPUR - GIANTS']:
+            continue  # Skip "Event" and "Giants" routes, as their ridership is already set to zero
+        
+        for strata, ridership_col in strata_mapping.items():
+            # Filter rows for the current route and the strata category
+            route_strata_records = merged_df[(merged_df['Route'] == route) & (merged_df['Strata'] == strata)]
+            num_records = len(route_strata_records)
+            
+            if num_records == 0:
+                print(f"No records found for route {route} in {strata}.")
+                continue
+            
+            # Get the ridership total for the route and strata (weekday/weekend)
+            total_ridership = merged_df.loc[(merged_df['Route'] == route), ridership_col].iloc[0]
+            
+            # Calculate even distribution of ridership for each record
+            ridership_per_record = total_ridership / num_records if num_records > 0 else 0
+            
+            # Assign the calculated ridership to each record for this route and strata
+            merged_df.loc[(merged_df['Route'] == route) & (merged_df['Strata'] == strata), 'weight'] = ridership_per_record
+    
+    # Return the updated DataFrame
+    return merged_df
+
+# Example usage
+GG_df = distribute_ridership(GG_df, ridership_df)
+
+# Save to CSV
 GG_csv = GG_dir / "GoldenGate_Transit_Ferry_preprocessed.csv"
 GG_df[KEEP_COLUMNS].to_csv(GG_csv, index=False)
 print(f"Saved {len(GG_df):,} rows to {GG_csv}")
