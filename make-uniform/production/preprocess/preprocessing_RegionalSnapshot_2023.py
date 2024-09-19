@@ -449,7 +449,7 @@ SYSCODE_TO_OPERATOR = {
     8 : "MARIN TRANSIT",
     9 : "NAPA VINE",
     10: "PETALUMA TRANSIT",
-    11: "RIO VISTA",
+    11: "RIO-VISTA",
     12: "SAMTRANS",
     13: "VTA",
     14: "Santa Rosa CityBus",

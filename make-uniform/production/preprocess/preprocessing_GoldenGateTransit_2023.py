@@ -93,7 +93,7 @@ logging.info(f"Read {len(GG_ferry_df):,} lines from {GG_ferry_xlsx}")
 GG_ferry_df = GG_ferry_df.add_prefix("ferry_")
 GG_ferry_df.insert(loc=0, column="sub_survey", value="ferry")
 GG_ferry_df.insert(loc=0, column="survey_tech", value="ferry")
-GG_ferry_df.insert(loc=0, column="canonical_operator", value="GOLDEN GATE FERRY")
+GG_ferry_df.insert(loc=0, column="canonical_operator", value="GOLDEN GATE TRANSIT")
 logging.debug(f"GG_ferry_df:\n{GG_ferry_df.head()}")
 
 GG_transit_df = pd.read_excel(
