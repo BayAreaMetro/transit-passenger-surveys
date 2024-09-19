@@ -561,11 +561,11 @@ def distribute_ridership(survey, ridership):
     merged_df['weight'] = 0
     
     # Set ridership to zero for 'Event' and 'Giants' routes
-    merged_df.loc[merged_df['Route'].isin(['LARKSPUR - EVENT', 'lARKSPUR - GIANTS']), 'weight'] = 0
+    merged_df.loc[merged_df['Route'].isin(['LARKSPUR - EVENT', 'LARKSPUR - GIANTS']), 'weight'] = 0
     
     # Distribute ridership based on the collapsed strata and ridership totals
     for route in merged_df['Route'].unique():
-        if route in ['LARKSPUR - EVENT', 'lARKSPUR - GIANTS']:
+        if route in ['LARKSPUR - EVENT', 'LARKSPUR - GIANTS']:
             continue  # Skip "Event" and "Giants" routes, as their ridership is already set to zero
         
         for strata, ridership_col in strata_mapping.items():
@@ -586,6 +586,9 @@ def distribute_ridership(survey, ridership):
             # Assign the calculated ridership to each record for this route and strata
             merged_df.loc[(merged_df['Route'] == route) & (merged_df['Strata'] == strata), 'weight'] = ridership_per_record
     
+    # Round the 'weight' column to 2 decimal places
+    merged_df['weight'] = merged_df['weight'].round(2)
+
     # Return the updated DataFrame
     return merged_df
 
