@@ -470,7 +470,7 @@ GG_df["language_at_home_binary"] = None
 GG_df.loc[ (GG_df.language_at_home_1=="English") & 
            pd.isna(GG_df.language_at_home_2) &
            pd.isna(GG_df.language_at_home_3) &
-           pd.isna(GG_df.language_at_home_4),  "language_at_home_binary"] = "ENLISH ONLY"
+           pd.isna(GG_df.language_at_home_4),  "language_at_home_binary"] = "ENGLISH ONLY"
 # if any language is specified and it's nost just english, mark as other
 GG_df.loc[ pd.notna(GG_df.language_at_home_1) &
            (GG_df.language_at_home_1!="English"), "language_at_home_binary"] = "OTHER"
