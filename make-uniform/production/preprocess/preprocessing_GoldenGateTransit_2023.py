@@ -526,15 +526,15 @@ logging.debug(f'IntDate merge:\n{GG_df._merge.value_counts()}')
 GG_df.drop(columns=['_merge'], inplace=True)
 logging.debug(f'Strata:\n{GG_df.Strata.value_counts()}')
 
-# add weighting
+# add weighting, using imported marginal values
 
-import pandas as pd
-
-# Read the total ridership data
+# read the total ridership data
 ridership_df = pd.read_excel(
         io=GG_ridership_xlsx,
         sheet_name="Ridership"
     )
+
+# function to distribute ridership totals over valid survey records
 
 def distribute_ridership(survey, ridership): 
     # Check if necessary columns exist in both files
@@ -557,7 +557,7 @@ def distribute_ridership(survey, ridership):
         'SUN': 'Weekend'
     }
     
-    # Add a new column for distributed ridership, initially empty
+    # add a new column for distributed ridership, initially zero
     merged_df['weight'] = 0
     
     # Set ridership to zero for 'Event' and 'Giants' routes
@@ -586,16 +586,16 @@ def distribute_ridership(survey, ridership):
             # Assign the calculated ridership to each record for this route and strata
             merged_df.loc[(merged_df['Route'] == route) & (merged_df['Strata'] == strata), 'weight'] = ridership_per_record
     
-    # Round the 'weight' column to 2 decimal places
+    # round the 'weight' column to 2 decimal places
     merged_df['weight'] = merged_df['weight'].round(2)
 
     # Return the updated DataFrame
     return merged_df
 
-# Example usage
+# run function and output final file
 GG_df = distribute_ridership(GG_df, ridership_df)
 
-# Save to CSV
+# save to CSV
 GG_csv = GG_dir / "GoldenGate_Transit_Ferry_preprocessed.csv"
 GG_df[KEEP_COLUMNS].to_csv(GG_csv, index=False)
 print(f"Saved {len(GG_df):,} rows to {GG_csv}")
