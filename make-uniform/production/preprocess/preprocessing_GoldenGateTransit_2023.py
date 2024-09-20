@@ -557,34 +557,34 @@ def distribute_ridership(survey, ridership):
     # filter records for the current route
         route_records = merged_df[merged_df['Route'] == route]
         
-        # Handle Weekday strata (AM PEAK, MIDDAY, etc.)
+        # handle Weekday strata (AM PEAK, MIDDAY, etc.)
         weekday_records = route_records[route_records['Strata'].isin(['AM OFF', 'AM PEAK', 'EVENING', 'MIDDAY', 'PM PEAK'])]
         num_weekday_records = len(weekday_records)
         
         if num_weekday_records > 0:
-            # Get total weekday ridership for the current route
+            # get total weekday ridership for the current route
             total_weekday_ridership = merged_df.loc[(merged_df['Route'] == route), 'Weekday'].iloc[0]
             
-            # Evenly distribute the ridership across all weekday records
+            # evenly distribute the ridership across all weekday records
             ridership_per_record = total_weekday_ridership / num_weekday_records
             
-            # Assign the calculated ridership to each weekday record
+            # assign the calculated ridership to each weekday record
             merged_df.loc[(merged_df['Route'] == route) & (merged_df['Strata'].isin(['AM OFF', 'AM PEAK', 'EVENING', 'MIDDAY', 'PM PEAK'])), 'weight'] = ridership_per_record
         else:
             logging.debug(f"No Weekday records found for route {route}.")
         
-        # Handle Weekend strata (SAT, SUN)
+        # handle Weekend strata (SAT, SUN)
         weekend_records = route_records[route_records['Strata'].isin(['SAT', 'SUN'])]
         num_weekend_records = len(weekend_records)
         
         if num_weekend_records > 0:
-            # Get total weekend ridership for the current route
+            # get total weekend ridership for the current route
             total_weekend_ridership = merged_df.loc[(merged_df['Route'] == route), 'Weekend'].iloc[0]
             
-            # Evenly distribute the ridership across all weekend records
+            # evenly distribute the ridership across all weekend records
             ridership_per_record = total_weekend_ridership / num_weekend_records
             
-            # Assign the calculated ridership to each weekend record
+            # assign the calculated ridership to each weekend record
             merged_df.loc[(merged_df['Route'] == route) & (merged_df['Strata'].isin(['SAT', 'SUN'])), 'weight'] = ridership_per_record
         else:
             logging.debug(f"No Weekend records found for route {route}.")        
@@ -592,7 +592,7 @@ def distribute_ridership(survey, ridership):
     # round the 'weight' column to 2 decimal places
     merged_df['weight'] = merged_df['weight'].round(2)
 
-    # Return the updated DataFrame
+    # return the updated DataFrame
     return merged_df
 
 # run function and output final file
