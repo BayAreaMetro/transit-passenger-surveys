@@ -537,11 +537,11 @@ ridership_df = pd.read_excel(
 # function to distribute ridership totals over valid survey records
 
 def distribute_ridership(survey, ridership): 
-    # Check if necessary columns exist in both files
+    # check if necessary columns exist in both files
     if 'Route' not in survey.columns or 'Strata' not in survey.columns:
-        raise ValueError("The survey file must have 'Route' and 'Strata' columns.")
+        logging.debug("The survey file must have 'Route' and 'Strata' columns.")
     if 'Route' not in ridership.columns or 'Weekday' not in ridership.columns or 'Weekend' not in ridership.columns:
-        raise ValueError("The ridership file must have 'Route', 'Weekday', and 'Weekend' columns.")
+        logging.debug("The ridership file must have 'Route', 'Weekday', and 'Weekend' columns.")
     
     # Merge the survey data with ridership data based on the 'Route' column
     merged_df = pd.merge(survey, ridership, on='Route', how='left')
@@ -561,30 +561,47 @@ def distribute_ridership(survey, ridership):
     merged_df['weight'] = 0
     
     # Set ridership to zero for 'Event' and 'Giants' routes
-    merged_df.loc[merged_df['Route'].isin(['LARKSPUR - EVENT', 'LARKSPUR - GIANTS']), 'weight'] = 0
+  # merged_df.loc[merged_df['Route'].isin(['LARKSPUR - EVENT', 'LARKSPUR - GIANTS']), 'weight'] = 0
     
-    # Distribute ridership based on the collapsed strata and ridership totals
+    # distribute ridership based on the collapsed strata and ridership totals
     for route in merged_df['Route'].unique():
         if route in ['LARKSPUR - EVENT', 'LARKSPUR - GIANTS']:
-            continue  # Skip "Event" and "Giants" routes, as their ridership is already set to zero
+            continue  # skip "Event" and "Giants" routes, as their ridership is already set to zero
+
+    # filter records for the current route
+        route_records = merged_df[merged_df['Route'] == route]
         
-        for strata, ridership_col in strata_mapping.items():
-            # Filter rows for the current route and the strata category
-            route_strata_records = merged_df[(merged_df['Route'] == route) & (merged_df['Strata'] == strata)]
-            num_records = len(route_strata_records)
+        # Handle Weekday strata (AM PEAK, MIDDAY, etc.)
+        weekday_records = route_records[route_records['Strata'].isin(['AM OFF', 'AM PEAK', 'EVENING', 'MIDDAY', 'PM PEAK'])]
+        num_weekday_records = len(weekday_records)
+        
+        if num_weekday_records > 0:
+            # Get total weekday ridership for the current route
+            total_weekday_ridership = merged_df.loc[(merged_df['Route'] == route), 'Weekday'].iloc[0]
             
-            if num_records == 0:
-                print(f"No records found for route {route} in {strata}.")
-                continue
+            # Evenly distribute the ridership across all weekday records
+            ridership_per_record = total_weekday_ridership / num_weekday_records
             
-            # Get the ridership total for the route and strata (weekday/weekend)
-            total_ridership = merged_df.loc[(merged_df['Route'] == route), ridership_col].iloc[0]
+            # Assign the calculated ridership to each weekday record
+            merged_df.loc[(merged_df['Route'] == route) & (merged_df['Strata'].isin(['AM OFF', 'AM PEAK', 'EVENING', 'MIDDAY', 'PM PEAK'])), 'weight'] = ridership_per_record
+        else:
+            logging.debug(f"No Weekday records found for route {route}.")
+        
+        # Handle Weekend strata (SAT, SUN)
+        weekend_records = route_records[route_records['Strata'].isin(['SAT', 'SUN'])]
+        num_weekend_records = len(weekend_records)
+        
+        if num_weekend_records > 0:
+            # Get total weekend ridership for the current route
+            total_weekend_ridership = merged_df.loc[(merged_df['Route'] == route), 'Weekend'].iloc[0]
             
-            # Calculate even distribution of ridership for each record
-            ridership_per_record = total_ridership / num_records if num_records > 0 else 0
+            # Evenly distribute the ridership across all weekend records
+            ridership_per_record = total_weekend_ridership / num_weekend_records
             
-            # Assign the calculated ridership to each record for this route and strata
-            merged_df.loc[(merged_df['Route'] == route) & (merged_df['Strata'] == strata), 'weight'] = ridership_per_record
+            # Assign the calculated ridership to each weekend record
+            merged_df.loc[(merged_df['Route'] == route) & (merged_df['Strata'].isin(['SAT', 'SUN'])), 'weight'] = ridership_per_record
+        else:
+            logging.debug(f"No Weekend records found for route {route}.")        
     
     # round the 'weight' column to 2 decimal places
     merged_df['weight'] = merged_df['weight'].round(2)
