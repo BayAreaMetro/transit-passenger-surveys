@@ -545,23 +545,9 @@ def distribute_ridership(survey, ridership):
     
     # Merge the survey data with ridership data based on the 'Route' column
     merged_df = pd.merge(survey, ridership, on='Route', how='left')
-    
-    # Mapping from more detailed strata to collapsed strata
-    strata_mapping = {
-        'AM OFF': 'Weekday',
-        'AM PEAK': 'Weekday',
-        'EVENING': 'Weekday',
-        'MIDDAY': 'Weekday',
-        'PM PEAK': 'Weekday',
-        'SAT': 'Weekend',
-        'SUN': 'Weekend'
-    }
-    
+   
     # add a new column for distributed ridership, initially zero
     merged_df['weight'] = 0
-    
-    # Set ridership to zero for 'Event' and 'Giants' routes
-  # merged_df.loc[merged_df['Route'].isin(['LARKSPUR - EVENT', 'LARKSPUR - GIANTS']), 'weight'] = 0
     
     # distribute ridership based on the collapsed strata and ridership totals
     for route in merged_df['Route'].unique():
