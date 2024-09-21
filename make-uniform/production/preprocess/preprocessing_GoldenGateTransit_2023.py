@@ -550,6 +550,7 @@ def distribute_ridership(survey, ridership):
     merged_df['weight'] = 0
     
     # distribute ridership based on the collapsed strata and ridership totals
+    # leave Event and Giants routes at 0 weight as those aren't fixed-schedule routes
     for route in merged_df['Route'].unique():
         if route in ['LARKSPUR - EVENT', 'LARKSPUR - GIANTS']:
             continue  # skip "Event" and "Giants" routes, as their ridership is already set to zero
