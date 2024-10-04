@@ -441,7 +441,7 @@ snapshot_df.drop(columns=['_merge'], inplace=True)
 SYSCODE_TO_OPERATOR = {
     1 : "AC TRANSIT",
     2 : "BART",
-    3 : "CALTRAIN",
+    3 : "Caltrain",
     4 : "COUNTY CONNECTION",
     5 : "DUMBARTON",
     6 : "FAST",
