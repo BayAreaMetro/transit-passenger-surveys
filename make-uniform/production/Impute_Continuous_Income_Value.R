@@ -31,7 +31,7 @@ impute_continuous_income_f <- function(input_df) {
     return(unique_years)
   }
   
-  # Get PUMS years 
+  # Get PUMS years needed (based on survey years in dataset)
   
   unique_pums_years <- get_pums_years_f(input_df, "survey_year")
   
