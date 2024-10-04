@@ -12,7 +12,7 @@ standardized_2024_09_23 <- read_csv("M:/Data/OnBoard/Data and Reports/_data_Stan
 
 # Loop through each year and download relevant PUMS data
 
-get_pums_years <- function(data, column_name) {
+get_pums_years_f <- function(data, column_name) {
   # Ensure the column exists in the dataframe
   if (!column_name %in% names(data)) {
     stop(paste("The column", column_name, "does not exist in the dataframe."))
@@ -24,25 +24,58 @@ get_pums_years <- function(data, column_name) {
   return(unique_years)
 }
 
-years <- get_pums_years(standardized_2024_09_23,"survey_year")
+unique_pums_years <- get_pums_years_f(standardized_2024_09_23,"survey_year")
 
-for (year in years) {
+for (year in unique_pums_years) {
+  year <- if_else(year=="2023","2022",as.character(year)) ############### - remove with availability of 2023 PUMS
   year2 <- str_sub(year, -2)  # Extract the last two digits of the year
   file_name <- paste0("M:/Data/Census/PUMS/PUMS ", year, "/hbayarea", year2, ".Rdata")
   
   if (file.exists(file_name)) {
-    load(file_name)  # Load the .Rdata file 
+    load(file_name)  # Load the .Rdata file (assumes it loads a data frame)
     
-    message(paste("Loaded data from:", file_name))
+    # After loading, apply mutate and select to the loaded data frame
+    # Assuming the data frame inside the .Rdata file is named 'hbayareaXX'
+    
+    df_name <- paste0("hbayarea", year2)  # Construct the data frame name
+    
+    # Check if the data frame exists in the environment
+    if (exists(df_name)) {
+      # Retrieve the data frame
+      temp_df <- get(df_name)
+      
+      # Apply mutate and select actions
+      temp_df <- temp_df %>%
+        mutate(adjustment = ADJINC / 1000000,          
+               income = HINCP * adjustment,
+               pums_year=as.numeric(year),
+               PUMA=as.character(PUMA)) %>%       
+        select(PUMA, income, pums_year, WGTP)            
+      
+      # Optionally, you could save this modified data frame back to a new variable or overwrite
+      assign(df_name, temp_df, envir = .GlobalEnv)  # Overwrite the data frame in the global environment
+    } else {
+      message(paste("Data frame not found in:", file_name))
+    }
+    
+    message(paste("Loaded and processed data from:", file_name))
   } else {
     message(paste("File not found:", file_name))
   }
 }
 
+# Bind all the PUMS files together
+
+pums_objects <- ls(pattern = "^hbayarea")
+
+combined_pums <- pums_objects %>% 
+  map(~get(.)) %>% 
+  bind_rows()
+
 # Function to split the income range into lower and upper bounds, handling "under" and "or higher" categories
 # Function to split the income range into lower and upper bounds
 
-split_income_range <- function(input_df) {
+split_income_range_f <- function(input_df) {
   if (!"household_income" %in% names(input_df)) {
     stop("The input dataframe must contain a column named 'household_income'.")
   }
@@ -95,7 +128,25 @@ split_income_range <- function(input_df) {
 
 
 # Call the function with your data
-result <- split_income_range(standardized_2024_09_23)
+result <- split_income_range_f(standardized_2024_09_23)
+
+impute_cat_income_f <- function(lower_bound, upper_bound,survey_year) {
+  temp <- combined_pums %>% 
+    filter(!is.na(.$income)) %>%                  # Remove records with no income
+    filter(.$income >= lower_bound & .$income <= upper_bound & .$pums_year==survey_year)  # Filter by income bounds
+  
+  # Sample a value based on the income weights (WGTP)
+  value <- sample(temp$income, replace = TRUE, size = 1, prob = temp$WGTP)
+  
+  return(value)
+}
+
+trial <- result[1:1000,] %>%
+  rowwise() %>%
+  mutate(continuous_income = ifelse(is.na(lower_bound) | is.na(upper_bound),
+                                    NA,  # or any default value
+                                    impute_cat_income_f(lower_bound, upper_bound, survey_year))) %>%
+  ungroup()
 
 # Bring in CPI table from MTC modeling Wiki into a dataframe
 
@@ -113,7 +164,9 @@ inflation_table <- page %>%
   filter(Year>=2010)
 
 
-# View the result
-print(data)
+trial <- standardized_2024_09_23 %>% 
+  rowwise() %>% 
+  rowwise()  %>%  
+  mutate(discrete_income=discrete_income_f(impute_cat_income_f(lower_bound))) %>%   # Run discrete income generator function defined above
 
 
