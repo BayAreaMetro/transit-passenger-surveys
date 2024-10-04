@@ -4,6 +4,9 @@
 # An exception is that we don't yet have 2023 PUMS data for the Snapshot Survey and ACE/Golden Gate
 # Instead of 2023, use 2022 for those (but update once 2023 PUMS data is available)
 
+###################################################################################
+# Actions required on lines 24, 43
+###################################################################################
 
 
 # Load the relevant libraries
@@ -11,28 +14,30 @@ library(tidyverse)
 library(rvest)
 
 # Set seed for imputation
+# Remove scientific notation from dataframes
 
 set.seed(123)
+options(scipen = 999)
 
-# Import data (this part can be overwritten if part of a larger workflow)
+# Import data (this part can be overwritten if part of a larger workflow and a dataframe is passed)
 
-standardized_2024_09_23 <- read_csv("M:/Data/OnBoard/Data and Reports/_data_Standardized/standardized_2024-09-23/survey_combined.csv")
+input_df <- read_csv("M:/Data/OnBoard/Data and Reports/_data_Standardized/standardized_2024-09-23/survey_combined.csv")
 
 # Loop through each year and download relevant PUMS data
 
-get_pums_years_f <- function(data, column_name) {
+get_pums_years_f <- function(input_df, column_name) {
   # Ensure the column exists in the dataframe
-  if (!column_name %in% names(data)) {
+  if (!column_name %in% names(input_df)) {
     stop(paste("The column", column_name, "does not exist in the dataframe."))
   }
   
   # Retrieve unique sorted years
-  unique_years <- sort(unique(data[[column_name]]))
+  unique_years <- sort(unique(input_df[[column_name]]))
   
   return(unique_years)
 }
 
-unique_pums_years <- get_pums_years_f(standardized_2024_09_23,"survey_year")
+unique_pums_years <- get_pums_years_f(input_df,"survey_year")
 
 for (year in unique_pums_years) {
   year <- if_else(year=="2023","2022",as.character(year)) ############### - remove with availability of 2023 PUMS
@@ -58,7 +63,7 @@ for (year in unique_pums_years) {
                income = HINCP * adjustment,
                pums_year=as.numeric(year),
                PUMA=as.character(PUMA)) %>%       
-        select(PUMA, income, pums_year, WGTP)            
+        select(PUMA, HINCP,adjustment,income, pums_year, WGTP)            
       
       # Optionally, you could save this modified data frame back to a new variable or overwrite
       assign(df_name, temp_df, envir = .GlobalEnv)  # Overwrite the data frame in the global environment
@@ -81,7 +86,6 @@ combined_pums <- pums_objects %>%
   bind_rows()
 
 # Function to split the income range into lower and upper bounds, handling "under" and "or higher" categories
-# Function to split the income range into lower and upper bounds
 
 split_income_range_f <- function(input_df) {
   if (!"household_income" %in% names(input_df)) {
@@ -117,6 +121,7 @@ split_income_range_f <- function(input_df) {
             upper_bound <- as.numeric(gsub(",", "", matches[3]))-1
           } else if (!is.na(matches[4])) {
             # "under $X,XXX" format
+            # Set lower bound to zero, though negative values do exist in the PUMS
             lower_bound <- 0
             upper_bound <- as.numeric(gsub(",", "", matches[4]))-1
           } else if (!is.na(matches[5])) {
@@ -136,7 +141,7 @@ split_income_range_f <- function(input_df) {
 
 
 # Call the function with your data
-result <- split_income_range_f(standardized_2024_09_23)
+input_df <- split_income_range_f(input_df)
 
 impute_cat_income_f <- function(lower_bound, upper_bound, survey_year) {
   # Determine the appropriate pums_year based on survey_year
@@ -159,10 +164,10 @@ impute_cat_income_f <- function(lower_bound, upper_bound, survey_year) {
   return(value)
 }
 
-trial <- result %>%
+trial <- input_df %>%
   rowwise() %>%
   mutate(hh_income_nominal_continuous = ifelse(is.na(lower_bound) | is.na(upper_bound),
-                                    NA,  # or any default value
+                                    NA,  
                                     impute_cat_income_f(lower_bound, upper_bound, survey_year))) %>%
   ungroup()
 
@@ -189,7 +194,7 @@ CPI_2023_placeholder <- inflation_table %>%
 
 # Add CPI multiplier for each year and calculate 2023 inflated income values
 
-trial2 <- trial %>% 
+input_df <- trial %>% 
   left_join(., inflation_table, by = c("survey_year" = "CPI_year")) %>% 
   mutate(CPI_2023 = if_else(is.na(lower_bound) | is.na(upper_bound), NA_real_, CPI_2023_placeholder),
          CPI_ratio = if_else(is.na(lower_bound) | is.na(upper_bound), NA_real_, CPI_2023/CPI_2010_Ref),
