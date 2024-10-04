@@ -1,3 +1,11 @@
+# Impute_Continuous_Income_Value.R
+# Use PUMS data to impute a continuous income value from categorical data
+# Use the appropriate PUMS year for each survey (from the "survey_year" field)
+# An exception is that we don't yet have 2023 PUMS data for the Snapshot Survey and ACE/Golden Gate
+# Instead of 2023, use 2022 for those (but update once 2023 PUMS data is available)
+
+
+
 # Load the relevant libraries
 library(tidyverse)
 library(rvest)
@@ -130,10 +138,20 @@ split_income_range_f <- function(input_df) {
 # Call the function with your data
 result <- split_income_range_f(standardized_2024_09_23)
 
-impute_cat_income_f <- function(lower_bound, upper_bound,survey_year) {
+impute_cat_income_f <- function(lower_bound, upper_bound, survey_year) {
+  # Determine the appropriate pums_year based on survey_year
+  match_year <- ifelse(survey_year == 2023, 2022, survey_year)
+  
   temp <- combined_pums %>% 
-    filter(!is.na(.$income)) %>%                  # Remove records with no income
-    filter(.$income >= lower_bound & .$income <= upper_bound & .$pums_year==survey_year)  # Filter by income bounds
+    filter(!is.na(income)) %>%  # Remove records with no income
+    filter(income >= lower_bound & 
+             income <= upper_bound & 
+             pums_year == match_year)  # Filter by income bounds and the adjusted pums_year
+  
+  # Check if temp is empty after filtering
+  if (nrow(temp) == 0) {
+    return(NA)  # or any default value if no records are found
+  }
   
   # Sample a value based on the income weights (WGTP)
   value <- sample(temp$income, replace = TRUE, size = 1, prob = temp$WGTP)
@@ -141,9 +159,9 @@ impute_cat_income_f <- function(lower_bound, upper_bound,survey_year) {
   return(value)
 }
 
-trial <- result[1:1000,] %>%
+trial <- result %>%
   rowwise() %>%
-  mutate(continuous_income = ifelse(is.na(lower_bound) | is.na(upper_bound),
+  mutate(hh_income_nominal_continuous = ifelse(is.na(lower_bound) | is.na(upper_bound),
                                     NA,  # or any default value
                                     impute_cat_income_f(lower_bound, upper_bound, survey_year))) %>%
   ungroup()
@@ -160,13 +178,26 @@ page <- read_html(url)
 inflation_table <- page %>%
   html_node("table") %>%
   html_table() %>% 
-  select(Year,CPI_2010_Ref="Consumer Price Index(2010 Reference)") %>% 
-  filter(Year>=2010)
+  select(CPI_year=Year,CPI_2010_Ref="Consumer Price Index(2010 Reference)") %>% 
+  filter(CPI_year>=2010)
 
+# Get 2023 value for CPI
 
-trial <- standardized_2024_09_23 %>% 
-  rowwise() %>% 
-  rowwise()  %>%  
-  mutate(discrete_income=discrete_income_f(impute_cat_income_f(lower_bound))) %>%   # Run discrete income generator function defined above
+CPI_2023_placeholder <- inflation_table %>%
+  filter(CPI_year==2023) %>%
+  .$CPI_2010_Ref
+
+# Add CPI multiplier for each year and calculate 2023 inflated income values
+
+trial2 <- trial %>% 
+  left_join(., inflation_table, by = c("survey_year" = "CPI_year")) %>% 
+  mutate(CPI_2023 = if_else(is.na(lower_bound) | is.na(upper_bound), NA_real_, CPI_2023_placeholder),
+         CPI_ratio = if_else(is.na(lower_bound) | is.na(upper_bound), NA_real_, CPI_2023/CPI_2010_Ref),
+         hh_income_2023_continuous = if_else(is.na(lower_bound) | is.na(upper_bound), NA_real_, hh_income_nominal_continuous*CPI_ratio)
+  ) %>% 
+  relocate(household_income,.before = hh_income_2023_continuous) %>% 
+  relocate(hh_income_nominal_continuous,.before = hh_income_2023_continuous)%>% 
+  select(-lower_bound,-upper_bound,-hh_income_nominal_continuous,-CPI_2010_Ref,-CPI_2023)
+
 
 
