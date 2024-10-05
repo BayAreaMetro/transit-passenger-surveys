@@ -9,7 +9,7 @@
 library(tidyverse)
 library(rvest) # For web scraping CPI data
 input_df <- read_csv("M:/Data/OnBoard/Data and Reports/_data_Standardized/standardized_2024-09-23/survey_combined.csv")
-# Actions required on lines 43, 142 to remove 2023 exception when PUMS 2023 data become available (10/7/24)
+# Actions required on lines 43, 142 to remove 2023 exception when PUMS 2023 data become available (10/17/24)
 ###################################################################################
 
 # Create the function to impute income
