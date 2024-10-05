@@ -194,9 +194,6 @@ impute_continuous_income_f <- function(input_df) {
   
   assign("input_df", input_df, envir = .GlobalEnv)
   return(input_df)
-  
-  # Clear up the workspace by removing PUMS data
-  rm(list = ls(pattern = "^use_hbayarea"))
 }
 
 
