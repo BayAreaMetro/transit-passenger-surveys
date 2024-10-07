@@ -35,7 +35,7 @@ impute_continuous_income_f <- function(input_df) {
   
   unique_pums_years <- get_pums_years_f(input_df, "survey_year")
   
-  # Load relevant PUMS data for each year
+  # Load relevant PUMS data for each year, perform income calculations to adjust within-PUMS inflation values
   # Handle 2023 exception
   # Note that this should be updated after getting PUMS 2023 data
   
