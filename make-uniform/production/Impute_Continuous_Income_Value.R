@@ -223,7 +223,7 @@ tryCatch({
     survey_combine_out_df <- impute_continuous_income_f(survey_combine)
     print(paste("Completed impute_continuous_income_f at", Sys.time()))
     # THIS IS JUST FOR TESTING -- don't save these around
-    out_file <- str_replace(argv$input_file, ".Rdata", "_with_time.Rdata")
+    out_file <- str_replace(argv$input_file, ".Rdata", "_with_income.Rdata")
     print(paste("Saving to", out_file))
     save(survey_combine_out_df, file = out_file)
   }
