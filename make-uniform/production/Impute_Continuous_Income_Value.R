@@ -14,17 +14,17 @@ library(rvest) # For web scraping CPI data
 
 # Function to split income range from categorical data
 # Given an input dataframe with column, household_income, containing strings such as '$25,000 to $35,000'
-# This function will add two columns to the dataframe, lower_bound and upper_bound.
+# This function will add two columns to the dataframe, income_lower_bound and income_upper_bound.
 # For example:
-# household_income     lower_bound upper_bound
-# <chr>                      <dbl>       <dbl>
-# $25,000 to $35,000         25000       34999
-# $75,000 to $100,000        75000       99999
-# $50,000 to $75,000         50000       74999
-# under $10,000                  0        9999
-# $35,000 to $50,000         35000       49999
-# $10,000 to $25,000         10000       24999
-# $150,000 or higher        150000         Inf
+# household_income     income_lower_bound income_upper_bound
+# <chr>                             <dbl>              <dbl>
+# $25,000 to $35,000                25000              34999
+# $75,000 to $100,000               75000              99999
+# $50,000 to $75,000                50000              74999
+# under $10,000                         0               9999
+# $35,000 to $50,000                35000              49999
+# $10,000 to $25,000                10000              24999
+# $150,000 or higher               150000                Inf
 split_income_range_f <- function(input_df) {
   if (!"household_income" %in% names(input_df)) {
     stop("The input dataframe must contain a column named 'household_income'.")
@@ -39,13 +39,13 @@ split_income_range_f <- function(input_df) {
     mutate(
       income_split = map(household_income, ~ {
         if (is.na(.x) || .x %in% c("Missing", "refused")) {
-          return(tibble(lower_bound = NA, upper_bound = NA))
+          return(tibble(income_lower_bound = NA, income_upper_bound = NA))
         }
         
         # Match the income format with the regex, initialize lower and upper bounds
         
         matches <- str_match(.x, pattern)
-        lower_bound <- upper_bound <- NA  
+        income_lower_bound <- income_upper_bound <- NA  
         
         # Process matches based on their positions in the regex groups
         # Subtract 1 from upper bound to remove overlap of lower/upper bound values
@@ -53,48 +53,35 @@ split_income_range_f <- function(input_df) {
         if (!is.na(matches[1])) {
           if (!is.na(matches[2]) && !is.na(matches[3])) {
             # "$X,XXX to $Y,YYY" format
-            lower_bound <- as.numeric(gsub(",", "", matches[2]))
-            upper_bound <- as.numeric(gsub(",", "", matches[3])) - 1
+            income_lower_bound <- as.numeric(gsub(",", "", matches[2]))
+            income_upper_bound <- as.numeric(gsub(",", "", matches[3])) - 1
           } else if (!is.na(matches[4])) {
             # "under $X,XXX" format
             # Set lower bound to zero, though negative values do exist in the PUMS
-            lower_bound <- 0
-            upper_bound <- as.numeric(gsub(",", "", matches[4])) - 1
+            income_lower_bound <- 0
+            income_upper_bound <- as.numeric(gsub(",", "", matches[4])) - 1
           } else if (!is.na(matches[5])) {
             # "$X,XXX or higher" format
-            lower_bound <- as.numeric(gsub(",", "", matches[5]))
-            upper_bound <- Inf
+            income_lower_bound <- as.numeric(gsub(",", "", matches[5]))
+            income_upper_bound <- Inf
           }
         }
-        return(tibble(lower_bound, upper_bound))
+        return(tibble(income_lower_bound, income_upper_bound))
       })
     ) %>%
     unnest(income_split)
   return(results)
 }
 
-# Function to impute income based on bounds and survey year
-impute_cat_income_f <- function(lower_bound, upper_bound, survey_year) {
-  impute_cat_income_count <<- impute_cat_income_count + 1
-  if (impute_cat_income_count %% 10000 == 1) { print(paste("impute_cat_income_count =",impute_cat_income_count)) }
-
-  # return NA if lower or upper bound is NA
-  # TODO: Shouldn't this be ok if upper_bound is NA?
-  if (is.na(lower_bound) | is.na(upper_bound)) return (NA)
-
-  # TODO: Remove special 2023 handling
-  match_year <- ifelse(survey_year == 2023, 2022, survey_year) # Handle 2023 case
-  temp <- combined_pums %>%
-    filter(!is.na(income)) %>%
-    filter(income >= lower_bound & income <= upper_bound & pums_year == match_year)
-    
-  if (nrow(temp) == 0) return(NA)
-    
-  value <- sample(temp$income, size = 1, replace = TRUE, prob = temp$WGTP)
-  return(value)
-}
-
-# Create the function to impute income
+# This function requires that the given dataframe includes the columns:
+# - survey_year (int), and
+# - household_income (string), which is assumed to be in the survey_year dollars.
+# The function returns the same dataframe with the following columns added:
+# - income_lower_bound: parsed from household_income (see split_income_range_f)
+# - income_upper_bound: parsed from household_income (see split_income_range_f)
+# - hh_income_nominal_continuous: sampled from the PUMS data for the survey_year using the
+#                                 income_lower_bound and income_upper_bound
+# - hh_income_2023_continuous: hh_income_nominal_continuous converted to 2023 dollars
 impute_continuous_income_f <- function(input_df) {
   print("Running impute_continuous_income_f()")
   
@@ -150,18 +137,59 @@ impute_continuous_income_f <- function(input_df) {
   # merge these back
   input_df <- left_join(input_df, household_income_df, 
     by="household_income", relationship="many-to-one")
-  print(paste("input_df has",nrow(input_df)))
-  
-  # Impute continuous income values
-  impute_cat_income_count <<- 0
-  input_df <- input_df %>%
-    rowwise() %>%
-    mutate(hh_income_nominal_continuous = impute_cat_income_f(lower_bound, upper_bound, survey_year)) %>%
-    ungroup()
+  print(paste("input_df has",nrow(input_df),"rows"))
+  print(colnames(input_df))
+
+  # set initial value
+  input_df <- mutate(input_df, hh_income_nominal_continuous=NA_real_)
+
+  # Segment by survey_year, income_lower_bound, income_upper_bound
+  grouped_df <- input_df %>% group_by(survey_year, income_lower_bound, income_upper_bound)
+  # Get the unique combinations of the grouping variables
+  group_keys <- grouped_df %>% group_keys()
+  # Split the grouped data into a list of data frames
+  split_groups <- grouped_df %>% group_split()
+  # Iterate over each group using group_keys
+  for (i in seq_along(split_groups)) {
+    group_data <- split_groups[[i]]
+    group_info <- group_keys[i, ]
+    print(paste("Group:", paste(group_info, collapse = ", "),"has",nrow(group_data),"rows"))
+    # print(group_data)
+
+    # TODO: Remove special 2023 handling
+    match_year <- ifelse(group_info$survey_year == 2023, 2022, group_info$survey_year) # Handle 2023 case
+
+    # no bounds -- leave as NA
+    if (is.na(group_info$income_lower_bound) & is.na(group_info$income_upper_bound)) { next }
+
+    # filter to relevant pums -- the correct year and with an income
+    relevant_pums_df <- combined_pums %>%
+      filter(!is.na(income)) %>%
+      filter(pums_year == match_year)
+    # filter based on income lower bound
+    if (!is.na(group_info$income_lower_bound)) {
+      relevant_pums_df <- relevant_pums_df %>%
+        filter(income >= group_info$income_lower_bound)
+    }
+    # filter based on income upper bound
+    if (!is.na(group_info$income_upper_bound)) {
+      relevant_pums_df <- relevant_pums_df %>%
+        filter(income <= group_info$income_upper_bound)
+    }
+    print(paste(" Relevant PUMS rows:",nrow(relevant_pums_df)))
+    if (nrow(relevant_pums_df) == 0) { next }
+
+    group_data <- mutate(group_data,
+      hh_income_nominal_continuous = sample(relevant_pums_df$income, size=n(), replace=TRUE, prob=relevant_pums_df$WGTP)
+    )
+    # save the updated group data back to the list
+    split_groups[[i]] <- group_data
+  }
+  # combine groups back together
+  input_df <- bind_rows(split_groups)
   
   # Bring in CPI table from MTC modeling Wiki
   # Keep rows from 2010 and later and rename for local use
-  
   url <- "https://github.com/BayAreaMetro/modeling-website/wiki/InflationAssumptions"
   page <- read_html(url)
   inflation_table <- page %>%
@@ -169,30 +197,29 @@ impute_continuous_income_f <- function(input_df) {
     html_table() %>%
     select(CPI_year = Year, CPI_2010_Ref = "Consumer Price Index(2010 Reference)") %>%
     filter(CPI_year >= 2010)
+  print("inflation_table:")
+  print(inflation_table)
   
   # Keep placeholder CPI value for 2023
   
   CPI_2023_placeholder <- inflation_table %>%
     filter(CPI_year == 2023) %>%
     .$CPI_2010_Ref
+  print(paste("CPI_2023_placeholder:",CPI_2023_placeholder))
   
   # Adjust income to 2023 values using CPI
   # Remove unnecessary variables and keep 2023 continuous income variable
   
   input_df <- input_df %>%
     left_join(inflation_table, by = c("survey_year" = "CPI_year")) %>%
-    mutate(CPI_2023 = if_else(is.na(lower_bound) | is.na(upper_bound), NA_real_, CPI_2023_placeholder),
-           CPI_ratio = if_else(is.na(lower_bound) | is.na(upper_bound), NA_real_, CPI_2023 / CPI_2010_Ref),
-           hh_income_2023_continuous = if_else(is.na(lower_bound) | is.na(upper_bound),
-                                               NA_real_,
-                                               hh_income_nominal_continuous * CPI_ratio)) %>%
+    mutate(CPI_2023 = CPI_2023_placeholder,
+           CPI_ratio = CPI_2023 / CPI_2010_Ref,
+           hh_income_2023_continuous = hh_income_nominal_continuous * CPI_ratio) %>%
     relocate(household_income, .before = hh_income_2023_continuous) %>%
     relocate(hh_income_nominal_continuous, .before = hh_income_2023_continuous) %>%
-    select(-lower_bound, -upper_bound, -hh_income_nominal_continuous, -CPI_2010_Ref, -CPI_2023, -CPI_ratio)
+    select(-CPI_2010_Ref, -CPI_2023, -CPI_ratio)
   
-  # Assign the modified input_df back to the global environment and return it
-  
-  assign("input_df", input_df, envir = .GlobalEnv)
+  # Assign return the dataframe with additional columns: hh_income_nominal_continuous, hh_income_2023_continuous
   return(input_df)
 }
 
@@ -222,8 +249,11 @@ tryCatch({
     print(paste("Starting impute_continuous_income_f at", Sys.time()))
     survey_combine_out_df <- impute_continuous_income_f(survey_combine)
     print(paste("Completed impute_continuous_income_f at", Sys.time()))
+    
+    print(colnames(survey_combine_out_df))
+
     # THIS IS JUST FOR TESTING -- don't save these around
-    out_file <- str_replace(argv$input_file, ".Rdata", "_with_income.Rdata")
+    out_file <- str_replace(argv$input_file, ".Rdata", "_with_income_v2.Rdata")
     print(paste("Saving to", out_file))
     save(survey_combine_out_df, file = out_file)
   }
