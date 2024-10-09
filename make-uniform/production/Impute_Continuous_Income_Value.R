@@ -81,7 +81,7 @@ split_income_range_f <- function(input_df) {
 # - income_upper_bound: parsed from household_income (see split_income_range_f)
 # - hh_income_nominal_continuous: sampled from the PUMS data for the survey_year using the
 #                                 income_lower_bound and income_upper_bound
-# - hh_income_2023_continuous: hh_income_nominal_continuous converted to 2023 dollars
+# - hh_income_2023dollars_continuous: hh_income_nominal_continuous converted to 2023 dollars
 impute_continuous_income_f <- function(input_df) {
   print("Running impute_continuous_income_f()")
   
@@ -214,12 +214,12 @@ impute_continuous_income_f <- function(input_df) {
     left_join(inflation_table, by = c("survey_year" = "CPI_year")) %>%
     mutate(CPI_2023 = CPI_2023_placeholder,
            CPI_ratio = CPI_2023 / CPI_2010_Ref,
-           hh_income_2023_continuous = hh_income_nominal_continuous * CPI_ratio) %>%
-    relocate(household_income, .before = hh_income_2023_continuous) %>%
-    relocate(hh_income_nominal_continuous, .before = hh_income_2023_continuous) %>%
+           hh_income_2023dollars_continuous = hh_income_nominal_continuous * CPI_ratio) %>%
+    relocate(household_income, .before = hh_income_2023dollars_continuous) %>%
+    relocate(hh_income_nominal_continuous, .before = hh_income_2023dollars_continuous) %>%
     select(-CPI_2010_Ref, -CPI_2023, -CPI_ratio)
   
-  # Assign return the dataframe with additional columns: hh_income_nominal_continuous, hh_income_2023_continuous
+  # Assign return the dataframe with additional columns: hh_income_nominal_continuous, hh_income_2023dollars_continuous
   return(input_df)
 }
 
