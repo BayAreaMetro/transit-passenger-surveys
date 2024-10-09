@@ -58,6 +58,7 @@ tryCatch(
 
 source("Build_Standard_Database_Functions.R")
 source("Combine_Legacy_Standard_Surveys.R")
+source("Impute_Continuous_Income_Value.R")
 
 #### Parameters
 OPERATOR_DELIMITER = "___"
@@ -2092,6 +2093,12 @@ sprintf('Combine with %d rows of standard data', nrow(survey_standard))
 
 survey_combine <- combine_data(survey_standard,
                                survey.legacy)
+
+# add columns:
+#   income_lower_bound, income_upper_bound, 
+#   hh_income_nominal_continuous, hh_income_2023dollars_continuous
+survey_combine <- impute_continuous_income_f(survey_combine)
+
 print("survey_combine size:")
 print(object.size(survey_combine), units="auto")
 print("head(survey_combine):")
