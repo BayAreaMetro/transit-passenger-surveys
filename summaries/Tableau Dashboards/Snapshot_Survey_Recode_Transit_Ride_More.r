@@ -20,7 +20,7 @@ USERPROFILE    <- gsub("////","/", Sys.getenv("USERPROFILE"))
 BOX_dir1       <- file.path(USERPROFILE, "Box", "Modeling and Surveys","Surveys","Transit Passenger Surveys")
 Box_dir2       <- file.path(BOX_dir1,"Snapshot Survey","Data")
 input_data     <- file.path(Box_dir2,"mtc snapshot survey_final data file_for regional MTC only_REVISED 28 August 2024.xlsx")
-
+output_data    <- "M:/Data/OnBoard/Data and Reports/Snapshot Survey"
 
 # Bring in data file
 
@@ -54,7 +54,7 @@ final <- snapshot_data %>%
 
 # Output file to Excel, updating name to "_recode"
 
-write_xlsx(final,path=file.path(Box_dir2,"mtc snapshot survey_final data file_for regional MTC only_REVISED 28 August 2024_recode.xlsx"))
+write_xlsx(final,path=file.path(output_data,"mtc snapshot survey_final data file_for regional MTC only_REVISED 28 August 2024_recode.xlsx"))
 
 
 
