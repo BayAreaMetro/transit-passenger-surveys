@@ -56,8 +56,13 @@ final <- snapshot_data %>%
 
 write_xlsx(final,path=file.path(output_data,"mtc snapshot survey_final data file_for regional MTC only_REVISED 28 August 2024_recode.xlsx"))
 
+# Output file to pivot_long for transit improvement variables
 
+final2 <- final %>% 
+  select(System,Strata,Daytype,Type,Q7,grep("q8_rc_",names(.)),Weight) %>% 
+  pivot_longer(.,grep("q8_rc_",names(.)),names_to = "improvement_type",values_to = "dummy_value")
 
+write_xlsx(final2,path=file.path(output_data,"mtc snapshot survey_final data pivot_long improvements.xlsx"))
 
 
 
