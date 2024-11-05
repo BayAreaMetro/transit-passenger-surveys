@@ -2094,6 +2094,9 @@ sprintf('Combine with %d rows of standard data', nrow(survey_standard))
 survey_combine <- combine_data(survey_standard,
                                survey.legacy)
 
+print('Tabulation of canonical_operator by survey:')
+survey_combine %>% count(survey_name, canonical_operator)
+
 # add columns:
 #   income_lower_bound, income_upper_bound, 
 #   hh_income_nominal_continuous, hh_income_2023dollars_continuous
