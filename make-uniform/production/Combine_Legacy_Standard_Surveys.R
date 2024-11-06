@@ -63,7 +63,11 @@ combine_data <- function(data_standard,
           "Tri-Delta"                   ~ "TriDelta",
           "Union City"                  ~ "Union City Transit",
           .default = survey_name
-      )
+      ),
+      # convert AC Transit Route DB and DB1 to canonical_operator == DUMBARTON
+      canonical_operator = 
+        ifelse((canonical_operator=="AC TRANSIT") & ((route=="DB") | (route == "DB1")), 
+          "DUMBARTON", canonical_operator)
     )
 
   print('Updated tabulation on survey_name vs survey_tech for legacy surveys:')

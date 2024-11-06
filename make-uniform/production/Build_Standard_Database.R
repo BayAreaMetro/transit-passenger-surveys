@@ -678,7 +678,7 @@ table(survey_flat$survey_name_year,
       survey_flat$survey_tech, useNA = 'ifany')
 
 print('Tabulation of canonical_operator by survey:')
-survey_flat %>% count(survey_name_year, canonical_operator)
+print(survey_flat %>% count(survey_name_year, canonical_operator))
 
 # _User Intervention_
 # As noted above, when the survey data is read in, it assumes every route in the survey uses
@@ -690,6 +690,32 @@ survey_flat %>% count(survey_name_year, canonical_operator)
 #  survey_name, survey_year, canonical_route, canonical_operator, operator_detail, technology
 #  so this is adding: technology based on the route matching canonical_route
 #  But the join is using canonical_route rather than survey_route_name so does it succeed for that many?
+
+# check if canonical_operator mismatches from canonical_routes_crosswalk
+len_survey_flat <- nrow(survey_flat)
+survey_flat <- left_join(
+  survey_flat,
+  canonical_routes_crosswalk %>% select(survey_name, survey_year, canonical_route, canonical_operator) %>% 
+    rename(crosswalk_canonical_operator = canonical_operator) %>% unique(),
+  by = c("survey_name", "survey_year", "route" = "canonical_route")
+)
+stopifnot(len_survey_flat == nrow(survey_flat))
+
+# TODO: Leaving this alone for now because the crosswalk doesn't have consistent upper/lower case as other
+# TODO: sources, but I think it should in the longer term.
+mistmatch_canonical_operator <- filter(survey_flat, crosswalk_canonical_operator != canonical_operator)
+print("survey_flat records with mistmatching canonical_operator compared to canonical_routes_crosswalk (based on route)")
+print(select(mistmatch_canonical_operator, survey_name, survey_year, route, canonical_operator, crosswalk_canonical_operator) %>% unique())
+
+# for now, we'll just adjust AC TRANSIT -> DUMBARTON based on route for the AC Transit survey
+survey_flat <- survey_flat %>%
+  mutate(
+    canonical_operator = ifelse(((survey_name == "AC Transit") & 
+                                 (canonical_operator == "AC TRANSIT") & 
+                                 (crosswalk_canonical_operator == "DUMBARTON")),
+                                crosswalk_canonical_operator, canonical_operator)
+  ) %>% 
+  select(-crosswalk_canonical_operator)
 
 survey_flat <- survey_flat %>%
   left_join(canonical_routes_crosswalk %>% 
@@ -2095,7 +2121,7 @@ survey_combine <- combine_data(survey_standard,
                                survey.legacy)
 
 print('Tabulation of canonical_operator by survey:')
-survey_combine %>% count(survey_name, canonical_operator)
+print(survey_combine %>% count(survey_name, canonical_operator), n=100)
 
 # add columns:
 #   income_lower_bound, income_upper_bound, 
