@@ -43,6 +43,7 @@ KEEP_COLUMNS = [
     "income",
     # 10 Survey Metadata
     "id",
+    "initial_weight",
     "weight",
     "survey_lang",
     "board",
@@ -107,6 +108,30 @@ ACE_data_df.loc[ACE_data_df.train_number == 3, "survey_time_estimate"] = ACE_dat
 ACE_data_df.loc[ACE_data_df.train_number == 4, "survey_time_estimate"] = ACE_data_df["survey_time_estimate"] + 3  # ACE 10
 # Finally convert to time string
 ACE_data_df["survey_time_estimate"] = ACE_data_df["survey_time_estimate"].apply(lambda x: f"{x}:00:00")
+
+# Expand the data to April 2023 monthly ridership using the existing "weight" variable for naive weight correction
+# Load csv with monthly ridership data
+
+ridership_data = pd.read_csv(ACE_dir / "April 2023 Monthly Performance Report.csv")
+
+# Retrieve monthly ridership value from April 2023
+
+apr_value_2023 = ridership_data.loc[ridership_data['Fiscal_Year'] == 2023, 'APR'].values[0]
+
+# Calculate average daily from monthly ridership total, prepare to distribute naive weight over all records
+
+days = 20 # There were 20 weekdays in April 2023 and there is currently no weekend service for ACE
+num_records = len(ACE_data_df)
+naive_weight = (apr_value_2023 / days) / num_records
+
+# Rename existing "weight" variable from consultant to "initial_weight"
+
+ACE_data_df.rename(columns={'weight': 'initial_weight'}, inplace=True)
+
+# Multiply initial_weight (a true "weight", not an expansion factor) by naive weight (really an expansion factor)
+# Result is a final "weight" value that sums to average daily ridership
+
+ACE_data_df['weight'] = ACE_data_df['initial_weight'] * naive_weight
 
 # save to csv
 ACE_csv = ACE_dir / "ACE_Onboard_preprocessed.csv"
