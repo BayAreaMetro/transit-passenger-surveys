@@ -16,7 +16,7 @@ library(tidyverse)
 # Specify the path to the survey_combined.Rdata file
 # --------------------------------------------------------------------------------
 standardized_data_path <- "M:/Data/OnBoard/Data and Reports/_data_Standardized/"
-standardized_date      <- "standardized_2024-11-06"
+standardized_date      <- "standardized_2024-11-08"
 full_path_to_combined_Rdata <- file.path(standardized_data_path, standardized_date, "survey_combined.Rdata")
 
 # --------------------------------------------------------------------------------
@@ -169,27 +169,18 @@ pums_df <- pums_df %>%
 
 pums_df <- pums_df %>%
   mutate( 
-    Ethnicity_Label = case_when(
-    HISP==1                              ~"NOT HISPANIC/LATINO OR OF SPANISH ORIGIN",
-    HISP>1                               ~"HISPANIC/LATINO OR OF SPANISH ORIGIN",
-    TRUE                                 ~"Missing"
-    ),
-  )
-
-
-pums_df <- pums_df %>%
-  mutate( 
-    Race_Label = case_when(
-    RAC1P==1                             ~"WHITE",
-    RAC1P==2                             ~"BLACK",
-    RAC1P==3                             ~"OTHER",
-    RAC1P==4                             ~"OTHER",
-    RAC1P==5                             ~"OTHER",
-    RAC1P==6                             ~"ASIAN",
-    RAC1P==7                             ~"OTHER",
-    RAC1P==8                             ~"OTHER",
-    RAC1P==9                             ~"OTHER",
-    TRUE                                 ~"Missing"
+    RaceEthnicity_Label = case_when(
+    HISP==1 & RAC1P==1  ~ "WHITE",
+    HISP==1 & RAC1P==2  ~ "BLACK",
+    HISP==1 & RAC1P==3  ~ "OTHER",
+    HISP==1 & RAC1P==4  ~ "OTHER",
+    HISP==1 & RAC1P==5  ~ "OTHER",
+    HISP==1 & RAC1P==6  ~ "ASIAN",
+    HISP==1 & RAC1P==7  ~ "OTHER",
+    HISP==1 & RAC1P==8  ~ "OTHER",
+    HISP==1 & RAC1P==9  ~ "OTHER",
+    HISP>1              ~ "HISPANIC/LATINO OR OF SPANISH ORIGIN",
+    TRUE                ~ "Missing"
     ),
   )
 
@@ -260,19 +251,13 @@ Table_VehOwn <- pums_df %>%
 
 print(Table_VehOwn, n = Inf)
 
-# tabulate race
-Table_Race <- pums_df %>%
-  group_by(Race_Label) %>%  
+# tabulate race/ethnicity
+Table_RaceEthnicity <- pums_df %>%
+  group_by(RaceEthnicity_Label) %>%  
   summarise(weight_sum = sum(PWGTP, na.rm = TRUE))
 
-print(Table_Race, n = Inf)
+print(Table_RaceEthnicity, n = Inf)
 
-# tabulate ethnicity
-Table_Ethnicity <- pums_df %>%
-  group_by(Ethnicity_Label) %>%  
-  summarise(weight_sum = sum(PWGTP, na.rm = TRUE))
-
-print(Table_Ethnicity, n = Inf)
 
 # --------------------------------------------------------------------------------
 # output Table_IncDistr_Region and rename columns as needed
@@ -286,6 +271,10 @@ DummyRows_hhinc_df <- Table_IncDistr_Region %>%
 
 # add a column canonical_operator to the df DummyRows_hhinc_df
 # each row should be filled in with the name of the ACS vintage
+DummyRows_hhinc_df$survey_year      <-survey_year
+DummyRows_hhinc_df$survey_name      <-'AcsPums'
+DummyRows_hhinc_df$survey_batch     <-'AcsPums'
+DummyRows_hhinc_df$day_part         <-'AcsPums'
 DummyRows_hhinc_df$canonical_operator <- vintage
 
 # Specify the output file path for the .Rdata file
@@ -299,46 +288,29 @@ save(DummyRows_hhinc_df, file = DummyRows_hhinc_rdata)
 print(paste("Saved DummyRows_hhinc_df to", DummyRows_hhinc_rdata))
 
 
-# Race
+# Race and Ethnicity
 # Rename the column to "Weight"
-DummyRows_race_df <- Table_Race %>%
+DummyRows_raceEthnicity_df <- Table_RaceEthnicity %>%
   rename(weight           = weight_sum,
-         race             = Race_Label)
+         race             = RaceEthnicity_Label)
 
 # add a column canonical_operator to the df DummyRows_race_df
-# each row should be filled in with the name of the ACS vintage
-DummyRows_race_df$canonical_operator <- vintage
+# each row should be filled in the meta data
+DummyRows_raceEthnicity_df$survey_year      <-survey_year
+DummyRows_raceEthnicity_df$survey_name      <-'AcsPums'
+DummyRows_raceEthnicity_df$survey_batch     <-'AcsPums'
+DummyRows_raceEthnicity_df$day_part         <-'AcsPums'
+DummyRows_raceEthnicity_df$canonical_operator <- vintage
 
 # Specify the output file path for the .Rdata file
-DummyRows_race_rdata <- file.path(standardized_data_path, standardized_date, "pums_data_for_context",
+DummyRows_raceEthnicity_rdata <- file.path(standardized_data_path, standardized_date, "pums_data_for_context",
                                     paste0("Table_Race", vintage, ".Rdata"))
 
 # Save the data frame as .Rdata
-save(DummyRows_race_df, file = DummyRows_race_rdata)
+save(DummyRows_raceEthnicity_df, file = DummyRows_raceEthnicity_rdata)
 
 # Print a message to confirm saving
-print(paste("Saved DummyRows_race_df to", DummyRows_race_rdata))
-
-
-# Ethnicity
-# Rename the column to "Weight"
-DummyRows_ethnicity_df <- Table_Ethnicity %>%
-  rename(weight           = weight_sum,
-         hispanic         = Ethnicity_Label)
-
-# add a column canonical_operator to the df DummyRows_ethnicity_df
-# each row should be filled in with the name of the ACS vintage
-DummyRows_ethnicity_df$canonical_operator <- vintage
-
-# Specify the output file path for the .Rdata file
-DummyRows_ethnicity_rdata <- file.path(standardized_data_path, standardized_date, "pums_data_for_context",
-                                    paste0("Table_Ethnicity", vintage, ".Rdata"))
-
-# Save the data frame as .Rdata
-save(DummyRows_ethnicity_df, file = DummyRows_ethnicity_rdata)
-
-# Print a message to confirm saving
-print(paste("Saved DummyRows_ethnicity_df to", DummyRows_ethnicity_rdata))
+print(paste("Saved DummyRows_raceEthnicity_df to", DummyRows_raceEthnicity_rdata))
 
 
 # --------------------------------------------------------------------------------
@@ -347,8 +319,7 @@ print(paste("Saved DummyRows_ethnicity_df to", DummyRows_ethnicity_rdata))
 
 # Bind rows using dplyr's bind_rows, which will fill missing columns with NA
 survey_combined_plusPUMS_df <- bind_rows(survey_combined_plusPUMS_df, DummyRows_hhinc_df)
-survey_combined_plusPUMS_df <- bind_rows(survey_combined_plusPUMS_df, DummyRows_race_df)
-survey_combined_plusPUMS_df <- bind_rows(survey_combined_plusPUMS_df, DummyRows_ethnicity_df)
+survey_combined_plusPUMS_df <- bind_rows(survey_combined_plusPUMS_df, DummyRows_raceEthnicity_df)
 
 survey_combined_plusPUMS_filepath <- file.path(new_sub_directory_path, "survey_combined.Rdata")
 save(survey_combined_plusPUMS_df, file = survey_combined_plusPUMS_filepath)
