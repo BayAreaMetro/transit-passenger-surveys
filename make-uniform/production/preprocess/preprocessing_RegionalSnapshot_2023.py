@@ -466,7 +466,9 @@ SYSCODE_TO_OPERATOR = {
 snapshot_df["canonical_operator"] = snapshot_df.Syscode.map(SYSCODE_TO_OPERATOR)
 # Cable cars classified as local bus consistent with
 # https://github.com/BayAreaMetro/modeling-website/wiki/TransitModes
-logging.debug(snapshot_df[["Syscode","Type"]].value_counts())
+logging.debug(f"\n{snapshot_df[['Syscode','canonical_operator']].value_counts(dropna=False)}")
+logging.debug(f"\n{snapshot_df[['Syscode','Type']].value_counts(dropna=False)}")
+
 TYPE_TO_SURVEY_TECH = {
     1: "commuter rail", # Rail
     2: "ferry",         # Ferry
@@ -481,6 +483,10 @@ snapshot_df["survey_tech"] = snapshot_df.Type.map(TYPE_TO_SURVEY_TECH)
 # BART is heavy rail
 snapshot_df.loc[(snapshot_df.survey_tech=="commuter rail") &
                 (snapshot_df.canonical_operator=="BART"), "survey_tech"] = "heavy rail"
+# Dumbarton is express bus
+snapshot_df.loc[(snapshot_df.survey_tech=="local bus") &
+                (snapshot_df.canonical_operator=="DUMBARTON"), "survey_tech"] = "express bus"
+
 logging.debug(snapshot_df[["canonical_operator","survey_tech"]].value_counts())
 
 logging.debug(f"snapshot_df[KEEP_COLUMNS].head()=\n{snapshot_df[KEEP_COLUMNS].head()}")

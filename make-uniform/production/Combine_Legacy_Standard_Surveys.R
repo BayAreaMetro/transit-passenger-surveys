@@ -31,7 +31,50 @@ combine_data <- function(data_standard,
            'school_tm1_taz'    = 'school_taz',
            'workplace_tm2_maz' = 'workplace_maz',
            'workplace_tm1_taz' = 'workplace_taz')
-  
+
+  # survey_name -> canonical_operator
+  print('Initial tabulation on survey_name vs survey_tech for legacy surveys:')
+  print(table(data_legacy$survey_name, data_legacy$survey_tech, useNA = 'ifany'))
+  # code canonical_operator to be consistent with standard
+  data_legacy <- data_legacy %>%
+    mutate(
+      canonical_operator = case_match(
+        survey_name,
+          "AC Transit"                  ~ "AC TRANSIT",
+          "BART PRE-TEST"               ~ "BART",
+          "County Connection"           ~ "COUNTY CONNECTION",
+          "Golden Gate Transit (bus)"   ~ "GOLDEN GATE TRANSIT",
+          "Golden Gate Transit (ferry)" ~ "GOLDEN GATE TRANSIT",
+          "Petaluma"                    ~ "PETALUMA TRANSIT",
+          "SamTrans"                    ~ "SAMTRANS",
+          "SF Bay Ferry"                ~ "SF BAY FERRY",
+          "Sonoma County"               ~ "Sonoma County Transit",
+          "Tri-Delta"                   ~ "TRI-DELTA",
+          "Union City"                  ~ "UNION CITY",
+          .default = survey_name
+      ),
+      # and survey_name to be consistent with standard
+      survey_name = case_match(
+        survey_name,
+          "Golden Gate Transit (bus)"   ~ "Golden Gate Transit",
+          "Golden Gate Transit (ferry)" ~ "Golden Gate Transit",
+          "Petaluma"                    ~ "Petaluma Transit",
+          "Sonoma County"               ~ "Sonoma County Transit",
+          "Tri-Delta"                   ~ "TriDelta",
+          "Union City"                  ~ "Union City Transit",
+          .default = survey_name
+      ),
+      # convert AC Transit Route DB and DB1 to canonical_operator == DUMBARTON
+      canonical_operator = 
+        ifelse((canonical_operator=="AC TRANSIT") & ((route=="DB") | (route == "DB1")), 
+          "DUMBARTON", canonical_operator)
+    )
+
+  print('Updated tabulation on survey_name vs survey_tech for legacy surveys:')
+  print(table(data_legacy$survey_name, data_legacy$survey_tech, useNA = 'ifany'))
+  print('Updated tabulation on canonical_operator vs survey_tech for legacy surveys:')
+  print(table(data_legacy$canonical_operator, data_legacy$survey_tech, useNA = 'ifany'))
+
   # DEBUG
   legacy_names <- colnames(data_legacy)
   std_names <- colnames(data_standard)
