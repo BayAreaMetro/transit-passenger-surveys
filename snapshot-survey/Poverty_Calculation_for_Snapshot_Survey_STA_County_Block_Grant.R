@@ -45,5 +45,5 @@ final <- poverty %>%
 
 # Output final file
 
-write.csv(final,file.path(output,"Snapshot Survey 2023-2024 Poverty Calculations for Alameda County.csv"))
+write.csv(final,file.path(output,"Snapshot Survey 2023-2024 Poverty Calculations for ACTC.csv"),row.names = F)
 
