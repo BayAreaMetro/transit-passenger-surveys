@@ -10,7 +10,8 @@ passenger_trips <- read_csv("passenger_trips.csv")  # Assumes columns: passenger
 # Function to find the nearest station
 find_nearest_station <- function(lat, lon, stations) {
   stations %>%
-    mutate(distance = distHaversine(c(lon, lat), cbind(lon, lat))) %>%
+    mutate(distance = distHaversine(matrix(c(lon, lat), nrow=1), 
+                                    matrix(c(stations$lon, stations$lat), ncol=2))) %>%
     slice_min(distance) %>%
     pull(station_id)
 }
