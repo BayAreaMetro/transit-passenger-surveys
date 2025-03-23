@@ -28,11 +28,11 @@ find_nearest_station <- function(lat, lon, stations) {
 trial <- head(passenger_trips,n=3000)
 
 # Apply function to each passenger trip
+
 trial2 <- trial %>%
-  rowwise() %>%
-  mutate(nearest_station = find_nearest_station(DESTIN_ADDRESS_LAT_, DESTIN_ADDRESS_LONG_, bart_stations)) %>%
-  ungroup() %>% 
+  mutate(nearest_station = map2_chr(DESTIN_ADDRESS_LAT_, DESTIN_ADDRESS_LONG_, ~find_nearest_station(.x, .y, bart_stations))) %>% 
   relocate(EXIT_STATION,.after = nearest_station)
+
 
 # Save results
 write_csv(passenger_trips, "passenger_trips_with_nearest_station.csv")
