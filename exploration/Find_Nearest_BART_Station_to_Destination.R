@@ -5,11 +5,18 @@ library(readxl)
 # Load BART stations data (latitude, longitude)
 bart_stations <- read_csv("M:/Data/GIS layers/Transit_Stops/BART/BART_2024_Stops.csv")  # Assumes columns: stop_name, lat, lon
 
+# Rename one or more station names,as needed
+
+bart_stations <- bart_stations %>% 
+  mutate(stop_name=recode(stop_name,
+    "Millbrae (Caltrain Transfer Platform)"="Millbrae"
+  ))
+
 # Load passenger trip destinations (latitude, longitude)
 userprofile     <- gsub("\\\\","/", Sys.getenv("USERPROFILE"))
 box_dir         <- file.path(userprofile, "Box", "Modeling and Surveys","Surveys","Transit Passenger Surveys", "Ongoing TPS", "Individual Operator Efforts")
-bart_in         <- file.path(box_dir, "BART 2024", "BART MTC ETC RSG Project Folder", "BART DATA - Final SAS","BART SAS Raw Data Output thru June 20 2024.xlsx")
-passenger_trips <- read_xlsx(bart_in,sheet = "SAS Raw Thru June 20")  # Assumes columns: passenger_id, dest_lat, dest_lon
+bart_folder     <- file.path(box_dir, "BART 2024", "BART MTC ETC RSG Project Folder", "001_Working_Data_Files")
+passenger_trips <- read_xlsx(file.path(bart_folder,"MTC-BART_OD_Study_SAS_250305_EditedMW_032125_Review1.xlsx"),sheet = "MTC-BART_OD_Study_SAS_250305_Ed") 
 
 find_nearest_station <- function(lat, lon, stations) {
   if (is.na(lat) | is.na(lon)) {
@@ -25,17 +32,17 @@ find_nearest_station <- function(lat, lon, stations) {
     pull(stop_name)
 }
 
-trial <- head(passenger_trips,n=3000)
-
 # Apply function to each passenger trip
 
-trial2 <- trial %>%
-  mutate(nearest_station = map2_chr(DESTIN_ADDRESS_LAT_, DESTIN_ADDRESS_LONG_, ~find_nearest_station(.x, .y, bart_stations))) %>% 
-  relocate(EXIT_STATION,.after = nearest_station)
+final <-  passenger_trips %>% 
+  mutate(imputed_origin_station = map2_chr(ORIGIN_ADDRESS_LAT,ORIGIN_ADDRESS_LONG, ~find_nearest_station(.x, .y, bart_stations)),
+         imputed_destination_station = map2_chr(DESTIN_ADDRESS_LAT, DESTIN_ADDRESS_LONG, ~find_nearest_station(.x, .y, bart_stations))
+         ) %>% 
+  select(UNIQUE_IDENTIFIER,ORIGIN_ADDRESS_LAT,ORIGIN_ADDRESS_LONG,ENTRY_FNL_NUM,imputed_origin_station,DESTIN_ADDRESS_LAT,DESTIN_ADDRESS_LONG,EXIT_STATION_TEXT,imputed_destination_station)
 
 
 # Save results
-write_csv(passenger_trips, "passenger_trips_with_nearest_station.csv")
+write.csv(final,file=file.path(bart_folder, "imputed_station_locations_SAS_250305_EditedMW_032125.csv"),row.names = F)
 
 
 
