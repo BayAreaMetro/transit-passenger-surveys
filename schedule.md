@@ -20,7 +20,7 @@ title: Schedule
  <tbody>
   <tr>
     <td rowspan="3" style="text-align:center; vertical-align:middle;">2024</td>
-    <td colspan="2">BART</td>
+    <td colspan="2">BART<br /><small>(Continued in 2025)</small></td>
   </tr>
   <tr>
     <td>Caltrain</td>
