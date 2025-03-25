@@ -19,6 +19,19 @@ title: Schedule
  </tr></thead>
  <tbody>
   <tr>
+    <td rowspan="3" style="text-align:center; vertical-align:middle;">2024</td>
+    <td colspan="2">BART</td>
+  </tr>
+  <tr>
+    <td>Caltrain</td>
+    <td>VTA<br /><small>(Continued in 2025)</small></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Muni<br /><small>(Continued in 2025)</small></td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
     <td style="text-align:center; vertical-align:middle;">2023</td>
     <td colspan="2"><strong>2023-2024 Regional Transit Passenger Snapshot Survey</strong></td>
   </tr>
