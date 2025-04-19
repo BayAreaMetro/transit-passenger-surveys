@@ -51,5 +51,13 @@ race_income <- snapshot %>%
   relocate(race,.after = Q19_4) %>% 
   relocate(income,.after = Q22)
 
+# Summarize income and race by operator
 
+
+
+# Output files
+
+write.csv(total_income,file.path(output_dir,"BATS_2023_Total_Income.csv"),row.names=F)
+write.csv(roadway_income,file.path(output_dir,"BATS_2023_Roadway_Income.csv"),row.names=F)
+write.csv(transit_income,file.path(output_dir,"BATS_2023_Transit_Income.csv"),row.names=F)
 
