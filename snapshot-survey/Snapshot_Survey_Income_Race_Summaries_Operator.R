@@ -51,13 +51,30 @@ race_income <- snapshot %>%
   relocate(race,.after = Q19_4) %>% 
   relocate(income,.after = Q22)
 
-# Summarize income and race by operator
+# Summarize income and race by operator for weekdays
 
+income_summary <- race_income %>% 
+  filter(Daytype=="DAY") %>% 
+  group_by(System,income) %>% 
+  summarize(total=sum(Weight),.groups = "drop") %>% 
+  pivot_wider(.,names_from = income,values_from = total) %>% 
+  select("System", "Under $15,000","$15,000 to $29,999", "$30,000 to $39,999", "$40,000 to $49,999", 
+         "$50,000 to $59,999", "$60,000 to $69,999", "$70,000 to $79,999", 
+         "$80,000 to $99,999", "$100,000 to $149,999", "$150,000 to $199,999", 
+         "$200,000 and above",  "Missing", "Multiple responses")
+
+race_summary <- race_income %>% 
+  filter(Daytype=="DAY") %>% 
+  group_by(System,race) %>% 
+  summarize(total=sum(Weight),.groups = "drop") %>% 
+  pivot_wider(.,names_from = race,values_from = total) %>% 
+  select("System","White, not Hispanic","Black, not Hispanic","Asian, not Hispanic","Other, not Hispanic","Hispanic", 
+         "Missing" )
 
 
 # Output files
 
 write.csv(total_income,file.path(output_dir,"BATS_2023_Total_Income.csv"),row.names=F)
 write.csv(roadway_income,file.path(output_dir,"BATS_2023_Roadway_Income.csv"),row.names=F)
-write.csv(transit_income,file.path(output_dir,"BATS_2023_Transit_Income.csv"),row.names=F)
+
 
