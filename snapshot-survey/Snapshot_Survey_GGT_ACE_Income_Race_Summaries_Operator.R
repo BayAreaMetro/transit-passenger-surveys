@@ -34,6 +34,8 @@ ace_in        <- "M:/Data/OnBoard/Data and Reports/ACE/2023/ACE_Onboard_preproce
 goldengate    <- read.csv(goldengate_in)
 ace           <- read.csv(ace_in)
 
+# Summarize Snapshot Survey data
+
 race_income_snapshot <- snapshot %>%
   mutate(race=case_when(
     Q19_1=="B" & if_all(Q19_2:Q19_4, is.na)             ~ "Missing",
@@ -117,6 +119,7 @@ race_summary_goldengate <- goldengate %>%
   mutate(race_simple = case_when(
     if_all(hispanic:race_dmy_wht, ~ is.na(.)) ~ "Missing",
     hispanic == 1 ~ "Hispanic",
+    if_all(hispanic:race_dmy_wht, ~ . == 0)                                                   ~ "Other, not Hispanic", 
     hispanic == 0 & race_dmy_wht == 1 & if_all(race_dmy_asn:race_dmy_ind, ~ . == 0)           ~ "White, not Hispanic",
     hispanic == 0 & race_dmy_asn == 1 & if_all(race_dmy_blk:race_dmy_wht, ~ . == 0)           ~ "Asian/Pacific Islander, not Hispanic",
     hispanic == 0 & race_dmy_blk == 1 & race_dmy_asn==0 & race_dmy_ind==0 & race_dmy_wht==0   ~ "Black, not Hispanic",
@@ -132,10 +135,60 @@ race_summary_goldengate <- goldengate %>%
 
 # ACE summaries for income and race
 
+income_summary_ace <- ace %>% 
+  mutate(simple_income = recode(income,
+                         "1" = "Under $15,000",
+                         "2" = "$15,000 to $24,999",
+                         "3" = "$25,000 to $34,999",
+                         "4" = "$35,000 to $49,999",
+                         "5" = "$50,000 to $74,999",
+                         "6" = "$75,000 to $99,999",
+                         "7" = "$100,000 to $149,999",
+                         "8" = "$150,000 to $199,999",
+                         "9" = "$200,000 and above",
+                         .missing = "Missing"
+  )) %>% 
+  relocate(simple_income,.before = income) %>% 
+  group_by(simple_income) %>% 
+  summarize(total=sum(weight),.groups = "drop") %>% 
+  pivot_wider(.,names_from = simple_income,values_from = total) %>% 
+  mutate("System"="ACE") %>% 
+  relocate(System,.before = everything()) %>% 
+  select(System,"Under $15,000","$15,000 to $24,999", "$25,000 to $34,999", "$35,000 to $49,999", 
+         "$50,000 to $74,999", "$75,000 to $99,999", "$100,000 to $149,999", "$150,000 to $199,999", 
+         "$200,000 and above",  "Missing")
+
+race_summary_ace <- ace %>% 
+  mutate(race_simple = case_when(
+    hispanic == 1                                                                             ~ "Hispanic",
+    hispanic == 2 & if_all(race_1:race_5, ~ . == 0)                                           ~ "Other, not Hispanic", 
+    hispanic == 2 & race_4==1 & race_1==0 & race_2==0 & race_3==0 & race_5==0                 ~ "White, not Hispanic",
+    hispanic == 2 & race_1==1 & if_all(race_2:race_5, ~ . == 0)                               ~ "Black, not Hispanic",
+    hispanic == 2 & race_2==1 & race_1==0 & race_3==0 & race_4==0 & race_5==0                 ~ "Other, not Hispanic",
+    hispanic == 2 & race_3==1 & race_1==0 & race_2==0 & race_4==0 & race_5==0                 ~ "Asian, not Hispanic",
+    hispanic == 2 & race_5==1 & if_all(race_1:race_4, ~ . == 0)                               ~ "Pacific Islander, not Hispanic",
+    TRUE                                                                                      ~ "Other, not Hispanic" 
+  )) %>% 
+  relocate(race_simple,.before = hispanic) %>% 
+  group_by(race_simple) %>% 
+  summarize(total=sum(weight),.groups = "drop") %>% 
+  pivot_wider(.,names_from = race_simple,values_from = total) %>% 
+  mutate("System"="ACE") %>% 
+  relocate(System,.before = everything()) %>% 
+  select(System, "White, not Hispanic","Black, not Hispanic", "Asian, not Hispanic", "Pacific Islander, not Hispanic", "Other, not Hispanic", "Hispanic")
+
+
 
 # Output files
 
-write.csv(total_income,file.path(output_dir,"BATS_2023_Total_Income.csv"),row.names=F)
-write.csv(roadway_income,file.path(output_dir,"BATS_2023_Roadway_Income.csv"),row.names=F)
+write.csv(income_summary_snapshot,file.path(output_dir,"Snapshot_Income_Summary.csv"),row.names=F)
+write.csv(race_summary_snapshot,file.path(output_dir,"Snapshot_Race_Summary.csv"),row.names=F)
+
+write.csv(income_summary_goldengate,file.path(output_dir,"GoldenGate_Income_Summary.csv"),row.names=F)
+write.csv(race_summary_goldengate,file.path(output_dir,"GoldenGate_Race_Summary.csv"),row.names=F)
+
+write.csv(income_summary_ace,file.path(output_dir,"ACE_Income_Summary.csv"),row.names=F)
+write.csv(race_summary_ace,file.path(output_dir,"ACE_Race_Summary.csv"),row.names=F)
+
 
 
