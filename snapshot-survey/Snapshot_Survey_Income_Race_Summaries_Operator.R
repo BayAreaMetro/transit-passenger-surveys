@@ -114,24 +114,23 @@ income_summary_goldengate <- goldengate %>%
 
 race_summary_goldengate <- goldengate %>% 
   filter(Strata %in% c("AM PEAK", "MIDDAY", "PM PEAK", "EVENING", "AM OFF")) %>% 
-  mutate(race=case_when(
-    hispanic==1                            ~ "Hispanic",
-    hispanic==0 & race_dmy_wht==1 & race_dmy_asn
-  )
-  
-  Q19_1 %in% c("7", "9") & if_all(Q19_2:Q19_4, ~ . == 0)    ~ "Other, not Hispanic",
-  if_any(Q19_2:Q19_4, ~ . != 0)                             ~ "Other, not Hispanic",
+  mutate(race_simple = case_when(
+    if_all(hispanic:race_dmy_wht, ~ is.na(.)) ~ "Missing",
+    hispanic == 1 ~ "Hispanic",
+    hispanic == 0 & race_dmy_wht == 1 & if_all(race_dmy_asn:race_dmy_ind, ~ . == 0)           ~ "White, not Hispanic",
+    hispanic == 0 & race_dmy_asn == 1 & if_all(race_dmy_blk:race_dmy_wht, ~ . == 0)           ~ "Asian/Pacific Islander, not Hispanic",
+    hispanic == 0 & race_dmy_blk == 1 & race_dmy_asn==0 & race_dmy_ind==0 & race_dmy_wht==0   ~ "Black, not Hispanic",
+    TRUE                                                                                      ~ "Other, not Hispanic" 
   )) %>% 
-  group_by(income) %>% 
+  relocate(race_simple,.before = hispanic) %>% 
+  group_by(race_simple) %>% 
   summarize(total=sum(weight),.groups = "drop") %>% 
-  pivot_wider(.,names_from = income,values_from = total) %>% 
+  pivot_wider(.,names_from = race_simple,values_from = total) %>% 
   mutate("System"="Golden Gate Transit") %>% 
   relocate(System,.before = everything()) %>% 
-  select(System,"Under $10,000","$10,000 to $24,999", "$25,000 to $34,999", "$35,000 to $49,999", 
-         "$50,000 to $74,999", "$75,000 to $99,999", "$100,000 to $149,999", "$150,000 to $199,999", 
-         "$200,000 and above",  "Missing", "Multiple responses")
+  select(System, "White, not Hispanic","Black, not Hispanic", "Asian/Pacific Islander, not Hispanic", "Other, not Hispanic", "Hispanic")
 
-
+# ACE summaries for income and race
 
 
 # Output files
