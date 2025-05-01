@@ -11,14 +11,16 @@ options(scipen = 999)
 
 suppressMessages(library(tidyverse))
 library(readxl)
+library(zipcodeR)
 
 # Set file directories for input and output
 
-userprofile    <- gsub("\\\\","/", Sys.getenv("USERPROFILE"))
-box_dir1       <- file.path(userprofile, "Box", "Modeling and Surveys","Surveys","Transit Passenger Surveys")
-box_dir2       <- file.path(box_dir1, "Snapshot Survey", "Data","mtc snapshot survey_final data file_for regional MTC only_REVISED 28 August 2024.xlsx")
-ggt_in         <- "M:/Data/OnBoard/Data and Reports/Golden Gate Transit/2023/GoldenGate_Transit_Ferry_preprocessed.csv"
-ace_in         <- "M:/Data/OnBoard/Data and Reports/ACE/2023/ACE_Onboard_preprocessed.csv"
+userprofile     <- gsub("\\\\","/", Sys.getenv("USERPROFILE"))
+box_dir1        <- file.path(userprofile, "Box", "Modeling and Surveys","Surveys","Transit Passenger Surveys")
+box_dir2        <- file.path(box_dir1, "Snapshot Survey", "Data","mtc snapshot survey_final data file_for regional MTC only_REVISED 28 August 2024.xlsx")
+ggt_in          <- "M:/Data/OnBoard/Data and Reports/Golden Gate Transit/2023/GoldenGate_Transit_Ferry_preprocessed.csv"
+ace_in          <- "M:/Data/OnBoard/Data and Reports/ACE/2023/ACE_Onboard_preprocessed.csv"
+ace_original_in <- "M:/Data/OnBoard/Data and Reports/ACE/2023/ACE Onboard Data (sent 7.7.23).xlsx"
 
 
 # Bring in Snapshot Survey data
@@ -27,9 +29,31 @@ snapshot <- read_excel(box_dir2, sheet = "data file")
 
 # Bring in GGT and ACE data
 
-ggt <- read.csv(ggt_in)
-ace <- read.csv(ace_in)
+ggt          <- read.csv(ggt_in)
+ace_original <- read_excel(
+  ace_original_in,
+  sheet = "ACE Onboard Data Weighted 7.7.2"
+) %>%
+  mutate(home_zip = as.character(home_zip)) %>%
+  select(id, home_zip)
+ace          <- read.csv(ace_in) %>% 
+  left_join(.,ace_original,by="id")
 
+# Geocode home county to ace zip codes using a function
+# Use the built-in ZIP code database
+
+zip_db <- zipcodeR::zip_code_db
+
+# Join to get county name by ZIP, rename to home_county
+ace <- ace %>%
+  left_join(zip_db %>% select(zipcode, county), 
+            by = c("home_zip" = "zipcode"))  
+
+ace <- ace %>% 
+  rename(home_county=county)
+
+
+  
 
 # Adjust categories for overlapping values
 # Start with Snapshot
@@ -136,7 +160,18 @@ ace1 <- ace %>%
     TRUE                                                                                      ~ "Other, not Hispanic" 
   ),
   daytype_regional="DAY",           # Only weekday service for ACE
-  strata_regional="EVE"             # Trains surveyed were only evening trains (because most people ride round trip and only are surveyed once)
+  strata_regional="EVE",             # Trains surveyed were only evening trains (because most people ride round trip and only are surveyed once)
+  purpose_regional = recode(income,
+                           "1" = "Under $50,000",
+                           "2" = "Under $50,000",
+                           "3" = "Under $50,000",
+                           "4" = "Under $50,000",
+                           "5" = "$50,000 to $99,999",
+                           "6" = "$50,000 to $99,999",
+                           "7" = "$100,000 to $149,999",
+                           "8" = "$150,000 to $199,999",
+                           "9" = "$200,000 and above",
+                           .missing = "Missing"
   )
 
   
