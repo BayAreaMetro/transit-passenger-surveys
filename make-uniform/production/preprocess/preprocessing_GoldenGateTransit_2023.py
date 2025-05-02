@@ -63,7 +63,7 @@ KEEP_COLUMNS = [
     "Strata",                  # time_period
     "weight",                  # TODO: add simple weighting
 ]
-GG_dir = pathlib.Path("M:\Data\OnBoard\Data and Reports\Golden Gate Transit\\2023")
+GG_dir = pathlib.Path("M:/Data/OnBoard/Data and Reports/Golden Gate Transit/2023")
 GG_ferry_xlsx = GG_dir / "GGFerry2023 Final Data.xlsx"
 GG_transit_xlsx = GG_dir / "GGT2023 Final Data.xlsx"
 GG_ridership_xlsx = GG_dir / "Average Daily Ridership for GGT and GGF - Snapshot Survey Period.xlsx"
@@ -220,13 +220,10 @@ logging.debug(f"converted to crs:\n{place_gdf.crs}")
 place_centroid_coords = place_gdf.geometry.centroid.get_coordinates()
 place_centroid_coords["PLACE_NAME"] = place_gdf.NAME.str.upper()
 place_centroid_coords.rename(columns={"x":"place_lon", "y":"place_lat"}, inplace=True)
-# add angel island even though it's not a city, manually add San Francisco with a central location
+# add angel island even though it's not a city
 # https://en.wikipedia.org/wiki/Angel_Island_(California)
 ANGEL_ISLAND = pd.DataFrame({"place_lon":-122.43,"place_lat":37.86,"PLACE_NAME":'ANGEL ISLAND'}, index=[0])
-SAN_FRANCISCO = pd.DataFrame({"place_lon":-122.42,"place_lat":37.78,"PLACE_NAME":"SAN FRANCISCO"}, index=[0])
-
-# concatenate both manual entries with calculated centroids
-place_centroid_coords = pd.concat([ANGEL_ISLAND, SAN_FRANCISCO, place_centroid_coords])
+place_centroid_coords = pd.concat([ANGEL_ISLAND,place_centroid_coords])
 
 logging.debug(f"{len(place_centroid_coords)=}")
 logging.debug(f"place_centroid_coords.head():\n{place_centroid_coords.head(10)}")
