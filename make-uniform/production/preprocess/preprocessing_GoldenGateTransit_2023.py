@@ -225,6 +225,9 @@ place_centroid_coords.rename(columns={"x":"place_lon", "y":"place_lat"}, inplace
 ANGEL_ISLAND = pd.DataFrame({"place_lon":-122.43,"place_lat":37.86,"PLACE_NAME":'ANGEL ISLAND'}, index=[0])
 place_centroid_coords = pd.concat([ANGEL_ISLAND,place_centroid_coords])
 
+# manually override SAN FRANCISCO coordinates to place them in Civic Center area
+place_centroid_coords.loc[place_centroid_coords["PLACE_NAME"] == "SAN FRANCISCO",["place_lon", "place_lat"]] = [-122.42, 37.78]
+
 logging.debug(f"{len(place_centroid_coords)=}")
 logging.debug(f"place_centroid_coords.head():\n{place_centroid_coords.head(10)}")
 
