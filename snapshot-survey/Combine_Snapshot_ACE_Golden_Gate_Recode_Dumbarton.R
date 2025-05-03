@@ -47,9 +47,7 @@ zip_db <- zipcodeR::zip_code_db
 # Join to get county name by ZIP, rename to home_county
 ace <- ace %>%
   left_join(zip_db %>% select(zipcode, county), 
-            by = c("home_zip" = "zipcode"))  
-
-ace <- ace %>% 
+            by = c("home_zip" = "zipcode")) %>% 
   rename(home_county=county)
 
 
