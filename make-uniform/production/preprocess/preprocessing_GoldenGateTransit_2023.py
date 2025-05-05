@@ -606,3 +606,15 @@ GG_df = distribute_ridership(GG_df, ridership_df)
 GG_csv = GG_dir / "GoldenGate_Transit_Ferry_preprocessed.csv"
 GG_df[KEEP_COLUMNS].to_csv(GG_csv, index=False)
 print(f"Saved {len(GG_df):,} rows to {GG_csv}")
+
+# save alternate version for Snapshot Survey merging with more variables
+
+ADDITIONAL_KEEP_COLUMNS = KEEP_COLUMNS + [
+    "Origin County",
+    "Destination County",
+    "CountyCode"
+]
+
+GG_csv_additional = GG_dir / "GoldenGate_Transit_Ferry_preprocessed_additional_columns.csv"
+GG_df[ADDITIONAL_KEEP_COLUMNS].to_csv(GG_csv_additional, index=False)
+print(f"Saved {len(GG_df_additional):,} rows to {GG_csv_additional}")
