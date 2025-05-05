@@ -110,82 +110,88 @@ logging.debug(f"GG_transit_df:\n{GG_transit_df.head()}")
 
 # explicitly make these the same
 GG_ferry_df.rename(columns={
-    'ferry_Q1b'         : 'Q1b',       # orig_purp
-    'ferry_Q1a'         : 'orig_city', # origin city
-    'ferry_Q2b'         : 'Q2b',       # dest_purp
-    'ferry_Q2a'         : 'dest_city', # destination city
-    'ferry_Q14'         : 'Home_Zipcode',
-    'ferry_Access_1'    : 'Access_1', # access modes
-    'ferry_Access_2'    : 'Access_2', # access modes
-    'ferry_Access_3'    : 'Access_3', # access modes
-    'ferry_Access_4'    : 'Access_4', # access modes
-    'ferry_Egress_1'    : 'Egress_1', # egress modes
-    'ferry_Egress_2'    : 'Egress_2', # egress modes
-    'ferry_Egress_3'    : 'Egress_3', # egress modes
-    'ferry_Egress_4'    : 'Egress_4', # egress modes
-    'ferry_Q4'          : 'Q4',  # fare_medium
-    'ferry_Q5'          : 'Q5',  # fare_category
-    'ferry_Q15'         : 'persons',
-    'ferry_Q16_1'       : 'language_at_home_1',
-    'ferry_Q16_2'       : 'language_at_home_2',
-    'ferry_Q16_3'       : 'language_at_home_3',
-    'ferry_Q16_4'       : 'language_at_home_4',
-    'ferry_Q17'         : 'eng_proficient',
-    'ferry_Q18'         : 'gender',
-    'ferry_Q19_1'       : 'race_1',
-    'ferry_Q19_2'       : 'race_2',
-    'ferry_Q19_3'       : 'race_3',
-    'ferry_Q19_4'       : 'race_4',
-    'ferry_Q20'         : 'age_cat',
-    'ferry_Q21'         : 'household_income',
-    'ferry_sys_RespNum' : 'sys_RespNum',
-    'ferry_CCGID'       : 'CCGID',
-    'ferry_Source'      : 'Source',
-    'ferry_Lang'        : 'Lang',
-    'ferry_RUNID'       : 'RUNID',
-    'ferry_Route'       : 'Route',
-    'ferry_Dir'         : 'Dir',
-    'ferry_IntDate'     : 'IntDate',
-    'ferry_Strata'      : 'Strata',
+    'ferry_Q1b'                : 'Q1b',       # orig_purp
+    'ferry_Q1a'                : 'orig_city', # origin city
+    'ferry_Q2b'                : 'Q2b',       # dest_purp
+    'ferry_Q2a'                : 'dest_city', # destination city
+    'ferry_Q14'                : 'Home_Zipcode',
+    'ferry_Access_1'           : 'Access_1', # access modes
+    'ferry_Access_2'           : 'Access_2', # access modes
+    'ferry_Access_3'           : 'Access_3', # access modes
+    'ferry_Access_4'           : 'Access_4', # access modes
+    'ferry_Egress_1'           : 'Egress_1', # egress modes
+    'ferry_Egress_2'           : 'Egress_2', # egress modes
+    'ferry_Egress_3'           : 'Egress_3', # egress modes
+    'ferry_Egress_4'           : 'Egress_4', # egress modes
+    'ferry_Q4'                 : 'Q4',  # fare_medium
+    'ferry_Q5'                 : 'Q5',  # fare_category
+    'ferry_Q15'                : 'persons',
+    'ferry_Q16_1'              : 'language_at_home_1',
+    'ferry_Q16_2'              : 'language_at_home_2',
+    'ferry_Q16_3'              : 'language_at_home_3',
+    'ferry_Q16_4'              : 'language_at_home_4',
+    'ferry_Q17'                : 'eng_proficient',
+    'ferry_Q18'                : 'gender',
+    'ferry_Q19_1'              : 'race_1',
+    'ferry_Q19_2'              : 'race_2',
+    'ferry_Q19_3'              : 'race_3',
+    'ferry_Q19_4'              : 'race_4',
+    'ferry_Q20'                : 'age_cat',
+    'ferry_Q21'                : 'household_income',
+    'ferry_sys_RespNum'        : 'sys_RespNum',
+    'ferry_CCGID'              : 'CCGID',
+    'ferry_Source'             : 'Source',
+    'ferry_Lang'               : 'Lang',
+    'ferry_RUNID'              : 'RUNID',
+    'ferry_Route'              : 'Route',
+    'ferry_Dir'                : 'Dir',
+    'ferry_IntDate'            : 'IntDate',
+    'ferry_Strata'             : 'Strata',
+    'ferry_Origin County'      : 'Origin County',
+    'ferry_Destination County' : 'Destination County',
+    'ferry_CountyCode'         : 'CountyCode'
 }, inplace=True)
 GG_transit_df.rename(columns={
-    'ggt_Q1b'           : 'Q1b',       # orig_purp
-    'ggt_Q1c'           : 'orig_city', # origin city
-    'ggt_Q2b'           : 'Q2b',       # dest_purp
-    'ggt_Q2c'           : 'dest_city', # destination city
-    'ggt_Q20'           : 'Home_Zipcode',
-    'ggt_Access_1'      : 'Access_1', # access modes
-    'ggt_Access_2'      : 'Access_2', # access modes
-    'ggt_Access_3'      : 'Access_3', # access modes
-    'ggt_Access_4'      : 'Access_4', # access modes
-    'ggt_Egress_1'      : 'Egress_1', # egress modes
-    'ggt_Egress_2'      : 'Egress_2', # egress modes
-    'ggt_Egress_3'      : 'Egress_3', # egress modes
-    'ggt_Egress_4'      : 'Egress_4', # egress modes
-    'ggt_Q4'            : 'Q4',  # fare_medium
-    'ggt_Q5'            : 'Q5',  # fare_category
-    'ggt_Q13'           : 'persons',
-    'ggt_Q14_1'         : 'language_at_home_1',
-    'ggt_Q14_2'         : 'language_at_home_2',
-    'ggt_Q14_3'         : 'language_at_home_3',
-    'ggt_Q14_4'         : 'language_at_home_4',
-    'ggt_Q15'           : 'eng_proficient',
-    'ggt_Q16'           : 'gender',
-    'ggt_Q17_1'         : 'race_1',
-    'ggt_Q17_2'         : 'race_2',
-    'ggt_Q17_3'         : 'race_3',
-    'ggt_Q17_4'         : 'race_4',
-    'ggt_Q18'           : 'age_cat',
-    'ggt_Q19'           : 'household_income',
-    'ggt_sys_RespNum'   : 'sys_RespNum',
-    'ggt_CCGID'         : 'CCGID',
-    'ggt_SOURCE'        : 'Source',
-    'ggt_LANG'          : 'Lang',
-    'ggt_RUNID'         : 'RUNID',
-    'ggt_Route'         : 'Route',
-    'ggt_Dir'           : 'Dir',
-    'ggt_IntDate'       : 'IntDate',
-    'ggt_Strata'        : 'Strata',
+    'ggt_Q1b'                  : 'Q1b',       # orig_purp
+    'ggt_Q1c'                  : 'orig_city', # origin city
+    'ggt_Q2b'                  : 'Q2b',       # dest_purp
+    'ggt_Q2c'                  : 'dest_city', # destination city
+    'ggt_Q20'                  : 'Home_Zipcode',
+    'ggt_Access_1'             : 'Access_1', # access modes
+    'ggt_Access_2'             : 'Access_2', # access modes
+    'ggt_Access_3'             : 'Access_3', # access modes
+    'ggt_Access_4'             : 'Access_4', # access modes
+    'ggt_Egress_1'             : 'Egress_1', # egress modes
+    'ggt_Egress_2'             : 'Egress_2', # egress modes
+    'ggt_Egress_3'             : 'Egress_3', # egress modes
+    'ggt_Egress_4'             : 'Egress_4', # egress modes
+    'ggt_Q4'                   : 'Q4',  # fare_medium
+    'ggt_Q5'                   : 'Q5',  # fare_category
+    'ggt_Q13'                  : 'persons',
+    'ggt_Q14_1'                : 'language_at_home_1',
+    'ggt_Q14_2'                : 'language_at_home_2',
+    'ggt_Q14_3'                : 'language_at_home_3',
+    'ggt_Q14_4'                : 'language_at_home_4',
+    'ggt_Q15'                  : 'eng_proficient',
+    'ggt_Q16'                  : 'gender',
+    'ggt_Q17_1'                : 'race_1',
+    'ggt_Q17_2'                : 'race_2',
+    'ggt_Q17_3'                : 'race_3',
+    'ggt_Q17_4'                : 'race_4',
+    'ggt_Q18'                  : 'age_cat',
+    'ggt_Q19'                  : 'household_income',
+    'ggt_sys_RespNum'          : 'sys_RespNum',
+    'ggt_CCGID'                : 'CCGID',
+    'ggt_SOURCE'               : 'Source',
+    'ggt_LANG'                 : 'Lang',
+    'ggt_RUNID'                : 'RUNID',
+    'ggt_Route'                : 'Route',
+    'ggt_Dir'                  : 'Dir',
+    'ggt_IntDate'              : 'IntDate',
+    'ggt_Strata'               : 'Strata',
+    'ggt_Origin County'        : 'Origin County',
+    'ggt_Destination County'   : 'Destination County',
+    'ggt_CountyCode'           : 'CountyCode'
 }, inplace=True)
 
 # Put them together
@@ -617,4 +623,4 @@ ADDITIONAL_KEEP_COLUMNS = KEEP_COLUMNS + [
 
 GG_csv_additional = GG_dir / "GoldenGate_Transit_Ferry_preprocessed_additional_columns.csv"
 GG_df[ADDITIONAL_KEEP_COLUMNS].to_csv(GG_csv_additional, index=False)
-print(f"Saved {len(GG_df_additional):,} rows to {GG_csv_additional}")
+print(f"Saved {len(GG_df):,} rows to {GG_csv_additional}")
