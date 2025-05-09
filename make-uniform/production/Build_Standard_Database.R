@@ -799,7 +799,7 @@ survey_standard <- survey_standard %>%
   mutate(at_school_prior_to_orig_purp = ifelse(is.na(at_school_prior_to_orig_purp), 'not relevant', at_school_prior_to_orig_purp)) %>%
   mutate(at_school_after_dest_purp = ifelse(is.na(at_school_after_dest_purp), 'not relevant', at_school_after_dest_purp))
 
-
+# TODO: the below logic codes school to "high school" only
 # Refine school purpose
 survey_standard <- survey_standard %>%
   mutate(orig_purp = ifelse(orig_purp == "school", "high school", orig_purp)) %>%
@@ -809,6 +809,7 @@ survey_standard <- survey_standard %>%
   mutate(dest_purp = ifelse(dest_purp == "school" & approximate_age < 14,
                             "grade_school", dest_purp))
 
+# TODO: the below logic codes school to "high school" only
 # for Capitol Corridor 2019 survey, use 'trip_purp'
 if ('trip_purp' %in% colnames(survey_standard)) {
   survey_standard <- survey_standard %>%
