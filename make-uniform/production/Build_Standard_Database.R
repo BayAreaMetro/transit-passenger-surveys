@@ -39,7 +39,8 @@ list_of_packages <- c(
   "tidyverse",
   "tigris",
   "reldist",
-  "rvest"
+  "rvest",
+  "glue"
 )
 new_packages <- list_of_packages[!(list_of_packages %in% installed.packages()[,"Package"])]
 if(length(new_packages)) install.packages(new_packages)
@@ -2135,6 +2136,20 @@ print("head(survey_combine):")
 print(head(survey_combine))
 print("survey_combine (standard + legacy):")
 str(survey_combine, list.len=ncol(survey_combine))
+
+# Step 12:  Add PUMS demographic varibles for comparison purposes, append to survey_combine----------------------------------
+# Relies on function: create_PUMS_data_in_TPS_format
+
+unique_years <- unique(survey_combine$survey_year)
+
+pums_comparisons <- map_dfr(unique_years, ~ create_PUMS_data_in_TPS_format(survey_year = .x, inflation_year = 2023))
+
+# Step 13:  Bind the files together for export, export data----------------------------------
+# Add source to survey file first
+
+survey_combine <- survey_combine %>% 
+  mutate(source="survey")
+survey_combine <- bind_rows(survey_combine,pums_comparisons)
 
 # export combined data
 sprintf('Export %d rows and %d columns of legacy-standard combined data to %s and %s',
