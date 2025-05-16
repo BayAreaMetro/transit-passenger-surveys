@@ -252,3 +252,140 @@ technology_present <- function(survey_data_df,
   
   return(survey_data_df)
 }
+
+# Add data from PUMS datasets by survey year for background population comparisons
+
+create_PUMS_data_in_TPS_format <- function(survey_year,inflation_year){
+  suffix <- substr(survey_year, 3, 4)  # Extract last two digits from survey year
+  
+  pums_path <- file.path("M:/Data/Census/PUMS", 
+                         paste0("PUMS ", survey_year))
+  
+  hh_file     <- file.path(pums_path, paste0("hbayarea", suffix, ".Rdata"))
+  person_file <- file.path(pums_path, paste0("pbayarea", suffix, ".Rdata"))
+  
+  # Check file existence for PUMS HH and person files, load files if available
+  if (!file.exists(hh_file)) {
+    stop(glue("Household PUMS file not found: {hh_file}"))
+  }
+  
+  if (!file.exists(person_file)) {
+    stop(glue("Person PUMS file not found: {person_file}"))
+  }
+  
+  hh_obj_name     <- load(hh_file)
+  person_obj_name <- load(person_file)
+  
+  hh_pums         <- get(hh_obj_name)
+  person_pums     <- get(person_obj_name) 
+  
+  # Survey years prior to 2020 have a different variable name for TYPEHUGQ (household vs. GQ type): TYPE; make them match
+  if (survey_year < 2020 && "TYPE" %in% names(hh_pums)) {
+    hh_pums <- hh_pums %>% rename(TYPEHUGQ = TYPE)
+  }
+  
+  # Keep relevant PUMS variables
+  # Recode value of NA income for GQ (people under 15) to 0
+  hh_pums <- hh_pums %>% 
+    select(SERIALNO,TYPEHUGQ,HINCP) 
+  
+  person_pums <- person_pums %>% 
+    select(SERIALNO,PINCP,ADJINC,RAC1P,HISP,PWGTP) %>% 
+    mutate(PINCP=if_else(is.na(PINCP),0,PINCP))
+  
+  # Inflate incomes to "inflation_year" passed into the function
+  # Bring in CPI table from MTC modeling Wiki
+  # Keep rows from 2010 and later and rename for local use
+  url <- "https://github.com/BayAreaMetro/modeling-website/wiki/InflationAssumptions"
+  page <- read_html(url)
+  inflation_table <- page %>%
+    html_node("table") %>%
+    html_table() %>%
+    select(CPI_year = Year, CPI_2010_Ref = "Consumer Price Index(2010 Reference)") %>%
+    filter(CPI_year >= 2010)
+  
+  print("inflation_table:")
+  print(inflation_table)
+  
+  # Check and extract CPI value
+  CPI_row <- inflation_table %>%
+    filter(CPI_year == !!inflation_year)
+  
+  survey_row <- inflation_table %>%
+    filter(CPI_year == !!survey_year)
+  
+  if (nrow(CPI_row) == 0) {
+    stop(glue("No CPI value found for inflation_year: {inflation_year}")) # Check if inflation_year is in table, survey_year definitely is
+  }
+  
+  # CPI is year inflated to, survey year is inflated from, CPI_ratio reflects this
+  CPI_placeholder    <- CPI_row$CPI_2010_Ref
+  survey_placeholder <- survey_row$CPI_2010_Ref
+  CPI_ratio = CPI_placeholder / survey_placeholder
+  
+  # Print inflation information for review
+  print(glue("CPI_placeholder {inflation_year}: {CPI_placeholder}"))
+  print(glue("survey_placeholder {survey_year}: {survey_placeholder}"))
+  print(glue("CPI ratio: {CPI_ratio}"))
+  
+  # Create categories to match with TPS
+  # For income, use PINCP for non-institutional group quarters and HINCP for households
+  combined <- left_join(person_pums, hh_pums, by = "SERIALNO") %>% 
+    filter(TYPEHUGQ %in% c(1, 3)) %>% 
+    mutate( 
+      race = case_when(
+        RAC1P==1  ~ "WHITE",
+        RAC1P==2  ~ "BLACK",
+        RAC1P==3  ~ "OTHER",
+        RAC1P==4  ~ "OTHER",
+        RAC1P==5  ~ "OTHER",
+        RAC1P==6  ~ "ASIAN",
+        RAC1P==7  ~ "OTHER",
+        RAC1P==8  ~ "OTHER",
+        RAC1P==9  ~ "OTHER",
+        TRUE      ~ "Mistaken coding"
+      ),
+      hispanic = case_when(
+        HISP==1   ~ "NOT HISPANIC/LATINO OR OF SPANISH ORIGIN",
+        HISP>1    ~ "HISPANIC/LATINO OR OF SPANISH ORIGIN",
+        TRUE      ~ "Mistaken coding"
+      ),
+      temp_income = case_when(
+        TYPEHUGQ==3          ~ PINCP,
+        TYPEHUGQ==1          ~ HINCP
+      ),
+      temp2_income = temp_income * ADJINC/1000000 * CPI_ratio,
+      household_income = case_when(
+        temp2_income < 50000                             ~ "under $50,000",
+        temp2_income >= 50000 & temp2_income  < 100000   ~ "$50,000 to $99,999",
+        temp2_income >= 100000 & temp2_income < 150000   ~ "$100,000 to $149,999",
+        temp2_income >= 150000 & temp2_income < 200000   ~ "$150,000 to $200,000",
+        temp2_income >= 200000                           ~ "$200,000 or higher",
+      )
+    )
+  
+  # Race and income summary
+  # Append pums source and inflation_year (just for income) columns for later joining
+  
+  race <- combined %>% 
+    group_by(race,hispanic) %>% 
+    summarize(weight=sum(PWGTP),.groups = "drop") %>% 
+    mutate(
+      source=paste(survey_year,"pums1")
+    )
+  
+  income <- combined %>% 
+    group_by(household_income) %>% 
+    summarize(weight=sum(PWGTP),.groups = "drop") %>% 
+    mutate(
+      source=paste(survey_year,"pums1"),
+      inflation_year=!!inflation_year
+    )
+  
+  # Combine datasets for export
+  
+  joined <- bind_rows(race,income)
+  
+  # Return the final dataframe
+  return(joined)
+}
