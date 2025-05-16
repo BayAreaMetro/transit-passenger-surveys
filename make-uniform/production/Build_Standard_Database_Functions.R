@@ -376,7 +376,8 @@ create_PUMS_data_in_TPS_format <- function(survey_year,inflation_year){
     group_by(race,hispanic) %>% 
     summarize(weight=sum(PWGTP),.groups = "drop") %>% 
     mutate(
-      source=paste(survey_year,"pums1")
+      source=paste(survey_year,"pums1"),
+      survey_year=!!survey_year
     )
   
   income <- combined %>% 
@@ -384,7 +385,8 @@ create_PUMS_data_in_TPS_format <- function(survey_year,inflation_year){
     summarize(weight=sum(PWGTP),.groups = "drop") %>% 
     mutate(
       source=paste(survey_year,"pums1"),
-      inflation_year=!!inflation_year
+      inflation_year=!!inflation_year,
+      survey_year=!!survey_year
     )
   
   # Combine datasets for export
