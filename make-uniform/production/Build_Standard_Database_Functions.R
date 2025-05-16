@@ -254,11 +254,11 @@ technology_present <- function(survey_data_df,
 }
 
 # Add data from PUMS datasets by survey year for background population comparisons
-# Takes passed survey years from the survey_year field and summarize/append those PUMS files for race/ethnicity and income
-# Added an "inflation_year" field to the function and dataset (function parameter), so we can have explicit control on this field. 
+# Takes passed survey years from the survey_year field and summarizes/appends those PUMS files for race/ethnicity and income
+# Added an "inflation_year" field to the function and dataset (function parameter), so we can have explicit control on this field
 # Added a source field to the dataset ({year }, "pums1")
 # Used HH incomes for people in households and personal income (PINCP) for non-inst. GQ. 
-# Institutional GQ people were excluded from the function. 
+# Institutional GQ people were excluded from the function
 
 create_PUMS_data_in_TPS_format <- function(survey_year,inflation_year){
   suffix <- substr(survey_year, 3, 4)  # Extract last two digits from survey year
