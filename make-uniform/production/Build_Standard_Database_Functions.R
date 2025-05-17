@@ -334,6 +334,7 @@ create_PUMS_data_in_TPS_format <- function(survey_year,inflation_year){
   print(glue("CPI ratio: {CPI_ratio}"))
   
   # Create categories to match with TPS
+  # Remove institutional GQ pop from dataset
   # For income, use PINCP for non-institutional group quarters and HINCP for households
   combined <- left_join(person_pums, hh_pums, by = "SERIALNO") %>% 
     filter(TYPEHUGQ %in% c(1, 3)) %>% 
