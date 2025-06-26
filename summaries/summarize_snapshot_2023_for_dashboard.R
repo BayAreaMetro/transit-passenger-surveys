@@ -15,9 +15,6 @@ library(srvyr)
 # Read the standardized survey data
 TPS_SURVEY_STANDARDIZED_PATH <- "M:\\Data\\OnBoard\\Data and Reports\\_data_Standardized\\standardized_2025-05-16"
 
-
-
-
 # Function to summarize survey data by attribute
 summarize_for_attr <- function(survey_data, summary_col) {
   summary_col_str <- as_label(enquo(summary_col))
@@ -32,13 +29,13 @@ summarize_for_attr <- function(survey_data, summary_col) {
     dplyr::count(acs, {{ summary_col }}, .drop=FALSE) %>% print(n=Inf)
 
     acs_sumary <- acs %>% group_by({{ summary_col }}) %>% summarize(
-      weighted = sum(weight, na.rm=TRUE),
+      weighted_count = sum(weight, na.rm=TRUE),
       .groups = 'drop'
     )
-    total_weighted <- sum(acs_sumary$weighted, na.rm=TRUE)
+    total_weighted <- sum(acs_sumary$weighted_count, na.rm=TRUE)
     acs_sumary <- acs_sumary %>% mutate(
       total_weighted = total_weighted,
-      weighted_share = weighted / total_weighted,
+      weighted_share = weighted_count / total_weighted,
       source = ACS_SOURCE,
     )
 
@@ -46,21 +43,21 @@ summarize_for_attr <- function(survey_data, summary_col) {
     return_table <- acs_sumary
   }
 
-  # make a duplicate of the data to summarize for all tech groups
-  survey_data <- rbind(
-    survey_data %>% mutate(survey_tech_group = "All Transit Modes"),
-    survey_data
+  # make a duplicate of the transit passenger survey data ONLY to summarize for all tech groups
+  transit_survey_data <- rbind(
+    survey_data %>% filter(source == "survey") %>% mutate(survey_tech_group = "All Transit Modes"),
+    survey_data %>% filter(source == "survey")
   )
 
-  for (filter_weekpart in c("WEEKDAY")) { # TODO: add back "WEEKEND"
+  for (filter_weekpart in c("WEEKDAY", "WEEKEND")) {
 
     # summarize by weekpart, tech group and operator
-    for (summary_level in c("survey_tech_group")) { # TODO: add back "operator"
+    for (summary_level in c("survey_tech_group", "operator")) {
 
       print(glue("Summarizing survey data for weekpart={filter_weekpart}, summary_level={summary_level}, summary_col={summary_col_str}"))
 
       # filter to rows where data exists
-      data_to_summarize <- filter(survey_data, 
+      data_to_summarize <- filter(transit_survey_data, 
         !is.na(!!summary_level) & 
         !is.na({{ summary_col }}) & 
         !is.na(weight) &
@@ -70,6 +67,11 @@ summarize_for_attr <- function(survey_data, summary_col) {
         (weekpart == filter_weekpart)
       )
 
+      # Calculate actual unweighted counts by group and category
+      actual_counts <- data_to_summarize %>%
+        group_by(across(all_of(c(summary_level, summary_col_str)))) %>%
+        summarise(weighted_count_actual = sum(weight), unweighted_count_actual = n(), .groups = "drop")
+      
       # Step 1: Create dummy variables for each level of group_var2
       df_dummy <- data_to_summarize %>%
         mutate(across(all_of(summary_col_str), as.factor)) %>%
@@ -80,7 +82,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
           values_fill = 0,
           names_prefix = "pref_"
         )
-        # this adds dummy cols, e.g. pref_Alameda, pref_San Francisco, etc. which are set to 1 or 0
+        # this adds dummy cols for the summary_col, e.g. pref_Alameda, pref_San Francisco, etc. which are set to 1 or 0
       print("df_dummy:")
       print(df_dummy)
 
@@ -88,7 +90,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
       srv_design <- df_dummy %>%
         as_survey_design(weights = weight, strata = c(operator, weekpart))      
 
-      # Step 3: Compute within-group proportions and counts
+      # Step 3: Compute within-group weighted_shares and counts
       srv_results <- srv_design %>%
         group_by(across(all_of(summary_level))) %>%
         summarise(
@@ -106,7 +108,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
       print("1 srv_results:")
       print(srv_results)
       
-      # Reshape to get county as column with proportion, SE, and CI as separate columns
+      # Reshape to get county as column with weighted_share, SE, and CI as separate columns
       srv_results <- srv_results %>%
         pivot_longer(
           cols = starts_with("pref_"),
@@ -116,15 +118,15 @@ summarize_for_attr <- function(survey_data, summary_col) {
         ) %>%
         mutate(
           stat_type = case_when(
-            stat_type == "_1" ~ "proportion",
+            stat_type == "_1" ~ "weighted_share",
             stat_type == "_1_se" ~ "se", 
             stat_type == "_1_low" ~ "ci_lower_95",
             stat_type == "_1_upp" ~ "ci_upper_95"
           ))
       print("2 srv_results:")
       print(srv_results)
-      print(tail(srv_results))
 
+      # Pivot the stat_type back to columns
       srv_results <- srv_results %>%
         pivot_wider(
           names_from = stat_type,
@@ -134,21 +136,25 @@ summarize_for_attr <- function(survey_data, summary_col) {
       print(srv_results)
 
       srv_results <- srv_results %>%
-        # Calculate weighted and unweighted counts for each county
+        # Calculate weighted counts and merge actual unweighted counts
         mutate(
-          weighted_count = proportion * total_weighted,
-          unweighted_count = round(proportion * total_unweighted),
           weekpart = filter_weekpart,
           summary_level = summary_level,
-          summary_col = summary_col_str
+          summary_col = summary_col_str,
+          source = "survey" # add this back
         ) %>%
+        # Join with actual unweighted counts
+        left_join(actual_counts, 
+                  by = setNames(c(summary_level, summary_col_str), 
+                               c(summary_level, summary_col_str))) %>%
+        rename(weighted_count = weighted_count_actual, unweighted_count = unweighted_count_actual) %>%
         # Keep relevant columns
-        select(all_of(summary_level), home_county, proportion, se, ci_lower_95, ci_upper_95, 
+        select(all_of(summary_level), all_of(summary_col_str), weighted_share, se, ci_lower_95, ci_upper_95, 
                weighted_count, unweighted_count, total_weighted, total_unweighted,
-               weekpart, summary_level, summary_col)
+               weekpart, summary_level, summary_col, source)
       
       print("srv_results after reshaping:")
-      print(srv_results)
+      print(srv_results, n=30)
 
       # add to return table
       return_table <- bind_rows(return_table, srv_results)
@@ -156,7 +162,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
   }
 
   print("RETURN table:")
-  return_table %>% print(n=Inf)
+  print(return_table, n=30)
   print(glue("===== End of summarizing for {as_label(enquo(summary_col))}"))
   return(return_table)
 }
@@ -272,11 +278,21 @@ main <- function() {
 
   # keep only relevant columns
   survey_combine <- select(survey_combine,
-   unique_ID, source, survey_name, survey_year, operator, survey_tech, survey_tech_group, household_income, home_county, weekpart, weight)
+   unique_ID, source, survey_name, survey_year, operator, survey_tech, survey_tech_group, weekpart, weight,
+   household_income_group, home_county)
 
   # summarize by household income
-  # income_summary <- summarize_for_attr(survey_combine, household_income_group)
+  income_summary <- summarize_for_attr(survey_combine, household_income_group)
+
+  # summarize for home county
   homecounty_summary <- summarize_for_attr(survey_combine, home_county)
+
+  # put it together and save
+  output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "summarize_snapshot_2023_for_dashboard.Rdata")
+  full_summary <- bind_rows(income_summary,homecounty_summary)
+  save(full_summary, file = file.path(output_file))
+  print(glue("Wrote {nrow(full_summary)} to {output_file}"))
+  message(glue("Wrote {nrow(full_summary)} to {output_file}"))
 }
 
 main()
