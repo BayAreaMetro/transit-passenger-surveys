@@ -66,8 +66,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
         !is.na(weight) &
         !is.na(operator) &  # Need operator for stratification
         !is.na(weekpart) &  # Need weekpart for stratification
-        # TODO: add this filter back in
-        # (weight > 0) & # note there are some of these records... 
+        (weight > 0) &      # Exclude dummy records with zero weight
         (weekpart == filter_weekpart)
       )
 
@@ -89,7 +88,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
       srv_design <- df_dummy %>%
         as_survey_design(weights = weight, strata = c(operator, weekpart))      
 
-      # Step 3: Compute within-group proportions
+      # Step 3: Compute within-group proportions and counts
       srv_results <- srv_design %>%
         group_by(across(all_of(summary_level))) %>%
         summarise(
@@ -98,17 +97,57 @@ summarize_for_attr <- function(survey_data, summary_col) {
             ~ survey_mean(.x, vartype = c("se", "ci")),
             .names = "{.col}_{.fn}"
           ),
+          # Add total counts for each group
+          total_weighted = survey_total(vartype = "se"),
+          total_unweighted = unweighted(n()),
           .groups = "drop"
         )
 
-      print("srv_results:")
+      print("1 srv_results:")
       print(srv_results)
-      srv_results <- pivot_longer(srv_results,
-        cols = starts_with("pref_"),
-        names_pattern = "pref_(.*)(_1|_1_se|_1_low|_1_upp)",
-        names_to = c("home_county","var")
-      )
-      print("srv_results:")
+      
+      # Reshape to get county as column with proportion, SE, and CI as separate columns
+      srv_results <- srv_results %>%
+        pivot_longer(
+          cols = starts_with("pref_"),
+          names_pattern = "^pref_(.*)(_1|_1_se|_1_low|_1_upp)$",
+          names_to = c(summary_col_str, "stat_type"),
+          values_to = "value"
+        ) %>%
+        mutate(
+          stat_type = case_when(
+            stat_type == "_1" ~ "proportion",
+            stat_type == "_1_se" ~ "se", 
+            stat_type == "_1_low" ~ "ci_lower_95",
+            stat_type == "_1_upp" ~ "ci_upper_95"
+          ))
+      print("2 srv_results:")
+      print(srv_results)
+      print(tail(srv_results))
+
+      srv_results <- srv_results %>%
+        pivot_wider(
+          names_from = stat_type,
+          values_from = value
+        )
+      print("3 srv_results:")
+      print(srv_results)
+
+      srv_results <- srv_results %>%
+        # Calculate weighted and unweighted counts for each county
+        mutate(
+          weighted_count = proportion * total_weighted,
+          unweighted_count = round(proportion * total_unweighted),
+          weekpart = filter_weekpart,
+          summary_level = summary_level,
+          summary_col = summary_col_str
+        ) %>%
+        # Keep relevant columns
+        select(all_of(summary_level), home_county, proportion, se, ci_lower_95, ci_upper_95, 
+               weighted_count, unweighted_count, total_weighted, total_unweighted,
+               weekpart, summary_level, summary_col)
+      
+      print("srv_results after reshaping:")
       print(srv_results)
 
       # add to return table
