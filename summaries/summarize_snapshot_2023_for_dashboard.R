@@ -16,53 +16,6 @@ library(srvyr)
 TPS_SURVEY_STANDARDIZED_PATH <- "M:\\Data\\OnBoard\\Data and Reports\\_data_Standardized\\standardized_2025-05-16"
 
 
-compute_weighted_ci_two_vars <- function(df, var1, var2, weight_col) {
-  
-  categories <- df %>%
-    distinct(across(all_of(c(var1, var2))))
-  
-  map_dfr(1:nrow(categories), function(i) {
-    
-    cat1 <- categories[[var1]][i]
-    cat2 <- categories[[var2]][i]
-    
-    print(glue("Processing: {var1} = {cat1}, {var2} = {cat2}"))
-    
-    df_temp <- df %>%
-      mutate(
-        y = if_else(.data[[var1]] == cat1 & .data[[var2]] == cat2, 1, 0),
-        z = if_else(.data[[var1]] == cat1, 1, 0),
-        w_raw = .data[[weight_col]],
-        w = w_raw / sum(w_raw)  # Normalize weights to sum to 1
-      )
-    
-    # weighted proportion within group
-    p_hat <- sum(df_temp$w * df_temp$y) / sum(df_temp$w * df_temp$z)
-    print(glue("  Normalized weighted proportion (p̂): {round(p_hat, 8)}"))
-    
-    var_hat <- sum(df_temp$w^2 * (df_temp$y - p_hat)^2)
-    se <- sqrt(var_hat)
-    print(glue("  Variance: {round(var_hat, 8)}, SE: {round(se, 8)}"))
-    
-    z <- qnorm(0.975)
-    ci_lower <- p_hat - z * se
-    ci_upper <- p_hat + z * se
-    print(glue("  95% CI: [{round(ci_lower, 4)}, {round(ci_upper, 4)}]"))
-    
-    tibble(
-      !!var1 := cat1,
-      !!var2 := cat2,
-      weighted         = sum(df_temp$w_raw * df_temp$y),
-      weighted_total   = sum(df_temp$w_raw * df_temp$z),
-      unweighted       = sum(df_temp$y),
-      unweighted_total = sum(df_temp$z),
-      Proportion = p_hat,
-      SE = se,
-      CI_Lower_95 = ci_lower,
-      CI_Upper_95 = ci_upper
-    )
-  })
-}
 
 
 # Function to summarize survey data by attribute
@@ -111,14 +64,12 @@ summarize_for_attr <- function(survey_data, summary_col) {
         !is.na(!!summary_level) & 
         !is.na({{ summary_col }}) & 
         !is.na(weight) &
+        !is.na(operator) &  # Need operator for stratification
+        !is.na(weekpart) &  # Need weekpart for stratification
         # TODO: add this filter back in
         # (weight > 0) & # note there are some of these records... 
         (weekpart == filter_weekpart)
       )
-
-      manual_result <- compute_weighted_ci_two_vars(data_to_summarize, summary_level, summary_col_str, "weight")
-      print("MANUAL_RESULT:")
-      print(manual_result)
 
       # Step 1: Create dummy variables for each level of group_var2
       df_dummy <- data_to_summarize %>%
@@ -134,9 +85,9 @@ summarize_for_attr <- function(survey_data, summary_col) {
       print("df_dummy:")
       print(df_dummy)
 
-      # Step 2: Create survey design
+      # Step 2: Create survey design with stratification by operator and weekpart
       srv_design <- df_dummy %>%
-        as_survey_design(weights = weight)      
+        as_survey_design(weights = weight, strata = c(operator, weekpart))      
 
       # Step 3: Compute within-group proportions
       srv_results <- srv_design %>%
