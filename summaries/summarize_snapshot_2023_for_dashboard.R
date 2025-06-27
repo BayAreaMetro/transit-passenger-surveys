@@ -153,11 +153,13 @@ summarize_for_attr <- function(survey_data, summary_col) {
       print("4 srv_results:")
       print(srv_results)
 
-      # References:
-      # - **U.S. Census Bureau**: CV < 30% for reliable estimates
-      # - **Bureau of Labor Statistics**: n ≥ 30 minimum sample size
-      # - **National Center for Health Statistics**: Similar CI width thresholds
-      # - **American Statistical Association guidelines** for survey data suppression.
+      # References for estimate reliability criteria:
+      # - **U.S. Census Bureau**: Quality Standards Metrics Definitions
+      #   https://www.census.gov/programs-surveys/acs/methodology/sample-size-and-data-quality/quality-standards-metrics-definitions.html
+      # - **Bureau of Labor Statistics**: Handbook of Methods - Survey Design
+      #   https://www.bls.gov/opub/hom/ors/design.htm
+      # - **Federal Committee on Statistical Methodology**: Data Quality Framework (CV > 30% threshold)
+      #   https://nces.ed.gov/fcsm/pdf/FCSM.20.04_A_Framework_for_Data_Quality.pdf
       srv_results <- srv_results %>%
         # Apply criteria for poor estimate reliability 
         mutate(
@@ -176,9 +178,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
             sample_size_flag ~ "Poor (Small sample n<30)", 
             ci_width_flag ~ "Poor (Wide CI >40pp)",
             extreme_values_flag ~ "Poor (Invalid range)",
-            coeff_of_var <= 0.165 ~ "Good",
-            coeff_of_var <= 0.30 ~ "Acceptable",
-            TRUE ~ "Poor"
+            TRUE ~ "Acceptable"
           ),
           
           # Apply suppression to estimates (suppress if "Poor")
