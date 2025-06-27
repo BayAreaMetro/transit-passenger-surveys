@@ -180,17 +180,10 @@ summarize_for_attr <- function(survey_data, summary_col) {
             extreme_values_flag ~ "Poor (Invalid range)",
             TRUE ~ "Acceptable"
           ),
-          
-          # Apply suppression to estimates (suppress if "Poor")
-          weighted_share_published = if_else(suppress, NA_real_, weighted_share),
-          se_published = if_else(suppress, NA_real_, se),
-          ci_lower_95_published = if_else(suppress, NA_real_, ci_lower_95),
-          ci_upper_95_published = if_else(suppress, NA_real_, ci_upper_95)
         ) %>%
         # Keep relevant columns
         select(all_of(summary_level), all_of(summary_col_str), 
                weighted_share, se, ci_95, ci_lower_95, ci_upper_95, coeff_of_var,
-               weighted_share_published, se_published, ci_lower_95_published, ci_upper_95_published,
                weighted_count, unweighted_count, total_weighted, total_unweighted,
                estimate_reliability,
                weekpart, summary_level, summary_col, source)
