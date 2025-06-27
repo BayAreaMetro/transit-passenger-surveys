@@ -5,8 +5,14 @@
 # This script does the following:
 # 1. Reads the most recent standardized survey data (this includes ACS data)
 # 2. Filters to survey_year==2023
+# 3. Recodes some variables for summaries
+# 4. Summarizes survey data using srvyr package,
+#    by survey_tech_group or by operator
+#    for a given variable (income, home county, etc)
 #
-
+#         Output is written to TPS_SURVEY_STANDARDIZED_PATH\summarize_snapshot_2023_for_dashboard.Rdata
+# and a log file is written to TPS_SURVEY_STANDARDIZED_PATH\summarize_snapshot_2023_for_dashboard.log
+#
 library(glue)
 library(rlang)
 library(tidyverse)
@@ -43,21 +49,15 @@ summarize_for_attr <- function(survey_data, summary_col) {
     return_table <- acs_sumary
   }
 
-  # make a duplicate of the transit passenger survey data ONLY to summarize for all tech groups
-  transit_survey_data <- rbind(
-    survey_data %>% filter(source == "survey") %>% mutate(survey_tech_group = "All Transit Modes"),
-    survey_data %>% filter(source == "survey")
-  )
-
   for (filter_weekpart in c("WEEKDAY", "WEEKEND")) {
 
     # summarize by weekpart, tech group and operator
-    for (summary_level in c("survey_tech_group", "operator")) {
+    for (summary_level in c("all_records", "survey_tech_group", "operator")) {
 
       print(glue("Summarizing survey data for weekpart={filter_weekpart}, summary_level={summary_level}, summary_col={summary_col_str}"))
 
       # filter to rows where data exists
-      data_to_summarize <- filter(transit_survey_data, 
+      data_to_summarize <- filter(survey_data %>% filter(source == "survey") %>% mutate(all_records=1), 
         !is.na(!!summary_level) & 
         !is.na({{ summary_col }}) & 
         !is.na(weight) &
@@ -72,7 +72,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
         group_by(across(all_of(c(summary_level, summary_col_str)))) %>%
         summarise(weighted_count_actual = sum(weight), unweighted_count_actual = n(), .groups = "drop")
       
-      # Step 1: Create dummy variables for each level of group_var2
+      # Step 1: Create dummy variables for each level of summary_col
       df_dummy <- data_to_summarize %>%
         mutate(across(all_of(summary_col_str), as.factor)) %>%
         mutate(dummy = 1) %>%
@@ -96,7 +96,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
         summarise(
           across(
             starts_with("pref_"),
-            ~ survey_mean(.x, vartype = c("se", "ci")),
+            ~ survey_mean(.x, vartype = c("se", "ci", "cv")),
             .names = "{.col}_{.fn}"
           ),
           # Add total counts for each group
@@ -112,7 +112,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
       srv_results <- srv_results %>%
         pivot_longer(
           cols = starts_with("pref_"),
-          names_pattern = "^pref_(.*)(_1|_1_se|_1_low|_1_upp)$",
+          names_pattern = "^pref_(.*)(_1|_1_se|_1_low|_1_upp|_1_cv)$",
           names_to = c(summary_col_str, "stat_type"),
           values_to = "value"
         ) %>%
@@ -121,7 +121,8 @@ summarize_for_attr <- function(survey_data, summary_col) {
             stat_type == "_1" ~ "weighted_share",
             stat_type == "_1_se" ~ "se", 
             stat_type == "_1_low" ~ "ci_lower_95",
-            stat_type == "_1_upp" ~ "ci_upper_95"
+            stat_type == "_1_upp" ~ "ci_upper_95",
+            stat_type == "_1_cv"  ~ "coeff_of_var"
           ))
       print("2 srv_results:")
       print(srv_results)
@@ -138,6 +139,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
       srv_results <- srv_results %>%
         # Calculate weighted counts and merge actual unweighted counts
         mutate(
+          ci_95 = ci_upper_95 - weighted_share,
           weekpart = filter_weekpart,
           summary_level = summary_level,
           summary_col = summary_col_str,
@@ -149,10 +151,34 @@ summarize_for_attr <- function(survey_data, summary_col) {
                                c(summary_level, summary_col_str))) %>%
         rename(weighted_count = weighted_count_actual, unweighted_count = unweighted_count_actual) %>%
         # Keep relevant columns
-        select(all_of(summary_level), all_of(summary_col_str), weighted_share, se, ci_lower_95, ci_upper_95, 
+        select(all_of(summary_level), all_of(summary_col_str), weighted_share, se, ci_95, ci_lower_95, ci_upper_95, coeff_of_var,
                weighted_count, unweighted_count, total_weighted, total_unweighted,
                weekpart, summary_level, summary_col, source)
       
+      # for summary_level==operator, for each operator, set survey_tech_group to the survey_tech_groups for that operator
+      if (summary_level=="operator") {
+        operator_modes <- data_to_summarize %>%
+          select(operator, survey_tech_group) %>%
+          group_by(operator) %>% 
+          summarise(unique_modes = toString(unique(survey_tech_group)))
+        print("operator_modes")
+        print(operator_modes)
+        # replace survey_tech_group with unique_modes
+        srv_results <- left_join(srv_results, operator_modes, by=join_by(operator)) %>%
+          mutate(survey_tech_group=unique_modes) %>%
+          select(-unique_modes)
+      }
+
+      # we'll display this as All Transit Modes
+      if (summary_level=="all_records") {
+        srv_results <- srv_results %>% 
+          select(-all_records) %>% 
+          mutate(
+            survey_tech_group="All Transit Modes",
+            summary_level="survey_tech_group"
+          )
+      }
+
       print("srv_results after reshaping:")
       print(srv_results, n=30)
 
@@ -199,24 +225,24 @@ main <- function() {
   # create operator from Canonical Operator without all the odd capitalization
   survey_combine <- survey_combine %>% mutate(
     operator = case_when(
-      canonical_operator == "AC TRANSIT"       ~ "AC Transit",
-      canonical_operator == "CAPITOL CORRIDOR"   ~ "Capitol Corridor",
-      canonical_operator == "COUNTY CONNECTION"  ~ "County Connection",
-      canonical_operator == "DUMBARTON"      ~ "Dumbarton Express",
+      canonical_operator == "AC TRANSIT"           ~ "AC Transit",
+      canonical_operator == "CAPITOL CORRIDOR"     ~ "Capitol Corridor",
+      canonical_operator == "COUNTY CONNECTION"    ~ "County Connection",
+      canonical_operator == "DUMBARTON"            ~ "Dumbarton Express",
       canonical_operator == "GOLDEN GATE TRANSIT"  ~ "Golden Gate Transit",
-      canonical_operator == "MARIN TRANSIT"    ~ "Marin Transit",
-      canonical_operator == "NAPA VINE"      ~ "Napa Vine",
-      canonical_operator == "PETALUMA TRANSIT"   ~ "Petaluma Transit",
-      canonical_operator == "RIO-VISTA"      ~ "Rio Vista Delta Breeze",
-      canonical_operator == "SAMTRANS"       ~ "SamTrans",
-      canonical_operator == "SF BAY FERRY"     ~ "SF Bay Ferry",
-      canonical_operator == "MUNI"         ~ "SFMTA (Muni)",
-      canonical_operator == "SOLTRANS"       ~ "SolTrans",
-      canonical_operator == "TRI-DELTA"      ~ "Tri Delta",
-      canonical_operator == "UNION CITY"       ~ "Union City Transit",
+      canonical_operator == "MARIN TRANSIT"        ~ "Marin Transit",
+      canonical_operator == "NAPA VINE"            ~ "Napa Vine",
+      canonical_operator == "PETALUMA TRANSIT"     ~ "Petaluma Transit",
+      canonical_operator == "RIO-VISTA"            ~ "Rio Vista Delta Breeze",
+      canonical_operator == "SAMTRANS"             ~ "SamTrans",
+      canonical_operator == "SF BAY FERRY"         ~ "SF Bay Ferry",
+      canonical_operator == "MUNI"                 ~ "SFMTA (Muni)",
+      canonical_operator == "SOLTRANS"             ~ "SolTrans",
+      canonical_operator == "TRI-DELTA"            ~ "Tri Delta",
+      canonical_operator == "UNION CITY"           ~ "Union City Transit",
       canonical_operator == "VACAVILLE CITY COACH" ~ "Vacaville City Coach",
-      canonical_operator == "WESTCAT"        ~ "WestCAT",
-      TRUE                     ~ canonical_operator
+      canonical_operator == "WESTCAT"              ~ "WestCAT",
+      TRUE ~ canonical_operator
     ))
 
   # create household income (group)
@@ -288,8 +314,15 @@ main <- function() {
   homecounty_summary <- summarize_for_attr(survey_combine, home_county)
 
   # put it together and save
-  output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "summarize_snapshot_2023_for_dashboard.Rdata")
   full_summary <- bind_rows(income_summary,homecounty_summary)
+  # save N=1,234
+  full_summary <- full_summary %>% mutate(
+    total_unweighted_str = case_when(
+      source == "survey" ~ paste0("N=",prettyNum(total_unweighted, big.mark = ",", scientific = FALSE)),
+      TRUE ~ NA_character_
+  ))
+
+  output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "summarize_snapshot_2023_for_dashboard.Rdata")
   save(full_summary, file = file.path(output_file))
   print(glue("Wrote {nrow(full_summary)} to {output_file}"))
   message(glue("Wrote {nrow(full_summary)} to {output_file}"))
