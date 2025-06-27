@@ -88,7 +88,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
 
       # Step 2: Create survey design with stratification by operator and weekpart
       srv_design <- df_dummy %>%
-        as_survey_design(weights = weight, strata = c(operator, weekpart))      
+        as_survey_design(weights = weight, strata = c(operator, time_period))      
 
       # Step 3: Compute within-group weighted_shares and counts
       srv_results <- srv_design %>%
@@ -153,16 +153,21 @@ summarize_for_attr <- function(survey_data, summary_col) {
       print("4 srv_results:")
       print(srv_results)
 
+      # References:
+      # - **U.S. Census Bureau**: CV < 30% for reliable estimates
+      # - **Bureau of Labor Statistics**: n ≥ 30 minimum sample size
+      # - **National Center for Health Statistics**: Similar CI width thresholds
+      # - **American Statistical Association guidelines** for survey data suppression.
       srv_results <- srv_results %>%
-        # Apply data suppression criteria
+        # Apply criteria for poor estimate reliability 
         mutate(
-          # Calculate suppression flags
+          # Calculate poor estimate reliability flags
           cv_flag = coeff_of_var > 0.30,  # CV > 30%
           sample_size_flag = unweighted_count < 30,  # Minimum sample size
           ci_width_flag = (ci_upper_95 - ci_lower_95) > 0.40,  # CI width > 40pp
           extreme_values_flag = ci_lower_95 < 0 | ci_upper_95 > 1,  # Impossible values
           
-          # Overall suppression decision
+          # Overall poor reliability decision
           suppress = cv_flag | sample_size_flag | ci_width_flag | extreme_values_flag,
           
           # Create consolidated estimate reliability flag
@@ -325,8 +330,11 @@ main <- function() {
   print("Survey data by operator:")
   print(dplyr::count(survey_combine, source, survey_name, operator, canonical_operator, .drop=FALSE))
 
-  print("Survey data by weekpart:")
-  print(dplyr::count(survey_combine, source, survey_name, weekpart, .drop=FALSE))
+  # ACE Survey has NA time_period, so set it to weekpart
+  survey_combine <- mutate(survey_combine, time_period = coalesce(time_period, weekpart))
+
+  print("Survey data by time_period, weekpart:")
+  print(dplyr::count(survey_combine, source, survey_name, time_period, weekpart, .drop=FALSE))
 
   print("Survey data by household_income:")
   dplyr::count(survey_combine, source, survey_name, household_income_group, household_income, .drop=FALSE) %>% print(n=Inf)
@@ -336,7 +344,7 @@ main <- function() {
 
   # keep only relevant columns
   survey_combine <- select(survey_combine,
-   unique_ID, source, survey_name, survey_year, operator, survey_tech, survey_tech_group, weekpart, weight,
+   unique_ID, source, survey_name, survey_year, operator, survey_tech, survey_tech_group, time_period, weekpart, weight,
    household_income_group, home_county)
 
   # summarize by household income
