@@ -149,12 +149,47 @@ summarize_for_attr <- function(survey_data, summary_col) {
         left_join(actual_counts, 
                   by = setNames(c(summary_level, summary_col_str), 
                                c(summary_level, summary_col_str))) %>%
-        rename(weighted_count = weighted_count_actual, unweighted_count = unweighted_count_actual) %>%
+        rename(weighted_count = weighted_count_actual, unweighted_count = unweighted_count_actual)
+      print("4 srv_results:")
+      print(srv_results)
+
+      srv_results <- srv_results %>%
+        # Apply data suppression criteria
+        mutate(
+          # Calculate suppression flags
+          cv_flag = coeff_of_var > 0.30,  # CV > 30%
+          sample_size_flag = unweighted_count < 30,  # Minimum sample size
+          ci_width_flag = (ci_upper_95 - ci_lower_95) > 0.40,  # CI width > 40pp
+          extreme_values_flag = ci_lower_95 < 0 | ci_upper_95 > 1,  # Impossible values
+          
+          # Overall suppression decision
+          suppress = cv_flag | sample_size_flag | ci_width_flag | extreme_values_flag,
+          
+          # Create consolidated estimate reliability flag
+          estimate_reliability = case_when(
+            cv_flag ~ "Poor (High CV >30%)",
+            sample_size_flag ~ "Poor (Small sample n<30)", 
+            ci_width_flag ~ "Poor (Wide CI >40pp)",
+            extreme_values_flag ~ "Poor (Invalid range)",
+            coeff_of_var <= 0.165 ~ "Good",
+            coeff_of_var <= 0.30 ~ "Acceptable",
+            TRUE ~ "Poor"
+          ),
+          
+          # Apply suppression to estimates (suppress if "Poor")
+          weighted_share_published = if_else(suppress, NA_real_, weighted_share),
+          se_published = if_else(suppress, NA_real_, se),
+          ci_lower_95_published = if_else(suppress, NA_real_, ci_lower_95),
+          ci_upper_95_published = if_else(suppress, NA_real_, ci_upper_95)
+        ) %>%
         # Keep relevant columns
-        select(all_of(summary_level), all_of(summary_col_str), weighted_share, se, ci_95, ci_lower_95, ci_upper_95, coeff_of_var,
+        select(all_of(summary_level), all_of(summary_col_str), 
+               weighted_share, se, ci_95, ci_lower_95, ci_upper_95, coeff_of_var,
+               weighted_share_published, se_published, ci_lower_95_published, ci_upper_95_published,
                weighted_count, unweighted_count, total_weighted, total_unweighted,
+               estimate_reliability,
                weekpart, summary_level, summary_col, source)
-      
+
       # for summary_level==operator, for each operator, set survey_tech_group to the survey_tech_groups for that operator
       if (summary_level=="operator") {
         operator_modes <- data_to_summarize %>%
@@ -299,9 +334,6 @@ main <- function() {
   print("Survey data by home_county:")
   dplyr::count(survey_combine, source, survey_name, home_county, .drop=FALSE) %>% print(n=Inf)
 
-  select(filter(survey_combine, (home_county == "Napa") & (weekpart == "WEEKDAY")), 
-    ID, weekpart, survey_name, survey_year, canonical_operator, survey_tech, home_county, home_county_GEOID) %>% print(n=Inf)
-
   # keep only relevant columns
   survey_combine <- select(survey_combine,
    unique_ID, source, survey_name, survey_year, operator, survey_tech, survey_tech_group, weekpart, weight,
@@ -321,6 +353,26 @@ main <- function() {
       source == "survey" ~ paste0("N=",prettyNum(total_unweighted, big.mark = ",", scientific = FALSE)),
       TRUE ~ NA_character_
   ))
+
+  # Generate estimate reliability summary report
+  print("=== ESTIMATE RELIABILITY SUMMARY ===")
+  reliability_summary <- full_summary %>% 
+    filter(source == "survey") %>%
+    summarise(
+      total_estimates = n(),
+      poor_estimates = sum(str_starts(estimate_reliability, "Poor"), na.rm = TRUE),
+      suppression_rate = round(100 * sum(str_starts(estimate_reliability, "Poor"), na.rm = TRUE) / n(), 1),
+      .groups = "drop"
+    )
+  print(glue("Total estimates: {reliability_summary$total_estimates}"))
+  print(glue("Poor quality estimates: {reliability_summary$poor_estimates} ({reliability_summary$suppression_rate}%)"))
+
+  # Estimate reliability distribution
+  reliability_breakdown <- full_summary %>% 
+    filter(source == "survey") %>%
+    count(estimate_reliability, sort = TRUE)
+  print("Estimate reliability distribution:")
+  print(reliability_breakdown)
 
   output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "summarize_snapshot_2023_for_dashboard.Rdata")
   save(full_summary, file = file.path(output_file))
