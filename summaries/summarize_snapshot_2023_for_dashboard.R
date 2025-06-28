@@ -510,9 +510,38 @@ summarize_snapshot_special_questions <- function() {
         transit_freq %in% c("1–3 days/month") ~ "1-3 days a month",
         transit_freq %in% c("First time riding","Less than once a month") ~ "<1 day a month",
         TRUE ~ NA
-      )
-    )
-  
+      ))
+
+  # Q2 Did you have access to a household vehicle for this trip?
+  snapshot_df <- snapshot_df %>% 
+    mutate(
+      hhveh = case_when(
+        Q2 == 1 ~ "Yes",
+        Q2 == 2 ~ "No",
+        TRUE ~ NA
+      ))
+
+  # Q17 Do you have a disability that limits your ability to travel?
+  snapshot_df <- snapshot_df %>% 
+    mutate(
+      disability = case_when(
+        Q17 == 1 ~ "Yes",
+        Q17 == 2 ~ "No",
+        TRUE ~ NA
+      ))
+
+  # Q10	How safe do you feel when using public transit in the Bay Area?
+  snapshot_df <- snapshot_df %>% 
+    mutate(
+      feel_safe = case_when(
+        Q10 == 1 ~ "1 - Very Unsafe",
+        Q10 == 2 ~ "2",
+        Q10 == 3 ~ "3",
+        Q10 == 4 ~ "4",
+        Q10 == 5 ~ "5 - Very Safe",
+        TRUE ~ NA
+      ))
+
   print("Survey data by operator:")
   dplyr::count(snapshot_df, source, survey_name, operator, System, .drop=FALSE) %>% print(n=Inf)
 
@@ -522,15 +551,38 @@ summarize_snapshot_special_questions <- function() {
   print("Survey data by transit_freq_group:")
   dplyr::count(snapshot_df, source, survey_name, transit_freq_group, transit_freq, Q7, .drop=FALSE) %>% print(n=Inf)
 
+  print("Survey data by hhveh:")
+  dplyr::count(snapshot_df, source, survey_name, hhveh, Q2, .drop=FALSE) %>% print(n=Inf)
+
+  print("Survey data by disability:")
+  dplyr::count(snapshot_df, source, survey_name, disability, Q17, .drop=FALSE) %>% print(n=Inf)
+
+  print("Survey data by disability:")
+  dplyr::count(snapshot_df, source, survey_name, feel_safe, Q10, .drop=FALSE) %>% print(n=Inf)
+
   ##### keep only relevant columns
   snapshot_df <- select(snapshot_df,
    unique_ID, source, survey_name, survey_year, operator, survey_tech_group, time_period, weekpart, weight,
-   transit_freq_group)
+   transit_freq_group, hhveh, disability, feel_safe)
 
-  # summarize by household income
+  # summarize by transit use frequency
   freq_summary <- summarize_for_attr(snapshot_df, transit_freq_group)
+
+  # summarize by household vehicle available for this trip
+  hhveh_summary <- summarize_for_attr(snapshot_df, hhveh)
   
-  special_summary <- bind_rows(freq_summary)
+  # summarize by disability limiting travel
+  disability_summary <- summarize_for_attr(snapshot_df, disability)
+
+  # summarize by feeling safe
+  safety_summary <- summarize_for_attr(snapshot_df, feel_safe)
+
+  special_summary <- bind_rows(
+    freq_summary, 
+    hhveh_summary,
+    disability_summary,
+    safety_summary
+  )
   return(special_summary)
 }
 
