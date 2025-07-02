@@ -43,6 +43,7 @@ KEEP_COLUMNS = [
     "race_dmy_hwi",      # Race: Native Hawaiin or other Pacific Islander from Q19_[1234]
     "race_dmy_ind",      # Race: American indian Q19_[1234]
     "race_dmy_wht",      # Race: White from Q19_[1234]
+    "race_other_string", # Race: Other from Q19_[1234]
     "year_born_four_digit", # Based on Q20 (age)
     "work_status",       # Based on Q22
     "student_status",    # Based on Q22
@@ -65,7 +66,7 @@ KEEP_COLUMNS = [
     "Strata"             # time_period: note AM is not split into EA/AM and PM is not split into PM/EV
 ]
 snapshot_dir = pathlib.Path("M:\Data\OnBoard\Data and Reports\Snapshot Survey")
-snapshot_xlsx = snapshot_dir / "mtc snapshot survey_final data file_for regional MTC only_REVISED 28 August 2024.xlsx"
+snapshot_xlsx = snapshot_dir / "mtc snapshot survey_final data file_recoded Dumbarton mode_052725.xlsx"
 
 LOG_FILE = "mtc_snapshot_preprocess.log"
 # ================= Create logger =================
@@ -345,13 +346,25 @@ snapshot_df.loc[(snapshot_df.Q19_1 == "White") |
                 (snapshot_df.Q19_3 == "White") |
                 (snapshot_df.Q19_4 == "White"), "race_dmy_wht"] = "yes"
 
-logging.debug(snapshot_df[["Q19_1","Q19_2","Q19_3","Q19_4","Q19_count",
-                   "hispanic",
-                   "race_dmy_asn","race_dmy_blk","race_dmy_hwi","race_dmy_ind","race_dmy_wht"]].head(30))
+snapshot_df["race_other_string"] = ""
+snapshot_df.loc[ snapshot_df.Q19_count > 0, "race_other_string"] = "" # default to blank if any race specified
+snapshot_df.loc[(snapshot_df.Q19_1 == "Another (Unspecified)") |
+                (snapshot_df.Q19_2 == "Another (Unspecified)") |
+                (snapshot_df.Q19_3 == "Another (Unspecified)") |
+                (snapshot_df.Q19_4 == "Another (Unspecified)"), "race_other_string"] = "Other"
+
+snapshot_df.loc[(snapshot_df.Q19_1 == "Mixed (Unspecified)") | # differentiate mixed from "Another (Unspecified)"
+                (snapshot_df.Q19_2 == "Mixed (Unspecified)") |
+                (snapshot_df.Q19_3 == "Mixed (Unspecified)") |
+                (snapshot_df.Q19_4 == "Mixed (Unspecified)"), "race_other_string"] = "Mixed"
 
 logging.debug(snapshot_df[["Q19_1","Q19_2","Q19_3","Q19_4","Q19_count",
                    "hispanic",
-                   "race_dmy_asn","race_dmy_blk","race_dmy_hwi","race_dmy_ind","race_dmy_wht"]].value_counts())
+                   "race_dmy_asn","race_dmy_blk","race_dmy_hwi","race_dmy_ind","race_dmy_wht","race_other_string"]].head(30))
+
+logging.debug(snapshot_df[["Q19_1","Q19_2","Q19_3","Q19_4","Q19_count",
+                   "hispanic",
+                   "race_dmy_asn","race_dmy_blk","race_dmy_hwi","race_dmy_ind","race_dmy_wht","race_other_string"]].value_counts())
 
 # age / year born
 AGE_CAT_TO_YEAR_BORN = {

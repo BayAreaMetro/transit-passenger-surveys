@@ -48,6 +48,7 @@ KEEP_COLUMNS = [
     "race_dmy_blk",            # Race: Black from Q17/Q19_[1234]
     "race_dmy_ind",            # Race: American indian Q17/Q19_[1234]
     "race_dmy_wht",            # Race: White from Q17/Q19_[1234]
+    "race_other_string",       # Race: Other from Q17/Q19_[1234]
     "year_born_four_digit",    # Based on Q18/Q20 (age)
     # 09 Household Demographics
     "persons",                 # from Q13/Q15
@@ -423,7 +424,13 @@ GG_df.loc[(GG_df.race_1 == "white") |
           (GG_df.race_3 == "white") | 
           (GG_df.race_4 == "white"), "race_dmy_wht"] = 1
 
-logging.debug(f"race cols:\n{GG_df[['race_1','race_2','race_3','race_4','hispanic','race_dmy_asn','race_dmy_blk','race_dmy_ind','race_dmy_wht']].value_counts(dropna=False)}")
+GG_df["race_other_string"] = None
+GG_df.loc[(GG_df.race_1 == "other") | 
+          (GG_df.race_2 == "other") | 
+          (GG_df.race_3 == "other") | 
+          (GG_df.race_4 == "other"), "race_other_string"] = "Other"
+
+logging.debug(f"race cols:\n{GG_df[['race_1','race_2','race_3','race_4','hispanic','race_dmy_asn','race_dmy_blk','race_dmy_ind','race_dmy_wht','race_other_string']].value_counts(dropna=False)}")
 
 AGE_CAT_TO_YEAR_BORN = {
     1: 2007, # Under 18  [15.5], 2023-16 = 2007
