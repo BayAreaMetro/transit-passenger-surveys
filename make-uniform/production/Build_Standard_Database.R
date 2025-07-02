@@ -1513,13 +1513,48 @@ print(head(filter(survey_standard, survey_name=="Regional Snapshot") %>%
          race_categories, race_cat, 
          race_dmy_sum), n=30))
 
+# Now make the final race determinations conditionally by survey_year. We want to fix "other" and multi-racial to separate it from missing, starting with 2023.
+# Because there are a lot of upstream fixes necessary (looking at source datasets), we'll update the other data later.
+# todo: fix datasets before survey_year of 2023
+# For 2023 and beyond, sum only race_dmy_ind + race_dmy_asn + race_dmy_blk + race_dmy_hwi + race_dmy_wht + race_dmy_mdl_estn into a new variable, "race_dmy_sum_limited"
+# Use this sum to compare for multi-racial and "other" calculations. 
+
 survey_standard <- survey_standard %>%
-  mutate(race = 'OTHER') %>%
-  mutate(race = ifelse((race_dmy_sum == 1) & ((race_dmy_asn == 1) | (race_cat == 'ASIAN')), 'ASIAN', race)) %>%
-  mutate(race = ifelse((race_dmy_sum == 1) & ((race_dmy_blk == 1) | (race_cat == 'BLACK')), 'BLACK', race)) %>%
-  mutate(race = ifelse((race_dmy_sum == 1) & ((race_dmy_wht == 1) | (race_cat == 'WHITE')), 'WHITE', race)) %>%
-  mutate(race = ifelse((race_dmy_sum == 1) & (race_dmy_mdl_estn == 1), 'WHITE', race)) %>%
-  mutate(race = ifelse((race_dmy_sum == 2) & ((race_dmy_wht == 1) | (race_cat == 'WHITE')) & (race_dmy_mdl_estn == 1), 'WHITE', race))
+  mutate(race_dmy_sum_limited = race_dmy_ind + race_dmy_asn + race_dmy_blk + race_dmy_hwi + race_dmy_wht + race_dmy_mdl_estn)
+
+survey_standard <- survey_standard %>%
+  mutate(
+    race = case_when(
+      # 2023+ logic
+      survey_year >= 2023 ~ 'MISSING',
+      TRUE ~ 'OTHER'  # before 2023 default
+    )
+  ) %>%
+  mutate(
+    race = case_when(
+      # --- 2023+ logic ---
+      survey_year >= 2023 & race_dmy_sum_limited >= 2 ~ 'OTHER',                                              # Greater than 1 race, overwritten below for white/middle eastern mix
+      survey_year >= 2023 & race_dmy_sum_limited == 0 & race_dmy_oth == 1 ~ 'OTHER',                          # Other race, not in combination with any additional races
+      survey_year >= 2023 & race_dmy_sum_limited == 1 & race_dmy_asn == 1 ~ 'ASIAN',
+      survey_year >= 2023 & race_dmy_sum_limited == 1 & race_dmy_blk == 1 ~ 'BLACK',
+      survey_year >= 2023 & race_dmy_sum_limited == 1 & race_dmy_wht == 1 ~ 'WHITE',
+      survey_year >= 2023 & race_dmy_sum_limited == 1 & race_dmy_mdl_estn == 1 ~ 'WHITE',
+      survey_year >= 2023 & race_dmy_sum_limited == 2 & race_dmy_wht == 1 & race_dmy_mdl_estn == 1 ~ 'WHITE',
+      survey_year >= 2023 & race_dmy_ind == 1 ~ 'OTHER',                                                      # Any combination with Native American 
+      survey_year >= 2023 & race_dmy_hwi == 1 ~ 'OTHER',                                                      # Any combination with Native Hawaiian/Pacific Islander
+      
+      # --- pre-2023 logic ---
+      survey_year < 2023 & race_dmy_sum == 1 & (race_dmy_asn == 1 | race_cat == 'ASIAN') ~ 'ASIAN',
+      survey_year < 2023 & race_dmy_sum == 1 & (race_dmy_blk == 1 | race_cat == 'BLACK') ~ 'BLACK',
+      survey_year < 2023 & race_dmy_sum == 1 & (race_dmy_wht == 1 | race_cat == 'WHITE') ~ 'WHITE',
+      survey_year < 2023 & race_dmy_sum == 1 & race_dmy_mdl_estn == 1 ~ 'WHITE',
+      survey_year < 2023 & race_dmy_sum == 2 & 
+        ((race_dmy_wht == 1 | race_cat == 'WHITE') & race_dmy_mdl_estn == 1) ~ 'WHITE',
+      
+      # fallback to current value
+      TRUE ~ race
+    )
+  ) 
 
 print('Tabulation of race_cat by race')
 table(survey_standard$race_cat, survey_standard$race, useNA = 'ifany')
@@ -1537,6 +1572,7 @@ select(-race_dmy_ind,
        -race_dmy_mdl_estn,
        -race_dmy_oth,
        -race_dmy_sum,
+       -race_dmy_sum_limited,
        -race_cat,
        -race_categories,
        -race_other_string)
