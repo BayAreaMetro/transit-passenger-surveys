@@ -22,6 +22,10 @@ library(rlang)
 library(tidyverse)
 library(srvyr)
 
+# Handle lonely PSUs by removing them from variance estimation 
+# This is needed for the analysis of Q8; otherwise, we'll get the error message: Stratum (Rio Vista Delta Breeze) has only one PSU
+options(survey.lonely.psu = "remove")
+
 # Current standardized survey data
 TPS_SURVEY_STANDARDIZED_PATH <- "M:\\Data\\OnBoard\\Data and Reports\\_data_Standardized\\standardized_2025-05-16"
 # Snapshot Survey file (for special snapshot survey questions)
@@ -541,6 +545,67 @@ summarize_snapshot_special_questions <- function() {
         Q10 == 5 ~ "5 - Very Safe",
         TRUE ~ NA
       ))
+  # Q8_1 and Q8_2: Top two desired improvements – convert to long format for weighting both choices
+  q8_long_df <- snapshot_df %>%
+  select(unique_ID, source, survey_name, survey_year, weight, weekpart, time_period, operator, survey_tech_group, Q8_1, Q8_2, Q8_3) %>%
+  mutate(all_records=1) %>%
+  filter(is.na(Q8_3)) %>% #drop respondents who have picked more than two choices
+  select(-Q8_3) %>%
+  mutate(
+    Q8_1 = as.character(Q8_1),
+    Q8_2 = as.character(Q8_2)
+  ) %>%
+  pivot_longer(
+    cols = c(Q8_1, Q8_2),
+    names_to = "q8_top2",
+    values_to = "q8_response"
+  ) %>%
+  filter(!is.na(q8_response)) %>%
+  mutate(
+    desired_improvement = case_when(
+      q8_response == 1  ~ "1 - Frequency",
+      q8_response == 2  ~ "2 - Reliability",
+      q8_response == 3  ~ "3 - Service hours",
+      q8_response == 4  ~ "4 - Transferring",
+      q8_response == 5  ~ "5 - Travel time",
+      q8_response == 6  ~ "6 - Lower fares",
+      q8_response == 7  ~ "7 - Cleanliness",
+      q8_response == 8  ~ "8 - Transit reach",
+      # note original wording in CCG's deliverable; they reviewed the free text and added additional categories 
+      # q8_response == 1  ~ "1 - More frequent service",
+      # q8_response == 2  ~ "2 - More reliable service",
+      # q8_response == 3  ~ "3 - Expanded hours when public transit operates",
+      # q8_response == 4  ~ "4 - Shorter transfer times/Improved connections with other transit/longer effective time for transfers",
+      # q8_response == 5  ~ "5 - Shorter travel time",
+      # q8_response == 6  ~ "6 - Lower fares",
+      # q8_response == 7  ~ "7 - Cleaner vehicles/stations",
+      # q8_response == 8  ~ "8 - For transit to pick me up where I am/take me where I need to go",
+      # q8_response == 9  ~ "9 - Other (Unspecified)",
+      # q8_response == 10 ~ "10 - NOT USED",
+      # q8_response == 11 ~ "11 - Updated/more modern/comfortable trains/buses",
+      # q8_response == 12 ~ "12 - Better integration with online travel apps/Clear addresses for stops/better real time tracking",
+      # q8_response == 13 ~ "13 - More/Better security",
+      # q8_response == 14 ~ "14 - Fewer homeless",
+      # q8_response == 15 ~ "15 - Stop fare evaders/drug use onboard/Better rule enforcement onboard",
+      # q8_response == 16 ~ "16 - System needs to be more bike friendly (more space, storage, loading ramps, etc.)",
+      # q8_response == 17 ~ "17 - Less crowding",
+      # q8_response == 18 ~ "18 - Alternative payment options (online, contactless, multiple media, etc)",
+      # q8_response == 19 ~ "19 - Improved/Upgraded/Better maintained stops/stations",
+      # q8_response == 20 ~ "20 - More/better onboard amenities (desks, wi-fi, water, food, etc.)",
+      # q8_response == 21 ~ "21 - More/Better/Safer parking",
+      # q8_response == 22 ~ "22 - Better/More delay information",
+      # q8_response == 23 ~ "23 - Rule changes (allow pets, food, etc.)",
+      # q8_response == 24 ~ "24 - Easier to carry luggage/tools/equipment",
+      # q8_response == 25 ~ "25 - More professional/helpful/friendly drivers/staff/easier to reach customer service",
+      # q8_response == 26 ~ "26 - More/Improved/Clearer signage",
+      # q8_response == 27 ~ "27 - On demand service",
+      # q8_response == 28 ~ "28 - Better disabled access",
+      # q8_response == 29 ~ "29 - Continued/More Covid mitigation measures (masking, distancing, etc.)",
+      # q8_response == 30 ~ "30 - Easier to read schedules/provide in different formats/make more available/improved digital signage",
+      TRUE ~ NA
+    )
+  ) %>%
+  filter(!is.na(desired_improvement))
 
   print("Survey data by operator:")
   dplyr::count(snapshot_df, source, survey_name, operator, System, .drop=FALSE) %>% print(n=Inf)
@@ -577,11 +642,15 @@ summarize_snapshot_special_questions <- function() {
   # summarize by feeling safe
   safety_summary <- summarize_for_attr(snapshot_df, feel_safe)
 
+  # summarize by desired improvement
+  desiredImprov_summary <- summarize_for_attr(q8_long_df, desired_improvement)
+
   special_summary <- bind_rows(
     freq_summary, 
     hhveh_summary,
     disability_summary,
-    safety_summary
+    safety_summary,
+    desiredImprov_summary
   )
   return(special_summary)
 }
