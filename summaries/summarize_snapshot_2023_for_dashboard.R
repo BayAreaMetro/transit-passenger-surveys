@@ -563,14 +563,14 @@ summarize_snapshot_special_questions <- function() {
   filter(!is.na(q8_response)) %>%
   mutate(
     desired_improvement = case_when(
-      q8_response == 1  ~ "1 - Frequency",
-      q8_response == 2  ~ "2 - Reliability",
-      q8_response == 3  ~ "3 - Service hours",
-      q8_response == 4  ~ "4 - Transferring",
-      q8_response == 5  ~ "5 - Travel time",
-      q8_response == 6  ~ "6 - Lower fares",
-      q8_response == 7  ~ "7 - Cleanliness",
-      q8_response == 8  ~ "8 - Transit reach",
+      q8_response == 1  ~ "Frequency",
+      q8_response == 2  ~ "Reliability",
+      q8_response == 3  ~ "Service hours",
+      q8_response == 4  ~ "Transferring",
+      q8_response == 5  ~ "Travel time",
+      q8_response == 6  ~ "Lower fares",
+      q8_response == 7  ~ "Cleanliness",
+      q8_response == 8  ~ "Transit reach",
       # note original wording in CCG's deliverable; they reviewed the free text and added additional categories 
       # q8_response == 1  ~ "1 - More frequent service",
       # q8_response == 2  ~ "2 - More reliable service",
