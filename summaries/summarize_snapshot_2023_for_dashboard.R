@@ -27,7 +27,7 @@ library(srvyr)
 options(survey.lonely.psu = "remove")
 
 # Current standardized survey data
-TPS_SURVEY_STANDARDIZED_PATH <- "M:\\Data\\OnBoard\\Data and Reports\\_data_Standardized\\standardized_2025-05-16"
+TPS_SURVEY_STANDARDIZED_PATH <- "M:\\Data\\OnBoard\\Data and Reports\\_data_Standardized\\standardized_2025-07-02"
 # Snapshot Survey file (for special snapshot survey questions)
 TPS_SNAPSHOT_FILE <- "M:\\Data\\OnBoard\\Data and Reports\\Snapshot Survey\\mtc snapshot survey_final data file_recoded Dumbarton mode_052725.xlsx"
 
