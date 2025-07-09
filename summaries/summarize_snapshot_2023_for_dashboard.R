@@ -61,8 +61,8 @@ summarize_for_attr <- function(survey_data, summary_col) {
 
   for (filter_weekpart in c("WEEKDAY", "WEEKEND")) {
 
-    # summarize by weekpart, tech group and operator
-    for (summary_level in c("all_records", "survey_tech_group", "operator")) {
+    # summarize by weekpart, tech group and operatorXmode
+     for (summary_level in c("all_records", "survey_tech_group", "operatorXmode")) {
 
       print(glue("Summarizing survey data for weekpart={filter_weekpart}, summary_level={summary_level}, summary_col={summary_col_str}"))
 
@@ -199,15 +199,15 @@ summarize_for_attr <- function(survey_data, summary_col) {
                weekpart, summary_level, summary_col, source)
 
       # for summary_level==operator, for each operator, set survey_tech_group to the survey_tech_groups for that operator
-      if (summary_level=="operator") {
+      if (summary_level=="operatorXmode") {
         operator_modes <- data_to_summarize %>%
-          select(operator, survey_tech_group) %>%
-          group_by(operator) %>%
+          select(operatorXmode, survey_tech_group) %>%
+          group_by(operatorXmode) %>%
           summarise(unique_modes = toString(unique(survey_tech_group)))
         print("operator_modes")
         print(operator_modes)
         # replace survey_tech_group with unique_modes
-        srv_results <- left_join(srv_results, operator_modes, by=join_by(operator)) %>%
+        srv_results <- left_join(srv_results, operator_modes, by=join_by(operatorXmode)) %>%
           mutate(survey_tech_group=unique_modes) %>%
           select(-unique_modes)
       }
@@ -305,6 +305,20 @@ summarize_standardized_survey <- function() {
       TRUE ~ canonical_operator
     ))
 
+    # create operatorXmode
+    # For most operators, the operatorXmode value is simply the operator. 
+    # Only Muni, VTA, and AC Transit operate large enough systems to justify distinguishing by mode.
+  survey_combine <- survey_combine %>% mutate(
+    operatorXmode = case_when(
+      operator == "AC Transit"      & survey_tech_group == "Local Bus"     ~ "AC Transit -- Local Bus",
+      operator == "AC Transit"      & survey_tech_group == "Express Bus"   ~ "AC Transit -- Express Bus",
+      operator == "SFMTA (Muni)"    & survey_tech_group == "Local Bus"     ~ "SFMTA (Muni) -- Local Bus",
+      operator == "SFMTA (Muni)"    & survey_tech_group == "Rail"          ~ "SFMTA (Muni) -- Light Rail",     
+      operator == "VTA"             & survey_tech_group == "Local Bus"     ~ "VTA -- Local Bus",
+      operator == "VTA"             & survey_tech_group == "Rail"          ~ "VTA -- Light Rail",       
+      TRUE ~ operator
+    ))  
+
   # create household income (group)
   survey_combine <- survey_combine %>% mutate(
     household_income_group = case_when(
@@ -401,7 +415,7 @@ summarize_standardized_survey <- function() {
 
   ##### keep only relevant columns
   survey_combine <- select(survey_combine,
-   unique_ID, source, survey_name, survey_year, operator, survey_tech, survey_tech_group, time_period, weekpart, weight,
+   unique_ID, source, survey_name, survey_year, operator, operatorXmode, survey_tech, survey_tech_group, time_period, weekpart, weight,
    household_income_group, home_county, race_ethnicity, trip_purpose_group)
 
   # summarize by household income
@@ -492,9 +506,20 @@ summarize_snapshot_special_questions <- function() {
       Type == 7 ~ "Rail",          # Light rail (Muni and VTA only)
       Type == 8 ~ "Local Bus",     # Cable car/streetcar (Muni only)
       TRUE ~ "unset"
-    )
+    ),
+    # create operatorXmode
+    # For most operators, the operatorXmode value is simply the operator. 
+    # Only Muni, VTA, and AC Transit operate large enough systems to justify distinguishing by mode.
+    operatorXmode = case_when(
+      operator == "AC Transit"      & survey_tech_group == "Local Bus"     ~ "AC Transit -- Local Bus",
+      operator == "AC Transit"      & survey_tech_group == "Express Bus"   ~ "AC Transit -- Express Bus",
+      operator == "SFMTA (Muni)"    & survey_tech_group == "Local Bus"     ~ "SFMTA (Muni) -- Local Bus",
+      operator == "SFMTA (Muni)"    & survey_tech_group == "Rail"          ~ "SFMTA (Muni) -- Light Rail",     
+      operator == "VTA"             & survey_tech_group == "Local Bus"     ~ "VTA -- Local Bus",
+      operator == "VTA"             & survey_tech_group == "Rail"          ~ "VTA -- Light Rail",       
+      TRUE ~ operator
+    ) 
   )
-
   # Q7. How often do you use public transit in the Bay Area?
   snapshot_df <- snapshot_df %>% 
     mutate(
@@ -547,7 +572,7 @@ summarize_snapshot_special_questions <- function() {
       ))
   # Q8_1 and Q8_2: Top two desired improvements – convert to long format for weighting both choices
   q8_long_df <- snapshot_df %>%
-  select(unique_ID, source, survey_name, survey_year, weight, weekpart, time_period, operator, survey_tech_group, Q8_1, Q8_2, Q8_3) %>%
+  select(unique_ID, source, survey_name, survey_year, weight, weekpart, time_period, operator, operatorXmode, survey_tech_group, Q8_1, Q8_2, Q8_3) %>%
   mutate(all_records=1) %>%
   filter(is.na(Q8_3)) %>% #drop respondents who have picked more than two choices
   select(-Q8_3) %>%
@@ -627,7 +652,7 @@ summarize_snapshot_special_questions <- function() {
 
   ##### keep only relevant columns
   snapshot_df <- select(snapshot_df,
-   unique_ID, source, survey_name, survey_year, operator, survey_tech_group, time_period, weekpart, weight,
+   unique_ID, source, survey_name, survey_year, operator, operatorXmode, survey_tech_group, time_period, weekpart, weight,
    transit_freq_group, hhveh, disability, feel_safe)
 
   # summarize by transit use frequency
