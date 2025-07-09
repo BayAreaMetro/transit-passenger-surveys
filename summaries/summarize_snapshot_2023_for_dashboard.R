@@ -98,7 +98,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
 
       # Step 2: Create survey design with stratification by operator and weekpart
       srv_design <- df_dummy %>%
-        as_survey_design(weights = weight, strata = c(operator, time_period))
+        as_survey_design(ids = unique_ID, weights = weight, strata = c(operator, time_period))
 
       # Step 3: Compute within-group weighted_shares and counts
       srv_results <- srv_design %>%
