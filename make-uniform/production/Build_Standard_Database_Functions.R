@@ -295,7 +295,7 @@ create_PUMS_data_in_TPS_format <- function(survey_year,inflation_year){
     select(SERIALNO,TYPEHUGQ,HINCP) 
   
   person_pums <- person_pums %>% 
-    select(SERIALNO,PINCP,ADJINC,RAC1P,HISP,PWGTP) %>% 
+    select(SERIALNO,PINCP,ADJINC,RAC1P,HISP,County_Name,PWGTP) %>% 
     mutate(PINCP=if_else(is.na(PINCP),0,PINCP))
   
   # Inflate incomes to "inflation_year" passed into the function
@@ -381,6 +381,14 @@ create_PUMS_data_in_TPS_format <- function(survey_year,inflation_year){
       survey_year=!!survey_year
     )
   
+  county <- combined %>% 
+    group_by(County_Name) %>% 
+    summarize(weight=sum(PWGTP),.groups = "drop") %>% 
+    mutate(
+      source=paste(survey_year,"pums1"),
+      survey_year=!!survey_year
+    )
+
   income <- combined %>% 
     group_by(household_income) %>% 
     summarize(weight=sum(PWGTP),.groups = "drop") %>% 
@@ -392,7 +400,7 @@ create_PUMS_data_in_TPS_format <- function(survey_year,inflation_year){
   
   # Combine datasets for export
   
-  joined <- bind_rows(race,income)
+  joined <- bind_rows(race,county,income)
   
   # Return the final dataframe
   return(joined)
