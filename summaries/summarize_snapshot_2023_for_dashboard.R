@@ -30,6 +30,9 @@ options(survey.lonely.psu = "remove")
 TPS_SURVEY_STANDARDIZED_PATH <- "M:\\Data\\OnBoard\\Data and Reports\\_data_Standardized\\standardized_2025-07-10"
 # Snapshot Survey file (for special snapshot survey questions)
 TPS_SNAPSHOT_FILE <- "M:\\Data\\OnBoard\\Data and Reports\\Snapshot Survey\\mtc snapshot survey_final data file_recoded Dumbarton mode_052725.xlsx"
+# OPERATOR_X_MODE_OPERATORS == operators which are split into modes in operatorXmode
+OPERATOR_X_MODE_OPERATORS = c("AC Transit", "SFMTA (Muni)", "VTA")
+
 
 # Function to summarize survey data by attribute
 summarize_for_attr <- function(survey_data, summary_col) {
@@ -61,8 +64,8 @@ summarize_for_attr <- function(survey_data, summary_col) {
 
   for (filter_weekpart in c("WEEKDAY", "WEEKEND")) {
 
-    # summarize by weekpart, tech group and operatorXmode
-     for (summary_level in c("all_records", "survey_tech_group", "operatorXmode")) {
+    # summarize by weekpart, tech group, operatorXmode and operator
+     for (summary_level in c("all_records", "survey_tech_group", "operatorXmode", "operator")) {
 
       print(glue("Summarizing survey data for weekpart={filter_weekpart}, summary_level={summary_level}, summary_col={summary_col_str}"))
 
@@ -173,6 +176,8 @@ summarize_for_attr <- function(survey_data, summary_col) {
       srv_results <- srv_results %>%
         # Apply criteria for poor estimate reliability
         mutate(
+          unweighted_count = replace_na(unweighted_count, 0),
+          weighted_count = replace_na(weighted_count, 0),
           # Calculate poor estimate reliability flags
           cv_flag = coeff_of_var > 0.30,  # CV > 30%
           sample_size_flag = unweighted_count < 30,  # Minimum sample size
@@ -210,6 +215,13 @@ summarize_for_attr <- function(survey_data, summary_col) {
         srv_results <- left_join(srv_results, operator_modes, by=join_by(operatorXmode)) %>%
           mutate(survey_tech_group=unique_modes) %>%
           select(-unique_modes)
+      }
+
+      # we summarized for operatorXmode and operator, but they're the same for most operators
+      # so retain only operator for the operators that have multiple modes
+      if (summary_level=="operator") {
+        srv_results <- srv_results %>%
+          filter(operator %in% OPERATOR_X_MODE_OPERATORS)
       }
 
       # we'll display this as All Transit Modes
@@ -518,8 +530,9 @@ summarize_snapshot_special_questions <- function() {
       operator == "VTA"             & survey_tech_group == "Local Bus"     ~ "VTA -- Local Bus",
       operator == "VTA"             & survey_tech_group == "Rail"          ~ "VTA -- Light Rail",       
       TRUE ~ operator
-    ) 
+    )
   )
+
   # Q7. How often do you use public transit in the Bay Area?
   snapshot_df <- snapshot_df %>% 
     mutate(
@@ -727,6 +740,17 @@ main <- function() {
   print("Estimate reliability distribution:")
   print(reliability_breakdown)
 
+  # reorder columns for better readability
+  # move these to left
+  full_summary <- full_summary %>%
+    relocate(all_of(c("source","summary_level","weekpart","operatorXmode","operator","survey_tech_group","summary_col")))
+  # move these to right
+  full_summary <- full_summary %>%
+    relocate(all_of(c("unweighted_count","total_unweighted","total_unweighted_str","weighted_count","total_weighted",
+                      "weighted_share","se","ci_95","ci_lower_95","ci_upper_95","coeff_of_var",
+                      "estimate_reliability")),
+             .after = last_col())
+
   output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "summarize_snapshot_2023_for_dashboard.Rdata")
   save(full_summary, file = file.path(output_file))
   print(glue("Wrote {nrow(full_summary)} to {output_file}"))
@@ -736,6 +760,26 @@ main <- function() {
   write.csv(full_summary, file = file.path(output_file), row.names=FALSE)
   print(glue("Wrote {nrow(full_summary)} to {output_file}"))
   message(glue("Wrote {nrow(full_summary)} to {output_file}"))
+
+
+
+  # make special operator summary of home_county rows
+  home_county_by_operator <- bind_rows(
+    # for operators not split by mode
+    full_summary %>% filter(summary_level == "operatorXmode", summary_col == "home_county") %>%
+      filter(!str_starts(operatorXmode, "AC Transit --")) %>% 
+      filter(!str_starts(operatorXmode, "SFMTA (Muni) --")) %>% 
+      filter(!str_starts(operatorXmode, "VTA --")) %>% 
+      select(-operator) %>% rename(operator = operatorXmode),
+    # for operators split by mode
+    full_summary %>% filter(summary_level == "operator", summary_col == "home_county") %>% select(-operatorXmode) 
+  ) %>% 
+    select(-household_income_group, -race_ethnicity, -trip_purpose_group, -transit_freq_group, -hhveh, -disability, -feel_safe, -desired_improvement)
+
+  output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "home_county_by_operator.csv")
+  write.csv(home_county_by_operator, file = file.path(output_file), row.names=FALSE)
+  print(glue("Wrote {nrow(home_county_by_operator)} to {output_file}"))
+  message(glue("Wrote {nrow(home_county_by_operator)} to {output_file}"))
 }
 
 main()
