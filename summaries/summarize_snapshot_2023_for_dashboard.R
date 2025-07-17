@@ -763,18 +763,53 @@ main <- function() {
 
 
 
-  # make special operator summary of home_county rows
+  # make special operator summary of home_county rows since this is frequently requested
   home_county_by_operator <- bind_rows(
     # for operators not split by mode
     full_summary %>% filter(summary_level == "operatorXmode", summary_col == "home_county") %>%
-      filter(!str_starts(operatorXmode, "AC Transit --")) %>% 
-      filter(!str_starts(operatorXmode, "SFMTA (Muni) --")) %>% 
-      filter(!str_starts(operatorXmode, "VTA --")) %>% 
-      select(-operator) %>% rename(operator = operatorXmode),
+      filter(!str_starts(operatorXmode, "AC Transit")) %>% 
+      filter(!str_starts(operatorXmode, "SFMTA")) %>% 
+      filter(!str_starts(operatorXmode, "VTA")) %>% 
+      select(-operator, -summary_level) %>% rename(operator = operatorXmode),
     # for operators split by mode
-    full_summary %>% filter(summary_level == "operator", summary_col == "home_county") %>% select(-operatorXmode) 
-  ) %>% 
-    select(-household_income_group, -race_ethnicity, -trip_purpose_group, -transit_freq_group, -hhveh, -disability, -feel_safe, -desired_improvement)
+    full_summary %>% filter(summary_level == "operator", summary_col == "home_county") %>% select(-operatorXmode, -summary_level) 
+  ) 
+  print(names(home_county_by_operator))
+  # drop unused columns
+  home_county_by_operator <- home_county_by_operator %>% 
+    select(
+      -household_income_group, -race_ethnicity, -trip_purpose_group, -transit_freq_group, -hhveh, -disability, -feel_safe, -desired_improvement,
+      -source, -summary_col
+    ) %>% 
+    rename(standard_error = se)
+  print(names(home_county_by_operator))
+
+  my_metrics <- c(
+    "unweighted_count", "weighted_count", "weighted_share",
+    "standard_error", "ci_95", "ci_lower_95", "ci_upper_95",
+    "coeff_of_var", "estimate_reliability"
+  )
+  counties <- c("Alameda","Contra Costa","Marin","Napa","San Francisco","San Mateo","Santa Clara","Solano","Sonoma","Outside Bay Area")
+
+  # convert long to wide format
+  home_county_by_operator <- home_county_by_operator %>%
+  pivot_wider(  
+    names_from=home_county, 
+    names_sep=" ",
+    values_from=all_of(my_metrics)
+  )
+  print(names(home_county_by_operator))
+  # Find where the first county column appears
+  first_county_col <- which(str_detect(names(home_county_by_operator), paste(counties, collapse = "|")))[1]
+  print(glue("first_county_col={first_county_col}"))
+  print(names(home_county_by_operator))
+  # group the county columns together
+  home_county_by_operator <- home_county_by_operator %>%
+  relocate(
+   all_of(unlist(map(counties, ~grep(paste0(" ", .x, "$"), names(home_county_by_operator), value = TRUE)))),
+   .after = last_col()
+  )
+  print(names(home_county_by_operator))
 
   output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "home_county_by_operator.csv")
   write.csv(home_county_by_operator, file = file.path(output_file), row.names=FALSE)
