@@ -731,6 +731,11 @@ main <- function() {
   save(full_summary, file = file.path(output_file))
   print(glue("Wrote {nrow(full_summary)} to {output_file}"))
   message(glue("Wrote {nrow(full_summary)} to {output_file}"))
+
+  output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "summarize_snapshot_2023_for_dashboard.csv")
+  write.csv(full_summary, file = file.path(output_file), row.names=FALSE)
+  print(glue("Wrote {nrow(full_summary)} to {output_file}"))
+  message(glue("Wrote {nrow(full_summary)} to {output_file}"))
 }
 
 main()
