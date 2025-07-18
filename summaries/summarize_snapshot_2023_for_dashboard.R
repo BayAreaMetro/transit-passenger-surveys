@@ -779,7 +779,7 @@ main <- function() {
   home_county_by_operator <- home_county_by_operator %>% 
     select(
       -household_income_group, -race_ethnicity, -trip_purpose_group, -transit_freq_group, -hhveh, -disability, -feel_safe, -desired_improvement,
-      -source, -summary_col
+      -source, -summary_col, -survey_tech_group, -total_unweighted_str
     ) %>% 
     rename(standard_error = se)
   print(names(home_county_by_operator))
@@ -799,10 +799,6 @@ main <- function() {
     values_from=all_of(my_metrics)
   )
   print(names(home_county_by_operator))
-  # Find where the first county column appears
-  first_county_col <- which(str_detect(names(home_county_by_operator), paste(counties, collapse = "|")))[1]
-  print(glue("first_county_col={first_county_col}"))
-  print(names(home_county_by_operator))
   # group the county columns together
   home_county_by_operator <- home_county_by_operator %>%
   relocate(
@@ -810,6 +806,8 @@ main <- function() {
    .after = last_col()
   )
   print(names(home_county_by_operator))
+  # sort by weekpart and then operator
+  home_county_by_operator <- arrange(home_county_by_operator, weekpart, operator)
 
   output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "home_county_by_operator.csv")
   write.csv(home_county_by_operator, file = file.path(output_file), row.names=FALSE)
