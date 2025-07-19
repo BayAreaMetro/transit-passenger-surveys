@@ -80,11 +80,6 @@ summarize_for_attr <- function(survey_data, summary_col) {
         (weight > 0)      # Exclude dummy records with zero weight
       )
       
-      # additional filter for weekday or weekend analysis (not weeklong)
-      if (filter_weekpart != "WEEKLONG") {
-      data_to_summarize <- data_to_summarize %>%
-       filter(weekpart == filter_weekpart)
-      }
       # Additional filter for weekday or weekend analysis (not weeklong)
       if (filter_weekpart != "WEEKLONG") {
         data_to_summarize <- data_to_summarize %>%
