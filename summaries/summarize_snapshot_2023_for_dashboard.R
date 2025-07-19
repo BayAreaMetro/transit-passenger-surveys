@@ -62,7 +62,7 @@ summarize_for_attr <- function(survey_data, summary_col) {
     return_table <- acs_sumary
   }
 
-  for (filter_weekpart in c("WEEKDAY", "WEEKEND")) {
+  for (filter_weekpart in c("WEEKDAY", "WEEKEND", "WEEKLONG")) {
 
     # summarize by weekpart, tech group, operatorXmode and operator
      for (summary_level in c("all_records", "survey_tech_group", "operatorXmode", "operator")) {
@@ -76,14 +76,43 @@ summarize_for_attr <- function(survey_data, summary_col) {
         !is.na(weight) &
         !is.na(operator) &  # Need operator for stratification
         !is.na(weekpart) &  # Need weekpart for stratification
-        (weight > 0) &      # Exclude dummy records with zero weight
-        (weekpart == filter_weekpart)
+        weekpart != "Missing" &
+        (weight > 0)      # Exclude dummy records with zero weight
       )
+      
+      # additional filter for weekday or weekend analysis (not weeklong)
+      if (filter_weekpart != "WEEKLONG") {
+      data_to_summarize <- data_to_summarize %>%
+       filter(weekpart == filter_weekpart)
+      }
+      # Additional filter for weekday or weekend analysis (not weeklong)
+      if (filter_weekpart != "WEEKLONG") {
+        data_to_summarize <- data_to_summarize %>%
+          filter(weekpart == filter_weekpart)
+      }
 
+      # Calculate the weeklong weight
+      data_to_summarize <- data_to_summarize %>%
+        mutate(
+          weeklong_weight = case_when(
+          weekpart == "WEEKDAY" ~ weight * (5/7),
+          weekpart == "WEEKEND" ~ weight * (2/7),
+          )
+        )
+        
       # Calculate actual unweighted counts by group and category
-      actual_counts <- data_to_summarize %>%
-        group_by(across(all_of(c(summary_level, summary_col_str)))) %>%
-        summarise(weighted_count_actual = sum(weight), unweighted_count_actual = n(), .groups = "drop")
+      if (filter_weekpart == "WEEKLONG") {
+        # For weeklong, use weeklong_weight
+        actual_counts <- data_to_summarize %>%
+          group_by(across(all_of(c(summary_level, summary_col_str)))) %>%
+          summarise(weighted_count_actual = sum(weeklong_weight), unweighted_count_actual = n(), .groups = "drop")
+      } else {
+        # For weekday/weekend, use original weight
+        actual_counts <- data_to_summarize %>%
+          group_by(across(all_of(c(summary_level, summary_col_str)))) %>%
+          summarise(weighted_count_actual = sum(weight), unweighted_count_actual = n(), .groups = "drop")
+      }
+      
 
       # Step 1: Create dummy variables for each level of summary_col
       df_dummy <- data_to_summarize %>%
@@ -99,9 +128,16 @@ summarize_for_attr <- function(survey_data, summary_col) {
       print("df_dummy:")
       print(df_dummy)
 
-      # Step 2: Create survey design with stratification by operator and weekpart
-      srv_design <- df_dummy %>%
-        as_survey_design(ids = unique_ID, weights = weight, strata = c(operator, time_period))
+      # Step 2: Create survey design with stratification by operator and time_period (note that "weekend" is a time period, in additional to the five travel model time periods)      
+      if (filter_weekpart == "WEEKLONG") {
+        # For weeklong analysis, use weeklong_weight
+        srv_design <- df_dummy %>%
+          as_survey_design(ids = unique_ID, weights = weeklong_weight, strata = c(operator, time_period))
+      } else {
+        # For weekday/weekend, use original weight
+        srv_design <- df_dummy %>%
+          as_survey_design(ids = unique_ID, weights = weight, strata = c(operator, time_period))
+      }
 
       # Step 3: Compute within-group weighted_shares and counts
       srv_results <- srv_design %>%
