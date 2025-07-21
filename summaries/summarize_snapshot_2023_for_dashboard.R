@@ -86,6 +86,35 @@ summarize_for_attr <- function(survey_data, summary_col) {
           filter(weekpart == filter_weekpart)
       }
 
+      # For weeklong analysis, identify operators that have both weekday and weekend data
+      if (filter_weekpart == "WEEKLONG") {
+      # Check which operators have both weekday and weekend data
+      operators_with_both <- data_to_summarize %>%
+        filter(!is.na(!!summary_level) & 
+              !is.na({{ summary_col }}) & 
+              !is.na(weight) & 
+              !is.na(operator) & 
+              !is.na(weekpart) & 
+              weekpart != "Missing" & 
+              (weight > 0)) %>%
+        group_by(across(all_of(summary_level))) %>%
+        summarise(
+          has_weekday = any(weekpart == "WEEKDAY"),
+          has_weekend = any(weekpart == "WEEKEND"),
+          .groups = "drop"
+        ) %>%
+        filter(has_weekday & has_weekend) %>%
+        pull(!!summary_level)
+      
+      print(glue("Operators with both weekday and weekend data for weeklong analysis: {paste(operators_with_both, collapse=', ')}"))
+      
+      # Filter to only include operators with both weekday and weekend data
+      data_to_summarize <- data_to_summarize %>%
+        filter(!!sym(summary_level) %in% operators_with_both)
+      
+      print(glue("Filtered to {nrow(data_to_summarize)} records for weeklong analysis"))
+    }
+
       # Calculate the weeklong weight
       data_to_summarize <- data_to_summarize %>%
         mutate(
