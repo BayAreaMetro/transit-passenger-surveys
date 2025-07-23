@@ -22,10 +22,17 @@ library(rlang)
 library(tidyverse)
 library(srvyr)
 
+# Handle lonely PSUs by removing them from variance estimation 
+# This is needed for the analysis of Q8; otherwise, we'll get the error message: Stratum (Rio Vista Delta Breeze) has only one PSU
+options(survey.lonely.psu = "remove")
+
 # Current standardized survey data
-TPS_SURVEY_STANDARDIZED_PATH <- "M:\\Data\\OnBoard\\Data and Reports\\_data_Standardized\\standardized_2025-05-16"
+TPS_SURVEY_STANDARDIZED_PATH <- "M:\\Data\\OnBoard\\Data and Reports\\_data_Standardized\\standardized_2025-07-10"
 # Snapshot Survey file (for special snapshot survey questions)
 TPS_SNAPSHOT_FILE <- "M:\\Data\\OnBoard\\Data and Reports\\Snapshot Survey\\mtc snapshot survey_final data file_recoded Dumbarton mode_052725.xlsx"
+# OPERATOR_X_MODE_OPERATORS == operators which are split into modes in operatorXmode
+OPERATOR_X_MODE_OPERATORS = c("AC Transit", "SFMTA (Muni)", "VTA")
+
 
 # Function to summarize survey data by attribute
 summarize_for_attr <- function(survey_data, summary_col) {
@@ -55,10 +62,10 @@ summarize_for_attr <- function(survey_data, summary_col) {
     return_table <- acs_sumary
   }
 
-  for (filter_weekpart in c("WEEKDAY", "WEEKEND")) {
+  for (filter_weekpart in c("WEEKDAY", "WEEKEND", "WEEKLONG")) {
 
-    # summarize by weekpart, tech group and operator
-    for (summary_level in c("all_records", "survey_tech_group", "operator")) {
+    # summarize by weekpart, tech group, operatorXmode and operator
+     for (summary_level in c("all_records", "survey_tech_group", "operatorXmode", "operator")) {
 
       print(glue("Summarizing survey data for weekpart={filter_weekpart}, summary_level={summary_level}, summary_col={summary_col_str}"))
 
@@ -69,14 +76,67 @@ summarize_for_attr <- function(survey_data, summary_col) {
         !is.na(weight) &
         !is.na(operator) &  # Need operator for stratification
         !is.na(weekpart) &  # Need weekpart for stratification
-        (weight > 0) &      # Exclude dummy records with zero weight
-        (weekpart == filter_weekpart)
+        weekpart != "Missing" &
+        (weight > 0)      # Exclude dummy records with zero weight
       )
+      
+      # Additional filter for weekday or weekend analysis (not weeklong)
+      if (filter_weekpart != "WEEKLONG") {
+        data_to_summarize <- data_to_summarize %>%
+          filter(weekpart == filter_weekpart)
+      }
 
+      # For weeklong analysis, identify operators that have both weekday and weekend data
+      if (filter_weekpart == "WEEKLONG") {
+      # Check which operators have both weekday and weekend data
+      operators_with_both <- data_to_summarize %>%
+        filter(!is.na(!!summary_level) & 
+              !is.na({{ summary_col }}) & 
+              !is.na(weight) & 
+              !is.na(operator) & 
+              !is.na(weekpart) & 
+              weekpart != "Missing" & 
+              (weight > 0)) %>%
+        group_by(across(all_of(summary_level))) %>%
+        summarise(
+          has_weekday = any(weekpart == "WEEKDAY"),
+          has_weekend = any(weekpart == "WEEKEND"),
+          .groups = "drop"
+        ) %>%
+        filter(has_weekday & has_weekend) %>%
+        pull(!!summary_level)
+      
+      print(glue("Operators with both weekday and weekend data for weeklong analysis: {paste(operators_with_both, collapse=', ')}"))
+      
+      # Filter to only include operators with both weekday and weekend data
+      data_to_summarize <- data_to_summarize %>%
+        filter(!!sym(summary_level) %in% operators_with_both)
+      
+      print(glue("Filtered to {nrow(data_to_summarize)} records for weeklong analysis"))
+    }
+
+      # Calculate the weeklong weight
+      data_to_summarize <- data_to_summarize %>%
+        mutate(
+          weeklong_weight = case_when(
+          weekpart == "WEEKDAY" ~ weight * (5/7),
+          weekpart == "WEEKEND" ~ weight * (2/7),
+          )
+        )
+        
       # Calculate actual unweighted counts by group and category
-      actual_counts <- data_to_summarize %>%
-        group_by(across(all_of(c(summary_level, summary_col_str)))) %>%
-        summarise(weighted_count_actual = sum(weight), unweighted_count_actual = n(), .groups = "drop")
+      if (filter_weekpart == "WEEKLONG") {
+        # For weeklong, use weeklong_weight
+        actual_counts <- data_to_summarize %>%
+          group_by(across(all_of(c(summary_level, summary_col_str)))) %>%
+          summarise(weighted_count_actual = sum(weeklong_weight), unweighted_count_actual = n(), .groups = "drop")
+      } else {
+        # For weekday/weekend, use original weight
+        actual_counts <- data_to_summarize %>%
+          group_by(across(all_of(c(summary_level, summary_col_str)))) %>%
+          summarise(weighted_count_actual = sum(weight), unweighted_count_actual = n(), .groups = "drop")
+      }
+      
 
       # Step 1: Create dummy variables for each level of summary_col
       df_dummy <- data_to_summarize %>%
@@ -92,9 +152,16 @@ summarize_for_attr <- function(survey_data, summary_col) {
       print("df_dummy:")
       print(df_dummy)
 
-      # Step 2: Create survey design with stratification by operator and weekpart
-      srv_design <- df_dummy %>%
-        as_survey_design(weights = weight, strata = c(operator, time_period))
+      # Step 2: Create survey design with stratification by operator and time_period (note that "weekend" is a time period, in additional to the five travel model time periods)      
+      if (filter_weekpart == "WEEKLONG") {
+        # For weeklong analysis, use weeklong_weight
+        srv_design <- df_dummy %>%
+          as_survey_design(ids = unique_ID, weights = weeklong_weight, strata = c(operator, time_period))
+      } else {
+        # For weekday/weekend, use original weight
+        srv_design <- df_dummy %>%
+          as_survey_design(ids = unique_ID, weights = weight, strata = c(operator, time_period))
+      }
 
       # Step 3: Compute within-group weighted_shares and counts
       srv_results <- srv_design %>%
@@ -169,6 +236,8 @@ summarize_for_attr <- function(survey_data, summary_col) {
       srv_results <- srv_results %>%
         # Apply criteria for poor estimate reliability
         mutate(
+          unweighted_count = replace_na(unweighted_count, 0),
+          weighted_count = replace_na(weighted_count, 0),
           # Calculate poor estimate reliability flags
           cv_flag = coeff_of_var > 0.30,  # CV > 30%
           sample_size_flag = unweighted_count < 30,  # Minimum sample size
@@ -195,17 +264,24 @@ summarize_for_attr <- function(survey_data, summary_col) {
                weekpart, summary_level, summary_col, source)
 
       # for summary_level==operator, for each operator, set survey_tech_group to the survey_tech_groups for that operator
-      if (summary_level=="operator") {
+      if (summary_level=="operatorXmode") {
         operator_modes <- data_to_summarize %>%
-          select(operator, survey_tech_group) %>%
-          group_by(operator) %>%
+          select(operatorXmode, survey_tech_group) %>%
+          group_by(operatorXmode) %>%
           summarise(unique_modes = toString(unique(survey_tech_group)))
         print("operator_modes")
         print(operator_modes)
         # replace survey_tech_group with unique_modes
-        srv_results <- left_join(srv_results, operator_modes, by=join_by(operator)) %>%
+        srv_results <- left_join(srv_results, operator_modes, by=join_by(operatorXmode)) %>%
           mutate(survey_tech_group=unique_modes) %>%
           select(-unique_modes)
+      }
+
+      # we summarized for operatorXmode and operator, but they're the same for most operators
+      # so retain only operator for the operators that have multiple modes
+      if (summary_level=="operator") {
+        srv_results <- srv_results %>%
+          filter(operator %in% OPERATOR_X_MODE_OPERATORS)
       }
 
       # we'll display this as All Transit Modes
@@ -300,6 +376,20 @@ summarize_standardized_survey <- function() {
       canonical_operator == "WESTCAT"              ~ "WestCAT",
       TRUE ~ canonical_operator
     ))
+
+    # create operatorXmode
+    # For most operators, the operatorXmode value is simply the operator. 
+    # Only Muni, VTA, and AC Transit operate large enough systems to justify distinguishing by mode.
+  survey_combine <- survey_combine %>% mutate(
+    operatorXmode = case_when(
+      operator == "AC Transit"      & survey_tech_group == "Local Bus"     ~ "AC Transit -- Local Bus",
+      operator == "AC Transit"      & survey_tech_group == "Express Bus"   ~ "AC Transit -- Express Bus",
+      operator == "SFMTA (Muni)"    & survey_tech_group == "Local Bus"     ~ "SFMTA (Muni) -- Local Bus",
+      operator == "SFMTA (Muni)"    & survey_tech_group == "Rail"          ~ "SFMTA (Muni) -- Light Rail",     
+      operator == "VTA"             & survey_tech_group == "Local Bus"     ~ "VTA -- Local Bus",
+      operator == "VTA"             & survey_tech_group == "Rail"          ~ "VTA -- Light Rail",       
+      TRUE ~ operator
+    ))  
 
   # create household income (group)
   survey_combine <- survey_combine %>% mutate(
@@ -397,7 +487,7 @@ summarize_standardized_survey <- function() {
 
   ##### keep only relevant columns
   survey_combine <- select(survey_combine,
-   unique_ID, source, survey_name, survey_year, operator, survey_tech, survey_tech_group, time_period, weekpart, weight,
+   unique_ID, source, survey_name, survey_year, operator, operatorXmode, survey_tech, survey_tech_group, time_period, weekpart, weight,
    household_income_group, home_county, race_ethnicity, trip_purpose_group)
 
   # summarize by household income
@@ -488,6 +578,18 @@ summarize_snapshot_special_questions <- function() {
       Type == 7 ~ "Rail",          # Light rail (Muni and VTA only)
       Type == 8 ~ "Local Bus",     # Cable car/streetcar (Muni only)
       TRUE ~ "unset"
+    ),
+    # create operatorXmode
+    # For most operators, the operatorXmode value is simply the operator. 
+    # Only Muni, VTA, and AC Transit operate large enough systems to justify distinguishing by mode.
+    operatorXmode = case_when(
+      operator == "AC Transit"      & survey_tech_group == "Local Bus"     ~ "AC Transit -- Local Bus",
+      operator == "AC Transit"      & survey_tech_group == "Express Bus"   ~ "AC Transit -- Express Bus",
+      operator == "SFMTA (Muni)"    & survey_tech_group == "Local Bus"     ~ "SFMTA (Muni) -- Local Bus",
+      operator == "SFMTA (Muni)"    & survey_tech_group == "Rail"          ~ "SFMTA (Muni) -- Light Rail",     
+      operator == "VTA"             & survey_tech_group == "Local Bus"     ~ "VTA -- Local Bus",
+      operator == "VTA"             & survey_tech_group == "Rail"          ~ "VTA -- Light Rail",       
+      TRUE ~ operator
     )
   )
 
@@ -541,6 +643,67 @@ summarize_snapshot_special_questions <- function() {
         Q10 == 5 ~ "5 - Very Safe",
         TRUE ~ NA
       ))
+  # Q8_1 and Q8_2: Top two desired improvements – convert to long format for weighting both choices
+  q8_long_df <- snapshot_df %>%
+  select(unique_ID, source, survey_name, survey_year, weight, weekpart, time_period, operator, operatorXmode, survey_tech_group, Q8_1, Q8_2, Q8_3) %>%
+  mutate(all_records=1) %>%
+  filter(is.na(Q8_3)) %>% #drop respondents who have picked more than two choices
+  select(-Q8_3) %>%
+  mutate(
+    Q8_1 = as.character(Q8_1),
+    Q8_2 = as.character(Q8_2)
+  ) %>%
+  pivot_longer(
+    cols = c(Q8_1, Q8_2),
+    names_to = "q8_top2",
+    values_to = "q8_response"
+  ) %>%
+  filter(!is.na(q8_response)) %>%
+  mutate(
+    desired_improvement = case_when(
+      q8_response == 1  ~ "Frequency",
+      q8_response == 2  ~ "Reliability",
+      q8_response == 3  ~ "Service hours",
+      q8_response == 4  ~ "Transferring",
+      q8_response == 5  ~ "Travel time",
+      q8_response == 6  ~ "Lower fares",
+      q8_response == 7  ~ "Cleanliness",
+      q8_response == 8  ~ "Transit reach",
+      # note original wording in CCG's deliverable; they reviewed the free text and added additional categories 
+      # q8_response == 1  ~ "1 - More frequent service",
+      # q8_response == 2  ~ "2 - More reliable service",
+      # q8_response == 3  ~ "3 - Expanded hours when public transit operates",
+      # q8_response == 4  ~ "4 - Shorter transfer times/Improved connections with other transit/longer effective time for transfers",
+      # q8_response == 5  ~ "5 - Shorter travel time",
+      # q8_response == 6  ~ "6 - Lower fares",
+      # q8_response == 7  ~ "7 - Cleaner vehicles/stations",
+      # q8_response == 8  ~ "8 - For transit to pick me up where I am/take me where I need to go",
+      # q8_response == 9  ~ "9 - Other (Unspecified)",
+      # q8_response == 10 ~ "10 - NOT USED",
+      # q8_response == 11 ~ "11 - Updated/more modern/comfortable trains/buses",
+      # q8_response == 12 ~ "12 - Better integration with online travel apps/Clear addresses for stops/better real time tracking",
+      # q8_response == 13 ~ "13 - More/Better security",
+      # q8_response == 14 ~ "14 - Fewer homeless",
+      # q8_response == 15 ~ "15 - Stop fare evaders/drug use onboard/Better rule enforcement onboard",
+      # q8_response == 16 ~ "16 - System needs to be more bike friendly (more space, storage, loading ramps, etc.)",
+      # q8_response == 17 ~ "17 - Less crowding",
+      # q8_response == 18 ~ "18 - Alternative payment options (online, contactless, multiple media, etc)",
+      # q8_response == 19 ~ "19 - Improved/Upgraded/Better maintained stops/stations",
+      # q8_response == 20 ~ "20 - More/better onboard amenities (desks, wi-fi, water, food, etc.)",
+      # q8_response == 21 ~ "21 - More/Better/Safer parking",
+      # q8_response == 22 ~ "22 - Better/More delay information",
+      # q8_response == 23 ~ "23 - Rule changes (allow pets, food, etc.)",
+      # q8_response == 24 ~ "24 - Easier to carry luggage/tools/equipment",
+      # q8_response == 25 ~ "25 - More professional/helpful/friendly drivers/staff/easier to reach customer service",
+      # q8_response == 26 ~ "26 - More/Improved/Clearer signage",
+      # q8_response == 27 ~ "27 - On demand service",
+      # q8_response == 28 ~ "28 - Better disabled access",
+      # q8_response == 29 ~ "29 - Continued/More Covid mitigation measures (masking, distancing, etc.)",
+      # q8_response == 30 ~ "30 - Easier to read schedules/provide in different formats/make more available/improved digital signage",
+      TRUE ~ NA
+    )
+  ) %>%
+  filter(!is.na(desired_improvement))
 
   print("Survey data by operator:")
   dplyr::count(snapshot_df, source, survey_name, operator, System, .drop=FALSE) %>% print(n=Inf)
@@ -562,7 +725,7 @@ summarize_snapshot_special_questions <- function() {
 
   ##### keep only relevant columns
   snapshot_df <- select(snapshot_df,
-   unique_ID, source, survey_name, survey_year, operator, survey_tech_group, time_period, weekpart, weight,
+   unique_ID, source, survey_name, survey_year, operator, operatorXmode, survey_tech_group, time_period, weekpart, weight,
    transit_freq_group, hhveh, disability, feel_safe)
 
   # summarize by transit use frequency
@@ -577,11 +740,15 @@ summarize_snapshot_special_questions <- function() {
   # summarize by feeling safe
   safety_summary <- summarize_for_attr(snapshot_df, feel_safe)
 
+  # summarize by desired improvement
+  desiredImprov_summary <- summarize_for_attr(q8_long_df, desired_improvement)
+
   special_summary <- bind_rows(
     freq_summary, 
     hhveh_summary,
     disability_summary,
-    safety_summary
+    safety_summary,
+    desiredImprov_summary
   )
   return(special_summary)
 }
@@ -633,10 +800,79 @@ main <- function() {
   print("Estimate reliability distribution:")
   print(reliability_breakdown)
 
+  # reorder columns for better readability
+  # move these to left
+  full_summary <- full_summary %>%
+    relocate(all_of(c("source","summary_level","weekpart","operatorXmode","operator","survey_tech_group","summary_col")))
+  # move these to right
+  full_summary <- full_summary %>%
+    relocate(all_of(c("unweighted_count","total_unweighted","total_unweighted_str","weighted_count","total_weighted",
+                      "weighted_share","se","ci_95","ci_lower_95","ci_upper_95","coeff_of_var",
+                      "estimate_reliability")),
+             .after = last_col())
+
   output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "summarize_snapshot_2023_for_dashboard.Rdata")
   save(full_summary, file = file.path(output_file))
   print(glue("Wrote {nrow(full_summary)} to {output_file}"))
   message(glue("Wrote {nrow(full_summary)} to {output_file}"))
+
+  output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "summarize_snapshot_2023_for_dashboard.csv")
+  write.csv(full_summary, file = file.path(output_file), row.names=FALSE)
+  print(glue("Wrote {nrow(full_summary)} to {output_file}"))
+  message(glue("Wrote {nrow(full_summary)} to {output_file}"))
+
+
+
+  # make special operator summary of home_county rows since this is frequently requested
+  home_county_by_operator <- bind_rows(
+    # for operators not split by mode
+    full_summary %>% filter(summary_level == "operatorXmode", summary_col == "home_county") %>%
+      filter(!str_starts(operatorXmode, "AC Transit")) %>% 
+      filter(!str_starts(operatorXmode, "SFMTA")) %>% 
+      filter(!str_starts(operatorXmode, "VTA")) %>% 
+      select(-operator, -summary_level) %>% rename(operator = operatorXmode),
+    # for operators split by mode
+    full_summary %>% filter(summary_level == "operator", summary_col == "home_county") %>% select(-operatorXmode, -summary_level) 
+  ) 
+  print(names(home_county_by_operator))
+  # drop unused columns
+  home_county_by_operator <- home_county_by_operator %>% 
+    select(
+      -household_income_group, -race_ethnicity, -trip_purpose_group, -transit_freq_group, -hhveh, -disability, -feel_safe, -desired_improvement,
+      -source, -summary_col, -survey_tech_group, -total_unweighted_str
+    ) %>% 
+    rename(standard_error = se)
+  print(names(home_county_by_operator))
+
+  my_metrics <- c(
+    "unweighted_count", "weighted_count", "weighted_share",
+    "standard_error", "ci_95", "ci_lower_95", "ci_upper_95",
+    "coeff_of_var", "estimate_reliability"
+  )
+  counties <- c("Alameda","Contra Costa","Marin","Napa","San Francisco","San Mateo","Santa Clara","Solano","Sonoma","Outside Bay Area")
+
+  # convert long to wide format
+  home_county_by_operator <- home_county_by_operator %>%
+  pivot_wider(  
+    names_from=home_county, 
+    names_sep=" ",
+    values_from=all_of(my_metrics)
+  )
+  print(names(home_county_by_operator))
+  # group the county columns together
+  home_county_by_operator <- home_county_by_operator %>%
+  relocate(
+   all_of(unlist(map(counties, ~grep(paste0(" ", .x, "$"), names(home_county_by_operator), value = TRUE)))),
+   .after = last_col()
+  )
+  print(names(home_county_by_operator))
+  # sort by weekpart and then operator
+  home_county_by_operator <- arrange(home_county_by_operator, weekpart, operator)
+
+  output_file <- file.path(TPS_SURVEY_STANDARDIZED_PATH, "home_county_by_operator.csv")
+  write.csv(home_county_by_operator, file = file.path(output_file), row.names=FALSE)
+  print(glue("Wrote {nrow(home_county_by_operator)} to {output_file}"))
+  message(glue("Wrote {nrow(home_county_by_operator)} to {output_file}"))
 }
 
 main()

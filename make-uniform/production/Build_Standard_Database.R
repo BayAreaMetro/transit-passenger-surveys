@@ -90,10 +90,12 @@ MEGAREGION <- c(
 #### Remote file names
 user_list <- data.frame(
   user = c("helseljw",
+           "ftsang",
            "ywang",
            "SIsrael",
            "lzorn"),
   path = c("~/GitHub/onboard-surveys/Data and Reports",
+           "M:/Data/OnBoard/Data and Reports",
            "M:/Data/OnBoard/Data and Reports",
            "M:/Data/OnBoard/Data and Reports", 
            "M:/Data/OnBoard/Data and Reports"
