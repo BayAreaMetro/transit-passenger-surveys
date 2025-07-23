@@ -3,7 +3,6 @@
 #
 import pathlib
 import pandas as pd
-import geopandas as gpd
 
 pd.options.display.max_rows = 999
 
@@ -12,8 +11,6 @@ KEEP_COLUMNS = [
     # 01 Geocoded Location Data
     "d_lat",
     "d_lng",
-    "home_lat",
-    "home_lon",
     # todo: survey_[board|alight]_[lat|lon] can be inferred by board, alight
     # 02 Access and Egress Modes
     "access",
@@ -112,48 +109,6 @@ ACE_data_df.loc[ACE_data_df.train_number == 4, "survey_time_estimate"] = ACE_dat
 # Finally convert to time string
 ACE_data_df["survey_time_estimate"] = ACE_data_df["survey_time_estimate"].apply(lambda x: f"{x}:00:00")
 
-# Convert home_zip to home_lat, home_lon
-
-# 0. Convert from float to int then to string, then pad with leading zeros if needed
-ACE_data_df["home_zip"] = ACE_data_df["home_zip"].fillna(0).astype(int).astype(str).str.zfill(5)
-
-# 1. Load ZIP Code shapefile (ZCTAs)
-zcta_gdf = gpd.read_file("M:/Data/Census/Geography/2020_ZCTAs/2020_ZCTAs.shp")
-
-# 2. Ensure GEOID is treated as string
-zcta_gdf["ZCTA"] = zcta_gdf["GEOID"].astype(str)
-
-# 3. Reproject to a projected CRS for accurate centroid calculation
-zcta_gdf = zcta_gdf.to_crs(epsg=26910)
-
-# 4. Replace geometry with centroids (in projected CRS)
-zcta_gdf = zcta_gdf.copy()
-zcta_gdf["geometry"] = zcta_gdf.geometry.centroid
-
-# 5. Reproject centroids to lat/lon
-zcta_gdf = zcta_gdf.to_crs(epsg=4326)
-
-# 6. Extract lon/lat
-zcta_gdf["home_lon"] = zcta_gdf.geometry.x
-zcta_gdf["home_lat"] = zcta_gdf.geometry.y
-
-# 7. Create ZIP-to-centroid lookup table
-zcta_centroids = zcta_gdf[["ZCTA", "home_lat", "home_lon"]]
-
-# 8. Ensure ACE_data_df["home_zip"] is 5-digit string
-ACE_data_df["home_zip"] = ACE_data_df["home_zip"].astype(str).str.zfill(5)
-
-# 9. Merge with centroid data
-ACE_data_df = ACE_data_df.merge(
-    zcta_centroids,
-    how="left",
-    left_on="home_zip",
-    right_on="ZCTA"
-)
-
-# 10. Drop extra column
-ACE_data_df.drop(columns=["ZCTA"], inplace=True)
-
 # Expand the data to April 2023 monthly ridership using the existing "weight" variable for naive weight correction
 # Load csv with monthly ridership data
 
@@ -183,4 +138,3 @@ ACE_csv = ACE_dir / "ACE_Onboard_preprocessed.csv"
 ACE_data_df[KEEP_COLUMNS].to_csv(ACE_csv, index=False)
 print(f"ACE_data_df[KEEP_COLUMNS].head()=\n{ACE_data_df[KEEP_COLUMNS].head()}")
 print(f"Saved {ACE_csv}")
-
