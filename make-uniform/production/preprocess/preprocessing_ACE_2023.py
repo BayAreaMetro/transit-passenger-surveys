@@ -140,10 +140,7 @@ zcta_gdf["home_lat"] = zcta_gdf.geometry.y
 # 7. Create ZIP-to-centroid lookup table
 zcta_centroids = zcta_gdf[["ZCTA", "home_lat", "home_lon"]]
 
-# 8. Ensure ACE_data_df["home_zip"] is 5-digit string
-ACE_data_df["home_zip"] = ACE_data_df["home_zip"].astype(str).str.zfill(5)
-
-# 9. Merge with centroid data
+# 8. Merge with centroid data
 ACE_data_df = ACE_data_df.merge(
     zcta_centroids,
     how="left",
@@ -151,7 +148,7 @@ ACE_data_df = ACE_data_df.merge(
     right_on="ZCTA"
 )
 
-# 10. Drop extra column
+# 9. Drop extra column
 ACE_data_df.drop(columns=["ZCTA"], inplace=True)
 
 # Expand the data to April 2023 monthly ridership using the existing "weight" variable for naive weight correction
