@@ -27,7 +27,7 @@ library(srvyr)
 options(survey.lonely.psu = "remove")
 
 # Current standardized survey data
-TPS_SURVEY_STANDARDIZED_PATH <- "M:\\Data\\OnBoard\\Data and Reports\\_data_Standardized\\standardized_2025-07-10"
+TPS_SURVEY_STANDARDIZED_PATH <- "M:\\Data\\OnBoard\\Data and Reports\\_data_Standardized\\standardized_2025-07-22"
 # Snapshot Survey file (for special snapshot survey questions)
 TPS_SNAPSHOT_FILE <- "M:\\Data\\OnBoard\\Data and Reports\\Snapshot Survey\\mtc snapshot survey_final data file_recoded Dumbarton mode_052725.xlsx"
 # OPERATOR_X_MODE_OPERATORS == operators which are split into modes in operatorXmode
@@ -361,7 +361,8 @@ summarize_standardized_survey <- function() {
       canonical_operator == "CAPITOL CORRIDOR"     ~ "Capitol Corridor",
       canonical_operator == "COUNTY CONNECTION"    ~ "County Connection",
       canonical_operator == "DUMBARTON"            ~ "Dumbarton Express",
-      canonical_operator == "GOLDEN GATE TRANSIT"  ~ "Golden Gate Transit",
+      canonical_operator == "GOLDEN GATE TRANSIT"  ~ "Golden Gate Transit and Ferry",
+      canonical_operator == "LAVTA"                ~ "LAVTA (Wheels)",
       canonical_operator == "MARIN TRANSIT"        ~ "Marin Transit",
       canonical_operator == "NAPA VINE"            ~ "Napa Vine",
       canonical_operator == "PETALUMA TRANSIT"     ~ "Petaluma Transit",
@@ -548,7 +549,7 @@ summarize_snapshot_special_questions <- function() {
       Syscode == 4 ~ "County Connection",
       Syscode == 5 ~ "Dumbarton Express",
       Syscode == 6 ~ "FAST",
-      Syscode == 7 ~ "LAVTA",
+      Syscode == 7 ~ "LAVTA (Wheels)",
       Syscode == 8 ~ "Marin Transit",
       Syscode == 9 ~ "Napa Vine",
       Syscode == 10 ~ "Petaluma Transit",
