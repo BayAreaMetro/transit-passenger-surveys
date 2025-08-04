@@ -24,3 +24,11 @@ We have also grouped key variables with an unwieldy number of categories such as
 
 ## Data Sources
 The data sources and R scripts that pull ACS and PUMS data are saved in the same folder on GitHub where this ReadMe file exists. The March 5 version with distances appended is the primary unified TPS survey results from all operators. Demographic data on race and gender (from the ACS) and income and vehicle ownership (from PUMS) are also in individual csv's in this folder. They are combined with the larger set in Tableau via a union in the workbook. Operator is set to "Bay Area Income Totals" (or any other demographc category), the corresponding column has the appropriate attributes (in this case, income categories), and the Weight column has corresponding weighted counts for each category. Note that these totals are reported at the person-level, not household. 
+
+## Release checklist for `Snapshot_Survey_Dashboard.twb`
+1. Check that both widgets work across multiple dashboards.  
+2. Set them to their defaults (no operator, weekday).  
+3. Make sure no category is selected on any of the pages (as this causes other categories to appear greyed out)  
+4. Create data extract (if not already done, as Tableau Public requires it), and confirm that the extract doesn't include data filters.  
+5. Commit the Tableau workbook to GitHub.  
+6. Publish to Tableau Public.  
