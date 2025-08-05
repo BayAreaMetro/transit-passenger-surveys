@@ -368,7 +368,7 @@ summarize_standardized_survey <- function() {
       canonical_operator == "PETALUMA TRANSIT"     ~ "Petaluma Transit",
       canonical_operator == "RIO-VISTA"            ~ "Rio Vista Delta Breeze",
       canonical_operator == "SAMTRANS"             ~ "SamTrans",
-      canonical_operator == "SF BAY FERRY"         ~ "SF Bay Ferry",
+      canonical_operator == "SF BAY FERRY"         ~ "SF Bay Ferry (WETA)",
       canonical_operator == "MUNI"                 ~ "SFMTA (Muni)",
       canonical_operator == "SOLTRANS"             ~ "SolTrans",
       canonical_operator == "TRI-DELTA"            ~ "Tri Delta",
