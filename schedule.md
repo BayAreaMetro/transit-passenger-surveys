@@ -19,6 +19,24 @@ title: Schedule
  </tr></thead>
  <tbody>
   <tr>
+    <td rowspan="4" style="text-align:center; vertical-align:middle;">2025</td>
+    <td>VTA</td>
+    <td>AC Transit</td>
+  </tr>
+  <tr>
+    <td>Muni</td>
+    <td>Dumbarton Express</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Union City Transit</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>WestCAT</td>
+  </tr>
+  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
+  <tr>
     <td rowspan="3" style="text-align:center; vertical-align:middle;">2024</td>
     <td colspan="2">BART<br /><small>(Continued in 2025)</small></td>
   </tr>
@@ -183,7 +201,6 @@ title: Schedule
 
 <br/>
 
-
 ## Future Schedule
 
 Also see the surveys [Completed to Date and Currently in the Field](#completed-to-date-and-currently-in-the-field)
@@ -195,24 +212,6 @@ Also see the surveys [Completed to Date and Currently in the Field](#completed-t
    <th style="width:40%">Fall</th>
  </tr></thead>
  <tbody>
-  <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
-  <tr>
-    <td rowspan="4" style="text-align:center; vertical-align:middle;">2025</td>
-    <td>VTA</td>
-    <td>AC Transit</td>
-  </tr>
-  <tr>
-    <td>Muni<br /></td>
-    <td>Dumbarton Express</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td>Union City Transit</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td>WestCAT</td>
-  </tr>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
     <td rowspan="5" style="text-align:center; vertical-align:middle;">2026</td>
