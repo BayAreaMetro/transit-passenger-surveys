@@ -20,11 +20,11 @@ title: Schedule
  <tbody>
   <tr>
     <td rowspan="4" style="text-align:center; vertical-align:middle;">2025</td>
-    <td>VTA</td>
+    <td>BART</td>
     <td>AC Transit</td>
   </tr>
   <tr>
-    <td>BART</td>
+    <td>VTA</td>
     <td>Dumbarton Express</td>
   </tr>
   <tr>
