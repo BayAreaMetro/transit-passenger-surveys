@@ -24,7 +24,7 @@ title: Schedule
     <td>AC Transit</td>
   </tr>
   <tr>
-    <td>VTA</td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-vta-2024">VTA</a></td>
     <td>Dumbarton Express</td>
   </tr>
   <tr>
@@ -41,8 +41,8 @@ title: Schedule
     <td colspan="2">BART<br /><small>(Continued in 2025)</small></td>
   </tr>
   <tr>
-    <td>Caltrain</td>
-    <td>VTA<br /><small>(Continued in 2025)</small></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-caltrain-2024">Caltrain</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-vta-2024">VTA<br /><small>(Continued in 2025)</small></a></td>
   </tr>
   <tr>
     <td></td>
