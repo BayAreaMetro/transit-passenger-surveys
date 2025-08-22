@@ -24,11 +24,11 @@ title: Schedule
     <td>AC Transit</td>
   </tr>
   <tr>
-    <td>Muni</td>
+    <td>BART</td>
     <td>Dumbarton Express</td>
   </tr>
   <tr>
-    <td></td>
+    <td>Muni (performed by operator)</td>
     <td>Union City Transit</td>
   </tr>
   <tr>
@@ -46,7 +46,7 @@ title: Schedule
   </tr>
   <tr>
     <td></td>
-    <td>Muni<br /><small>(Continued in 2025)</small></td>
+    <td>Muni (performed by operator)<br /><small>(Continued in 2025)</small></td>
   </tr>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
