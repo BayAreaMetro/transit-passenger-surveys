@@ -214,8 +214,8 @@ Also see the surveys [Completed to Date and Currently in the Field](#completed-t
  <tbody>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
-    <td rowspan="5" style="text-align:center; vertical-align:middle;">2026</td>
-    <td>FAST</td>
+    <td rowspan="6" style="text-align:center; vertical-align:middle;">2026</td>
+    <td>Marin Transit</td>
     <td>Wheels (LAVTA)</td>
   </tr>
   <tr>
@@ -223,16 +223,20 @@ Also see the surveys [Completed to Date and Currently in the Field](#completed-t
     <td>Golden Gate Transit</td>
   </tr>
   <tr>
-    <td>Rio Vista Transit</td>
     <td></td>
+    <td>FAST</td>
   </tr>
   <tr>
+    <td></td>
+    <td>Rio Vista Delta Breeze</td>
+  </tr>
+  <tr>
+    <td></td>
     <td>SolTrans</td>
-    <td></td>
-  </tr>
+      </tr>
   <tr>
-    <td>Vacaville Transit</td>
     <td></td>
+    <td>Vacaville Transit</td>
   </tr>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
