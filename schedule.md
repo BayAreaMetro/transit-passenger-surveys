@@ -24,11 +24,11 @@ title: Schedule
     <td>AC Transit</td>
   </tr>
   <tr>
-    <td><a href="https://mtcdrive.box.com/v/transit-survey-vta-2024">VTA</a></td>
+    <td>Muni (performed by operator)</td>
     <td>Dumbarton Express</td>
   </tr>
   <tr>
-    <td>Muni (performed by operator)</td>
+    <td></td>
     <td>Union City Transit</td>
   </tr>
   <tr>
@@ -42,7 +42,7 @@ title: Schedule
   </tr>
   <tr>
     <td><a href="https://mtcdrive.box.com/v/transit-survey-caltrain-2024">Caltrain</a></td>
-    <td><a href="https://mtcdrive.box.com/v/transit-survey-vta-2024">VTA<br /><small>(Continued in 2025)</small></a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-vta-2024">VTA</a></td>
   </tr>
   <tr>
     <td></td>
@@ -90,7 +90,7 @@ title: Schedule
     <td><a href="https://mtcdrive.box.com/v/transit-survey-lavta-2018">Wheels (LAVTA)</a></td>
   </tr>
   <tr>
-    <td><a href="https://mtcdrive.box.com/v/transit-survey-ggt-2018">Golden Gate Transit</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-ggt-2018">Golden Gate Transit and Ferry</a></td>
     <td><a href="https://mtcdrive.box.com/v/transit-survey-weta-2018">WETA Ferries</a></td>
   </tr>
   <tr>
@@ -167,7 +167,7 @@ title: Schedule
   <tr>
     <td rowspan="3" style="text-align:center; vertical-align:middle">2013</td>
     <td><a href="https://mtcdrive.box.com/v/transit-survey-union-city-2013">Union City Transit</a></td>
-    <td><a href="https://mtcdrive.box.com/v/transit-survey-ggt-2013">Golden Gate Transit</a></td>
+    <td><a href="https://mtcdrive.box.com/v/transit-survey-ggt-2013">Golden Gate Transit and Ferry</a></td>
   </tr>
   <tr>
     <td><a href="https://mtcdrive.box.com/v/transit-survey-samtrans-2013">SamTrans</a></td>
@@ -214,13 +214,9 @@ Also see the surveys [Completed to Date and Currently in the Field](#completed-t
  <tbody>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
-    <td rowspan="6" style="text-align:center; vertical-align:middle;">2026</td>
+    <td rowspan="5" style="text-align:center; vertical-align:middle;">2026</td>
     <td>Marin Transit</td>
     <td>Wheels (LAVTA)</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td>Golden Gate Transit</td>
   </tr>
   <tr>
     <td></td>
@@ -258,7 +254,7 @@ Also see the surveys [Completed to Date and Currently in the Field](#completed-t
   </tr>
   <tr>
     <td>WETA Ferries</td>
-    <td></td>
+    <td>Golden Gate Transit and Ferry</td>
   </tr>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
