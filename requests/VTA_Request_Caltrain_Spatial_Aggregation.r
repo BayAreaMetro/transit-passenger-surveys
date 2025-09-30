@@ -78,8 +78,6 @@ Caltrain_school_space <- st_transform(Caltrain_school_space,crs = st_crs(TAZ))
 
 # Spatially join origin, destination, home, work, and school to shapefile
 
-# ACE
-
 Caltrain_origin2 <- st_join(Caltrain_origin_space,TAZ, join=st_within,left=TRUE)%>%
   rename(Origin_TAZ=TAZ) 
 
@@ -97,26 +95,26 @@ Caltrain_school2 <- st_join(Caltrain_school_space,TAZ, join=st_within,left=TRUE)
 
 # Remove geometry columns from origin/destination for join
 
-ACE_origin2            <- as.data.frame(ACE_origin2) %>% select(-geometry)
-ACE_destination2       <- as.data.frame(ACE_destination2) %>% select(-geometry)
-ACE_home2              <- as.data.frame(ACE_home2) %>% select(-geometry)
-ACE_work2              <- as.data.frame(ACE_work2) %>% select(-geometry)
-ACE_school2            <- as.data.frame(ACE_school2) %>% select(-geometry)
+Caltrain_origin2            <- as.data.frame(Caltrain_origin2) %>% select(-geometry)
+Caltrain_destination2       <- as.data.frame(Caltrain_destination2) %>% select(-geometry)
+Caltrain_home2              <- as.data.frame(Caltrain_home2) %>% select(-geometry)
+Caltrain_work2              <- as.data.frame(Caltrain_work2) %>% select(-geometry)
+Caltrain_school2            <- as.data.frame(Caltrain_school2) %>% select(-geometry)
 
 # Join TAZs and MAZs to files by operator, remove PII geography
 
-# ACE
-
-ACE2 <- left_join(ACE,ACE_origin2,by="ID")
-ACE2 <- left_join(ACE2,ACE_destination2,by="ID")
-ACE2 <- left_join(ACE2,ACE_home2,by="ID")
-ACE2 <- left_join(ACE2,ACE_work2,by="ID")
-ACE2 <- left_join(ACE2,ACE_school2,by="ID") %>%
-  select()
+Caltrain2 <- left_join(Caltrain,Caltrain_origin2,by="id") %>% 
+  left_join(.,Caltrain_destination2,by="id") %>% 
+  left_join(.,Caltrain_home2,by="id") %>% 
+  left_join(.,Caltrain_work2,by="id") %>% 
+  left_join(.,Caltrain_school2,by="id") %>%
+  select(-origin_lat, -origin_lon, -destination_lat, -destination_lon, 
+         -home_address_lat, -home_address_lon, -work_address_lat, -work_address_lon, 
+         -school_address_lat,-school_address_lon, -home_address_lon,-grep("address",names(.)))
 
 # Write out final CSV files
 
-write.csv(ACE2,paste0(output_location,"ACE 2019.csv"),row.names = FALSE)
+write.csv(Caltrain2,paste0(output_location,"Caltrain_2024_Aggregated.csv"),row.names = FALSE)
 
 
 
