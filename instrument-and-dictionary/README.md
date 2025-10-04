@@ -48,12 +48,6 @@ Transit passenger data collection and analysis. This document summarizes the dat
 [2. Destination type](destination.md)  
 
 
-### Time leaving and returning home
-```
-1. Time leaving home prior to this trip, by hour  
-2. Time returning home after this trip, by hour  
-```
-
 ### Fare payment
 [1. Payment method](fare.md/#payment-method)  
 [2. Payment category](fare.md/#payment-category)  
@@ -69,9 +63,10 @@ Transit passenger data collection and analysis. This document summarizes the dat
 [2. Race](person.md/#race)    
 [3. Age](person.md/#age)    
 [4. Gender (may be observed)](person.md/#gender)    
-[5. Worker status](person.md/#worker-status)    
-[6. Student status](person.md/#student-status)    
-[7. Ability to speak English](person.md/#ability-to-speak-english)    
+[5. Worker status](person.md/#worker-status)  
+[5. Days Commute to Non-Home Office](person.md/#commute)    
+[7. Student status](person.md/#student-status)    
+[8. Ability to speak English](person.md/#ability-to-speak-english)    
 
 
 ### Household demographics
