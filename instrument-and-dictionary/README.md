@@ -64,7 +64,7 @@ Transit passenger data collection and analysis. This document summarizes the dat
 [3. Age](person.md/#age)    
 [4. Gender (may be observed)](person.md/#gender)    
 [5. Worker status](person.md/#worker-status)  
-[6. Days Commute to Non-Home Office](person.md/#commute)    
+[6. Days Commute to Non-Home Office](person.md/#days-commute)    
 [7. Student status](person.md/#student-status)    
 [8. Ability to speak English](person.md/#ability-to-speak-english)    
 

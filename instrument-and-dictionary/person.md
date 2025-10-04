@@ -57,16 +57,16 @@ responses are provided, the racial category will be indicated as "multi-racial."
 | 2. Part-time status (<35 hours/week)  |
 | 2. Non-worker                         |
 
-## Commute
+## Days Commute
 
 | **Responses**                      |
 |:-----------------------------------|
-| 1. 0                               |
-| 2. 1                               |
-| 3. 2                               |
-| 4. 3                               |
-| 4. 4                               |
-| 4. 5+                              |
+| 1. Zero                            |
+| 2. One                             |
+| 3. Two                             |
+| 4. Three                           |
+| 5. Four                            |
+| 6. Five+                           |
 
 ## Student Status
 
