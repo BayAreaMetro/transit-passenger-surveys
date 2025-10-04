@@ -14,6 +14,8 @@ is the mode used to egress from BART.
 2. Bike
 	optional: personal bike
 	optional: bike share
+		optional: manual bike
+		optional: e-bike  
 3. Picked up by Uber, Lyft, or similar service
 4. Picked up by Taxi
 5. Picked up by someone - not a service

@@ -13,7 +13,9 @@ is the mode used to access AC Transit.
 	optional: how far did you walk? ____blocks  
 2. Bike  
  	optional: personal bike  
-	optional: bike share bike  
+	optional: bike share bike
+		optional: manual bike
+		optional: e-bike  
 3. Dropped off using Uber, Lyft, or similar service  
 4. Taxi  
 5. Was dropped off by someone - not a service  
