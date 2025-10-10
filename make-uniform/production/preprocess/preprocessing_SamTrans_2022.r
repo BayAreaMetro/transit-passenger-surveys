@@ -5,21 +5,23 @@
 suppressMessages(library(tidyverse))
 library(readxl)
 
-data_in <- "M:/Data/OnBoard/Data and Reports/SamTrans/2019_2022/SamTrans 2022 SamTrans Data for report and tables.xlsx"
+# Locations
+data_in  <- "M:/Data/OnBoard/Data and Reports/SamTrans/2019_2022/SamTrans 2022 SamTrans Data for report and tables.xlsx"
+data_out <- "M:/Data/OnBoard/Data and Reports/SamTrans/2019_2022/SamTrans_2022_preprocessed.csv"
+
+# Bring in data that is saved across two spreadsheets (with a shared unique ID), join
 wincross <- read_xlsx(data_in,sheet = "Wincross Data")
 trip_diary <- read_xlsx(data_in,sheet = "Trip Diary")
 
 samtrans <- left_join(wincross,trip_diary,by="CCGID") %>% 
   select(-sys_RespNum.x,-sys_RespNum.y)
 
-# Bring in data file
-
 # suppress scientific notation
 options(scipen = 999)
 
+# Identify files to keep
+
 KEEP_COLUMNS = c(
-  "canonical_operator",      # SAMTRANS
-  "survey_tech",             # from Route
   "CCGID",                   # ID assigned by CCG
   # 01 Geocoded Location Data
   "Start_lat",               # Origin lat
@@ -36,46 +38,97 @@ KEEP_COLUMNS = c(
   "last_alight_lon",         # Last transit alighting lat
   "home_lat",                # Home lat
   "home_lon",                # Home lon
-  "work_lat",                # Work lat
-  "work_lon",                # Work lon
+  "WorkLat",                 # Work lat
+  "WorkLong",                # Work lon
   "school_lat",              # School lat
   "school_lon",              # School lon
   # 02 Access and Egress Modes
-  "GetFirstBus",             # access mode 
-  "FromLastBus",             # egress mode 
+  "GetFirstBus",             # Access mode 
+  "FromLastBus",             # Egress mode 
   # 03 Transit Transfers
-  "first_route_before_survey_board",
+  "first_route_before_survey_board",  # First route transfer before survey board 
+  "second_route_before_survey_board", # Second route transfer before survey board
+  "third_route_before_survey_board",  # Third route transfer before survey board
+  "first_route_after_survey_alight",  # First route transfer after survey alight
+  "second_route_after_survey_alight", # Second route transfer after survey alight
+  "third_route_after_survey_alight",  # Third route transfer after survey alight
   # 04 Origin and Destination Trip Purpose
-  "From",                    # orig_purp
-  "To",                      # dest_purp
+  "From",                    # Origin purpose
+  "To",                      # Destination purpose
   # 05 Time Leaving and Returning Home 
   "depart_hour",             # Hour departing home
   "return_hour",             # Hour returning home
   # 06 Fare Payment
-  "fare",                    # fare_medium
-  "farecat",                 # fare_category
+  "fare",                    # Fare medium
+  "farecat",                 # Fare category
   # 07 Half Tour Questions for Work and School - no data
+  "workbefore",              # Work before trip
+  "workafter",               # Work after trip
+  "schbefore",               # School before trip
+  "schafter",                # School after trip
   # 08 Person Demographics
-  "eng_proficient",          # from Q15/Q17
-  "gender",                  # from Q16/Q18
-  "hispanic",                # Based on Q17/Q19_[1234]
-  "race_dmy_asn",            # Race: Asian from Q17/Q19_[1234]
-  "race_dmy_blk",            # Race: Black from Q17/Q19_[1234]
-  "race_dmy_ind",            # Race: American indian Q17/Q19_[1234]
-  "race_dmy_wht",            # Race: White from Q17/Q19_[1234]
-  "race_other_string",       # Race: Other from Q17/Q19_[1234]
-  "year_born_four_digit",    # Based on Q18/Q20 (age)
+  "engspk",                  # English proficiency
+  "gender",                  # Gender
+  "hisp",                    # Hispanic/Latino
+  "race_dmy_ind",            # Race: American indian from ETH1-4
+  "race_dmy_hwi",            # Race: Native Hawaiian/Pacific Islander from ETH1-4
+  "race_dmy_blk",            # Race: Black from ETH1-4
+  "race_dmy_wht",            # Race: White from ETH1-4
+  "race_dmy_asn",            # Race: Asian from ETH1-4
+  "race_dmy_oth",            # Race: Other (mixed) from ETH1-4
+  #"race_other_string",      # No instances in the data
+  "birthyear",               # Year born
+  "work",                    # Employment status
   # 09 Household Demographics
-  "persons",                 # from Q13/Q15
-  "language_at_home_binary", # from Q14/Q16
-  "language_at_home_detail", # from Q14/Q16
-  "household_income",        # from Q19/Q21
+  "hh",                      # Persons
+  "hhwork",                  # Household workers
+  "language_at_home_binary", # From langhh
+  "langhh",                  # Language spoken at home
+  "income",                  # Household income
+  "cars",                    # Household vehicles
   # 10 Survey Metadata
-  "Route",                   # survey route
-  "Dir",                     # survey route direction
-  "Source",                  # survey_type
-  "Lang",                    # interview_language
-  "interview_date",          # from IntDate
-  "Strata",                  # time_period
-  "weight",                  # TODO: add simple weighting
+  "Route",                   # Survey route
+  "Dir",                     # Survey route direction
+  "Mode",                    # Survey type
+  "Lang",                    # Interview language
+  "date",                    # Date trip occurred
+  "Strata",                  # Time period of survey
+  "weight"                   # Weight
 )
+
+# Concatenate transfer operators and transfer routes into a single column
+samtrans <- samtrans %>%
+  mutate(
+    first_route_before_survey_board = str_c(first_system_before_survey_board, first_route_before_survey_board, sep = " ") %>% str_squish(),
+    second_route_before_survey_board = str_c(second_system_before_survey_board, second_route_before_survey_board, sep = " ") %>% str_squish(),
+    third_route_before_survey_board = str_c(second_system_before_survey_board, third_route_before_survey_board, sep = " ") %>% str_squish(),
+    first_route_after_survey_alight = str_c(first_system_after_survey_alight, first_route_after_survey_alight, sep = " ") %>% str_squish(),
+    second_route_after_survey_alight = str_c(second_system_after_survey_alight, second_route_after_survey_alight, sep = " ") %>% str_squish(),
+    third_route_after_survey_alight = str_c(third_system_after_survey_alight, third_route_after_survey_alight, sep = " ") %>% str_squish()
+  )
+
+# Fix the race/ethnicity coding to match the standard survey pattern
+samtrans <- samtrans %>%
+  mutate(race_dmy_ind = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 1), # American Indian/Alaska Native
+         race_dmy_hwi = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 2), # Native Hawaiian/Pacific Islander
+         race_dmy_blk = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 3), # Black
+         race_dmy_wht = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 4), # White
+         race_dmy_asn = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 5), # Asian
+         race_dmy_oth = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 6), # Other
+         # Skipping 7 because Hispanic captured as a separate variable; it's redundant
+         race_dmy_oth = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 8), # Mixed, so "other"
+         )
+
+# Language at home binary
+samtrans <- samtrans %>% 
+  mutate(language_at_home_binary=if_else(langhh==1,"No","Yes"))
+
+# Remove single quotes and # from file, select just the keep columns, define above
+samtrans <- samtrans %>%
+  mutate(across(everything(),~ str_replace_all(as.character(.x), "['#]", "")
+  )) %>% 
+  select(all_of(KEEP_COLUMNS))
+
+# Export file
+
+write.csv(samtrans,data_out,row.names = F)
