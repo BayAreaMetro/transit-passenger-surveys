@@ -75,8 +75,7 @@ KEEP_COLUMNS = c(
   "race_dmy_blk",            # Race: Black from ETH1-4
   "race_dmy_wht",            # Race: White from ETH1-4
   "race_dmy_asn",            # Race: Asian from ETH1-4
-  "race_dmy_oth",            # Race: Other (mixed) from ETH1-4
-  #"race_other_string",      # No instances in the data
+  "race_other_string",       # Race: other or mixed from ETH1-4
   "birthyear",               # Year born
   "work",                    # Employment status
   # 09 Household Demographics
@@ -115,9 +114,9 @@ samtrans <- samtrans %>%
     race_dmy_blk = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 3), FALSE)),
     race_dmy_wht = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 4), FALSE)),
     race_dmy_asn = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 5), FALSE)),
-    race_dmy_oth = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 6), FALSE)),
+    race_other_string = if_else(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 6), FALSE),"multiracial",""),
     # Removing 7 for Hispanic as that is handled in a separate variable
-    race_dmy_mix = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 8), FALSE))
+    race_other_string = if_else(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 8), FALSE),"multiracial","")
   )
 
 # Language at home binary
