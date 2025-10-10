@@ -24,10 +24,10 @@ options(scipen = 999)
 KEEP_COLUMNS = c(
   "CCGID",                   # ID assigned by CCG
   # 01 Geocoded Location Data
-  "Start_lat",               # Origin lat
-  "Start_lon",               # Origin lon
-  "End_lat",                 # Destination lat
-  "End_lon",                 # Destination lon
+  "orig_lat",                # Origin lat
+  "orig_lon",                # Origin lon
+  "dest_lat",                # Destination lat
+  "dest_lon",                # Destination lon
   "survey_board_lat",        # Survey board lat
   "survey_board_lon",        # Survey board lon
   "survey_alight_lat",       # Survey alight lat
@@ -109,15 +109,16 @@ samtrans <- samtrans %>%
 
 # Fix the race/ethnicity coding to match the standard survey pattern
 samtrans <- samtrans %>%
-  mutate(race_dmy_ind = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 1), # American Indian/Alaska Native
-         race_dmy_hwi = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 2), # Native Hawaiian/Pacific Islander
-         race_dmy_blk = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 3), # Black
-         race_dmy_wht = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 4), # White
-         race_dmy_asn = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 5), # Asian
-         race_dmy_oth = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 6), # Other
-         # Skipping 7 because Hispanic captured as a separate variable; it's redundant
-         race_dmy_oth = if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 8), # Mixed, so "other"
-         )
+  mutate(
+    race_dmy_ind = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 1), FALSE)),
+    race_dmy_hwi = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 2), FALSE)),
+    race_dmy_blk = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 3), FALSE)),
+    race_dmy_wht = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 4), FALSE)),
+    race_dmy_asn = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 5), FALSE)),
+    race_dmy_oth = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 6), FALSE)),
+    # Removing 7 for Hispanic as that is handled in a separate variable
+    race_dmy_mix = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 8), FALSE))
+  )
 
 # Language at home binary
 samtrans <- samtrans %>% 
