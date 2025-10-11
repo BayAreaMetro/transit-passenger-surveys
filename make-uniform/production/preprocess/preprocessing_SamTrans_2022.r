@@ -46,6 +46,8 @@ KEEP_COLUMNS = c(
   "GetFirstBus",             # Access mode 
   "FromLastBus",             # Egress mode 
   # 03 Transit Transfers
+  "number_transfers_orig_board",      # Number of transfers before boarding survey vehicle
+  "number_transfers_alight_dest",     # Number of transfers after alighting survey vehicle
   "first_route_before_survey_board",  # First route transfer before survey board 
   "second_route_before_survey_board", # Second route transfer before survey board
   "third_route_before_survey_board",  # Third route transfer before survey board
@@ -122,6 +124,11 @@ samtrans <- samtrans %>%
 # Language at home binary
 samtrans <- samtrans %>% 
   mutate(language_at_home_binary=if_else(langhh==1,"No","Yes"))
+
+# Set NA transfers to 0 for both boarding and alighting side
+samtrans <- samtrans %>%
+  mutate(number_transfers_orig_board = coalesce(number_transfers_orig_board, 0),
+         number_transfers_alight_dest = coalesce(number_transfers_alight_dest, 0))
 
 # Remove single quotes and # from file, select just the keep columns, define above
 samtrans <- samtrans %>%
