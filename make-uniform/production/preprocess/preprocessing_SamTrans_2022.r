@@ -111,6 +111,13 @@ samtrans <- samtrans %>%
     third_route_after_survey_alight = str_c(third_system_after_survey_alight, third_route_after_survey_alight, sep = " ") %>% str_squish()
   )
 
+# Fix "Surveyed_Route", which has some NA values and can be built from Route and Dir (direction)
+
+samtrans <- samtrans %>% 
+  mutate(
+  Surveyed_Route = str_c(Route, Dir, sep = " ") %>% str_squish()
+  )
+
 # Fix the race/ethnicity coding to match the standard survey pattern
 samtrans <- samtrans %>%
   mutate(
