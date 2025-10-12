@@ -88,7 +88,7 @@ KEEP_COLUMNS = c(
   "income",                  # Household income
   "cars",                    # Household vehicles
   # 10 Survey Metadata
-  "Route",                   # Survey route
+  "Surveyed_Route",          # Survey route
   "Dir",                     # Survey route direction
   "Mode",                    # Survey type
   "Lang",                    # Interview language
