@@ -94,7 +94,9 @@ KEEP_COLUMNS = c(
   "Lang",                    # Interview language
   "date",                    # Date trip occurred
   "Strata",                  # Time period of survey
-  "weight"                   # Weight
+  "interview_end_time",      # End of survey time
+  "weight",                  # Weight
+  "DTYPE"                    # Weekpart
 )
 
 # Concatenate transfer operators and transfer routes into a single column
@@ -116,7 +118,7 @@ samtrans <- samtrans %>%
     race_dmy_blk = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 3), FALSE)),
     race_dmy_wht = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 4), FALSE)),
     race_dmy_asn = as.integer(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 5), FALSE)),
-    race_other_string = if_else(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 6), FALSE),"multiracial",""),
+    race_other_string = if_else(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 6), FALSE),"other",""),
     # Removing 7 for Hispanic as that is handled in a separate variable
     race_other_string = if_else(coalesce(if_any(all_of(c("ETH1", "ETH2", "ETH3", "ETH4")), ~ .x == 8), FALSE),"multiracial","")
   )
