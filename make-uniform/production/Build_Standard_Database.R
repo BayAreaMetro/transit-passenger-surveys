@@ -504,6 +504,17 @@ survey_input_df <- survey_input_df %>% add_row(
     "mtc_snapshot_preprocessed.csv"
   )
 )
+survey_input_df <- survey_input_df %>% add_row(
+  survey_name     = 'SamTrans',
+  survey_year     = 2022,
+  operator        = 'SAMTRANS',
+  default_tech    = 'Local Bus',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "SamTrans","2019_2022",
+    "SamTrans_2022_preprocessed.csv"
+  )
+)
 
 # Inputs - legacy survey data
 f_legacy_rdata_path = file.path(TPS_SURVEY_PATH,"_data_Standardized","survey_legacy.RData")
