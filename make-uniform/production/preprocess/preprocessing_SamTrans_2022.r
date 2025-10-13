@@ -142,7 +142,7 @@ samtrans <- samtrans %>%
   mutate(number_transfers_orig_board = coalesce(number_transfers_orig_board, 0),
          number_transfers_alight_dest = coalesce(number_transfers_alight_dest, 0))
 
-# Remove single quotes and # from file, select just the keep columns, define above
+# Remove single quotes and # from file, select just the keep columns, defined above
 samtrans <- samtrans %>%
   mutate(across(everything(),~ str_replace_all(as.character(.x), "['#]", "")
   )) %>% 
