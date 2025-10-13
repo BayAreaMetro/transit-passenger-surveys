@@ -40,7 +40,8 @@ list_of_packages <- c(
   "tigris",
   "reldist",
   "rvest",
-  "glue"
+  "glue",
+  "stringi"
 )
 new_packages <- list_of_packages[!(list_of_packages %in% installed.packages()[,"Package"])]
 if(length(new_packages)) install.packages(new_packages)
@@ -1239,6 +1240,8 @@ remove(tech_crosswalk_expansion_df, tech_crosswalk_expansion_list)
 # $ canonical_operator: chr  "AC TRANSIT" "AC TRANSIT" "AC TRANSIT" "AC TRANSIT" ...
 # $ temp_tech         : chr  "local bus" "local bus" "local bus" "local bus" ...
 
+# Remove duplicates from tech_crosswalk_df
+tech_crosswalk_df <- tech_crosswalk_df %>% distinct()
 
 survey_standard <- survey_standard %>%
   left_join(tech_crosswalk_df, by =c("survey_name", "survey_year",
@@ -1406,6 +1409,15 @@ survey_standard <- survey_standard %>%
 
 print('Tabulation of boardings by survey:')
 table(survey_standard$survey_name_year, survey_standard$boardings, useNA = 'ifany')
+
+# Function to convert all character columns to UTF-8
+fix_utf8 <- function(df) {
+  df %>%
+    mutate(across(where(is.character), ~ stri_enc_toutf8(.)))
+}
+
+# Apply to your survey_standard dataframe
+survey_standard <- fix_utf8(survey_standard)
 
 # If missing, compute number_transfers_orig_board and number_transfers_alight_dest
 survey_standard <- survey_standard %>%
