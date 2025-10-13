@@ -80,6 +80,7 @@ KEEP_COLUMNS = c(
   "race_other_string",       # Race: other or mixed from ETH1-4
   "birthyear",               # Year born
   "work",                    # Employment status
+  "sch",                     # Student status
   # 09 Household Demographics
   "hh",                      # Persons
   "hhwork",                  # Household workers
