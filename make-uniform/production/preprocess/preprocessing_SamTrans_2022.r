@@ -22,7 +22,7 @@ options(scipen = 999)
 # Identify files to keep
 
 KEEP_COLUMNS = c(
-  "CCGID",                   # ID assigned by CCG
+  "ID",                      # ID assigned by CCG, rename it
   # 01 Geocoded Location Data
   "orig_lat",                # Origin lat
   "orig_lon",                # Origin lon
@@ -113,11 +113,12 @@ samtrans <- samtrans %>%
   )
 
 # Fix "Surveyed_Route", which has some NA values and can be built from Route and Dir (direction)
-
+# Rename CCGID to ID
 samtrans <- samtrans %>% 
   mutate(
   Surveyed_Route = str_c(Route, Dir, sep = " ") %>% str_squish()
-  )
+  ) %>% 
+  rename("ID"="CCGID")
 
 # Fix the race/ethnicity coding to match the standard survey pattern
 samtrans <- samtrans %>%
