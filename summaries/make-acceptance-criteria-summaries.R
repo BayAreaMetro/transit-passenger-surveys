@@ -146,7 +146,7 @@ print(dplyr::count(by_time_period_df, is_rail, operator, route, sort=TRUE))
 
 by_time_period_df <- by_time_period_df %>%
   group_by(operator, survey_tech, route, time_period) %>%
-  summarise(survey_boardings = sum(final_boardWeight_2015), .groups = "drop")
+  summarise(survey_boardings = sum(final_boardWeight_2015), num_records = n(), .groups = "drop")
 
 output_df <- by_time_period_df %>%
   rename(survey_operator = operator,
@@ -157,14 +157,15 @@ output_df <- by_time_period_df %>%
 access_df <- common_df %>%
   filter(operator %in% rail_operators_vector) %>%
   group_by(operator, onoff_enter_station, time_period, access_mode) %>%
-  summarise(survey_trips = sum(trip_weight), .groups = "drop") %>%
+  summarise(survey_trips = sum(trip_weight), num_records = n(), .groups = "drop") %>%
   filter(!is.na(time_period)) %>%
   filter(!is.na(access_mode)) %>%
   select(operator,
          boarding_station = onoff_enter_station,
          time_period,
          access_mode,
-         survey_trips)
+         survey_trips,
+         num_records)
 
 # Reductions 03: Flows by technology -------------------------------------------
 working_df <- common_df %>%
@@ -206,6 +207,7 @@ flows_df <- working_df %>%
             is_hvy_in_path = sum(is_hvy_in_path)/sum(techs_in_path),
             is_com_in_path = sum(is_com_in_path)/sum(techs_in_path),
             observed_trips = sum(trip_weight),
+            num_records = n(),
             .groups = "drop")
 
 check_df <- flows_df %>%
