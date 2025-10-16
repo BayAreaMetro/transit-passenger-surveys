@@ -23,7 +23,7 @@
 #    orig_taz
 #    dest_taz
 #    time_period
-#    is_[loc,exp,lrt,fry,hvy,com]_in_path: based on first_board_tech, last_alight_tech or SURVEY_MODE,
+#    is_[loc,exp,ltr,fry,hvy,com]_in_path: based on first_board_tech, last_alight_tech or SURVEY_MODE,
 #       this is the share of the trips for this orig/dest/time_period that use this tech.
 #       These sum to 100% for orig/dest/time_period.
 #    observed_trips: based on final_tripWeight_2015
@@ -176,21 +176,21 @@ working_df <- common_df %>%
   mutate(temp = (first_board_tech == "EB") | (last_alight_tech == "EB") | (SURVEY_MODE == "EB")) %>%
   mutate(is_exp_in_path = if_else(temp, 1.0, 0.0)) %>%
   mutate(temp = (first_board_tech == "LR") | (last_alight_tech == "LR") | (SURVEY_MODE == "LR")) %>%
-  mutate(is_lrt_in_path = if_else(temp, 1.0, 0.0)) %>%
+  mutate(is_ltr_in_path = if_else(temp, 1.0, 0.0)) %>%
   mutate(temp = (first_board_tech == "FR") | (last_alight_tech == "FR") | (SURVEY_MODE == "FR")) %>%
   mutate(is_fry_in_path = if_else(temp, 1.0, 0.0)) %>%
   mutate(temp = (first_board_tech == "HR") | (last_alight_tech == "HR") | (SURVEY_MODE == "HR")) %>%
   mutate(is_hvy_in_path = if_else(temp, 1.0, 0.0)) %>%
   mutate(temp = (first_board_tech == "CR") | (last_alight_tech == "CR") | (SURVEY_MODE == "CR")) %>%
   mutate(is_com_in_path = if_else(temp, 1.0, 0.0)) %>%
-  mutate(techs_in_path = is_loc_in_path + is_exp_in_path + is_lrt_in_path + is_fry_in_path + is_hvy_in_path + is_com_in_path) %>%
+  mutate(techs_in_path = is_loc_in_path + is_exp_in_path + is_ltr_in_path + is_fry_in_path + is_hvy_in_path + is_com_in_path) %>%
   select(ID, 
          orig_taz = orig_tm2_taz, 
          dest_taz = dest_tm2_taz, 
          time_period, 
          is_loc_in_path, 
          is_exp_in_path, 
-         is_lrt_in_path, 
+         is_ltr_in_path, 
          is_fry_in_path, 
          is_hvy_in_path, 
          is_com_in_path, 
@@ -202,7 +202,7 @@ flows_df <- working_df %>%
   group_by(orig_taz, dest_taz, time_period) %>%
   summarise(is_loc_in_path = sum(is_loc_in_path)/sum(techs_in_path),
             is_exp_in_path = sum(is_exp_in_path)/sum(techs_in_path),
-            is_lrt_in_path = sum(is_lrt_in_path)/sum(techs_in_path),
+            is_ltr_in_path = sum(is_ltr_in_path)/sum(techs_in_path),
             is_fry_in_path = sum(is_fry_in_path)/sum(techs_in_path),
             is_hvy_in_path = sum(is_hvy_in_path)/sum(techs_in_path),
             is_com_in_path = sum(is_com_in_path)/sum(techs_in_path),
@@ -211,7 +211,7 @@ flows_df <- working_df %>%
             .groups = "drop")
 
 check_df <- flows_df %>%
-  mutate(sum_check = is_loc_in_path + is_exp_in_path + is_lrt_in_path + is_hvy_in_path + is_fry_in_path + is_com_in_path) %>%
+  mutate(sum_check = is_loc_in_path + is_exp_in_path + is_ltr_in_path + is_hvy_in_path + is_fry_in_path + is_com_in_path) %>%
   filter(sum_check > 1.0)
 
 
