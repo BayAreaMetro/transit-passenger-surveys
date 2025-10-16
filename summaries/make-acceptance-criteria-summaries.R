@@ -1,5 +1,33 @@
 #-------------------------------------------------------------------------------
-#title: "Make Acceptance Criteria Summaries"
+#
+# Create acceptance criteria summaries for TM2
+# See https://github.com/BayAreaMetro/tm2py-utils/tree/main/tm2py_utils/summary/acceptance
+#
+# Right now, this is 2015-specific but it should be generalized to work for different
+# model years.
+#
+# This creates three outputfiles:
+# 1. acceptance-criteria-summaries-year-2015.csv with columns:
+#    survey_operator:
+#    survey_tech
+#    survey_route
+#    time_period
+#    survey_boardings: based on final_boardWeight_2015
+# 2. acceptance-criteria-access-summaries-year-2015.csv with columns:
+#    operator (ACE, BART or Caltrain)
+#    boarding_station
+#    time_period
+#    access_mode
+#    survey_trips: based on trip_weight
+# 3. acceptance-criteria-spatial-flows-year-2015.csv with columns:
+#    orig_taz
+#    dest_taz
+#    time_period
+#    is_[loc,exp,lrt,fry,hvy,com]_in_path: based on first_board_tech, last_alight_tech or SURVEY_MODE,
+#       this is the share of the trips for this orig/dest/time_period that use this tech.
+#       These sum to 100% for orig/dest/time_period.
+#    observed_trips: based on final_tripWeight_2015
+
 #-------------------------------------------------------------------------------
   
 # Overhead ---------------------------------------------------------------------
@@ -12,18 +40,27 @@ if (length(need_to_install)) install.packages(need_to_install)
 for (package in packages_vector) {
   library(package, character.only = TRUE)
 }
+options(width = 10000)
+options(dplyr.width = 10000)
+options(datatable.print.nrows = 1000)
+options(str = strOptions(list.len = 1000))
+options(warn=2) # error on warning
+# don't warn: "summarise()` has grouped output by ... You can override using the `.groups` argument."
+options(dplyr.summarise.inform=F) 
 
 # Remote I-O -------------------------------------------------------------------
-box_dir <- "~/Box Sync/"
-survey_filename <- paste0(box_dir, "Survey_Database_090221/TPS_Model_Version_PopulationSim_Weights2021-09-02.Rdata")
-output_filename <- paste0(
-  box_dir, 
-  "Survey_Database_090221/acceptance-criteria-summaries-year-2015.csv"
-)
+BOX_DIR <- "E:/Box/Modeling and Surveys"
+# Documentation on this: https://app.asana.com/1/11860278793487/project/1199982433633229/task/1211653469121610?focus=true
+SURVEY_DATA_FILE <- file.path(BOX_DIR, "Share Data/Protected Data/David Ory/TPS_Model_Version_PopulationSim_Weights2021-09-02.Rdata")
+OUTPUT_DIR       <- file.path(BOX_DIR, "Development/Travel Model Two Conversion/Observed/2015 Observed Data/Survey_Database_090221")
 
-output_access_filename <- paste0(box_dir, "Survey_Database_090221/acceptance-criteria-access-summaries-year-2015.csv")
+output_filename        <- file.path(OUTPUT_DIR, "acceptance-criteria-summaries-year-2015.csv")
+output_access_filename <- file.path(OUTPUT_DIR, "acceptance-criteria-access-summaries-year-2015.csv")
+output_flows_filename  <- file.path(OUTPUT_DIR, "acceptance-criteria-spatial-flows-year-2015.csv")
 
-output_flows_filename <- paste0(box_dir, "Survey_Database_090221/acceptance-criteria-spatial-flows-year-2015.csv")
+run_log <- file.path(OUTPUT_DIR, "make-acceptance-criteria-summaries.log")
+print(paste("Writing log file to",run_log))
+sink(run_log, append=FALSE, type = c('output', 'message'))
 
 # Parameters -------------------------------------------------------------------
 time_period_dict_df <- tibble(
@@ -36,13 +73,13 @@ mode_dict_df <- tibble(
   survey_tech = c("local bus", "express bus", "light rail", "ferry", "heavy rail", "commuter_rail")
 )
 
-rail_operators_vector <- c("BART","Caltrain","ACE","Sonoma-Marin Area Rail Transit")
+rail_operators_vector <- c("BART","Caltrain","ACE","Capitol Corridor","Sonoma-Marin Area Rail Transit")
 ALL_DAY_WORD <- "daily"
 survey_years_to_summarise <- seq(from = 2012, to = 2019)
 
 # Methods ----------------------------------------------------------------------
 make_direction_from_route <- function(input_df, input_reg_ex_word, brackets_bool) {
-  
+  print(paste("make_direction_from_route() with",input_reg_ex_word,", ",brackets_bool))
   if (brackets_bool) {
     replace_word <- trimws(gsub("\\[|\\]", "", input_reg_ex_word))
   }
@@ -55,12 +92,23 @@ make_direction_from_route <- function(input_df, input_reg_ex_word, brackets_bool
     mutate(route = if_else(flag, trimws(str_replace(route, input_reg_ex_word, "")), route)) %>%
     mutate(direction = if_else(flag, replace_word, direction)) 
   
+  # what did we do?
+  # print("route/direction for flag:")
+  # print(dplyr::count(return_df, flag))
+  # print(dplyr::count(filter(return_df, flag==TRUE), route, direction))
+
   return(return_df)
   
 }
 
 # Data Reads -------------------------------------------------------------------
-load(survey_filename)
+print(paste("Loading",SURVEY_DATA_FILE))
+load(SURVEY_DATA_FILE, verbose = TRUE)
+print("str(TPS):")
+print(str(TPS))
+
+print("survey_year counts:")
+print(dplyr::count(TPS, survey_year, sort=TRUE))
 
 # Reductions 00: Common --------------------------------------------------------
 common_df <- TPS %>%
@@ -69,12 +117,19 @@ common_df <- TPS %>%
   filter(survey_year %in% survey_years_to_summarise) %>%
   left_join(., time_period_dict_df, by = c("day_part")) %>%
   left_join(., mode_dict_df, by = c("SURVEY_MODE"))
-  
 
 # Reductions 01: Boardings by route --------------------------------------------
+# For rail operators, routes aren't really routes but a combination of board/alight stops
+#   So discard route, and just use operator.
+# For other operators, ...
 by_time_period_df <- common_df %>%
   mutate(is_rail = operator %in% rail_operators_vector) %>%
-  mutate(route = if_else(is_rail, operator, route)) %>%
+  mutate(route = if_else(is_rail, operator, route))
+
+print("Before make_direction_from_route()")
+print(dplyr::count(by_time_period_df, is_rail, operator, route, sort=TRUE))
+
+by_time_period_df <- by_time_period_df %>%
   make_direction_from_route(., "\\[ INBOUND \\]", TRUE) %>%
   make_direction_from_route(., "\\[ OUTBOUND \\]", TRUE) %>%
   make_direction_from_route(., "\\[Eastbound\\]", TRUE) %>%
@@ -82,20 +137,23 @@ by_time_period_df <- common_df %>%
   make_direction_from_route(., "\\[Northbound\\]", TRUE) %>%
   make_direction_from_route(., "\\[Southbound\\]", TRUE) %>%
   make_direction_from_route(., "NORTHBOUND", FALSE) %>%
-  make_direction_from_route(., "SOUTHBOUND", FALSE) %>%
+  make_direction_from_route(., "SOUTHBOUND", FALSE)
+
+# Noting that this currently does nothing because these strings aren't in the routes...
+# Route includes direction for some operators but not for others
+print("After make_direction_from_route()")
+print(dplyr::count(by_time_period_df, is_rail, operator, route, sort=TRUE))
+
+by_time_period_df <- by_time_period_df %>%
   group_by(operator, survey_tech, route, time_period) %>%
   summarise(survey_boardings = sum(final_boardWeight_2015), .groups = "drop")
 
-daily_df <- by_time_period_df %>%
-  group_by(operator, route) %>%
-  summarise(survey_boardings = sum(survey_boardings), .groups = "drop") %>%
-  mutate(time_period = ALL_DAY_WORD)
-
-output_df <- bind_rows(by_time_period_df, daily_df) %>%
+output_df <- by_time_period_df %>%
   rename(survey_operator = operator,
          survey_route = route)
 
 # Reductions 02: Access shares for rail stations -------------------------------
+# TODO: Should this use final_tripWeight_2015 instead of trip_weight?
 access_df <- common_df %>%
   filter(operator %in% rail_operators_vector) %>%
   group_by(operator, onoff_enter_station, time_period, access_mode) %>%
@@ -137,6 +195,7 @@ working_df <- common_df %>%
          is_com_in_path, 
          techs_in_path, 
          trip_weight = final_tripWeight_2015)
+# TODO: shouldn't is_[tech]_in_path be 0 or final_tripWeight_2015 rather than 0 or 1?  Right now, it's not weight
 
 flows_df <- working_df %>%
   group_by(orig_taz, dest_taz, time_period) %>%
