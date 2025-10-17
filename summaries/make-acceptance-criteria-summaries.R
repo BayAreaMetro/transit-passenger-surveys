@@ -70,7 +70,7 @@ time_period_dict_df <- tibble(
 
 mode_dict_df <- tibble(
   SURVEY_MODE = c("LB", "EB", "LR", "FR", "HR", "CR"),
-  survey_tech = c("local bus", "express bus", "light rail", "ferry", "heavy rail", "commuter_rail")
+  survey_tech = c("local bus", "express bus", "light rail", "ferry", "heavy rail", "commuter rail")
 )
 
 rail_operators_vector <- c("BART","Caltrain","ACE","Capitol Corridor","Sonoma-Marin Area Rail Transit")
