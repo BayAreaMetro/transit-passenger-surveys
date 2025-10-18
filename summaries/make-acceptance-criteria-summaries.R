@@ -118,6 +118,16 @@ common_df <- TPS %>%
   left_join(., time_period_dict_df, by = c("day_part")) %>%
   left_join(., mode_dict_df, by = c("SURVEY_MODE"))
 
+common_df <- common_df %>% mutate(
+  operator=replace_na(operator, "Missing"),
+  survey_tech=replace_na(survey_tech, "Missing")
+)
+print("operator count:")
+print(dplyr::count(common_df, operator))
+
+print("survey_tech count:")
+print(dplyr::count(common_df, survey_tech))
+
 # Reductions 01: Boardings by route --------------------------------------------
 # For rail operators, routes aren't really routes but a combination of board/alight stops
 #   So discard route, and just use operator.
@@ -153,11 +163,10 @@ output_df <- by_time_period_df %>%
          survey_route = route)
 
 # Reductions 02: Access shares for rail stations -------------------------------
-# TODO: Should this use final_tripWeight_2015 instead of trip_weight?
 access_df <- common_df %>%
   filter(operator %in% rail_operators_vector) %>%
   group_by(operator, onoff_enter_station, time_period, access_mode) %>%
-  summarise(survey_trips = sum(trip_weight), num_records = n(), .groups = "drop") %>%
+  summarise(survey_trips = sum(final_tripWeight_2015), num_records = n(), .groups = "drop") %>%
   filter(!is.na(time_period)) %>%
   filter(!is.na(access_mode)) %>%
   select(operator,
@@ -196,7 +205,17 @@ working_df <- common_df %>%
          is_com_in_path, 
          techs_in_path, 
          trip_weight = final_tripWeight_2015)
-# TODO: shouldn't is_[tech]_in_path be 0 or final_tripWeight_2015 rather than 0 or 1?  Right now, it's not weight
+# All alternative version using trip weights: these only differ when there are multiple trips between an Origin and Destination
+# but just to see
+working_df <- working_df %>% mutate(
+  is_loc_in_path_wt = if_else(is_loc_in_path == 1, trip_weight, 0),
+  is_exp_in_path_wt = if_else(is_exp_in_path == 1, trip_weight, 0),
+  is_ltr_in_path_wt = if_else(is_ltr_in_path == 1, trip_weight, 0),
+  is_fry_in_path_wt = if_else(is_fry_in_path == 1, trip_weight, 0),
+  is_hvy_in_path_wt = if_else(is_hvy_in_path == 1, trip_weight, 0),
+  is_com_in_path_wt = if_else(is_com_in_path == 1, trip_weight, 0),
+  techs_in_path_wt = is_loc_in_path_wt + is_exp_in_path_wt + is_ltr_in_path_wt + is_fry_in_path_wt + is_hvy_in_path_wt + is_com_in_path_wt
+)
 
 flows_df <- working_df %>%
   group_by(orig_taz, dest_taz, time_period) %>%
@@ -206,6 +225,12 @@ flows_df <- working_df %>%
             is_fry_in_path = sum(is_fry_in_path)/sum(techs_in_path),
             is_hvy_in_path = sum(is_hvy_in_path)/sum(techs_in_path),
             is_com_in_path = sum(is_com_in_path)/sum(techs_in_path),
+            is_loc_in_path_wt = sum(is_loc_in_path_wt)/sum(techs_in_path_wt),
+            is_exp_in_path_wt = sum(is_exp_in_path_wt)/sum(techs_in_path_wt),
+            is_ltr_in_path_wt = sum(is_ltr_in_path_wt)/sum(techs_in_path_wt),
+            is_fry_in_path_wt = sum(is_fry_in_path_wt)/sum(techs_in_path_wt),
+            is_hvy_in_path_wt = sum(is_hvy_in_path_wt)/sum(techs_in_path_wt),
+            is_com_in_path_wt = sum(is_com_in_path_wt)/sum(techs_in_path_wt),            
             observed_trips = sum(trip_weight),
             num_records = n(),
             .groups = "drop")
