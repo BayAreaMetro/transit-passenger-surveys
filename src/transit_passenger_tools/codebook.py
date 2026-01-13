@@ -1,288 +1,364 @@
 """
 Enumerated types for transit passenger survey data.
 
-This module defines all the categorical value types used across surveys.
-Each enum uses LabeledEnum to provide integer values and descriptive labels.
+This module defines all categorical value types used across surveys.
+Values are standardized to sentence case for consistency.
 """
 
-from data_canon.core.labeled_enum import LabeledEnum
+from enum import Enum
 
 
-class AccessMode(LabeledEnum):
+class AccessEgressMode(str, Enum):
     """Mode used to access transit from origin."""
-
-    canonical_field_name = "access_mode"
-    field_description = "Mode used to access transit from trip origin"
-
-    WALK = (1, "Walk")
-    BIKE = (2, "Bike")
-    PNR = (3, "Park and Ride")
-    KNR = (4, "Kiss and Ride")
-    TNC = (5, "Transportation Network Company")
-    OTHER = (6, "Other")
-
-
-class EgressMode(LabeledEnum):
-    """Mode used to egress from transit to destination."""
-
-    canonical_field_name = "egress_mode"
-    field_description = "Mode used to egress from transit to trip destination"
-
-    WALK = (1, "Walk")
-    BIKE = (2, "Bike")
-    PNR = (3, "Park and Ride")
-    KNR = (4, "Kiss and Ride")
-    TNC = (5, "Transportation Network Company")
-    OTHER = (6, "Other")
+    
+    WALK = "Walk"
+    BIKE = "Bike"
+    PNR = "PNR"
+    KNR = "KNR"
+    TNC = "TNC"
+    TRANSIT = "Transit"
+    OTHER = "Other"
+    MISSING = "Missing"
+    MISSING_DUMMY = "Missing - Dummy Record"
+    MISSING_NOT_ASKED = "Missing - Question Not Asked"
 
 
-class TripPurpose(LabeledEnum):
-    """Purpose of trip origin or destination."""
-
-    canonical_field_name = "trip_purpose"
-    field_description = "Purpose at trip origin or destination"
-
-    HOME = (1, "Home")
-    WORK = (2, "Work")
-    WORK_RELATED = (3, "Work-related")
-    COLLEGE = (4, "College")
-    SCHOOL = (5, "School (K-12)")
-    GRADE_SCHOOL = (6, "Grade School")
-    SHOPPING = (7, "Shopping")
-    EAT_OUT = (8, "Eat Out")
-    SOCIAL_RECREATION = (9, "Social/Recreation")
-    OTHER_MAINTENANCE = (10, "Other Maintenance")
-    OTHER_DISCRETIONARY = (11, "Other Discretionary")
-    ESCORTING = (12, "Escorting")
-    BUSINESS_APT = (13, "Business Appointment")
-
-
-class Gender(LabeledEnum):
-    """Gender of respondent."""
-
-    canonical_field_name = "gender"
-    field_description = "Gender identity of survey respondent"
-
-    MALE = (1, "Male")
-    FEMALE = (2, "Female")
-    OTHER = (3, "Other")
-    MISSING = (99, "Missing/Refused")
-
-
-class HouseholdIncome(LabeledEnum):
-    """Annual household income bracket."""
-
-    canonical_field_name = "household_income"
-    field_description = "Annual household income bracket"
-
-    UNDER_10K = (1, "Under $10,000")
-    FROM_10K_TO_25K = (2, "$10,000 to $24,999")
-    FROM_25K_TO_35K = (3, "$25,000 to $34,999")
-    FROM_35K_TO_50K = (4, "$35,000 to $49,999")
-    FROM_50K_TO_75K = (5, "$50,000 to $74,999")
-    FROM_75K_TO_100K = (6, "$75,000 to $99,999")
-    FROM_100K_TO_150K = (7, "$100,000 to $149,999")
-    OVER_150K = (8, "$150,000 or more")
-    REFUSED = (98, "Refused")
-    MISSING = (99, "Missing")
-
-
-class WorkStatus(LabeledEnum):
-    """Employment status."""
-
-    canonical_field_name = "work_status"
-    field_description = "Employment status of respondent"
-
-    FULL_OR_PART_TIME = (1, "Employed (Full or Part Time)")
-    NON_WORKER = (2, "Not Employed")
-    MISSING = (99, "Missing/Refused")
-
-
-class StudentStatus(LabeledEnum):
-    """Student enrollment status."""
-
-    canonical_field_name = "student_status"
-    field_description = "Student enrollment status of respondent"
-
-    FULL_OR_PART_TIME = (1, "Student (Full or Part Time)")
-    NON_STUDENT = (2, "Not a Student")
-    MISSING = (99, "Missing/Refused")
-
-
-class FareCategory(LabeledEnum):
-    """Fare category/discount type."""
-
-    canonical_field_name = "fare_category"
-    field_description = "Fare category or discount type used"
-
-    ADULT = (1, "Adult")
-    YOUTH = (2, "Youth")
-    SENIOR = (3, "Senior")
-    DISABLED = (4, "Disabled")
-    MISSING = (99, "Missing")
-
-
-class FareMedium(LabeledEnum):
-    """Payment method for fare."""
-
-    canonical_field_name = "fare_medium"
-    field_description = "Payment medium used for fare"
-
-    CASH = (1, "Cash")
-    CLIPPER = (2, "Clipper")
-    OTHER = (3, "Other")
-    MISSING = (99, "Missing")
-
-
-class ClipperDetail(LabeledEnum):
-    """Specific Clipper card payment type."""
-
-    canonical_field_name = "clipper_detail"
-    field_description = "Specific Clipper card payment type"
-
-    E_CASH = (1, "Clipper E-Cash")
-    PASS = (2, "Clipper Pass")
-    MISSING = (99, "Missing")
-
-
-class SurveyType(LabeledEnum):
-    """Method of survey administration."""
-
-    canonical_field_name = "survey_type"
-    field_description = "Method of survey administration"
-
-    BRIEF_CATI = (1, "Brief CATI (Phone)")
-    FULL_PAPER = (2, "Full Paper Survey")
-    TABLET_PI = (3, "Tablet/Online with Personal Interview")
-
-
-class Weekpart(LabeledEnum):
-    """Day type when survey was conducted."""
-
-    canonical_field_name = "weekpart"
-    field_description = "Day type when survey was conducted"
-
-    WEEKDAY = (1, "Weekday")
-    WEEKEND = (2, "Weekend")
-
-
-class Direction(LabeledEnum):
+# NOTE: Standardize these values... maybe...
+class Direction(str, Enum):
     """Direction of travel."""
 
-    canonical_field_name = "direction"
-    field_description = "Direction of transit travel"
-
-    NORTHBOUND = (1, "Northbound")
-    SOUTHBOUND = (2, "Southbound")
-    EASTBOUND = (3, "Eastbound")
-    WESTBOUND = (4, "Westbound")
-
-
-class InterviewLanguage(LabeledEnum):
-    """Language used for survey interview."""
-
-    canonical_field_name = "interview_language"
-    field_description = "Language in which survey interview was conducted"
-
-    ENGLISH = (1, "English")
-    SPANISH = (2, "Spanish")
-    CHINESE = (3, "Chinese")
-    VIETNAMESE = (4, "Vietnamese")
-    TAGALOG = (5, "Tagalog")
-    KOREAN = (6, "Korean")
-    RUSSIAN = (7, "Russian")
-    OTHER = (99, "Other")
+    NORTHBOUND = "Northbound"
+    SOUTHBOUND = "Southbound"
+    EASTBOUND = "Eastbound"
+    WESTBOUND = "Westbound"
+    CLOCKWISE = "Clockwise"
+    COUNTERCLOCKWISE = "Counterclockwise"
+    INBOUND = "Inbound"
+    OUTBOUND = "Outbound"
+    LOOP = "Loop"
+    NORTH = "North"
+    SOUTH = "South"
+    EAST = "East"
+    WEST = "West"
+    N_LOOP = "N. Loop"
+    S_LOOP = "S. Loop"
+    B = "B"
+    ZERO = "0"
+    MISSING = "Missing"
 
 
-class LanguageAtHomeBinary(LabeledEnum):
-    """Whether language other than English is spoken at home."""
+class DayOfWeek(str, Enum):
+    """Day of the week."""
 
-    canonical_field_name = "language_at_home_binary"
-    field_description = "Whether language other than English is spoken at home"
-
-    ENGLISH_ONLY = (1, "English Only")
-    OTHER = (2, "Other Language")
-
-
-class EnglishProficiency(LabeledEnum):
-    """Self-reported English proficiency."""
-
-    canonical_field_name = "eng_proficient"
-    field_description = "Self-reported English language proficiency"
-
-    VERY_WELL = (1, "Very Well")
-    WELL = (2, "Well")
-    NOT_WELL = (3, "Not Well")
-    NOT_AT_ALL = (4, "Not at All")
-    MISSING = (99, "Missing")
+    MONDAY = "Monday"
+    TUESDAY = "Tuesday"
+    WEDNESDAY = "Wednesday"
+    THURSDAY = "Thursday"
+    FRIDAY = "Friday"
+    SATURDAY = "Saturday"
+    SUNDAY = "Sunday"
+    MISSING = "Missing"
 
 
-class Hispanic(LabeledEnum):
+class Weekpart(str, Enum):
+    """Day type when survey was conducted."""
+
+    WEEKDAY = "Weekday"
+    WEEKEND = "Weekend"
+    MISSING = "Missing"
+
+
+class TransferOperator(str, Enum):
+    """Transit operator for transfers."""
+
+    AC_TRANSIT = "AC Transit"
+    ACE = "ACE"
+    AMTRAK = "Amtrak"
+    BART = "BART"
+    BLUE_GOLD_FERRY = "Blue Gold Ferry"
+    BAY_AREA_SHUTTLES = "Bay Area Shuttles"
+    CALTRAIN = "Caltrain"
+    COUNTY_CONNECTION = "County Connection"
+    DUMBARTON = "Dumbarton"
+    DUMBARTON_EXPRESS = "Dumbarton Express"
+    EMERY_GO_ROUND = "Emery-Go-Round"
+    EMERYVILLE_MTA = "Emeryville MTA"
+    FAIRFIELD_SUISUN = "Fairfield-Suisun"
+    FAST = "Fast"
+    GOLDEN_GATE_FERRY = "Golden Gate Ferry"
+    GOLDEN_GATE_TRANSIT = "Golden Gate Transit"
+    GREYHOUND = "Greyhound"
+    LAVTA = "LAVTA"
+    MARIN_TRANSIT = "Marin Transit"
+    MODESTO_TRANSIT = "Modesto Transit"
+    MUNI = "Muni"
+    NAPA_VINE = "Napa Vine"
+    PETALUMA_TRANSIT = "Petaluma Transit"
+    PRIVATE_SHUTTLE = "Private Shuttle"
+    RIO_VISTA = "Rio-Vista"
+    SAMTRANS = "SamTrans"
+    SAN_JOAQUIN_TRANSIT = "San Joaquin Transit"
+    SANTA_ROSA_CITY_BUS = "Santa Rosa City Bus"
+    SF_BAY_FERRY = "SF Bay Ferry"
+    SMART = "Smart"
+    SOLTRANS = "SolTrans"
+    SONOMA_COUNTY_TRANSIT = "Sonoma County Transit"
+    STANFORD_SHUTTLES = "Stanford Shuttles"
+    SAN_LEANDRO_LINKS = "San Leandro Links"
+    TRI_DELTA = "Tri-Delta"
+    UNION_CITY = "Union City"
+    VACAVILLE_CITY_COACH = "Vacaville City Coach"
+    VALLEJO_TRANSIT = "Vallejo Transit"
+    VTA = "VTA"
+    WESTCAT = "WestCat"
+    WHEELS = "Wheels (LAVTA)"
+    OPERATOR_OUTSIDE_BAY_AREA = "Operator Outside Bay Area"
+    OTHER = "Other"
+    MISSING = "Missing"
+
+
+class FareMedium(str, Enum):
+    """Payment method for fare."""
+
+    CASH = "Cash"
+    CLIPPER = "Clipper"
+    CLIPPER_E_CASH = "Clipper (e-cash)"
+    CLIPPER_PASS = "Clipper (pass)"
+    CLIPPER_MONTHLY = "Clipper (monthly)"
+    PASS = "Pass"
+    MONTHLY_PASS = "Monthly pass"
+    DAY_PASS = "Day pass"
+    PAPER_TICKET = "Paper ticket"
+    MOBILE_APP = "Mobile app"
+    E_TICKET = "E-ticket"
+    TRANSFER = "Transfer"
+    FREE = "Free"
+    OTHER = "Other"
+    MISSING = "Missing"
+
+
+class FareCategory(str, Enum):
+    """Fare category/discount type."""
+
+    ADULT = "Adult"
+    YOUTH = "Youth"
+    SENIOR = "Senior"
+    DISABLED = "Disabled"
+    STUDENT = "Student"
+    MEDICARE = "Medicare"
+    RTC = "RTC"
+    FREE = "Free"
+    OTHER = "Other"
+    MISSING = "Missing"
+
+
+class TripPurpose(str, Enum):
+    """Purpose of trip origin or destination."""
+
+    HOME = "Home"
+    WORK = "Work"
+    WORK_RELATED = "Work-related"
+    COLLEGE = "College"
+    UNIVERSITY = "University"
+    HIGH_SCHOOL = "High school"
+    GRADE_SCHOOL = "Grade school"
+    SHOPPING = "Shopping"
+    EAT_OUT = "Eat out"
+    SOCIAL_RECREATION = "Social recreation"
+    OTHER_MAINTENANCE = "Other maintenance"
+    OTHER_DISCRETIONARY = "Other discretionary"
+    ESCORTING = "Escorting"
+    BUSINESS_APT = "Business apt"
+    HOTEL = "Hotel"
+    AIRPORT = "Airport"
+    AT_WORK = "At work"
+    OTHER = "Other"
+    MISSING = "Missing"
+
+
+class TechnologyType(str, Enum):
+    """Transit vehicle technology type."""
+
+    LOCAL_BUS = "Local Bus"
+    EXPRESS_BUS = "Express Bus"
+    LIGHT_RAIL = "Light Rail"
+    HEAVY_RAIL = "Heavy Rail"
+    COMMUTER_RAIL = "Commuter Rail"
+    FERRY = "Ferry"
+    MISSING = "Missing"
+
+
+class Gender(str, Enum):
+    """Gender of respondent."""
+
+    MALE = "Male"
+    FEMALE = "Female"
+    NON_BINARY = "Non-binary"
+    TRANSGENDER = "Transgender"
+    OTHER = "Other"
+    PREFER_NOT_TO_ANSWER = "Prefer not to answer"
+    MISSING = "Missing"
+
+
+class Hispanic(str, Enum):
     """Hispanic/Latino ethnicity."""
 
-    canonical_field_name = "hispanic"
-    field_description = "Hispanic or Latino ethnicity"
-
-    HISPANIC = (1, "Hispanic/Latino or of Spanish Origin")
-    NOT_HISPANIC = (2, "Not Hispanic/Latino or of Spanish Origin")
-    MISSING = (99, "Missing")
+    HISPANIC = "Hispanic/Latino or of Spanish origin"
+    NOT_HISPANIC = "Not Hispanic/Latino or of Spanish origin"
+    MISSING = "Missing"
 
 
-class HouseholdSize(LabeledEnum):
-    """Number of persons in household."""
+class Race(str, Enum):
+    """Race/ethnicity category."""
 
-    canonical_field_name = "persons"
-    field_description = "Number of persons in household"
-
-    ONE = (1, "One")
-    TWO = (2, "Two")
-    THREE = (3, "Three")
-    FOUR = (4, "Four")
-    FIVE = (5, "Five")
-    SIX = (6, "Six")
-    SEVEN = (7, "Seven")
-    EIGHT = (8, "Eight")
-    NINE = (9, "Nine")
-    TEN_OR_MORE = (10, "Ten or More")
+    WHITE = "White"
+    BLACK = "Black"
+    ASIAN = "Asian"
+    OTHER = "Other"
+    MISSING = "Missing"
 
 
-class VehicleCount(LabeledEnum):
+class WorkStatus(str, Enum):
+    """Employment status."""
+
+    FULL_OR_PART_TIME = "Full- or part-time"
+    NON_WORKER = "Non-worker"
+    OTHER = "Other"
+    MISSING = "Missing"
+
+
+class StudentStatus(str, Enum):
+    """Student enrollment status."""
+
+    FULL_OR_PART_TIME = "Full- or part-time"
+    NON_STUDENT = "Non-student"
+    MISSING = "Missing"
+
+# NOTE: Standardize these values...
+class EnglishProficiency(str, Enum):
+    """Self-reported English proficiency."""
+
+    VERY_WELL = "Very well"
+    WELL = "Well"
+    NOT_WELL = "Not well"
+    LESS_THAN_WELL = "Less than well"
+    NOT_WELL_AT_ALL = "Not well at all"
+    NOT_AT_ALL = "Not at all"
+    SKIP_PAPER_SURVEY = "Skip - Paper Survey"
+    MISSING = "Missing"
+
+# NOTE: Standardize these values...
+class VehicleCount(str, Enum):
     """Number of vehicles in household."""
 
-    canonical_field_name = "vehicles"
-    field_description = "Number of vehicles in household"
+    ZERO = "Zero"
+    ONE = "One"
+    TWO = "Two"
+    THREE = "Three"
+    FOUR = "Four"
+    FIVE = "Five"
+    SIX = "Six"
+    SEVEN = "Seven"
+    EIGHT = "Eight"
+    NINE = "Nine"
+    TEN = "Ten"
+    TWELVE = "Twelve"
+    FOUR_OR_MORE = "Four or more"
+    SIX_OR_MORE = "Six or more"
+    DONT_KNOW = "Don't know"
+    REF = "Ref"
+    OTHER = "Other"
+    MISSING = "Missing"
 
-    ZERO = (0, "Zero")
-    ONE = (1, "One")
-    TWO = (2, "Two")
-    THREE = (3, "Three")
-    FOUR_OR_MORE = (4, "Four or More")
+# NOTE: Standardize these values...
+class HouseholdIncome(str, Enum):
+    """Annual household income bracket."""
+
+    UNDER_10K = "Under $10,000"
+    UNDER_15K = "Under $15,000"
+    UNDER_25K = "Under $25,000"
+    UNDER_35K = "Under $35,000"
+    UNDER_50K = "Under $50,000"
+    FROM_10K_TO_25K = "$10,000 to $25,000"
+    FROM_15K_TO_25K = "$15,000 to $25,000"
+    FROM_15K_TO_30K = "$15,000 to $30,000"
+    FROM_25K_TO_35K = "$25,000 to $35,000"
+    FROM_25K_TO_50K = "$25,000 to $50,000"
+    FROM_30K_TO_40K = "$30,000 to $40,000"
+    FROM_35K_TO_50K = "$35,000 to $50,000"
+    FROM_35K_OR_HIGHER = "$35,000 or higher"
+    FROM_40K_TO_50K = "$40,000 to $50,000"
+    FROM_50K_TO_60K = "$50,000 to $60,000"
+    FROM_50K_TO_75K = "$50,000 to $75,000"
+    FROM_50K_TO_100K = "$50,000 to $99,999"
+    FROM_60K_TO_70K = "$60,000 to $70,000"
+    FROM_70K_TO_80K = "$70,000 to $80,000"
+    FROM_75K_TO_100K = "$75,000 to $100,000"
+    FROM_80K_TO_100K = "$80,000 to $100,000"
+    FROM_100K_TO_150K = "$100,000 to $149,999"
+    FROM_100K_TO_150K_ALT = "$100,000 to $150,000"
+    FROM_150K_OR_HIGHER = "$150,000 or higher"
+    FROM_150K_TO_200K = "$150,000 to $200,000"
+    FROM_200K_OR_HIGHER = "$200,000 or higher"
+    REFUSED = "Refused"
+    MISSING = "Missing"
 
 
-class WorkerCount(LabeledEnum):
-    """Number of workers in household."""
+class SurveyType(str, Enum):
+    """Method of survey administration."""
 
-    canonical_field_name = "workers"
-    field_description = "Number of workers in household"
+    ONBOARD = "Onboard"
+    PHONE = "Phone"
+    ONLINE = "Online"
+    TABLET = "Tablet"
+    PAPER_MAIL_IN = "Paper - mail-in"
+    PAPER_COLLECTED = "Paper - collected by interviewer"
+    INTERVIEWER_ADMINISTERED = "Interviewer-administered"
+    SELF_ADMINISTERED = "Self-administered"
+    BRIEF_CATI = "Brief CATI"
+    FULL_PAPER = "Full paper"
+    TABLET_PI = "Tablet PI"
+    ON_OFF_DUMMY = "On-off dummy"
+    MIX = "Mix"
+    OTHER = "Other"
 
-    ZERO = (0, "Zero")
-    ONE = (1, "One")
-    TWO = (2, "Two")
-    THREE = (3, "Three")
-    FOUR = (4, "Four")
-    FIVE = (5, "Five")
-    SIX_OR_MORE = (6, "Six or More")
+
+class InterviewLanguage(str, Enum):
+    """Language used for survey interview."""
+
+    ENGLISH = "English"
+    SPANISH = "Spanish"
+    CHINESE = "Chinese"
+    CANTONESE_CHINESE = "Cantonese Chinese"
+    MANDARIN_CHINESE = "Mandarin Chinese"
+    VIETNAMESE = "Vietnamese"
+    TAGALOG = "Tagalog"
+    KOREAN = "Korean"
+    RUSSIAN = "Russian"
+    FRENCH = "French"
+    ARABIC = "Arabic"
+    PUNJABI = "Punjabi"
+    CANTONESE = "Cantonese"
+    DONT_KNOW_REFUSE = "Don't know/refuse"
+    SKIP_PAPER_SURVEY = "Skip - Paper Survey"
+    OTHER = "Other"
+    MISSING = "Missing"
 
 
-class TransferCount(LabeledEnum):
-    """Number of transfers made."""
+class FieldLanguage(str, Enum):
+    """Survey field language."""
 
-    canonical_field_name = "number_transfers"
-    field_description = "Number of transfers made"
-
-    ZERO = (0, "Zero")
-    ONE = (1, "One")
-    TWO = (2, "Two")
-    THREE = (3, "Three")
-    FOUR_OR_MORE = (4, "Four or More")
-
+    ENGLISH = "English"
+    SPANISH = "Spanish"
+    CHINESE = "Chinese"
+    VIETNAMESE = "Vietnamese"
+    TAGALOG = "Tagalog"
+    KOREAN = "Korean"
+    RUSSIAN = "Russian"
+    FRENCH = "French"
+    ARABIC = "Arabic"
+    PUNJABI = "Punjabi"
+    CANTONESE = "Cantonese"
+    DONT_KNOW_REFUSE = "Don't know/refuse"
+    SKIP_PAPER_SURVEY = "Skip - Paper Survey"
+    OTHER = "Other"

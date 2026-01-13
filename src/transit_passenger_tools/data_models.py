@@ -2,7 +2,7 @@
 Pydantic data models for transit passenger survey database schema.
 
 This module defines the canonical schema for standardized transit survey data.
-All enum fields use integer codes for storage while providing validation and labels.
+Enum fields use string values matching CSV data exactly (case-sensitive).
 """
 
 from datetime import date, datetime
@@ -11,28 +11,64 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from transit_passenger_tools.codebook import (
-    AccessMode,
-    ClipperDetail,
+    AccessEgressMode,
+    DayOfWeek,
     Direction,
-    EgressMode,
     EnglishProficiency,
     FareCategory,
     FareMedium,
+    FieldLanguage,
     Gender,
     Hispanic,
     HouseholdIncome,
-    HouseholdSize,
     InterviewLanguage,
-    LanguageAtHomeBinary,
+    Race,
     StudentStatus,
     SurveyType,
-    TransferCount,
+    TechnologyType,
+    TransferOperator,
     TripPurpose,
     VehicleCount,
     Weekpart,
-    WorkerCount,
     WorkStatus,
 )
+
+
+class SurveyMetadata(BaseModel):
+    """
+    Survey-wide metadata and collection information.
+    
+    This table stores metadata that applies to an entire survey effort,
+    separate from individual response records. One row per survey.
+    """
+    
+    model_config = ConfigDict(
+        use_enum_values=True,
+        validate_assignment=True,
+        str_strip_whitespace=True,
+    )
+    
+    # ========== Composite Primary Key ==========
+    survey_year: int = Field(..., ge=1990, le=2100, description="Year survey conducted")
+    canonical_operator: str = Field(..., max_length=50, description="Standardized operator name")
+    
+    # ========== Survey Identification ==========
+    survey_name: str = Field(..., max_length=100, description="Survey name")
+    source: str = Field(..., max_length=100, description="Data source/provenance")
+    survey_batch: str = Field(..., max_length=100, description="Survey batch identifier")
+    
+    # ========== Field Collection Dates ==========
+    field_start: date = Field(..., description="First day of data collection")
+    field_end: date = Field(..., description="Last day of data collection")
+    
+    # ========== Inflation Adjustment ==========
+    inflation_year: str = Field(..., max_length=10, description="Year for inflation adjustment")
+    
+    # ========== System Fields ==========
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow, description="Record creation timestamp"
+    )
+    updated_at: Optional[datetime] = Field(None, description="Record last update timestamp")
 
 
 class SurveyResponse(BaseModel):
@@ -42,10 +78,18 @@ class SurveyResponse(BaseModel):
     Each row represents a single on-board survey intercept of a passenger
     boarding a transit vehicle. The schema includes trip details, demographics,
     geographic information, and survey metadata.
+    
+    Field Classification (Usage-Based Validation):
+    - Tier 1 (Required): Core identifiers, survey metadata, basic demographics, trip purpose
+      Fields use Type = Field(...) pattern and must be filled with codebook defaults if NULL
+    - Tier 2 (Optional - Enriched): Geocoded/derived data added post-survey (GEOIDs, TAZ/MAZ, coordinates, distances)
+      Fields use Optional[Type] = Field(...) to accept None → write NULL to database
+    - Tier 3 (Optional): All other nullable fields (conditional questions, sparse responses, transfers)
+      Fields use Optional[Type] = Field(...) to accept None → write NULL to database
     """
 
     model_config = ConfigDict(
-        use_enum_values=True,  # Store enums as integers in database
+        use_enum_values=True,  # Store enums as strings in database
         validate_assignment=True,
         str_strip_whitespace=True,
     )
@@ -59,94 +103,113 @@ class SurveyResponse(BaseModel):
 
     # ========== Survey Identifiers ==========
     id: str = Field(..., max_length=50, description="Record ID for operator survey")
-    operator: str = Field(..., max_length=50, description="Transit operator name")
     survey_year: int = Field(..., ge=1990, le=2100, description="Year survey conducted")
-    canonical_operator: Optional[str] = Field(
-        None, max_length=50, description="Standardized operator name"
-    )
-    survey_name: Optional[str] = Field(None, max_length=100, description="Survey name")
+    canonical_operator: str = Field(..., max_length=50, description="Standardized operator name")
+    survey_name: str = Field(..., max_length=100, description="Survey name")
 
     # ========== Trip Information ==========
-    route: Optional[str] = Field(None, max_length=50, description="Transit route")
-    direction: Optional[Direction] = Field(None, description="Travel direction of surveyed vehicle")
+    route: str = Field(..., max_length=50, description="Transit route")
+    direction: Direction = Field(..., description="Travel direction of surveyed vehicle")
     boardings: Optional[int] = Field(
-        None, ge=1, le=10, description="Number of boardings in transit trip"
+        ..., ge=1, le=10, description="Number of boardings in transit trip (Tier 3: Optional)"
     )
 
     # ========== Access/Egress Modes ==========
-    access_mode: Optional[AccessMode] = Field(
-        None, description="Mode to access first transit encounter"
+    access_mode: AccessEgressMode = Field(..., description="Mode to access first transit encounter")
+    egress_mode: AccessEgressMode = Field(..., description="Mode to egress from last transit encounter")
+    immediate_access_mode: AccessEgressMode = Field(
+        ..., description="Access mode to surveyed vehicle"
     )
-    egress_mode: Optional[EgressMode] = Field(
-        None, description="Mode to egress from last transit encounter"
-    )
-    immediate_access_mode: Optional[AccessMode] = Field(
-        None, description="Access mode to surveyed vehicle"
-    )
-    immediate_egress_mode: Optional[EgressMode] = Field(
-        None, description="Egress mode from surveyed vehicle"
+    immediate_egress_mode: AccessEgressMode = Field(
+        ..., description="Egress mode from surveyed vehicle"
     )
 
-    # ========== Transfer Information ==========
-    transfer_from: Optional[str] = Field(
-        None, max_length=50, description="Operator immediately transferred from"
+    # ========== Transfer Information (Tier 3: Optional - transfers only) ==========
+    transfer_from: Optional[TransferOperator] = Field(
+        ..., description="Operator immediately transferred from (Tier 3: Optional)"
     )
-    transfer_to: Optional[str] = Field(
-        None, max_length=50, description="Operator immediately transferring to"
-    )
-    number_transfers_orig_board: Optional[TransferCount] = Field(
-        None, description="Number of transfers from origin to survey boarding"
-    )
-    number_transfers_alight_dest: Optional[TransferCount] = Field(
-        None, description="Number of transfers from survey alighting to destination"
-    )
+    transfer_to: Optional[TransferOperator] = Field(..., description="Operator immediately transferring to (Tier 3: Optional)")
+
     first_route_before_survey_board: Optional[str] = Field(
-        None, max_length=50, description="First route before survey boarding"
+        ..., max_length=50, description="First route before survey boarding (Tier 3: Optional)"
     )
     second_route_before_survey_board: Optional[str] = Field(
-        None, max_length=50, description="Second route before survey boarding"
+        ..., max_length=50, description="Second route before survey boarding (Tier 3: Optional)"
     )
     third_route_before_survey_board: Optional[str] = Field(
-        None, max_length=50, description="Third route before survey boarding"
+        ..., max_length=50, description="Third route before survey boarding (Tier 3: Optional)"
     )
     first_route_after_survey_alight: Optional[str] = Field(
-        None, max_length=50, description="First route after survey alighting"
+        ..., max_length=50, description="First route after survey alighting (Tier 3: Optional)"
     )
     second_route_after_survey_alight: Optional[str] = Field(
-        None, max_length=50, description="Second route after survey alighting"
+        ..., max_length=50, description="Second route after survey alighting (Tier 3: Optional)"
     )
     third_route_after_survey_alight: Optional[str] = Field(
-        None, max_length=50, description="Third route after survey alighting"
+        ..., max_length=50, description="Third route after survey alighting (Tier 3: Optional)"
     )
 
+    # ========== Transfer Operators and Technology (Tier 3: Optional - transfers only) ==========
+    first_before_operator: Optional[str] = Field(..., max_length=100, description="First operator before survey board (Tier 3: Optional)")
+    first_before_operator_detail: Optional[str] = Field(..., max_length=100, description="First operator detail before survey board (Tier 3: Optional)")
+    first_before_technology: Optional[str] = Field(..., max_length=50, description="First technology before survey board (Tier 3: Optional)")
+    second_before_operator: Optional[str] = Field(..., max_length=100, description="Second operator before survey board (Tier 3: Optional)")
+    second_before_operator_detail: Optional[str] = Field(..., max_length=100, description="Second operator detail before survey board (Tier 3: Optional)")
+    second_before_technology: Optional[str] = Field(..., max_length=50, description="Second technology before survey board (Tier 3: Optional)")
+    third_before_operator: Optional[str] = Field(..., max_length=100, description="Third operator before survey board (Tier 3: Optional)")
+    third_before_operator_detail: Optional[str] = Field(..., max_length=100, description="Third operator detail before survey board (Tier 3: Optional)")
+    third_before_technology: Optional[str] = Field(..., max_length=50, description="Third technology before survey board (Tier 3: Optional)")
+    first_after_operator: Optional[str] = Field(..., max_length=100, description="First operator after survey alight (Tier 3: Optional)")
+    first_after_operator_detail: Optional[str] = Field(..., max_length=100, description="First operator detail after survey alight (Tier 3: Optional)")
+    first_after_technology: Optional[str] = Field(..., max_length=50, description="First technology after survey alight (Tier 3: Optional)")
+    second_after_operator: Optional[str] = Field(..., max_length=100, description="Second operator after survey alight (Tier 3: Optional)")
+    second_after_operator_detail: Optional[str] = Field(..., max_length=100, description="Second operator detail after survey alight (Tier 3: Optional)")
+    second_after_technology: Optional[str] = Field(..., max_length=50, description="Second technology after survey alight (Tier 3: Optional)")
+    third_after_operator: Optional[str] = Field(..., max_length=100, description="Third operator after survey alight (Tier 3: Optional)")
+    third_after_operator_detail: Optional[str] = Field(..., max_length=100, description="Third operator detail after survey alight (Tier 3: Optional)")
+    third_after_technology: Optional[str] = Field(..., max_length=50, description="Third technology after survey alight (Tier 3: Optional)")
+
     # ========== Technology/Path ==========
-    survey_tech: Optional[str] = Field(
-        None, max_length=50, description="Survey vehicle technology type"
+    survey_tech: TechnologyType = Field(..., description="Survey vehicle technology type")
+    first_board_tech: TechnologyType = Field(
+        ..., description="Vehicle technology type of first boarding"
     )
-    first_board_tech: Optional[str] = Field(
-        None, max_length=50, description="Vehicle technology type of first boarding"
+    last_alight_tech: TechnologyType = Field(
+        ..., description="Vehicle technology type of last alighting"
     )
-    last_alight_tech: Optional[str] = Field(
-        None, max_length=50, description="Vehicle technology type of last alighting"
+    path_access: str = Field(
+        ..., max_length=20, description="Aggregated access mode (drive/walk/missing)"
     )
-    path_access: Optional[str] = Field(
-        None, max_length=20, description="Aggregated access mode (drive/walk/missing)"
+    path_egress: str = Field(
+        ..., max_length=20, description="Aggregated egress mode (drive/walk/missing)"
     )
-    path_egress: Optional[str] = Field(
-        None, max_length=20, description="Aggregated egress mode (drive/walk/missing)"
+    path_line_haul: str = Field(
+        ..., max_length=20, description="Path line haul mode (COM/EXP/HVY/LOC/LRF)"
     )
-    path_line_haul: Optional[str] = Field(
-        None, max_length=20, description="Path line haul mode (COM/EXP/HVY/LOC/LRF)"
+    path_label: str = Field(..., max_length=50, description="Full path (access + line haul + egress)")
+
+    # ========== Mode Presence Flags (Tier 3: Optional - can be NULL for older surveys) ==========
+    commuter_rail_present: Optional[int] = Field(
+        ..., ge=0, le=1, description="Tier 3: Commuter rail present in trip (binary flag)"
     )
-    path_label: Optional[str] = Field(
-        None, max_length=50, description="Full path (access + line haul + egress)"
+    heavy_rail_present: Optional[int] = Field(
+        ..., ge=0, le=1, description="Tier 3: Heavy rail present in trip (binary flag)"
+    )
+    express_bus_present: Optional[int] = Field(
+        ..., ge=0, le=1, description="Tier 3: Express bus present in trip (binary flag)"
+    )
+    ferry_present: Optional[int] = Field(
+        ..., ge=0, le=1, description="Tier 3: Ferry present in trip (binary flag)"
+    )
+    light_rail_present: Optional[int] = Field(
+        ..., ge=0, le=1, description="Tier 3: Light rail present in trip (binary flag)"
     )
 
     # ========== Trip Purpose ==========
-    orig_purp: Optional[TripPurpose] = Field(None, description="Origin trip purpose")
-    dest_purp: Optional[TripPurpose] = Field(None, description="Destination trip purpose")
-    tour_purp: Optional[TripPurpose] = Field(None, description="Tour purpose (derived)")
-    trip_purp: Optional[TripPurpose] = Field(None, description="Trip purpose")
+    orig_purp: TripPurpose = Field(..., description="Origin trip purpose")
+    dest_purp: TripPurpose = Field(..., description="Destination trip purpose")
+    tour_purp: TripPurpose = Field(..., description="Tour purpose (derived)")
+    trip_purp: TripPurpose = Field(..., description="Trip purpose")
 
     # ========== Ancillary Variables (Computed Tour Logic) ==========
     at_work_prior_to_orig_purp: Optional[str] = Field(
@@ -162,134 +225,208 @@ class SurveyResponse(BaseModel):
         None, max_length=50, description="Will be at school after surveyed trip"
     )
 
-    # ========== Geographic - Lat/Lon Coordinates ==========
-    orig_lat: Optional[float] = Field(None, ge=-90, le=90, description="Trip origin latitude")
+    # ========== Geographic - Lat/Lon Coordinates (Tier 2: Enriched) ==========
+    orig_lat: Optional[float] = Field(..., ge=-90, le=90, description="Trip origin latitude (Tier 2: Enriched)")
     orig_lon: Optional[float] = Field(
-        None, ge=-180, le=180, description="Trip origin longitude"
+        ..., ge=-180, le=180, description="Trip origin longitude (Tier 2: Enriched)"
     )
-    dest_lat: Optional[float] = Field(None, ge=-90, le=90, description="Trip destination latitude")
+    dest_lat: Optional[float] = Field(..., ge=-90, le=90, description="Trip destination latitude (Tier 2: Enriched)")
     dest_lon: Optional[float] = Field(
-        None, ge=-180, le=180, description="Trip destination longitude"
+        ..., ge=-180, le=180, description="Trip destination longitude (Tier 2: Enriched)"
     )
-    home_lat: Optional[float] = Field(None, ge=-90, le=90, description="Home location latitude")
+    home_lat: Optional[float] = Field(..., ge=-90, le=90, description="Home location latitude (Tier 2: Enriched)")
     home_lon: Optional[float] = Field(
-        None, ge=-180, le=180, description="Home location longitude"
+        ..., ge=-180, le=180, description="Home location longitude (Tier 2: Enriched)"
     )
     workplace_lat: Optional[float] = Field(
-        None, ge=-90, le=90, description="Workplace location latitude"
+        ..., ge=-90, le=90, description="Workplace location latitude (Tier 3: Optional - workers only)"
     )
     workplace_lon: Optional[float] = Field(
-        None, ge=-180, le=180, description="Workplace location longitude"
+        ..., ge=-180, le=180, description="Workplace location longitude (Tier 3: Optional - workers only)"
     )
     school_lat: Optional[float] = Field(
-        None, ge=-90, le=90, description="School location latitude"
+        ..., ge=-90, le=90, description="School location latitude (Tier 3: Optional - students only)"
     )
     school_lon: Optional[float] = Field(
-        None, ge=-180, le=180, description="School location longitude"
+        ..., ge=-180, le=180, description="School location longitude (Tier 3: Optional - students only)"
     )
     first_board_lat: Optional[float] = Field(
-        None, ge=-90, le=90, description="First transit boarding location latitude"
+        ..., ge=-90, le=90, description="First transit boarding location latitude (Tier 2: Enriched)"
     )
     first_board_lon: Optional[float] = Field(
-        None, ge=-180, le=180, description="First transit boarding location longitude"
+        ..., ge=-180, le=180, description="First transit boarding location longitude (Tier 2: Enriched)"
     )
     last_alight_lat: Optional[float] = Field(
-        None, ge=-90, le=90, description="Last transit alighting location latitude"
+        ..., ge=-90, le=90, description="Last transit alighting location latitude (Tier 2: Enriched)"
     )
     last_alight_lon: Optional[float] = Field(
-        None, ge=-180, le=180, description="Last transit alighting location longitude"
+        ..., ge=-180, le=180, description="Last transit alighting location longitude (Tier 2: Enriched)"
     )
     survey_board_lat: Optional[float] = Field(
-        None, ge=-90, le=90, description="Survey vehicle boarding location latitude"
+        ..., ge=-90, le=90, description="Survey vehicle boarding location latitude (Tier 2: Enriched)"
     )
     survey_board_lon: Optional[float] = Field(
-        None, ge=-180, le=180, description="Survey vehicle boarding location longitude"
+        ..., ge=-180, le=180, description="Survey vehicle boarding location longitude (Tier 2: Enriched)"
     )
     survey_alight_lat: Optional[float] = Field(
-        None, ge=-90, le=90, description="Survey vehicle alighting location latitude"
+        ..., ge=-90, le=90, description="Survey vehicle alighting location latitude (Tier 2: Enriched)"
     )
     survey_alight_lon: Optional[float] = Field(
-        None, ge=-180, le=180, description="Survey vehicle alighting location longitude"
+        ..., ge=-180, le=180, description="Survey vehicle alighting location longitude (Tier 2: Enriched)"
     )
 
-    # ========== Geographic - Rail Stations ==========
+    # ========== Geographic - Rail Stations (Tier 3: Optional - rail only) ==========
     onoff_enter_station: Optional[str] = Field(
-        None, max_length=100, description="Rail boarding station name"
+        ..., max_length=100, description="Rail boarding station name (Tier 3: Optional - rail only)"
     )
     onoff_exit_station: Optional[str] = Field(
-        None, max_length=100, description="Rail alighting station name"
+        ..., max_length=100, description="Rail alighting station name (Tier 3: Optional - rail only)"
     )
 
-    # ========== Geographic - Travel Model Zones (MAZ) ==========
-    orig_maz: Optional[int] = Field(None, description="Origin MAZ (Travel Model geography)")
-    dest_maz: Optional[int] = Field(None, description="Destination MAZ")
-    home_maz: Optional[int] = Field(None, description="Home MAZ")
-    workplace_maz: Optional[int] = Field(None, description="Workplace MAZ")
-    school_maz: Optional[int] = Field(None, description="School MAZ")
+    # ========== Geographic - Travel Model Zones (MAZ) (Tier 2: Enriched) ==========
+    orig_maz: Optional[int] = Field(..., description="Origin MAZ (Travel Model geography) (Tier 2: Enriched)")
+    dest_maz: Optional[int] = Field(..., description="Destination MAZ (Tier 2: Enriched)")
+    home_maz: Optional[int] = Field(..., description="Home MAZ (Tier 2: Enriched)")
+    workplace_maz: Optional[int] = Field(..., description="Workplace MAZ (Tier 3: Optional - workers only)")
+    school_maz: Optional[int] = Field(..., description="School MAZ (Tier 3: Optional - students only)")
 
-    # ========== Geographic - Travel Model Zones (TAZ) ==========
-    orig_taz: Optional[int] = Field(None, description="Origin TAZ (Travel Model geography)")
-    dest_taz: Optional[int] = Field(None, description="Destination TAZ")
-    home_taz: Optional[int] = Field(None, description="Home TAZ")
-    workplace_taz: Optional[int] = Field(None, description="Workplace TAZ")
-    school_taz: Optional[int] = Field(None, description="School TAZ")
+    # ========== Geographic - Travel Model Zones (TAZ) (Tier 2: Enriched) ==========
+    orig_taz: Optional[int] = Field(..., description="Origin TAZ (Travel Model geography) (Tier 2: Enriched)")
+    dest_taz: Optional[int] = Field(..., description="Destination TAZ (Tier 2: Enriched)")
+    home_taz: Optional[int] = Field(..., description="Home TAZ (Tier 2: Enriched)")
+    workplace_taz: Optional[int] = Field(..., description="Workplace TAZ (Tier 3: Optional - workers only)")
+    school_taz: Optional[int] = Field(..., description="School TAZ (Tier 3: Optional - students only)")
 
-    # ========== Geographic - Travel Model Zones (TAP) ==========
+    # ========== Geographic - Travel Model Zones (TAP) (Tier 2: Enriched) ==========
     first_board_tap: Optional[int] = Field(
-        None, description="TAP of first boarding location (Travel Model geography)"
+        ..., description="TAP of first boarding location (Travel Model geography) (Tier 2: Enriched)"
     )
-    last_alight_tap: Optional[int] = Field(None, description="TAP of last alighting location")
+    last_alight_tap: Optional[int] = Field(..., description="TAP of last alighting location (Tier 2: Enriched)")
 
-    # ========== Geographic - Counties ==========
-    home_county: Optional[str] = Field(None, max_length=50, description="Home county")
-    workplace_county: Optional[str] = Field(None, max_length=50, description="Workplace county")
-    school_county: Optional[str] = Field(None, max_length=50, description="School county")
+    # ========== Geographic - Counties (Tier 2/3: Enriched/Conditional) ==========
+    home_county: Optional[str] = Field(..., max_length=50, description="Home county (Tier 2: Enriched)")
+    workplace_county: Optional[str] = Field(..., max_length=50, description="Workplace county (Tier 3: Optional - workers only)")
+    school_county: Optional[str] = Field(..., max_length=50, description="School county (Tier 3: Optional - students only)")
+
+    # ========== Geographic - Census GEOIDs (PUMA) (Tier 2: Enriched) ==========
+    orig_PUMA_GEOID: Optional[str] = Field(..., max_length=20, description="Origin PUMA GEOID (Tier 2: Enriched)")
+    dest_PUMA_GEOID: Optional[str] = Field(..., max_length=20, description="Destination PUMA GEOID (Tier 2: Enriched)")
+    home_PUMA_GEOID: Optional[str] = Field(..., max_length=20, description="Home PUMA GEOID (Tier 2: Enriched)")
+    workplace_PUMA_GEOID: Optional[str] = Field(..., max_length=20, description="Workplace PUMA GEOID (Tier 3: Optional - workers only)")
+    school_PUMA_GEOID: Optional[str] = Field(..., max_length=20, description="School PUMA GEOID (Tier 3: Optional - students only)")
+    first_board_PUMA_GEOID: Optional[str] = Field(..., max_length=20, description="First boarding location PUMA GEOID (Tier 2: Enriched)")
+    last_alight_PUMA_GEOID: Optional[str] = Field(..., max_length=20, description="Last alighting location PUMA GEOID (Tier 2: Enriched)")
+    survey_board_PUMA_GEOID: Optional[str] = Field(..., max_length=20, description="Survey boarding location PUMA GEOID (Tier 2: Enriched)")
+    survey_alight_PUMA_GEOID: Optional[str] = Field(..., max_length=20, description="Survey alighting location PUMA GEOID (Tier 2: Enriched)")
+
+    # ========== Geographic - Census GEOIDs (County) (Tier 2: Enriched) ==========
+    orig_county_GEOID: Optional[str] = Field(..., max_length=10, description="Origin county GEOID (Tier 2: Enriched)")
+    dest_county_GEOID: Optional[str] = Field(..., max_length=10, description="Destination county GEOID (Tier 2: Enriched)")
+    home_county_GEOID: Optional[str] = Field(..., max_length=10, description="Home county GEOID (Tier 2: Enriched)")
+    workplace_county_GEOID: Optional[str] = Field(..., max_length=10, description="Workplace county GEOID (Tier 3: Optional - workers only)")
+    school_county_GEOID: Optional[str] = Field(..., max_length=10, description="School county GEOID (Tier 3: Optional - students only)")
+    first_board_county_GEOID: Optional[str] = Field(..., max_length=10, description="First boarding location county GEOID (Tier 2: Enriched)")
+    last_alight_county_GEOID: Optional[str] = Field(..., max_length=10, description="Last alighting location county GEOID (Tier 2: Enriched)")
+    survey_board_county_GEOID: Optional[str] = Field(..., max_length=10, description="Survey boarding location county GEOID (Tier 2: Enriched)")
+    survey_alight_county_GEOID: Optional[str] = Field(..., max_length=10, description="Survey alighting location county GEOID (Tier 2: Enriched)")
+
+    # ========== Geographic - Census GEOIDs (Tract) (Tier 2: Enriched) ==========
+    orig_tract_GEOID: Optional[str] = Field(..., max_length=15, description="Origin census tract GEOID (Tier 2: Enriched)")
+    dest_tract_GEOID: Optional[str] = Field(..., max_length=15, description="Destination census tract GEOID (Tier 2: Enriched)")
+    home_tract_GEOID: Optional[str] = Field(..., max_length=15, description="Home census tract GEOID (Tier 2: Enriched)")
+    workplace_tract_GEOID: Optional[str] = Field(..., max_length=15, description="Workplace census tract GEOID (Tier 3: Optional - workers only)")
+    school_tract_GEOID: Optional[str] = Field(..., max_length=15, description="School census tract GEOID (Tier 3: Optional - students only)")
+    first_board_tract_GEOID: Optional[str] = Field(..., max_length=15, description="First boarding location census tract GEOID (Tier 2: Enriched)")
+    last_alight_tract_GEOID: Optional[str] = Field(..., max_length=15, description="Last alighting location census tract GEOID (Tier 2: Enriched)")
+    survey_board_tract_GEOID: Optional[str] = Field(..., max_length=15, description="Survey boarding location census tract GEOID (Tier 2: Enriched)")
+    survey_alight_tract_GEOID: Optional[str] = Field(..., max_length=15, description="Survey alighting location census tract GEOID (Tier 2: Enriched)")
+
+    # ========== Geographic - Travel Model Zones (TM1 TAZ) (Tier 2: Enriched) ==========
+    orig_tm1_taz: Optional[int] = Field(..., description="Origin TM1 TAZ (Tier 2: Enriched)")
+    dest_tm1_taz: Optional[int] = Field(..., description="Destination TM1 TAZ (Tier 2: Enriched)")
+    home_tm1_taz: Optional[int] = Field(..., description="Home TM1 TAZ (Tier 2: Enriched)")
+    workplace_tm1_taz: Optional[int] = Field(..., description="Workplace TM1 TAZ (Tier 3: Optional - workers only)")
+    school_tm1_taz: Optional[int] = Field(..., description="School TM1 TAZ (Tier 3: Optional - students only)")
+    first_board_tm1_taz: Optional[str] = Field(..., max_length=20, description="First boarding location TM1 TAZ (Tier 2: Enriched)")
+    last_alight_tm1_taz: Optional[str] = Field(..., max_length=20, description="Last alighting location TM1 TAZ (Tier 2: Enriched)")
+    survey_board_tm1_taz: Optional[str] = Field(..., max_length=20, description="Survey boarding location TM1 TAZ (Tier 2: Enriched)")
+    survey_alight_tm1_taz: Optional[str] = Field(..., max_length=20, description="Survey alighting location TM1 TAZ (Tier 2: Enriched)")
+
+    # ========== Geographic - Travel Model Zones (TM2 TAZ) (Tier 2: Enriched) ==========
+    orig_tm2_taz: Optional[str] = Field(..., max_length=20, description="Origin TM2 TAZ (Tier 2: Enriched)")
+    dest_tm2_taz: Optional[str] = Field(..., max_length=20, description="Destination TM2 TAZ (Tier 2: Enriched)")
+    home_tm2_taz: Optional[str] = Field(..., max_length=20, description="Home TM2 TAZ (Tier 2: Enriched)")
+    workplace_tm2_taz: Optional[str] = Field(..., max_length=20, description="Workplace TM2 TAZ (Tier 3: Optional - workers only)")
+    school_tm2_taz: Optional[str] = Field(..., max_length=20, description="School TM2 TAZ (Tier 3: Optional - students only)")
+    first_board_tm2_taz: Optional[str] = Field(..., max_length=20, description="First boarding location TM2 TAZ (Tier 2: Enriched)")
+    last_alight_tm2_taz: Optional[str] = Field(..., max_length=20, description="Last alighting location TM2 TAZ (Tier 2: Enriched)")
+    survey_board_tm2_taz: Optional[str] = Field(..., max_length=20, description="Survey boarding location TM2 TAZ (Tier 2: Enriched)")
+    survey_alight_tm2_taz: Optional[str] = Field(..., max_length=20, description="Survey alighting location TM2 TAZ (Tier 2: Enriched)")
+
+    # ========== Geographic - Travel Model Zones (TM2 MAZ) (Tier 2: Enriched) ==========
+    orig_tm2_maz: Optional[str] = Field(..., max_length=20, description="Origin TM2 MAZ (Tier 2: Enriched)")
+    dest_tm2_maz: Optional[str] = Field(..., max_length=20, description="Destination TM2 MAZ (Tier 2: Enriched)")
+    home_tm2_maz: Optional[str] = Field(..., max_length=20, description="Home TM2 MAZ (Tier 2: Enriched)")
+    workplace_tm2_maz: Optional[str] = Field(..., max_length=20, description="Workplace TM2 MAZ (Tier 3: Optional - workers only)")
+    school_tm2_maz: Optional[str] = Field(..., max_length=20, description="School TM2 MAZ (Tier 3: Optional - students only)")
+    first_board_tm2_maz: Optional[str] = Field(..., max_length=20, description="First boarding location TM2 MAZ (Tier 2: Enriched)")
+    last_alight_tm2_maz: Optional[str] = Field(..., max_length=20, description="Last alighting location TM2 MAZ (Tier 2: Enriched)")
+    survey_board_tm2_maz: Optional[str] = Field(..., max_length=20, description="Survey boarding location TM2 MAZ (Tier 2: Enriched)")
+    survey_alight_tm2_maz: Optional[str] = Field(..., max_length=20, description="Survey alighting location TM2 MAZ (Tier 2: Enriched)")
+
+    # ========== Geographic - Resolution Level (Tier 2: Enriched) ==========
+    orig_geo_level: Optional[str] = Field(..., max_length=20, description="Geographic resolution level for origin (Tier 2: Enriched)")
+    dest_geo_level: Optional[str] = Field(..., max_length=20, description="Geographic resolution level for destination (Tier 2: Enriched)")
+    home_geo_level: Optional[str] = Field(..., max_length=20, description="Geographic resolution level for home (Tier 2: Enriched)")
+
+    # ========== Distance Measures (Tier 2: Enriched) ==========
+    distance_orig_dest: Optional[float] = Field(..., description="Distance from origin to destination (miles) (Tier 2: Enriched)")
+    distance_board_alight: Optional[float] = Field(..., description="Distance from first board to last alight (miles) (Tier 2: Enriched)")
+    distance_orig_first_board: Optional[float] = Field(..., description="Distance from origin to first board (miles) (Tier 2: Enriched)")
+    distance_orig_survey_board: Optional[float] = Field(..., description="Distance from origin to survey board (miles) (Tier 2: Enriched)")
+    distance_survey_alight_dest: Optional[float] = Field(..., description="Distance from survey alight to destination (miles) (Tier 2: Enriched)")
+    distance_last_alight_dest: Optional[float] = Field(..., description="Distance from last alight to destination (miles) (Tier 2: Enriched)")
 
     # ========== Fare Information ==========
-    fare_medium: Optional[FareMedium] = Field(None, description="Payment method for fare")
-    fare_category: Optional[FareCategory] = Field(
-        None, description="Fare category (adult/youth/senior/disabled)"
-    )
-    clipper_detail: Optional[ClipperDetail] = Field(
-        None, description="Specific Clipper payment type"
+    fare_medium: FareMedium = Field(..., description="Payment method for fare")
+    fare_category: FareCategory = Field(
+        ..., description="Fare category (adult/youth/senior/disabled)"
     )
 
-    # ========== Time Information ==========
+    # ========== Time Information (Tier 3: Optional) ==========
     depart_hour: Optional[int] = Field(
-        None, ge=0, le=23, description="Hour leaving home prior to transit trip"
+        ..., ge=0, le=23, description="Hour leaving home prior to transit trip (Tier 3: Optional)"
     )
     return_hour: Optional[int] = Field(
-        None, ge=0, le=23, description="Hour next expected home after transit trip"
+        ..., ge=0, le=23, description="Hour next expected home after transit trip (Tier 3: Optional)"
     )
     survey_time: Optional[str] = Field(
-        None, max_length=20, description="Time survey conducted (may be start or completion)"
+        ..., max_length=20, description="Tier 3: Time survey conducted (may be missing)"
     )
-    weekpart: Optional[Weekpart] = Field(None, description="Weekday or weekend")
-    day_of_the_week: Optional[str] = Field(None, max_length=20, description="Day of week")
+    weekpart: Weekpart = Field(..., description="Weekday or weekend")
+    day_of_the_week: DayOfWeek = Field(..., description="Day of week")
     day_part: Optional[str] = Field(
-        None,
+        ...,
         max_length=20,
-        description="Time period (Early AM/AM Peak/Midday/PM Peak/Evening/Night)",
+        description="Tier 3: Part of day (AM peak, midday, PM peak, evening, can be missing)"
     )
-    field_start: Optional[date] = Field(None, description="First day of data collection")
-    field_end: Optional[date] = Field(None, description="Last day of data collection")
-    date_string: Optional[str] = Field(
-        None, max_length=50, description="Interview date string (for parsing)"
+    date_string: str = Field(
+        ..., max_length=50, description="Interview date string (for parsing)"
     )
-    time_string: Optional[str] = Field(
-        None, max_length=50, description="Interview time string (for parsing)"
+    time_string: str = Field(
+        ..., max_length=50, description="Interview time string (for parsing)"
     )
 
     # ========== Person Demographics ==========
     approximate_age: Optional[int] = Field(
-        None, ge=0, le=120, description="Approximate age (derived from year_born)"
+        ..., ge=0, le=120, description="Tier 3: Approximate age (derived, can be missing)"
     )
     year_born_four_digit: Optional[int] = Field(
         None, ge=1900, le=2025, description="Four-digit birth year"
     )
-    gender: Optional[Gender] = Field(None, description="Gender identity")
-    hispanic: Optional[Hispanic] = Field(None, description="Hispanic/Latino ethnicity")
-    race: Optional[str] = Field(None, max_length=100, description="Race (text or code)")
+    gender: Gender = Field(..., description="Gender identity")
+    hispanic: Hispanic = Field(..., description="Hispanic/Latino ethnicity")
+    race: Race = Field(..., description="Race")
     race_dmy_ind: Optional[int] = Field(
         None, ge=0, le=1, description="American Indian/Alaskan Native (dummy)"
     )
@@ -299,48 +436,53 @@ class SurveyResponse(BaseModel):
         None, ge=0, le=1, description="Native Hawaiian/Pacific Islander (dummy)"
     )
     race_dmy_wht: Optional[int] = Field(None, ge=0, le=1, description="White (dummy)")
-    race_other_string: Optional[str] = Field(None, max_length=100, description="Other race (text)")
-    work_status: Optional[WorkStatus] = Field(None, description="Employment status")
-    student_status: Optional[StudentStatus] = Field(None, description="Student enrollment status")
-    eng_proficient: Optional[EnglishProficiency] = Field(
-        None, description="English language proficiency"
-    )
+    race_other_string: Optional[str] = Field(..., max_length=100, description="Other race (text) (Tier 3: Optional)")
+    work_status: WorkStatus = Field(..., description="Employment status")
+    student_status: StudentStatus = Field(..., description="Student enrollment status")
+    eng_proficient: EnglishProficiency = Field(..., description="English language proficiency")
 
-    # ========== Household Demographics ==========
-    persons: Optional[HouseholdSize] = Field(None, description="Number of persons in household")
-    workers: Optional[WorkerCount] = Field(None, description="Number of workers in household")
-    vehicles: Optional[VehicleCount] = Field(None, description="Number of vehicles in household")
-    household_income: Optional[HouseholdIncome] = Field(
-        None, description="Annual household income bracket"
-    )
+    # ========== Household Demographics (Tier 3: Optional) ==========
+    persons: Optional[int] = Field(..., description="Number of persons in household (Tier 3: Optional)")
+    workers: Optional[int] = Field(..., description="Number of workers in household (Tier 3: Optional)")
+    vehicles: Optional[VehicleCount] = Field(..., description="Number of vehicles in household (Tier 3: Optional)")
+    household_income: Optional[HouseholdIncome] = Field(..., description="Annual household income bracket (Tier 3: Optional)")
+
+    # ========== Income Continuous Values (Tier 2: Enriched - derived from bracket) ==========
+    income_lower_bound: Optional[float] = Field(..., description="Lower bound of income bracket (dollars) (Tier 2: Enriched)")
+    income_upper_bound: Optional[float] = Field(..., description="Upper bound of income bracket (dollars) (Tier 2: Enriched)")
+    hh_income_nominal_continuous: Optional[float] = Field(..., description="Household income continuous value nominal dollars (Tier 2: Enriched)")
+    hh_income_2023dollars_continuous: Optional[float] = Field(..., description="Household income continuous value in 2023 dollars (Tier 2: Enriched)")
+
     auto_suff: Optional[str] = Field(
-        None, max_length=50, description="Auto sufficiency (sufficient/negotiating)"
+        ..., max_length=50, description="Auto sufficiency (sufficient/negotiating) (Tier 3: Optional)"
     )
-    language_at_home: Optional[str] = Field(
-        None, max_length=100, description="Language spoken at home"
-    )
-    language_at_home_binary: Optional[LanguageAtHomeBinary] = Field(
-        None, description="English only vs other language"
-    )
+    language_at_home: Optional[str] = Field(..., max_length=100, description="Language spoken at home (Tier 3: Optional)")
     language_at_home_detail: Optional[str] = Field(
-        None, max_length=100, description="Specific language spoken at home"
+        None, max_length=100, description="Specific language spoken at home (Tier 3: Optional)"
     )
 
     # ========== Survey Administration ==========
-    survey_type: Optional[SurveyType] = Field(
-        None, description="Survey administration method (CATI/paper/tablet)"
-    )
-    interview_language: Optional[InterviewLanguage] = Field(
-        None, description="Language survey conducted in"
-    )
-    field_language: Optional[InterviewLanguage] = Field(
-        None, description="Survey interview language (duplicate of interview_language)"
+    survey_type: SurveyType = Field(..., description="Survey administration method (CATI/paper/tablet)")
+    interview_language: InterviewLanguage = Field(..., description="Language survey conducted in")
+    field_language: FieldLanguage = Field(
+        ..., description="Survey field language"
     )
 
-    # ========== Weights (Base/Vendor-Provided) ==========
-    weight: Optional[float] = Field(None, description="Boarding weight (unlinked boarding)")
-    trip_weight: Optional[float] = Field(
-        None, description="Linked trip weight (accounts for transfers)"
+    # ========== Derived Analysis Fields ==========
+    autos_vs_workers: str = Field(..., max_length=50, description="Auto sufficiency category (autos vs workers)")
+    vehicle_numeric_cat: Optional[str] = Field(
+        ..., max_length=20, description="Tier 3: Vehicle count numeric category (can be missing)"
+    )
+    worker_numeric_cat: Optional[str] = Field(
+        ..., max_length=20, description="Tier 3: Worker count numeric category (can be missing)"
+    )
+    tour_purp_case: Optional[str] = Field(
+        ..., max_length=50, description="Tier 3: Tour purpose case for analysis (can be missing)"
+    )
+    time_period: str = Field(..., max_length=20, description="Time period classification")
+    transit_type: str = Field(..., max_length=50, description="Transit type classification")
+    transfers_surveyed: Optional[str] = Field(
+        ..., max_length=20, description="Tier 3: Number of transfers surveyed (can be missing)"
     )
 
     # ========== System Fields ==========
@@ -377,8 +519,8 @@ class SurveyWeight(BaseModel):
     )
 
     # ========== Weight Values ==========
-    board_weight: Optional[float] = Field(
-        None, description="Boarding weight for this scheme (unlinked)"
+    weight: float = Field(
+        ..., description="Boarding weight for this scheme (unlinked)"
     )
     trip_weight: Optional[float] = Field(
         None, description="Trip weight for this scheme (linked, accounts for transfers)"

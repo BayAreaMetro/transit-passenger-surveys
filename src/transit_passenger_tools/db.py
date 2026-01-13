@@ -158,12 +158,12 @@ def insert_dataframe(
                 msg = f"Validation failed on row: {e}"
                 raise ValidationError(msg) from e
 
-    conn = get_connection(db_path)
-    try:
-        df.write_database(table_name, connection=conn, if_table_exists=if_exists)
-        return len(df)
-    finally:
-        conn.close()
+    # Polars write_database requires URI string, not sqlite3.Connection
+    path = db_path or DEFAULT_DB_PATH
+    connection_uri = f"sqlite:///{path}"
+    
+    df.write_database(table_name, connection=connection_uri, if_table_exists=if_exists)
+    return len(df)
 
 
 def get_table_info(table_name: str, db_path: Optional[Path] = None) -> pl.DataFrame:
