@@ -12,7 +12,7 @@ logic outside of the main library, but this is a one-time backfill operation so 
 acceptable. Thanks Claude.
 
 """
-# ruff: noqa: C901, S608, PLR0912, PLR0915, PLR0911
+# ruff: noqa: C901, PLR0912, PLR0915, PLR0911
 
 
 import logging
@@ -20,12 +20,11 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 
-import duckdb
 import polars as pl
 from pydantic import ValidationError
 
 from transit_passenger_tools import db
-from transit_passenger_tools.data_models import SurveyMetadata, SurveyResponse
+from transit_passenger_tools.data_models import SurveyMetadata, SurveyResponse, SurveyWeight
 
 # Configure logging
 logging.basicConfig(
@@ -1073,84 +1072,79 @@ def extract_and_ingest_metadata(
     db.ingest_survey_metadata(metadata_df, validate=True)
     return len(metadata_df)
 
+def extract_and_ingest_weights(
+    df: pl.DataFrame, collect_errors: bool = False
+) -> int:
+    """Extract survey weights and write to data lake.
 
-def create_duckdb_views() -> None:
-    """Create or recreate DuckDB views after data ingestion."""
-    logger.info("\nCreating DuckDB views over Parquet files...")
+    Args:
+        df: Survey data DataFrame with weight and trip_weight columns
+        collect_errors: If True, collect and report validation errors instead of failing
 
-    conn = duckdb.connect(str(db.DUCKDB_PATH), read_only=False)
-    try:
-        # Create view for survey_responses (latest version only)
-        survey_responses_pattern = f"{db.DATA_LAKE_ROOT}/survey_responses/**/data-*.parquet"
-        conn.execute(f"""
-            CREATE OR REPLACE VIEW survey_responses AS
-            WITH versioned_data AS (
-                SELECT *,
-                       CAST(regexp_extract(filename, 'data-(\\d+)-', 1) AS INTEGER) as _version
-                FROM read_parquet(
-                    '{survey_responses_pattern}',
-                    hive_partitioning = true,
-                    union_by_name = true,
-                    filename = true
-                )
-            ),
-            latest_versions AS (
-                SELECT operator, year, MAX(_version) as max_version
-                FROM versioned_data
-                GROUP BY operator, year
-            )
-            SELECT versioned_data.* EXCLUDE (filename, _version)
-            FROM versioned_data
-            JOIN latest_versions
-                ON versioned_data.operator = latest_versions.operator
-                AND versioned_data.year = latest_versions.year
-                AND versioned_data._version = latest_versions.max_version
-        """)
-        logger.info("  Created view: survey_responses")
+    Returns:
+        Number of weight records written.
+    """
+    logger.info("\nExtracting survey weights...")
 
-        # Create view for all versions (power users)
-        conn.execute(f"""
-            CREATE OR REPLACE VIEW survey_responses_all_versions AS
-            SELECT *,
-                   CAST(regexp_extract(filename, 'data-(\\d+)-', 1) AS INTEGER) as data_version,
-                   regexp_extract(filename, 'data-\\d+-(\\w+)\\.parquet', 1) as data_commit
-            FROM read_parquet(
-                '{survey_responses_pattern}',
-                hive_partitioning = true,
-                union_by_name = true,
-                filename = true
-            )
-        """)
-        logger.info("  Created view: survey_responses_all_versions")
+    # Select weight columns and add constants
+    weights_df = df.select([
+        "unique_id",
+        pl.col("weight").alias("boarding_weight"),
+        "trip_weight",
+    ]).with_columns([
+        pl.lit("baseline").alias("weight_scheme"),
+        pl.lit("Baseline weights").alias("description"),
+    ])
 
-        # Create view for survey_metadata
-        metadata_file = db.DATA_LAKE_ROOT / "survey_metadata" / "metadata.parquet"
-        conn.execute(f"""
-            CREATE OR REPLACE VIEW survey_metadata AS
-            SELECT * FROM read_parquet(
-                '{metadata_file}',
-                union_by_name = true
-            )
-        """)
-        logger.info("  Created view: survey_metadata")
+    logger.info("Found %d weight records", len(weights_df))
 
-        # Verify views work
-        count = conn.execute("SELECT COUNT(*) FROM survey_responses").fetchone()[0]  # type: ignore[index]
-        logger.info("  Verified: survey_responses has %s rows", f"{count:,}")
+    if collect_errors:
+        # Validate and collect errors
+        errors = []
+        valid_rows = []
 
-        all_versions_count = conn.execute(
-            "SELECT COUNT(*) FROM survey_responses_all_versions"
-        ).fetchone()[0]  # type: ignore[index]
-        logger.info(
-            "  Verified: survey_responses_all_versions has %s rows",
-            f"{all_versions_count:,}"
-        )
+        for i, row_dict in enumerate(weights_df.iter_rows(named=True)):
+            try:
+                SurveyWeight(**row_dict)
+                valid_rows.append(i)
+            except ValidationError as e:
+                unique_id = row_dict["unique_id"]
+                errors.append({
+                    "unique_id": unique_id,
+                    "error": str(e)
+                })
 
-        meta_count = conn.execute("SELECT COUNT(*) FROM survey_metadata").fetchone()[0]  # type: ignore[index]
-        logger.info("  Verified: survey_metadata has %s rows", f"{meta_count:,}")
+        if errors:
+            logger.warning("\n%s", "="*80)
+            logger.warning("WEIGHT VALIDATION ERRORS")
+            logger.warning("%s", "="*80)
+            logger.warning("\nFound %s weight record(s) with validation errors:", len(errors))
 
-    finally:
-        conn.close()
+            max_errors_to_show = 10
+            for err in errors[:max_errors_to_show]:
+                logger.warning("\n%s:", err["unique_id"])
+                error_lines = err["error"].split("\n")
+                for line in error_lines:
+                    if (
+                        "boarding_weight" in line
+                        or "trip_weight" in line
+                        or "Input should be" in line
+                    ):
+                        logger.warning("  %s", line)
+
+            if len(errors) > max_errors_to_show:
+                logger.warning("\n... and %s more errors", len(errors) - max_errors_to_show)
+
+            logger.warning("\n%s", "="*80)
+            logger.warning("Validated %s weight records successfully", len(valid_rows))
+            logger.warning("Skipped %s weight records due to validation errors", len(errors))
+            logger.warning("%s", "="*80)
+            return len(valid_rows)
+        logger.info("All %s weight records validated successfully", len(weights_df))
+        return len(weights_df)
+    # Write weights to data lake (will fail on first error)
+    db.ingest_survey_weights(weights_df, validate=True)
+    return len(weights_df)
 
 
 def main() -> None:
@@ -1205,11 +1199,17 @@ def main() -> None:
         logger.info("%s", "="*80)
         num_metadata = extract_and_ingest_metadata(df, version_info, collect_errors=False)
 
+        # Extract and ingest weights
+        logger.info("\n%s", "="*80)
+        logger.info("INGESTING WEIGHTS")
+        logger.info("%s", "="*80)
+        num_weights = extract_and_ingest_weights(df, collect_errors=False)
+
         # Create DuckDB views
         logger.info("\n%s", "="*80)
         logger.info("CREATING DUCKDB VIEWS")
         logger.info("="*80)
-        create_duckdb_views()
+        db.create_views()
 
         # Summary
         logger.info("\n%s", "="*80)
@@ -1217,6 +1217,7 @@ def main() -> None:
         logger.info("="*80)
         logger.info("Survey data: %s batches, %s records", num_batches, f"{total_records:,}")
         logger.info("Metadata: %s survey combinations", num_metadata)
+        logger.info("Weights: %s records", f"{num_weights:,}")
         logger.info("Data lake: %s", db.DATA_LAKE_ROOT)
         logger.info("DuckDB: %s", db.DUCKDB_PATH)
 

@@ -400,9 +400,8 @@ class SurveyWeight(BaseModel):
     weight_scheme: str = Field(..., max_length=50, description="Name of weighting scheme (e.g., '2015_ridership', 'popsim_adjusted')")
 
     # ========== Weight Values ==========
-    weight: float = Field(..., description="Boarding weight for this scheme (unlinked)")
+    boarding_weight: float | None = Field(None, description="Boarding weight for this scheme (unlinked)")
     trip_weight: float | None = Field(None, description="Trip weight for this scheme (linked, accounts for transfers)")
-    expansion_factor: float | None = Field(None, description="Expansion factor applied to base weight")
 
     # ========== Metadata ==========
     description: str | None = Field(None, max_length=500, description="Description of this weighting methodology")
