@@ -4,7 +4,10 @@ This module defines the canonical schema for standardized transit survey data.
 Enum fields use string values matching CSV data exactly (case-sensitive).
 """
 
-from datetime import date
+# ruff: noqa: E501, N815
+
+
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -33,7 +36,7 @@ from transit_passenger_tools.codebook import (
 
 class SurveyMetadata(BaseModel):
     """Survey-wide metadata and collection information.
-    
+
     This table stores metadata that applies to an entire survey effort,
     separate from individual response records. One row per survey.
     """
@@ -59,6 +62,13 @@ class SurveyMetadata(BaseModel):
     # ========== Inflation Adjustment ==========
     inflation_year: str | None = Field(None, max_length=10, description="Year for inflation adjustment (nullable)")
 
+    # ========== Data Versioning and Lineage ==========
+    data_version: int = Field(..., ge=1, description="Version number of the data files for this survey")
+    data_commit: str = Field(..., max_length=40, description="Git commit SHA that generated this data version")
+    data_hash: str = Field(..., max_length=64, description="SHA256 hash of data content for deduplication")
+    ingestion_timestamp: datetime = Field(..., description="When this data version was ingested")
+    processing_notes: str | None = Field(None, max_length=500, description="Notes about data processing/changes")
+
 
 class SurveyResponse(BaseModel):
     """Canonical schema for transit passenger survey responses.
@@ -66,7 +76,7 @@ class SurveyResponse(BaseModel):
     Each row represents a single on-board survey intercept of a passenger
     boarding a transit vehicle. The schema includes trip details, demographics,
     geographic information, and survey metadata.
-    
+
     Fields use Optional[Type] for nullable data. Required fields use Type.
     """
 
@@ -77,11 +87,7 @@ class SurveyResponse(BaseModel):
     )
 
     # ========== Primary Key ==========
-    unique_id: str = Field(
-        ...,
-        max_length=100,
-        description="Unique record identifier (concatenation of ID, operator, year)",
-    )
+    unique_id: str = Field(..., max_length=100, description="Unique record identifier (concatenation of ID, operator, year)")
 
     # ========== Survey Identifiers ==========
     id: str = Field(..., max_length=50, description="Record ID for operator survey")
@@ -92,44 +98,24 @@ class SurveyResponse(BaseModel):
     # ========== Trip Information ==========
     route: str | None = Field(..., max_length=200, description="Transit route")
     direction: Direction = Field(..., description="Travel direction of surveyed vehicle")
-    boardings: int | None = Field(
-        ..., ge=1, le=10, description="Number of boardings in transit trip "
-    )
+    boardings: int | None = Field(..., ge=1, le=10, description="Number of boardings in transit trip ")
 
     # ========== Access/Egress Modes ==========
     access_mode: AccessEgressMode = Field(..., description="Mode to access first transit encounter")
     egress_mode: AccessEgressMode = Field(..., description="Mode to egress from last transit encounter")
-    immediate_access_mode: AccessEgressMode | None = Field(
-        ..., description="Access mode to surveyed vehicle"
-    )
-    immediate_egress_mode: AccessEgressMode | None = Field(
-        ..., description="Egress mode from surveyed vehicle"
-    )
+    immediate_access_mode: AccessEgressMode | None = Field(..., description="Access mode to surveyed vehicle")
+    immediate_egress_mode: AccessEgressMode | None = Field(..., description="Egress mode from surveyed vehicle")
 
     # ========== Transfer Information  ==========
-    transfer_from: TransferOperator | None = Field(
-        ..., description="Operator immediately transferred from "
-    )
+    transfer_from: TransferOperator | None = Field(..., description="Operator immediately transferred from ")
     transfer_to: TransferOperator | None = Field(..., description="Operator immediately transferring to ")
 
-    first_route_before_survey_board: str | None = Field(
-        ..., max_length=50, description="First route before survey boarding "
-    )
-    second_route_before_survey_board: str | None = Field(
-        ..., max_length=50, description="Second route before survey boarding "
-    )
-    third_route_before_survey_board: str | None = Field(
-        ..., max_length=50, description="Third route before survey boarding "
-    )
-    first_route_after_survey_alight: str | None = Field(
-        ..., max_length=50, description="First route after survey alighting "
-    )
-    second_route_after_survey_alight: str | None = Field(
-        ..., max_length=50, description="Second route after survey alighting "
-    )
-    third_route_after_survey_alight: str | None = Field(
-        ..., max_length=50, description="Third route after survey alighting "
-    )
+    first_route_before_survey_board: str | None = Field(..., max_length=50, description="First route before survey boarding ")
+    second_route_before_survey_board: str | None = Field(..., max_length=50, description="Second route before survey boarding ")
+    third_route_before_survey_board: str | None = Field(..., max_length=50, description="Third route before survey boarding ")
+    first_route_after_survey_alight: str | None = Field(..., max_length=50, description="First route after survey alighting ")
+    second_route_after_survey_alight: str | None = Field(..., max_length=50, description="Second route after survey alighting ")
+    third_route_after_survey_alight: str | None = Field(..., max_length=50, description="Third route after survey alighting ")
 
     # ========== Transfer Operators and Technology  ==========
     first_before_operator: str | None = Field(..., max_length=100, description="First operator before survey board ")
@@ -153,39 +139,19 @@ class SurveyResponse(BaseModel):
 
     # ========== Technology/Path ==========
     survey_tech: TechnologyType = Field(..., description="Survey vehicle technology type")
-    first_board_tech: TechnologyType = Field(
-        ..., description="Vehicle technology type of first boarding"
-    )
-    last_alight_tech: TechnologyType = Field(
-        ..., description="Vehicle technology type of last alighting"
-    )
-    path_access: str | None = Field(
-        ..., max_length=20, description="Aggregated access mode"
-    )
-    path_egress: str | None = Field(
-        ..., max_length=20, description="Aggregated egress mode"
-    )
-    path_line_haul: str | None = Field(
-        ..., max_length=20, description="Path line haul mode"
-    )
+    first_board_tech: TechnologyType = Field(..., description="Vehicle technology type of first boarding")
+    last_alight_tech: TechnologyType = Field(..., description="Vehicle technology type of last alighting")
+    path_access: str | None = Field(..., max_length=20, description="Aggregated access mode")
+    path_egress: str | None = Field(..., max_length=20, description="Aggregated egress mode")
+    path_line_haul: str | None = Field(..., max_length=20, description="Path line haul mode")
     path_label: str | None = Field(..., max_length=50, description="Full path")
 
     # ========== Mode Presence Flags  ==========
-    commuter_rail_present: int | None = Field(
-        ..., ge=0, le=1, description="Commuter rail present in trip"
-    )
-    heavy_rail_present: int | None = Field(
-        ..., ge=0, le=1, description="Heavy rail present in trip"
-    )
-    express_bus_present: int | None = Field(
-        ..., ge=0, le=1, description="Express bus present in trip"
-    )
-    ferry_present: int | None = Field(
-        ..., ge=0, le=1, description="Ferry present in trip"
-    )
-    light_rail_present: int | None = Field(
-        ..., ge=0, le=1, description="Light rail present in trip"
-    )
+    commuter_rail_present: int | None = Field(..., ge=0, le=1, description="Commuter rail present in trip")
+    heavy_rail_present: int | None = Field(..., ge=0, le=1, description="Heavy rail present in trip")
+    express_bus_present: int | None = Field(..., ge=0, le=1, description="Express bus present in trip")
+    ferry_present: int | None = Field(..., ge=0, le=1, description="Ferry present in trip")
+    light_rail_present: int | None = Field(..., ge=0, le=1, description="Light rail present in trip")
 
     # ========== Trip Purpose ==========
     orig_purp: TripPurpose = Field(..., description="Origin trip purpose")
@@ -194,18 +160,10 @@ class SurveyResponse(BaseModel):
     trip_purp: TripPurpose | None = Field(..., description="Trip purpose")
 
     # ========== Ancillary Variables (Computed Tour Logic) ==========
-    at_work_prior_to_orig_purp: str | None = Field(
-        None, max_length=50, description="Was at work before surveyed trip"
-    )
-    at_work_after_dest_purp: str | None = Field(
-        None, max_length=50, description="Will be at work after surveyed trip"
-    )
-    at_school_prior_to_orig_purp: str | None = Field(
-        None, max_length=50, description="Was at school before surveyed trip"
-    )
-    at_school_after_dest_purp: str | None = Field(
-        None, max_length=50, description="Will be at school after surveyed trip"
-    )
+    at_work_prior_to_orig_purp: str | None = Field(None, max_length=50, description="Was at work before surveyed trip")
+    at_work_after_dest_purp: str | None = Field(None, max_length=50, description="Will be at work after surveyed trip")
+    at_school_prior_to_orig_purp: str | None = Field(None, max_length=50, description="Was at school before surveyed trip")
+    at_school_after_dest_purp: str | None = Field(None, max_length=50, description="Will be at school after surveyed trip")
 
     # ========== Geographic - Lat/Lon Coordinates  ==========
     orig_lat: float | None = Field(..., ge=-90, le=90, description="Trip origin latitude ")
@@ -258,12 +216,8 @@ class SurveyResponse(BaseModel):
     )
 
     # ========== Geographic - Rail Stations  ==========
-    onoff_enter_station: str | None = Field(
-        ..., max_length=100, description="Rail boarding station name "
-    )
-    onoff_exit_station: str | None = Field(
-        ..., max_length=100, description="Rail alighting station name "
-    )
+    onoff_enter_station: str | None = Field(..., max_length=100, description="Rail boarding station name ")
+    onoff_exit_station: str | None = Field(..., max_length=100, description="Rail alighting station name ")
 
     # ========== Geographic - Travel Model Zones (MAZ)  ==========
     orig_maz: int | None = Field(..., description="Origin MAZ (Travel Model geography) ")
@@ -280,9 +234,7 @@ class SurveyResponse(BaseModel):
     school_taz: int | None = Field(..., description="School TAZ ")
 
     # ========== Geographic - Travel Model Zones (TAP)  ==========
-    first_board_tap: int | None = Field(
-        ..., description="TAP of first boarding location (Travel Model geography) "
-    )
+    first_board_tap: int | None = Field(..., description="TAP of first boarding location (Travel Model geography) ")
     last_alight_tap: int | None = Field(..., description="TAP of last alighting location ")
 
     # ========== Geographic - Counties (Tier 2/3: Enriched/Conditional) ==========
@@ -376,41 +328,23 @@ class SurveyResponse(BaseModel):
     )
 
     # ========== Time Information  ==========
-    depart_hour: int | None = Field(
-        ..., ge=0, le=23, description="Hour leaving home prior to transit trip "
-    )
-    return_hour: int | None = Field(
-        ..., ge=0, le=23, description="Hour next expected home after transit trip "
-    )
-    survey_time: str | None = Field(
-        ..., max_length=20, description="Time survey conducted (may be missing)"
-    )
+    depart_hour: int | None = Field(..., ge=0, le=23, description="Hour leaving home prior to transit trip ")
+    return_hour: int | None = Field(..., ge=0, le=23, description="Hour next expected home after transit trip ")
+    survey_time: str | None = Field(..., max_length=20, description="Time survey conducted (may be missing)")
     weekpart: Weekpart = Field(..., description="Weekday or weekend")
     day_of_the_week: DayOfWeek = Field(..., description="Day of week")
-    day_part: str | None = Field(
-        ...,
-        max_length=20,
-        description="Part of day (AM peak, midday, PM peak, evening)"
-    )
+    day_part: str | None = Field(..., max_length=20, description="Part of day (AM peak, midday, PM peak, evening)")
 
     # ========== Person Demographics ==========
-    approximate_age: int | None = Field(
-        ..., ge=0, le=120, description="Approximate age"
-    )
-    year_born_four_digit: int | None = Field(
-        None, ge=1900, le=2025, description="Four-digit birth year"
-    )
+    approximate_age: int | None = Field(..., ge=0, le=120, description="Approximate age")
+    year_born_four_digit: int | None = Field(None, ge=1900, le=2025, description="Four-digit birth year")
     gender: Gender = Field(..., description="Gender identity")
     hispanic: Hispanic = Field(..., description="Hispanic/Latino ethnicity")
     race: Race = Field(..., description="Race")
-    race_dmy_ind: int | None = Field(
-        None, ge=0, le=1, description="American Indian/Alaskan Native (dummy)"
-    )
+    race_dmy_ind: int | None = Field(None, ge=0, le=1, description="American Indian/Alaskan Native (dummy)")
     race_dmy_asn: int | None = Field(None, ge=0, le=1, description="Asian (dummy)")
     race_dmy_blk: int | None = Field(None, ge=0, le=1, description="Black (dummy)")
-    race_dmy_hwi: int | None = Field(
-        None, ge=0, le=1, description="Native Hawaiian/Pacific Islander (dummy)"
-    )
+    race_dmy_hwi: int | None = Field(None, ge=0, le=1, description="Native Hawaiian/Pacific Islander (dummy)")
     race_dmy_wht: int | None = Field(None, ge=0, le=1, description="White (dummy)")
     race_other_string: str | None = Field(..., max_length=100, description="Other race (text) ")
     work_status: WorkStatus = Field(..., description="Employment status")
@@ -429,37 +363,23 @@ class SurveyResponse(BaseModel):
     hh_income_nominal_continuous: float | None = Field(..., description="Household income continuous value nominal dollars ")
     hh_income_2023dollars_continuous: float | None = Field(..., description="Household income continuous value in 2023 dollars ")
 
-    auto_suff: str | None = Field(
-        ..., max_length=50, description="Auto sufficiency (sufficient/negotiating) "
-    )
+    auto_suff: str | None = Field(..., max_length=50, description="Auto sufficiency (sufficient/negotiating) ")
     language_at_home: str | None = Field(..., max_length=100, description="Language spoken at home ")
-    language_at_home_detail: str | None = Field(
-        None, max_length=100, description="Specific language spoken at home "
-    )
+    language_at_home_detail: str | None = Field(None, max_length=100, description="Specific language spoken at home ")
 
     # ========== Survey Administration ==========
     survey_type: SurveyType | None = Field(..., description="Survey administration method (CATI/paper/tablet)")
     interview_language: InterviewLanguage = Field(..., description="Language survey conducted in")
-    field_language: FieldLanguage = Field(
-        ..., description="Survey field language"
-    )
+    field_language: FieldLanguage = Field(..., description="Survey field language")
 
     # ========== Derived Analysis Fields ==========
     autos_vs_workers: str | None = Field(..., max_length=50, description="Auto sufficiency category (autos vs workers)")
-    vehicle_numeric_cat: str | None = Field(
-        ..., max_length=20, description="Vehicle count numeric category"
-    )
-    worker_numeric_cat: str | None = Field(
-        ..., max_length=20, description="Worker count numeric category"
-    )
-    tour_purp_case: str | None = Field(
-        ..., max_length=50, description="Tour purpose case for analysis"
-    )
+    vehicle_numeric_cat: str | None = Field(..., max_length=20, description="Vehicle count numeric category")
+    worker_numeric_cat: str | None = Field(..., max_length=20, description="Worker count numeric category")
+    tour_purp_case: str | None = Field(..., max_length=50, description="Tour purpose case for analysis")
     time_period: str | None = Field(..., max_length=20, description="Time period classification")
     transit_type: str | None = Field(..., max_length=50, description="Transit type classification")
-    transfers_surveyed: str | None = Field(
-        ..., max_length=20, description="Number of transfers surveyed"
-    )
+    transfers_surveyed: str | None = Field(..., max_length=20, description="Number of transfers surveyed")
 
 
 class SurveyWeight(BaseModel):
@@ -474,31 +394,15 @@ class SurveyWeight(BaseModel):
     model_config = ConfigDict(validate_assignment=True)
 
     # ========== Link to Survey Response ==========
-    unique_id: str = Field(
-        ...,
-        max_length=100,
-        description="Foreign key to SurveyResponse.unique_id",
-    )
+    unique_id: str = Field(..., max_length=100, description="Foreign key to SurveyResponse.unique_id")
 
     # ========== Weight Scheme Identifier ==========
-    weight_scheme: str = Field(
-        ...,
-        max_length=50,
-        description="Name of weighting scheme (e.g., '2015_ridership', 'popsim_adjusted')",
-    )
+    weight_scheme: str = Field(..., max_length=50, description="Name of weighting scheme (e.g., '2015_ridership', 'popsim_adjusted')")
 
     # ========== Weight Values ==========
-    weight: float = Field(
-        ..., description="Boarding weight for this scheme (unlinked)"
-    )
-    trip_weight: float | None = Field(
-        None, description="Trip weight for this scheme (linked, accounts for transfers)"
-    )
-    expansion_factor: float | None = Field(
-        None, description="Expansion factor applied to base weight"
-    )
+    weight: float = Field(..., description="Boarding weight for this scheme (unlinked)")
+    trip_weight: float | None = Field(None, description="Trip weight for this scheme (linked, accounts for transfers)")
+    expansion_factor: float | None = Field(None, description="Expansion factor applied to base weight")
 
     # ========== Metadata ==========
-    description: str | None = Field(
-        None, max_length=500, description="Description of this weighting methodology"
-    )
+    description: str | None = Field(None, max_length=500, description="Description of this weighting methodology")

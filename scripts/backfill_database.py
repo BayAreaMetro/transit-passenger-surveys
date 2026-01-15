@@ -12,9 +12,12 @@ logic outside of the main library, but this is a one-time backfill operation so 
 acceptable. Thanks Claude.
 
 """
+# ruff: noqa: C901, S608, PLR0912, PLR0915, PLR0911
+
 
 import logging
 from collections import defaultdict
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -22,7 +25,7 @@ import polars as pl
 from pydantic import ValidationError
 
 from transit_passenger_tools import db
-from transit_passenger_tools.data_models import SurveyResponse
+from transit_passenger_tools.data_models import SurveyMetadata, SurveyResponse
 
 # Configure logging
 logging.basicConfig(
@@ -30,6 +33,16 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+# ============================================================================
+# CONSTANTS
+# ============================================================================
+
+# Date format lengths
+SHORT_DATE_LENGTH = 8  # MM-DD-YY format
+ACRONYM_MIN_LENGTH = 2  # Minimum length for acronym detection
+ACRONYM_MAX_LENGTH = 4  # Maximum length for acronym detection
+MAX_SAMPLE_LOCATIONS = 3  # Number of sample locations to show in error messages
 
 # ============================================================================
 # SHARED MAPPING DICTIONARIES
@@ -78,20 +91,101 @@ def find_latest_standardized_dir() -> Path:
     dirs = [d for d in STANDARDIZED_DATA_PATH.iterdir()
             if d.is_dir() and d.name.startswith("standardized_")]
     if not dirs:
-        raise FileNotFoundError(f"No standardized directories found in {STANDARDIZED_DATA_PATH}")
+        msg = f"No standardized directories found in {STANDARDIZED_DATA_PATH}"
+        raise FileNotFoundError(msg)
 
     latest = sorted(dirs, key=lambda x: x.name)[-1]
-    logger.info(f"Found latest standardized directory: {latest.name}")
+    logger.info("Found latest standardized directory: %s", latest.name)
     return latest
+
+
+def _fill_enum_fields_with_missing(df: pl.DataFrame) -> pl.DataFrame:
+    """Fill NULL enum fields with 'Missing' to match schema."""
+    enum_fields_with_missing = [
+        "direction", "access_mode", "egress_mode", "survey_tech", "first_board_tech",
+        "last_alight_tech", "orig_purp", "dest_purp", "tour_purp", "trip_purp", "fare_medium",
+        "fare_category", "weekpart", "day_of_the_week", "gender", "work_status",
+        "student_status", "interview_language", "field_language", "survey_type", "hispanic",
+        "race", "eng_proficient", "transfer_from", "transfer_to"
+    ]
+    return df.with_columns([
+        pl.col(field).fill_null("Missing")
+        for field in enum_fields_with_missing if field in df.columns
+    ])
+
+
+def _clean_numeric_fields(df: pl.DataFrame) -> pl.DataFrame:
+    """Convert 'missing' strings and field name literals to NULL for numeric fields."""
+    numeric_fields = ["approximate_age", "persons", "workers", "boardings"]
+    return df.with_columns([
+        pl.when(pl.col(field).cast(pl.Utf8).str.to_lowercase() == "missing").then(None)
+        .when(pl.col(field).cast(pl.Utf8).str.to_lowercase() == field.lower()).then(None)
+        .otherwise(pl.col(field))
+        .alias(field)
+        for field in numeric_fields if field in df.columns
+    ])
+
+
+def _convert_word_numbers(df: pl.DataFrame) -> pl.DataFrame:
+    """Convert word numbers to integers for numeric fields (persons, workers, vehicles)."""
+    return df.with_columns([
+        pl.col(field).replace_strict(WORD_TO_NUMBER, default=pl.col(field)).alias(field)
+        for field in ["persons", "workers", "vehicles"] if field in df.columns
+    ])
+
+
+def _convert_binary_fields(df: pl.DataFrame) -> pl.DataFrame:
+    """Convert TRUE/FALSE strings to 0/1 for binary flag fields."""
+    binary_fields = [
+        "commuter_rail_present", "heavy_rail_present", "express_bus_present",
+        "ferry_present", "light_rail_present"
+    ]
+    return df.with_columns([
+        pl.when(pl.col(field).str.to_uppercase() == "TRUE").then(1)
+        .when(pl.col(field).str.to_uppercase() == "FALSE").then(0)
+        .otherwise(pl.col(field).cast(pl.Int64, strict=False))
+        .alias(field)
+        for field in binary_fields if field in df.columns
+    ])
+
+
+def _add_optional_fields(df: pl.DataFrame) -> pl.DataFrame:
+    """Add missing Tier 3 (Optional) fields with NULL if they don't exist in CSV."""
+    optional_fields_tier3 = [
+        # Transfer routes
+        "immediate_access_mode", "immediate_egress_mode",
+        "first_route_before_survey_board", "second_route_before_survey_board",
+        "third_route_before_survey_board", "first_route_after_survey_alight",
+        "second_route_after_survey_alight", "third_route_after_survey_alight",
+        # Transfer operators
+        "first_before_operator", "first_before_operator_detail", "first_before_technology",
+        "second_before_operator", "second_before_operator_detail", "second_before_technology",
+        "third_before_operator", "third_before_operator_detail", "third_before_technology",
+        "first_after_operator", "first_after_operator_detail", "first_after_technology",
+        "second_after_operator", "second_after_operator_detail", "second_after_technology",
+        "third_after_operator", "third_after_operator_detail", "third_after_technology",
+        # Optional county/geography fields
+        "home_county", "workplace_county", "school_county",
+        # Optional MAZ/TAZ fields
+        "orig_maz", "dest_maz", "home_maz", "workplace_maz", "school_maz",
+        "orig_taz", "dest_taz", "home_taz", "workplace_taz", "school_taz",
+        "first_board_tap", "last_alight_tap",
+        # Optional sparse response fields
+        "race_other_string", "auto_suff",
+    ]
+    for field in optional_fields_tier3:
+        if field not in df.columns:
+            df = df.with_columns(pl.lit(None).alias(field))
+    return df
 
 
 def load_survey_data(csv_path: Path) -> pl.DataFrame:
     """Load survey data from CSV file."""
-    logger.info(f"Reading CSV: {csv_path}")
-    
+    logger.info("Reading CSV: %s", csv_path)
+
     def _handle_pums_placeholders(df: pl.DataFrame) -> pl.DataFrame:
         """Handle PUMS synthetic data placeholders in a single operation.
-        
+
         PUMS records lack survey metadata, so we fill required fields with placeholders:
         - field_start/field_end: Use Jan 1 - Dec 31 of survey_year
         - unique_id, id, survey_name: Use "REGIONAL - PUMS"
@@ -102,38 +196,41 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             .then(pl.col("survey_year").cast(pl.Utf8) + "-01-01")
             .otherwise(pl.col("field_start"))
             .alias("field_start"),
-            
+
             pl.when(pl.col("canonical_operator") == "REGIONAL - PUMS")
             .then(pl.col("survey_year").cast(pl.Utf8) + "-12-31")
             .otherwise(pl.col("field_end"))
             .alias("field_end"),
-            
+
             # PUMS string fields: Fill with operator name
             pl.when(pl.col("canonical_operator") == "REGIONAL - PUMS")
             .then(pl.lit("REGIONAL - PUMS"))
             .otherwise(pl.col("unique_id"))
             .alias("unique_id"),
-            
+
             pl.when(pl.col("canonical_operator") == "REGIONAL - PUMS")
             .then(pl.lit("REGIONAL - PUMS"))
             .otherwise(pl.col("id"))
             .alias("id"),
-            
+
             pl.when(pl.col("canonical_operator") == "REGIONAL - PUMS")
             .then(pl.lit("REGIONAL - PUMS"))
             .otherwise(pl.col("survey_name"))
             .alias("survey_name")
         ])
-    
+
     df = pl.read_csv(
         str(csv_path),
         null_values=["NA", "N/A", "", "Inf"],  # Treat these as null
         infer_schema_length=10000  # Look at more rows for schema inference
     )
-    logger.info(f"Loaded {len(df)} rows with {len(df.columns)} columns")
+    logger.info("Loaded %s rows with %s columns", len(df), len(df.columns))
 
     # Strip whitespace from all string columns to simplify corrections
-    string_cols = [col for col, dtype in zip(df.columns, df.dtypes) if dtype == pl.Utf8]
+    string_cols = [
+        col for col, dtype in zip(df.columns, df.dtypes, strict=False)
+        if dtype == pl.Utf8
+    ]
     if string_cols:
         df = df.with_columns([pl.col(col).str.strip_chars() for col in string_cols])
 
@@ -148,52 +245,32 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
     # Handle PUMS placeholders (dates, IDs, survey_name) then fix date formats
     df = _handle_pums_placeholders(df)
     df = df.with_columns([
-        pl.when(pl.col("field_start").str.len_chars() == 8)  # Format: MM-DD-YY (8 chars)
+        pl.when(pl.col("field_start").str.len_chars() == SHORT_DATE_LENGTH)
         .then(pl.col("field_start").str.strptime(pl.Date, format="%m-%d-%y", strict=False))
         .otherwise(pl.col("field_start").str.to_date(format="%Y-%m-%d", strict=False))
         .alias("field_start"),
 
-        pl.when(pl.col("field_end").str.len_chars() == 8)  # Format: MM-DD-YY (8 chars)
+        pl.when(pl.col("field_end").str.len_chars() == SHORT_DATE_LENGTH)
         .then(pl.col("field_end").str.strptime(pl.Date, format="%m-%d-%y", strict=False))
         .otherwise(pl.col("field_end").str.to_date(format="%Y-%m-%d", strict=False))
         .alias("field_end"),
     ])
 
     # Fill NULL enum fields with "Missing" to match schema
-    enum_fields_with_missing = [
-        "direction", "access_mode", "egress_mode", "survey_tech", "first_board_tech",
-        "last_alight_tech", "orig_purp", "dest_purp", "tour_purp", "trip_purp", "fare_medium",
-        "fare_category", "weekpart", "day_of_the_week", "gender", "work_status",
-        "student_status", "interview_language", "field_language", "survey_type", "hispanic",
-        "race", "eng_proficient", "transfer_from", "transfer_to"
-    ]
-    df = df.with_columns([
-        pl.col(field).fill_null("Missing")
-        for field in enum_fields_with_missing if field in df.columns
-    ])
+    df = _fill_enum_fields_with_missing(df)
 
     # Convert "missing" strings and field name literals to NULL for numeric fields
-    numeric_fields = ["approximate_age", "persons", "workers", "boardings"]
-    df = df.with_columns([
-        pl.when(pl.col(field).cast(pl.Utf8).str.to_lowercase() == "missing").then(None)
-        .when(pl.col(field).cast(pl.Utf8).str.to_lowercase() == field.lower()).then(None)  # "approximate_age" → NULL
-        .otherwise(pl.col(field))
-        .alias(field)
-        for field in numeric_fields if field in df.columns
-    ])
+    df = _clean_numeric_fields(df)
 
     # Convert word numbers to integers for numeric fields (persons, workers, vehicles)
-    df = df.with_columns([
-        pl.col(field).replace_strict(WORD_TO_NUMBER, default=pl.col(field)).alias(field)
-        for field in ["persons", "workers", "vehicles"] if field in df.columns
-    ])
+    df = _convert_word_numbers(df)
 
 
     # Standardize field names: replace periods with underscores, simplify GEOID suffixes
-    rename_map = {col: col.replace(".", "_").replace("_GEOID20", "_GEOID") 
+    rename_map = {col: col.replace(".", "_").replace("_GEOID20", "_GEOID")
                   for col in df.columns if "." in col or "_GEOID20" in col}
     if rename_map:
-        logger.info(f"Standardizing {len(rename_map)} column names...")
+        logger.info("Standardizing %s column names...", len(rename_map))
         df = df.rename(rename_map)
 
     # Some records have placeholder string values that need to be converted to NULL
@@ -209,7 +286,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         "tour_purp_case": "None",
         "transfers_surveyed": "None",
     }
-    
+
     df = df.with_columns([
         pl.when(pl.col(col) == placeholder_fields[col]).then(None).otherwise(pl.col(col)).alias(col)
         if col in placeholder_fields else pl.col(col)
@@ -217,73 +294,59 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
     ])
 
     # Convert TRUE/FALSE strings to 0/1 for binary flag fields
-    binary_fields = ["commuter_rail_present", "heavy_rail_present", "express_bus_present",
-                     "ferry_present", "light_rail_present"]
-    df = df.with_columns([
-        pl.when(pl.col(field).str.to_uppercase() == "TRUE").then(1)
-        .when(pl.col(field).str.to_uppercase() == "FALSE").then(0)
-        .otherwise(pl.col(field).cast(pl.Int64, strict=False))
-        .alias(field)
-        for field in binary_fields if field in df.columns
-    ])
+    df = _convert_binary_fields(df)
 
     # Add missing Tier 3 (Optional) fields with NULL if they don't exist in CSV
-    optional_fields_tier3 = [
-        # Transfer routes
-        "immediate_access_mode",
-        "immediate_egress_mode",
-        "first_route_before_survey_board",
-        "second_route_before_survey_board",
-        "third_route_before_survey_board",
-        "first_route_after_survey_alight",
-        "second_route_after_survey_alight",
-        "third_route_after_survey_alight",
-        # Transfer operators
-        "first_before_operator",
-        "first_before_operator_detail",
-        "first_before_technology",
-        "second_before_operator",
-        "second_before_operator_detail",
-        "second_before_technology",
-        "third_before_operator",
-        "third_before_operator_detail",
-        "third_before_technology",
-        "first_after_operator",
-        "first_after_operator_detail",
-        "first_after_technology",
-        "second_after_operator",
-        "second_after_operator_detail",
-        "second_after_technology",
-        "third_after_operator",
-        "third_after_operator_detail",
-        "third_after_technology",
-        # Optional county/geography fields
-        "home_county",
-        "workplace_county",
-        "school_county",
-        # Optional MAZ/TAZ fields
-        "orig_maz",
-        "dest_maz",
-        "home_maz",
-        "workplace_maz",
-        "school_maz",
-        "orig_taz",
-        "dest_taz",
-        "home_taz",
-        "workplace_taz",
-        "school_taz",
-        "first_board_tap",
-        "last_alight_tap",
-        # Optional sparse response fields
-        "race_other_string",
-        "auto_suff",
-    ]
-
-    for field in optional_fields_tier3:
-        if field not in df.columns:
-            df = df.with_columns(pl.lit(None).alias(field))
+    df = _add_optional_fields(df)
 
     # This word-to-number conversion was already handled earlier using WORD_TO_NUMBER constant
+
+    # Helper functions for text normalization
+    def _check_special_patterns(text: str) -> str | None:
+        """Check for special text patterns that need specific handling. Returns None if no match."""
+        text_lower = text.lower()
+
+        # Full-time/part-time patterns
+        if text_lower.startswith(("full-", "full ")):
+            return "Full- or part-time"
+
+        # Non- prefix patterns
+        if text_lower.startswith("non-"):
+            if "binary" in text_lower:
+                return "Non-binary"
+            if "student" in text_lower:
+                return "Non-student"
+            if "worker" in text_lower:
+                return "Non-worker"
+
+        return None
+
+    def _simplify_fare_medium(text: str) -> str | None:
+        """Simplify complex fare medium values. Returns None if not a fare medium pattern."""
+        text_lower = text.lower()
+
+        # Clipper variants
+        if "clipper" in text_lower and "(" in text:
+            if "e-cash" in text_lower or "ecash" in text_lower:
+                return "Clipper (e-cash)"
+            if "monthly" in text_lower:
+                return "Clipper (monthly)"
+            # Default for ride variants and others
+            return "Clipper (pass)"
+
+        # Ticket variants - all map to Paper Ticket
+        if "ticket" in text_lower:
+            return "Paper Ticket"
+
+        # Pass variants
+        if "pass" in text_lower and "(" in text:
+            if "day" in text_lower or "24" in text:
+                return "Day Pass"
+            if "monthly" in text_lower or "31" in text:
+                return "Monthly Pass"
+            return "Pass"
+
+        return None
 
     # Normalize categorical fields to sentence case to match codebook
     def normalize_to_sentence_case(text: str) -> str:
@@ -291,74 +354,37 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         if not text or text == ".":
             return text
 
-        # Strip whitespace
-        text = text.strip()
+        # Strip whitespace and replace underscores
+        text = text.strip().replace("_", " ")
 
-        # Replace underscores with spaces
-        text = text.replace("_", " ")
-
-        # Exact match mappings (case-insensitive input)
+        # Exact match mappings (case-insensitive input) - consolidated for readability
         exact_mappings = {
             "HISPANIC/LATINO OR OF SPANISH ORIGIN": "Hispanic/Latino or of Spanish origin",
             "NOT HISPANIC/LATINO OR OF SPANISH ORIGIN": "Not Hispanic/Latino or of Spanish origin",
             "PREFER NOT TO ANSWER": "Prefer not to answer",
-            "MUNI": "Muni",
-            "AC TRANSIT": "AC Transit",
-            "SAMTRANS": "SamTrans",
-            "WESTCAT": "WestCat",
-            "SOLTRANS": "SolTrans",
-            "TRI-DELTA": "Tri-Delta",
-            "LAVTA": "LAVTA",
-            # Access modes
-            "PNR": "PNR",
-            "KNR": "KNR",
-            "NOT WELL": "Not well",
-            "NOT AT ALL": "Not at all",
-            "LESS THAN WELL": "Less than well",
-            "NOT WELL AT ALL": "Not well at all",
-            # English proficiency
+            "MUNI": "Muni", "AC TRANSIT": "AC Transit", "SAMTRANS": "SamTrans",
+            "WESTCAT": "WestCat", "SOLTRANS": "SolTrans", "TRI-DELTA": "Tri-Delta",
+            "LAVTA": "LAVTA", "PNR": "PNR", "KNR": "KNR",
+            "NOT WELL": "Not well", "NOT AT ALL": "Not at all",
+            "LESS THAN WELL": "Less than well", "NOT WELL AT ALL": "Not well at all",
             "VERY WELL": "Very well",
-            # Survey types
-            "TABLET_PI": "Tablet PI",
-            "TABLET PI": "Tablet PI",
-            "BRIEF_CATI": "Brief CATI",
-            "BRIEF CATI": "Brief CATI",
-            # Purpose
-            "OTHER MAINTENANCE": "Other maintenance",
-            "OTHER DISCRETIONARY": "Other discretionary",
-            "SOCIAL RECREATION": "Social recreation",
-            "WORK-RELATED": "Work-related",
-            "BUSINESS APT": "Business apt",
-            "EAT OUT": "Eat out",
-            "HIGH SCHOOL": "High school",
-            "GRADE SCHOOL": "Grade school",
-            "AT WORK": "At work",
-            # Fare medium
-            "CASH (BILLS AND COINS)": "Cash",
-            "TRANSFER (BART PAPER + CASH)": "Transfer",
-            # Vehicles
-            "FOUR OR MORE": "Four or more",
-            "SIX OR MORE": "Six or more",
-            "DON'T KNOW": "Don't know",
-            # Purpose plurals
-            "HOTELS": "Hotel",
-            # Survey type variations - FIX to match enum
+            "TABLET_PI": "Tablet PI", "TABLET PI": "Tablet PI",
+            "BRIEF_CATI": "Brief CATI", "BRIEF CATI": "Brief CATI",
+            "OTHER MAINTENANCE": "Other maintenance", "OTHER DISCRETIONARY": "Other discretionary",
+            "SOCIAL RECREATION": "Social recreation", "WORK-RELATED": "Work-related",
+            "BUSINESS APT": "Business apt", "EAT OUT": "Eat out",
+            "HIGH SCHOOL": "High school", "GRADE SCHOOL": "Grade school", "AT WORK": "At work",
+            "CASH (BILLS AND COINS)": "Cash", "TRANSFER (BART PAPER + CASH)": "Transfer",
+            "FOUR OR MORE": "Four or more", "SIX OR MORE": "Six or more",
+            "DON'T KNOW": "Don't know", "HOTELS": "Hotel",
             "ON OFF DUMMY": "On-off dummy",
             "INTERVIEWER - ADMINISTERED": "Interviewer-administered",
             "SELF - ADMINISTERED": "Self-administered",
-            # Language fields
             "SKIP - PAPER SURVEY": "Skip - Paper Survey",
-            "DONT KNOW/REFUSE": "Don't know/refuse",
-            "TAGALOG/FILIPINO": "Tagalog",
-            # Gender
-            "PREFER NOT TO ANSWER": "Prefer not to answer",
-            # Transfer operators - FIX to match enum
-            "SANTA ROSA CITYBUS": "Santa Rosa City Bus",
-            "EMERYVILLE MTA": "Emeryville MTA",
-            "WHEELS (LAVTA)": "Wheels (LAVTA)",
-            "EMERY-GO-ROUND": "Emery-Go-Round",
-            "RIO-VISTA": "Rio-Vista",
-            "FAIRFIELD-SUISUN": "Fairfield-Suisun",
+            "DONT KNOW/REFUSE": "Don't know/refuse", "TAGALOG/FILIPINO": "Tagalog",
+            "SANTA ROSA CITYBUS": "Santa Rosa City Bus", "EMERYVILLE MTA": "Emeryville MTA",
+            "WHEELS (LAVTA)": "Wheels (LAVTA)", "EMERY-GO-ROUND": "Emery-Go-Round",
+            "RIO-VISTA": "Rio-Vista", "FAIRFIELD-SUISUN": "Fairfield-Suisun",
             "BLUE & GOLD FERRY": "Blue Gold Ferry",
         }
 
@@ -367,56 +393,38 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             if text_upper == key.upper():
                 return value
 
-        # Special handling for specific patterns
-        if text.lower().startswith("full-") or text.lower().startswith("full "):
-            return "Full- or part-time"
-        if text.lower().startswith("non-"):
-            if "binary" in text.lower():
-                return "Non-binary"
-            if "student" in text.lower():
-                return "Non-student"
-            if "worker" in text.lower():
-                return "Non-worker"
+        # Check special patterns
+        special_result = _check_special_patterns(text)
+        if special_result:
+            return special_result
 
-        # Handle fare medium simplifications - map complex values to simple ones
-        if "clipper" in text.lower() and "(" in text:
-            if "8-ride" in text.lower() or "ride" in text.lower():
-                return "Clipper (pass)"
-            if "e-cash" in text.lower() or "ecash" in text.lower():
-                return "Clipper (e-cash)"
-            if "monthly" in text.lower():
-                return "Clipper (monthly)"
-            return "Clipper (pass)"  # Default for other Clipper variants
-        if "ticket" in text.lower():
-            if "paper" in text.lower():
-                return "Paper Ticket"
-            return "Paper Ticket"  # Default for ticket variants
-        if "pass" in text.lower() and "(" in text:
-            if "day" in text.lower() or "24" in text:
-                return "Day Pass"
-            if "monthly" in text.lower() or "31" in text:
-                return "Monthly Pass"
-            return "Pass"  # Default for pass variants
+        # Check fare medium simplifications
+        fare_result = _simplify_fare_medium(text)
+        if fare_result:
+            return fare_result
 
-        # Convert to title case first
+        # Convert to title case
         words = text.split()
         result = []
+        known_acronyms = {
+            "AC", "BART", "VTA", "ACE", "SMART", "SF", "TAP", "TAZ",
+            "MAZ", "ID", "CATI", "PI", "AM", "PM", "RTC", "PNR", "KNR", "TNC"
+        }
+        lowercase_words = {
+            "or", "of", "and", "the", "a", "an", "in", "on", "at", "to", "by", "with"
+        }
 
         for i, word in enumerate(words):
-            # Keep all-caps acronyms (2-4 letters)
-            if word.isupper() and 2 <= len(word) <= 4:
-                # But check if it's a known acronym that should stay uppercase
-                if word in ["AC", "BART", "VTA", "ACE", "SMART", "SF", "TAP", "TAZ",
-                            "MAZ", "ID", "CATI", "PI", "AM", "PM", "RTC", "PNR", "KNR", "TNC"]:
-                    result.append(word)
-                else:
-                    result.append(word.capitalize())
-            # Lowercase specific words when not first
-            elif (i > 0 and word.lower() in ["or", "of", "and", "the", "a", "an", "in", "on", "at", "to", "by", "with"]) or (i > 0 and len(result) > 0 and result[-1].endswith("-")):
+            # Keep all-caps acronyms
+            if word.isupper() and ACRONYM_MIN_LENGTH <= len(word) <= ACRONYM_MAX_LENGTH:
+                result.append(word if word in known_acronyms else word.capitalize())
+            # Lowercase specific words when not first, or words after hyphens
+            elif (i > 0 and word.lower() in lowercase_words) or (
+                i > 0 and len(result) > 0 and result[-1].endswith("-")
+            ):
                 result.append(word.lower())
             # Handle compound words with hyphens
             elif "-" in word and i == 0:
-                # First word with hyphen - capitalize first part, lowercase second
                 parts = word.split("-")
                 result.append(parts[0].capitalize() + "-" + "-".join(p.lower() for p in parts[1:]))
             # First word or proper nouns - capitalize
@@ -526,7 +534,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             "Machine Gives You Free Transfer, Bart Pays Cash": "Other",
             "Buy One/2nd Passenger Half-price/free Promotion": "Other",
         },
-        
+
         "survey_type": {
             "Paper-collected by Interviewer": "Paper - collected by interviewer",
             "Paper-Collected by Interviewer": "Paper - collected by interviewer",
@@ -544,9 +552,10 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             "Self - administered": "Self-administered",
             "ONBOARD": "Onboard",
             "PHONE": "Phone",
-            "Full- or part-time": "Missing"  # work_status value appearing in survey_type - map to Missing
+            # work_status value appearing in survey_type - map to Missing
+            "Full- or part-time": "Missing"
         },
-        
+
         "fare_medium": {
             # Transfer types - consolidate variations
             "Transfer (bart)":  "Transfer",
@@ -563,14 +572,14 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             "Transfer (ac/dex)": "Transfer",
             "Transfer (not Santa Rosa Citybus)": "Transfer",
             "Capitol Corridor Transfer": "Transfer",
-            
+
             # Mobile/online - fix capitalization
             "Amtrak Mobile App": "Mobile App",
             "Mobile app": "Mobile App",
             "Website (capitol Corridor or Amtrak)": "E-Ticket",
             "Website": "E-Ticket",
             "Conductor/on Train": "Paper Ticket",
-            
+
             # Cash variations - fix capitalization
             "Clipper Cash": "Clipper (e-cash)",
             "Cash (coins and Bills)": "Cash",
@@ -586,16 +595,16 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             "Courtesy Fare": "Free",
             "No Payment": "Free",
             "Did Not Pay": "Free",
-            
+
             # Disability-related fare types
             "Disabled": "Pass",
-            
+
             # Clipper variations
             "Clipper Pass": "Clipper (pass)",
             "Clipper Start": "Clipper (pass)",
             "Clipper 31-day Pass": "Clipper (monthly)",
             "Clipper Day Pass": "Clipper (pass)",
-            
+
             # Pass types - fix capitalization
             "Gold Card": "Pass",
             "Employer/wage Works": "Pass",
@@ -623,7 +632,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             "Superpass": "Pass",
             "Parking Pass Hercules": "Pass",
             "Parking Pass Hercules Transit": "Pass",
-            
+
             # Monthly pass variations - fix capitalization
             "Monthly": "Monthly Pass",
             "Monthly pass": "Monthly Pass",
@@ -641,7 +650,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             "Lynx 31 Day Pass": "Monthly Pass",
             "31 Day Lynx": "Monthly Pass",
             "Monthly Intercity": "Monthly Pass",
-            
+
             # Day pass variations - fix capitalization
             "Cash 24-hour Pass": "Day Pass",
             "One Day Pass": "Day Pass",
@@ -650,13 +659,15 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             "Half Price Day Pass": "Day Pass",
             "20 Day Pass": "Pass",  # Not monthly, not day - general pass
             "Bart Transfer For $1.50": "Transfer",
-            
+
             # Other fare media
             "From a Station Agent": "Other",
-            "Local City or Transit Office (city of Roseville, Placer County Transit, Etc.)": "Other",
+            "Local City or Transit Office (city of Roseville, Placer County Transit, Etc.)": (
+                "Other"
+            ),
             "1-way Rv/isleton Dev": "Other",
             "Do Not Know": "Missing",
-            
+
             # Final batch of specific fare media from validation errors
             "Transfer From Bart Free": "Transfer",
             "Ac Transit Transfer": "Transfer",
@@ -678,7 +689,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             "County Employee": "Free",
             "Ada": "Free",
             "Ambassador Pass": "Pass",
-            
+
             # RTC and other program-specific fare media
             "Rediwheels Rtc": "Pass",
             "Redi-Wheels Rtc": "Pass",
@@ -764,18 +775,18 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             )
 
     # Log column names for debugging
-    logger.info(f"Columns after rename & normalization: {df.columns[:10]}...")
+    logger.info("Columns after rename & normalization: %s...", df.columns[:10])
 
     return df
 
 
 def validate_schema(df: pl.DataFrame, sample_size: int = 100) -> None:
     """Validate a sample of records against the Pydantic schema.
-    
+
     Note: Only validates fields that exist in both the DataFrame and the schema.
     The CSV may have additional columns (geography, derived fields) that we want to preserve.
     """
-    logger.info(f"Validating {sample_size} sample records against schema...")
+    logger.info("Validating %s sample records against schema...", sample_size)
     sample = df.head(sample_size)
 
     # Get schema fields
@@ -784,7 +795,11 @@ def validate_schema(df: pl.DataFrame, sample_size: int = 100) -> None:
 
     # Only validate columns that exist in both
     common_fields = schema_fields & df_columns
-    logger.info(f"Validating {len(common_fields)} common fields (DataFrame has {len(df_columns)} columns total)")
+    logger.info(
+        "Validating %s common fields (DataFrame has %s columns total)",
+        len(common_fields),
+        len(df_columns)
+    )
 
     validation_errors = []
     error_details = {}  # Group errors by field
@@ -807,29 +822,41 @@ def validate_schema(df: pl.DataFrame, sample_size: int = 100) -> None:
                     error_details[field]["unique_values"].add(str(error["input"]))
 
     if validation_errors:
-        logger.error(f"Validation failed on {len(validation_errors)} of {len(sample)} sample records:")
+        logger.error(
+            "Validation failed on %s of %s sample records:",
+            len(validation_errors),
+            len(sample)
+        )
         logger.error("\nErrors grouped by field:")
         for field, details in sorted(error_details.items()):
-            logger.error(f"\n  {field}:")
-            logger.error(f"    Count: {details['count']}")
-            logger.error(f"    Rows: {details['rows'][:10]}")  # Show first 10 rows
+            logger.error("\n  %s:", field)
+            logger.error("    Count: %s", details["count"])
+            logger.error("    Rows: %s", details["rows"][:10])  # Show first 10 rows
             if details["unique_values"]:
-                logger.error(f"    Unique problematic values: {sorted(details['unique_values'])[:20]}")
-        raise ValueError("Schema validation failed. Fix data or schema before importing.")
+                logger.error(
+                    "    Unique problematic values: %s",
+                    sorted(details["unique_values"])[:20]
+                )
+        msg = "Schema validation failed. Fix data or schema before importing."
+        raise ValueError(msg)
 
     logger.info("Schema validation passed")
 
 
-def ingest_survey_batches(df: pl.DataFrame, collect_errors: bool = False) -> tuple[int, int, dict]:
+def ingest_survey_batches(
+    df: pl.DataFrame, collect_errors: bool = False
+) -> tuple[int, int, dict, dict]:
     """Ingest survey data to the data lake, partitioned by operator and year.
-    
+
     Args:
         df: DataFrame to ingest
         collect_errors: If True, collect validation errors instead of raising
-        
+
     Returns:
-        Tuple of (total_records, num_batches, error_summary).
-        error_summary is a dict mapping field names to dicts of {invalid_value: [(operator, year, row_idx), ...]}
+        Tuple of (total_records, num_batches, error_summary, version_info).
+        version_info maps (operator, year) -> (version, commit)
+        error_summary is a dict mapping field names to dicts of
+        {invalid_value: [(operator, year, row_idx), ...]}
     """
     logger.info("Grouping data by (survey_year, canonical_operator)...")
 
@@ -840,9 +867,12 @@ def ingest_survey_batches(df: pl.DataFrame, collect_errors: bool = False) -> tup
     num_batches = 0
     error_summary = defaultdict(lambda: defaultdict(list))
     batches_with_errors = []
+    version_info = {}  # Track (operator, year) -> (version, commit, hash)
 
     for (survey_year, canonical_operator), group_df in groups:
-        logger.info(f"Processing: {canonical_operator} {survey_year} ({len(group_df)} records)")
+        logger.info(
+            "Processing: %s %s (%s records)", canonical_operator, survey_year, len(group_df)
+        )
 
         if collect_errors:
             # Validate each row individually to collect all errors
@@ -856,44 +886,69 @@ def ingest_survey_batches(df: pl.DataFrame, collect_errors: bool = False) -> tup
                 for field, values_dict in batch_errors.items():
                     for value, occurrences in values_dict.items():
                         error_summary[field][value].extend(occurrences)
-                logger.warning(f"  Found {len(batch_errors)} field(s) with validation errors")
+                logger.warning("  Found %s field(s) with validation errors", len(batch_errors))
             else:
                 # No errors - but don't write in error collection mode, just count
-                logger.info(f"  ✓ Validation passed (would write {len(group_df)} records)")
+                logger.info("  ✓ Validation passed (would write %s records)", len(group_df))
                 total_records += len(group_df)
                 num_batches += 1
         else:
             # Original behavior: raise on first error
-            db.ingest_survey_batch(
+            _output_path, version, commit, data_hash = db.ingest_survey_batch(
                 df=group_df,
                 survey_year=survey_year,
                 canonical_operator=canonical_operator,
                 validate=True
             )
+            version_info[(canonical_operator, survey_year)] = (version, commit, data_hash)
             total_records += len(group_df)
             num_batches += 1
 
     if collect_errors and error_summary:
-        logger.info(f"\n{'='*80}\nVALIDATION ERROR SUMMARY\n{'='*80}\n\nBatches with errors: {len(batches_with_errors)}")
+        logger.info(
+            "\n%s\nVALIDATION ERROR SUMMARY\n%s\n\nBatches with errors: %s",
+            "="*80,
+            "="*80,
+            len(batches_with_errors)
+        )
         for operator, year, num_fields in batches_with_errors:
-            logger.info(f"  - {operator} {year}: {num_fields} fields with errors")
+            logger.info("  - %s %s: %s fields with errors", operator, year, num_fields)
 
-        logger.info(f"\nTotal fields with errors: {len(error_summary)}")
+        logger.info("\nTotal fields with errors: %s", len(error_summary))
         for field in sorted(error_summary.keys()):
             values_dict = error_summary[field]
-            logger.info(f"\n{field}: {len(values_dict)} invalid value(s)")
-            for value in sorted(values_dict.keys(), key=lambda v: len(values_dict[v]), reverse=True)[:20]:
+            logger.info("\n%s: %s invalid value(s)", field, len(values_dict))
+            for value in sorted(
+                values_dict.keys(), key=lambda v: len(values_dict[v]), reverse=True
+            )[:20]:
                 occurrences = values_dict[value]
-                sample_locs = [f"{op} {yr} row {idx}" for op, yr, idx in occurrences[:3]]
-                more_text = f" ... and {len(occurrences) - 3} more" if len(occurrences) > 3 else ""
-                logger.info(f"  '{value}': {len(occurrences)} occurrence(s) - {', '.join(sample_locs)}{more_text}")
+                sample_locs = [
+                    f"{op} {yr} row {idx}"
+                    for op, yr, idx in occurrences[:MAX_SAMPLE_LOCATIONS]
+                ]
+                more_text = (
+                    f" ... and {len(occurrences) - MAX_SAMPLE_LOCATIONS} more"
+                    if len(occurrences) > MAX_SAMPLE_LOCATIONS else ""
+                )
+                logger.info(
+                    "  '%s': %s occurrence(s) - %s%s",
+                    value,
+                    len(occurrences),
+                    ", ".join(sample_locs),
+                    more_text
+                )
 
-    logger.info(f"\n{'='*80}")
+    logger.info("\n%s", "="*80)
     if collect_errors:
-        logger.info(f"Validated {num_batches} batches ({total_records} records passed) - Skipped {len(batches_with_errors)} batches due to validation errors")
+        logger.info(
+            "Validated %s batches (%s records passed) - Skipped %s batches due to errors",
+            num_batches,
+            total_records,
+            len(batches_with_errors)
+        )
     else:
-        logger.info(f"Wrote {num_batches} batches totaling {total_records} records")
-    return total_records, num_batches, dict(error_summary)
+        logger.info("Wrote %s batches totaling %s records", num_batches, total_records)
+    return total_records, num_batches, dict(error_summary), version_info
 
 
 def validate_batch_collect_errors(
@@ -902,7 +957,7 @@ def validate_batch_collect_errors(
     canonical_operator: str
 ) -> dict:
     """Validate a batch and collect all validation errors.
-    
+
     Returns:
         Dict mapping field names to dicts of {invalid_value: [(operator, year, row_idx), ...]}
     """
@@ -925,13 +980,16 @@ def validate_batch_collect_errors(
     return dict(errors)
 
 
-def extract_and_ingest_metadata(df: pl.DataFrame, collect_errors: bool = False) -> int:
+def extract_and_ingest_metadata(
+    df: pl.DataFrame, version_info: dict, collect_errors: bool = False
+) -> int:
     """Extract survey metadata and write to data lake.
-    
+
     Args:
         df: Survey data DataFrame
+        version_info: Dict mapping (operator, year) -> (version, commit)
         collect_errors: If True, collect and report validation errors instead of failing
-    
+
     Returns:
         Number of unique survey metadata records written.
     """
@@ -953,14 +1011,27 @@ def extract_and_ingest_metadata(df: pl.DataFrame, collect_errors: bool = False) 
         ])
     )
 
-    logger.info(f"Found {len(metadata_df)} unique survey combinations")
+    # Add version tracking fields from version_info
+    rows = []
+    for row in metadata_df.iter_rows(named=True):
+        operator = row["canonical_operator"]
+        year = row["survey_year"]
+        version, commit, data_hash = version_info.get(
+            (operator, year), (1, "unknown", "unknown")
+        )
+        row["data_version"] = version
+        row["data_commit"] = commit
+        row["data_hash"] = data_hash
+        row["ingestion_timestamp"] = datetime.now(tz=UTC)
+        row["processing_notes"] = "Initial backfill from standardized_* CSV"
+        rows.append(row)
+
+    metadata_df = pl.DataFrame(rows)
+
+    logger.info("Found %d unique survey combinations", len(metadata_df))
 
     if collect_errors:
         # Validate and collect errors
-        from pydantic import ValidationError
-
-        from transit_passenger_tools.data_models import SurveyMetadata
-
         errors = []
         valid_rows = []
 
@@ -978,49 +1049,79 @@ def extract_and_ingest_metadata(df: pl.DataFrame, collect_errors: bool = False) 
                 })
 
         if errors:
-            logger.warning(f"\n{'='*80}")
+            logger.warning("\n%s", "="*80)
             logger.warning("METADATA VALIDATION ERRORS")
-            logger.warning(f"{'='*80}")
-            logger.warning(f"\nFound {len(errors)} metadata record(s) with validation errors:")
+            logger.warning("%s", "="*80)
+            logger.warning("\nFound %s metadata record(s) with validation errors:", len(errors))
 
             for err in errors:
-                logger.warning(f"\n{err['operator']} {err['year']}:")
+                logger.warning("\n%s %s:", err["operator"], err["year"])
                 # Extract just the field names from the error
                 error_lines = err["error"].split("\n")
                 for line in error_lines:
                     if "field_start" in line or "field_end" in line or "Input should be" in line:
-                        logger.warning(f"  {line}")
+                        logger.warning("  %s", line)
 
-            logger.warning(f"\n{'='*80}")
-            logger.warning(f"Validated {len(valid_rows)} metadata records successfully")
-            logger.warning(f"Skipped {len(errors)} metadata records due to validation errors")
-            logger.warning(f"{'='*80}")
+            logger.warning("\n%s", "="*80)
+            logger.warning("Validated %s metadata records successfully", len(valid_rows))
+            logger.warning("Skipped %s metadata records due to validation errors", len(errors))
+            logger.warning("%s", "="*80)
             return len(valid_rows)
-        logger.info(f"All {len(metadata_df)} metadata records validated successfully")
+        logger.info("All %s metadata records validated successfully", len(metadata_df))
         return len(metadata_df)
     # Write metadata to data lake (will fail on first error)
     db.ingest_survey_metadata(metadata_df, validate=True)
     return len(metadata_df)
 
 
-def create_duckdb_views():
+def create_duckdb_views() -> None:
     """Create or recreate DuckDB views after data ingestion."""
     logger.info("\nCreating DuckDB views over Parquet files...")
 
     conn = duckdb.connect(str(db.DUCKDB_PATH), read_only=False)
     try:
-        # Create view for survey_responses
-        survey_responses_pattern = f"{db.DATA_LAKE_ROOT}/survey_responses/**/*.parquet"
+        # Create view for survey_responses (latest version only)
+        survey_responses_pattern = f"{db.DATA_LAKE_ROOT}/survey_responses/**/data-*.parquet"
         conn.execute(f"""
             CREATE OR REPLACE VIEW survey_responses AS
-            SELECT * FROM read_parquet(
+            WITH versioned_data AS (
+                SELECT *,
+                       CAST(regexp_extract(filename, 'data-(\\d+)-', 1) AS INTEGER) as _version
+                FROM read_parquet(
+                    '{survey_responses_pattern}',
+                    hive_partitioning = true,
+                    union_by_name = true,
+                    filename = true
+                )
+            ),
+            latest_versions AS (
+                SELECT operator, year, MAX(_version) as max_version
+                FROM versioned_data
+                GROUP BY operator, year
+            )
+            SELECT versioned_data.* EXCLUDE (filename, _version)
+            FROM versioned_data
+            JOIN latest_versions
+                ON versioned_data.operator = latest_versions.operator
+                AND versioned_data.year = latest_versions.year
+                AND versioned_data._version = latest_versions.max_version
+        """)
+        logger.info("  Created view: survey_responses")
+
+        # Create view for all versions (power users)
+        conn.execute(f"""
+            CREATE OR REPLACE VIEW survey_responses_all_versions AS
+            SELECT *,
+                   CAST(regexp_extract(filename, 'data-(\\d+)-', 1) AS INTEGER) as data_version,
+                   regexp_extract(filename, 'data-\\d+-(\\w+)\\.parquet', 1) as data_commit
+            FROM read_parquet(
                 '{survey_responses_pattern}',
                 hive_partitioning = true,
                 union_by_name = true,
-                filename = false
+                filename = true
             )
         """)
-        logger.info("  Created view: survey_responses")
+        logger.info("  Created view: survey_responses_all_versions")
 
         # Create view for survey_metadata
         metadata_file = db.DATA_LAKE_ROOT / "survey_metadata" / "metadata.parquet"
@@ -1034,50 +1135,64 @@ def create_duckdb_views():
         logger.info("  Created view: survey_metadata")
 
         # Verify views work
-        count = conn.execute("SELECT COUNT(*) FROM survey_responses").fetchone()[0]
-        logger.info(f"  Verified: survey_responses has {count:,} rows")
+        count = conn.execute("SELECT COUNT(*) FROM survey_responses").fetchone()[0]  # type: ignore[index]
+        logger.info("  Verified: survey_responses has %s rows", f"{count:,}")
 
-        meta_count = conn.execute("SELECT COUNT(*) FROM survey_metadata").fetchone()[0]
-        logger.info(f"  Verified: survey_metadata has {meta_count:,} rows")
+        all_versions_count = conn.execute(
+            "SELECT COUNT(*) FROM survey_responses_all_versions"
+        ).fetchone()[0]  # type: ignore[index]
+        logger.info(
+            "  Verified: survey_responses_all_versions has %s rows",
+            f"{all_versions_count:,}"
+        )
+
+        meta_count = conn.execute("SELECT COUNT(*) FROM survey_metadata").fetchone()[0]  # type: ignore[index]
+        logger.info("  Verified: survey_metadata has %s rows", f"{meta_count:,}")
 
     finally:
         conn.close()
 
 
-def main():
+def main() -> None:
     """Main backfill process."""
+    def _validate_csv_exists(csv_path: Path) -> None:
+        """Validate that CSV file exists, raise FileNotFoundError if not."""
+        if not csv_path.exists():
+            msg = f"survey_combined.csv not found in {csv_path.parent}"
+            raise FileNotFoundError(msg)
+
     try:
         # Find latest data
         latest_dir = find_latest_standardized_dir()
         csv_path = latest_dir / "survey_combined.csv"
-
-        if not csv_path.exists():
-            raise FileNotFoundError(f"survey_combined.csv not found in {latest_dir}")
+        _validate_csv_exists(csv_path)
 
         # Load and prepare data
-        logger.info("\n" + "="*80)
+        logger.info("\n%s", "="*80)
         logger.info("LOADING DATA")
-        logger.info("="*80)
+        logger.info("%s", "="*80)
         df = load_survey_data(csv_path)
 
-        logger.info(f"\nTotal records in CSV: {len(df):,}")
-        logger.info(f"Unique operators: {df['canonical_operator'].n_unique()}")
-        logger.info(f"Year range: {df['survey_year'].min()} - {df['survey_year'].max()}")
+        logger.info("\nTotal records in CSV: %s", f"{len(df):,}")
+        logger.info("Unique operators: %s", df["canonical_operator"].n_unique())
+        logger.info("Year range: %s - %s", df["survey_year"].min(), df["survey_year"].max())
 
         # Validate schema
-        logger.info("\n" + "="*80)
+        logger.info("\n%s", "="*80)
         logger.info("VALIDATING SCHEMA")
-        logger.info("="*80)
+        logger.info("%s", "="*80)
         validate_schema(df)
 
         # Ingest survey data (collect errors mode)
-        logger.info("\n" + "="*80)
+        logger.info("\n%s", "="*80)
         logger.info("INGESTING SURVEY DATA (ERROR COLLECTION MODE)")
-        logger.info("="*80)
-        total_records, num_batches, error_summary = ingest_survey_batches(df, collect_errors=False)
+        logger.info("%s", "="*80)
+        total_records, num_batches, error_summary, version_info = ingest_survey_batches(
+            df, collect_errors=False
+        )
 
         if error_summary:
-            logger.warning("\n" + "="*80)
+            logger.warning("\n%s", "="*80)
             logger.warning("VALIDATION ERRORS FOUND - NO DATA WRITTEN FOR FAILED BATCHES")
             logger.warning("="*80)
             logger.warning("Review the error summary above and apply fixes to backfill_database.py")
@@ -1085,28 +1200,28 @@ def main():
             return
 
         # Extract and ingest metadata
-        logger.info("\n" + "="*80)
+        logger.info("\n%s", "="*80)
         logger.info("INGESTING METADATA")
-        logger.info("="*80)
-        num_metadata = extract_and_ingest_metadata(df, collect_errors=False)
+        logger.info("%s", "="*80)
+        num_metadata = extract_and_ingest_metadata(df, version_info, collect_errors=False)
 
         # Create DuckDB views
-        logger.info("\n" + "="*80)
+        logger.info("\n%s", "="*80)
         logger.info("CREATING DUCKDB VIEWS")
         logger.info("="*80)
         create_duckdb_views()
 
         # Summary
-        logger.info("\n" + "="*80)
+        logger.info("\n%s", "="*80)
         logger.info("BACKFILL COMPLETE")
         logger.info("="*80)
-        logger.info(f"Survey data: {num_batches} batches, {total_records:,} records")
-        logger.info(f"Metadata: {num_metadata} survey combinations")
-        logger.info(f"Data lake: {db.DATA_LAKE_ROOT}")
-        logger.info(f"DuckDB: {db.DUCKDB_PATH}")
+        logger.info("Survey data: %s batches, %s records", num_batches, f"{total_records:,}")
+        logger.info("Metadata: %s survey combinations", num_metadata)
+        logger.info("Data lake: %s", db.DATA_LAKE_ROOT)
+        logger.info("DuckDB: %s", db.DUCKDB_PATH)
 
-    except Exception as e:
-        logger.error(f"Backfill failed: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Backfill failed")
         raise
 
 

@@ -23,37 +23,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def create_folder_structure():
+def create_folder_structure() -> None:
     """Create the data lake folder structure."""
     for name in ["survey_responses", "survey_metadata", "survey_weights"]:
         (DATA_LAKE_ROOT / name).mkdir(parents=True, exist_ok=True)
 
 
-def create_duckdb_database():
-    """Create DuckDB database with views over Parquet files."""
-    logger.info(f"Creating database: {DUCKDB_PATH}")
+def create_duckdb_database() -> None:
+    """Create DuckDB database with tables.
+
+    Note: Views are created by backfill_database.py after data is ingested.
+    """
+    logger.info("Creating database: %s", DUCKDB_PATH)
 
     conn = duckdb.connect(str(DUCKDB_PATH))
 
     try:
-        # Try to create views (will fail if no data exists yet)
-        responses_pattern = f"{DATA_LAKE_ROOT}/survey_responses/**/*.parquet"
-        metadata_path = DATA_LAKE_ROOT / "survey_metadata" / "metadata.parquet"
-
-        try:
-            conn.execute(f"""
-                CREATE OR REPLACE VIEW survey_responses AS
-                SELECT * FROM read_parquet('{responses_pattern}', 
-                    hive_partitioning=true, union_by_name=true, filename=false)
-            """)
-            conn.execute(f"""
-                CREATE OR REPLACE VIEW survey_metadata AS
-                SELECT * FROM read_parquet('{metadata_path}', union_by_name=true)
-            """)
-            logger.info("Views created successfully")
-        except Exception:
-            logger.warning("Views will be created after first data ingestion (run backfill_database.py)")
-
         # Create tables
         conn.execute("""
             CREATE TABLE IF NOT EXISTS survey_weights (
@@ -81,24 +66,24 @@ def create_duckdb_database():
             ON CONFLICT DO NOTHING
         """)
 
-        logger.info("Database initialization complete")
+        logger.info("Database initialized (views will be created by backfill_database.py)")
 
     finally:
         conn.close()
 
 
-def main():
+def main() -> None:
     """Run initialization."""
     logger.info("Transit Survey Data Lake Initialization")
 
     if not DATA_LAKE_ROOT.parent.exists():
-        logger.error(f"Network share not accessible: {DATA_LAKE_ROOT.parent}")
+        logger.error("Network share not accessible: %s", DATA_LAKE_ROOT.parent)
         sys.exit(1)
 
     create_folder_structure()
     create_duckdb_database()
 
-    logger.info(f"Data lake: {DATA_LAKE_ROOT}")
+    logger.info("Data lake: %s", DATA_LAKE_ROOT)
     logger.info("Next: Run backfill_database.py to populate data")
 
 

@@ -1,5 +1,4 @@
-"""Spatial Aggregation of BART 2024 Survey Data to VTA TAZs
-"""
+"""Spatial Aggregation of BART 2024 Survey Data to VTA TAZs."""
 
 from pathlib import Path
 
@@ -17,7 +16,7 @@ OUTPUT_DIR = r"M:/Data/Requests/Louisa Leung/BART Survey Data/"
 # MAIN PROCESSING
 # ============================================================================
 
-def main():
+def main() -> None:
     """Main processing function for BART spatial aggregation."""
     # Read survey data
     print("Reading survey data...")
@@ -53,7 +52,7 @@ def main():
     print("Merging results...")
     survey_final = survey.clone()
 
-    for output_col, taz_df in taz_assignments.items():
+    for taz_df in taz_assignments.values():
         survey_final = survey_final.join(taz_df, on="id", how="left")
 
     # Remove PII geography columns
@@ -65,7 +64,10 @@ def main():
 
     # Also remove any other columns containing "address"
     address_cols = [col for col in survey_final.columns if "address" in col.lower()]
-    columns_to_drop = [col for col in list(set(pii_columns + address_cols)) if col in survey_final.columns]
+    columns_to_drop = [
+        col for col in list(set(pii_columns + address_cols))
+        if col in survey_final.columns
+    ]
 
     if columns_to_drop:
         survey_final = survey_final.drop(columns_to_drop)

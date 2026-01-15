@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "duckdb>=1.4.3",
     "geopandas>=1.1.2",
+    "gitpython>=3.1.46",
     "polars>=1.37.0",
     "pyarrow>=22.0.0",
     "pydantic>=2.12.5",
@@ -34,6 +35,9 @@ lint.ignore = [
 lint.pydocstyle.convention = "google"
 exclude = ["archive", "*.html", "uv.lock"]
 
+[tool.ruff.lint.pylint]
+max-args = 10
+max-positional-args = 5
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
@@ -44,11 +48,21 @@ exclude = ["archive", "*.html", "uv.lock"]
     "SLF001",    # allow access to private members in tests
     "DTZ001",    # allow naive datetime in tests
 ]
-"requests/**/*.py" = [
+"scripts/**/*.py" = [
     "INP001",      # script not part of package
     "T201",        # allow print statements in scripts
 ]
 
+[tool.black]
+line-length = 100
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    archive
+  | \.git
+  | src/transit_passenger_tools/data_models\.py
+)/
+'''
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -62,6 +76,7 @@ travel-diary-survey-tools = { git = "https://github.com/BayAreaMetro/travel-diar
 
 [dependency-groups]
 dev = [
+    "black>=25.12.0",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.11",

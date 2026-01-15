@@ -1,6 +1,6 @@
 """Helpers for adding zone information based on spatial joins.
 
-Current implementation uses geopandas for spatial joins, but waiting for GeoPolars to be more mature.
+Using GeoPandas for now but waiting for GeoPolars to mature.
 """
 
 import geopandas as gpd
@@ -18,7 +18,7 @@ def spatial_join_coordinates_to_shapefile(
     source_crs: str = "EPSG:4326"
 ) -> pl.DataFrame:
     """Perform spatial join between dataframe with lat/lon coordinates and a shapefile.
-    
+
     Parameters:
     -----------
     df : pl.DataFrame
@@ -37,7 +37,7 @@ def spatial_join_coordinates_to_shapefile(
         Name of the ID column in the input dataframe (default: 'id')
     source_crs : str
         Source coordinate reference system (default: 'EPSG:4326' for WGS84)
-    
+
     Returns:
     --------
     pl.DataFrame

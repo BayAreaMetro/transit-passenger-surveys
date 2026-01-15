@@ -6,6 +6,7 @@ Values are standardized to sentence case for consistency.
 
 from enum import Enum
 
+# ruff: noqa: S105
 
 class AccessEgressMode(str, Enum):
     """Mode used to access transit from origin."""
