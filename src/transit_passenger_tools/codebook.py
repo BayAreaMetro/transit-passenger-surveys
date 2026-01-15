@@ -1,5 +1,4 @@
-"""
-Enumerated types for transit passenger survey data.
+"""Enumerated types for transit passenger survey data.
 
 This module defines all categorical value types used across surveys.
 Values are standardized to sentence case for consistency.
@@ -10,7 +9,7 @@ from enum import Enum
 
 class AccessEgressMode(str, Enum):
     """Mode used to access transit from origin."""
-    
+
     WALK = "Walk"
     BIKE = "Bike"
     PNR = "PNR"
@@ -126,11 +125,11 @@ class FareMedium(str, Enum):
     CLIPPER_PASS = "Clipper (pass)"
     CLIPPER_MONTHLY = "Clipper (monthly)"
     PASS = "Pass"
-    MONTHLY_PASS = "Monthly pass"
-    DAY_PASS = "Day pass"
-    PAPER_TICKET = "Paper ticket"
-    MOBILE_APP = "Mobile app"
-    E_TICKET = "E-ticket"
+    MONTHLY_PASS = "Monthly Pass"
+    DAY_PASS = "Day Pass"
+    PAPER_TICKET = "Paper Ticket"
+    MOBILE_APP = "Mobile App"
+    E_TICKET = "E-Ticket"
     TRANSFER = "Transfer"
     FREE = "Free"
     OTHER = "Other"
@@ -321,6 +320,7 @@ class SurveyType(str, Enum):
     ON_OFF_DUMMY = "On-off dummy"
     MIX = "Mix"
     OTHER = "Other"
+    MISSING = "Missing"
 
 
 class InterviewLanguage(str, Enum):
@@ -362,3 +362,4 @@ class FieldLanguage(str, Enum):
     DONT_KNOW_REFUSE = "Don't know/refuse"
     SKIP_PAPER_SURVEY = "Skip - Paper Survey"
     OTHER = "Other"
+    MISSING = "Missing"
