@@ -48,7 +48,12 @@ max-positional-args = 5
     "SLF001",    # allow access to private members in tests
     "DTZ001",    # allow naive datetime in tests
 ]
+
 "scripts/**/*.py" = [
+    "INP001",      # script not part of package
+]
+
+"ingestion/**/*.py" = [
     "INP001",      # script not part of package
     "T201",        # allow print statements in scripts
 ]
@@ -60,7 +65,6 @@ extend-exclude = '''
 /(
     archive
   | \.git
-  | src/transit_passenger_tools/data_models\.py
 )/
 '''
 

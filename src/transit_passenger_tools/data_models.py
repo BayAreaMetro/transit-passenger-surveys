@@ -47,7 +47,10 @@ class SurveyMetadata(BaseModel):
         str_strip_whitespace=True,
     )
 
-    # ========== Composite Primary Key ==========
+    # ========== Primary Key ==========
+    survey_id: str = Field(..., max_length=100, description="Unique survey identifier (operator_year format)")
+
+    # ========== Survey Identifiers ==========
     survey_year: int = Field(..., ge=1990, le=2100, description="Year survey conducted")
     canonical_operator: str = Field(..., max_length=50, description="Standardized operator name")
 
@@ -87,13 +90,14 @@ class SurveyResponse(BaseModel):
     )
 
     # ========== Primary Key ==========
-    unique_id: str = Field(..., max_length=100, description="Unique record identifier (concatenation of ID, operator, year)")
+    response_id: str = Field(..., max_length=100, description="Unique response record identifier (concatenation of original_id, operator, year)")
+
+    # ========== Foreign Keys ==========
+    survey_id: str = Field(..., max_length=100, description="Foreign key to SurveyMetadata.survey_id")
 
     # ========== Survey Identifiers ==========
-    id: str = Field(..., max_length=50, description="Record ID for operator survey")
-    survey_year: int = Field(..., ge=1990, le=2100, description="Year survey conducted")
-    canonical_operator: str = Field(..., max_length=50, description="Standardized operator name")
-    survey_name: str = Field(..., max_length=100, description="Survey name")
+    original_id: str = Field(..., max_length=50, description="Original record ID from operator's survey")
+
 
     # ========== Trip Information ==========
     route: str | None = Field(..., max_length=200, description="Transit route")
@@ -167,53 +171,23 @@ class SurveyResponse(BaseModel):
 
     # ========== Geographic - Lat/Lon Coordinates  ==========
     orig_lat: float | None = Field(..., ge=-90, le=90, description="Trip origin latitude ")
-    orig_lon: float | None = Field(
-        ..., ge=-180, le=180, description="Trip origin longitude "
-    )
-    dest_lat: float | None = Field(..., ge=-90, le=90, description="Trip destination latitude ")
-    dest_lon: float | None = Field(
-        ..., ge=-180, le=180, description="Trip destination longitude "
-    )
-    home_lat: float | None = Field(..., ge=-90, le=90, description="Home location latitude ")
-    home_lon: float | None = Field(
-        ..., ge=-180, le=180, description="Home location longitude "
-    )
-    workplace_lat: float | None = Field(
-        ..., ge=-90, le=90, description="Workplace location latitude "
-    )
-    workplace_lon: float | None = Field(
-        ..., ge=-180, le=180, description="Workplace location longitude "
-    )
-    school_lat: float | None = Field(
-        ..., ge=-90, le=90, description="School location latitude "
-    )
-    school_lon: float | None = Field(
-        ..., ge=-180, le=180, description="School location longitude "
-    )
-    first_board_lat: float | None = Field(
-        ..., ge=-90, le=90, description="First transit boarding location latitude "
-    )
-    first_board_lon: float | None = Field(
-        ..., ge=-180, le=180, description="First transit boarding location longitude "
-    )
-    last_alight_lat: float | None = Field(
-        ..., ge=-90, le=90, description="Last transit alighting location latitude "
-    )
-    last_alight_lon: float | None = Field(
-        ..., ge=-180, le=180, description="Last transit alighting location longitude "
-    )
-    survey_board_lat: float | None = Field(
-        ..., ge=-90, le=90, description="Survey vehicle boarding location latitude "
-    )
-    survey_board_lon: float | None = Field(
-        ..., ge=-180, le=180, description="Survey vehicle boarding location longitude "
-    )
-    survey_alight_lat: float | None = Field(
-        ..., ge=-90, le=90, description="Survey vehicle alighting location latitude "
-    )
-    survey_alight_lon: float | None = Field(
-        ..., ge=-180, le=180, description="Survey vehicle alighting location longitude "
-    )
+    orig_lon: float | None = Field(..., ge=-180, le=180, description="Trip origin longitude ")
+    dest_lat: float | None = Field(..., ge=-90, le=90, description="Trip destination latitude")
+    dest_lon: float | None = Field(..., ge=-180, le=180, description="Trip destination longitude")
+    home_lat: float | None = Field(..., ge=-90, le=90, description="Home location latitude")
+    home_lon: float | None = Field(..., ge=-180, le=180, description="Home location longitude")
+    workplace_lat: float | None = Field(..., ge=-90, le=90, description="Workplace location latitude")
+    workplace_lon: float | None = Field(..., ge=-180, le=180, description="Workplace location longitude")
+    school_lat: float | None = Field(..., ge=-90, le=90, description="School location latitude")
+    school_lon: float | None = Field(..., ge=-180, le=180, description="School location longitude")
+    first_board_lat: float | None = Field(..., ge=-90, le=90, description="First transit boarding location latitude")
+    first_board_lon: float | None = Field(..., ge=-180, le=180, description="First transit boarding location longitude")
+    last_alight_lat: float | None = Field(..., ge=-90, le=90, description="Last transit alighting location latitude")
+    last_alight_lon: float | None = Field(..., ge=-180, le=180, description="Last transit alighting location longitude")
+    survey_board_lat: float | None = Field(..., ge=-90, le=90, description="Survey vehicle boarding location latitude")
+    survey_board_lon: float | None = Field(..., ge=-180, le=180, description="Survey vehicle boarding location longitude")
+    survey_alight_lat: float | None = Field(..., ge=-90, le=90, description="Survey vehicle alighting location latitude")
+    survey_alight_lon: float | None = Field(..., ge=-180, le=180, description="Survey vehicle alighting location longitude")
 
     # ========== Geographic - Rail Stations  ==========
     onoff_enter_station: str | None = Field(..., max_length=100, description="Rail boarding station name ")
@@ -323,9 +297,7 @@ class SurveyResponse(BaseModel):
 
     # ========== Fare Information ==========
     fare_medium: FareMedium | None = Field(..., description="Payment method for fare")
-    fare_category: FareCategory = Field(
-        ..., description="Fare category (adult/youth/senior/disabled)"
-    )
+    fare_category: FareCategory = Field(..., description="Fare category (adult/youth/senior/disabled)")
 
     # ========== Time Information  ==========
     depart_hour: int | None = Field(..., ge=0, le=23, description="Hour leaving home prior to transit trip ")
@@ -394,7 +366,7 @@ class SurveyWeight(BaseModel):
     model_config = ConfigDict(validate_assignment=True)
 
     # ========== Link to Survey Response ==========
-    unique_id: str = Field(..., max_length=100, description="Foreign key to SurveyResponse.unique_id")
+    response_id: str = Field(..., max_length=100, description="Foreign key to SurveyResponse.response_id")
 
     # ========== Weight Scheme Identifier ==========
     weight_scheme: str = Field(..., max_length=50, description="Name of weighting scheme (e.g., '2015_ridership', 'popsim_adjusted')")

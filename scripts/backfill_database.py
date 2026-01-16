@@ -187,7 +187,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
 
         PUMS records lack survey metadata, so we fill required fields with placeholders:
         - field_start/field_end: Use Jan 1 - Dec 31 of survey_year
-        - unique_id, id, survey_name: Use "REGIONAL - PUMS"
+        - response_id, original_id, survey_name: Use "REGIONAL - PUMS"
         """
         return df.with_columns([
             # PUMS dates: January 1st - December 31st of survey year
@@ -204,13 +204,13 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             # PUMS string fields: Fill with operator name
             pl.when(pl.col("canonical_operator") == "REGIONAL - PUMS")
             .then(pl.lit("REGIONAL - PUMS"))
-            .otherwise(pl.col("unique_id"))
-            .alias("unique_id"),
+            .otherwise(pl.col("response_id"))
+            .alias("response_id"),
 
             pl.when(pl.col("canonical_operator") == "REGIONAL - PUMS")
             .then(pl.lit("REGIONAL - PUMS"))
-            .otherwise(pl.col("id"))
-            .alias("id"),
+            .otherwise(pl.col("original_id"))
+            .alias("original_id"),
 
             pl.when(pl.col("canonical_operator") == "REGIONAL - PUMS")
             .then(pl.lit("REGIONAL - PUMS"))
@@ -233,8 +233,8 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
     if string_cols:
         df = df.with_columns([pl.col(col).str.strip_chars() for col in string_cols])
 
-    # Rename columns to match our schema (CSV uses unique_ID, we use unique_id)
-    df = df.rename({"unique_ID": "unique_id", "ID": "id"})
+    # Rename columns to match our schema (CSV uses unique_ID, we use response_id)
+    df = df.rename({"unique_ID": "response_id", "ID": "original_id"})
 
     # Fill NULL canonical_operator with "REGIONAL - PUMS" (for PUMS synthetic data)
     df = df.with_columns(
@@ -773,6 +773,13 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
                 pl.col(field).replace_strict(mapping, default=pl.col(field)).alias(field)
             )
 
+    # Add survey_id (computed from canonical_operator and survey_year)
+    df = df.with_columns(
+        (
+            pl.col("canonical_operator") + "_" + pl.col("survey_year").cast(pl.Utf8)
+        ).alias("survey_id")
+    )
+
     # Log column names for debugging
     logger.info("Columns after rename & normalization: %s...", df.columns[:10])
 
@@ -840,6 +847,36 @@ def validate_schema(df: pl.DataFrame, sample_size: int = 100) -> None:
         raise ValueError(msg)
 
     logger.info("Schema validation passed")
+
+
+def reorder_columns_to_match_schema(df: pl.DataFrame) -> pl.DataFrame:
+    """Reorder DataFrame columns to match Pydantic model field order.
+
+    This ensures Parquet files have columns in the same logical order as the
+    data model definition, with primary keys first.
+
+    Args:
+        df: DataFrame with survey response data
+
+    Returns:
+        DataFrame with columns reordered to match SurveyResponse model
+    """
+    # Get field order from Pydantic model
+    schema_order = list(SurveyResponse.model_fields.keys())
+
+    # Select only fields that exist in both schema and DataFrame
+    existing_cols = [col for col in schema_order if col in df.columns]
+
+    # Preserve extra columns (geography, derived fields) at the end
+    extra_cols = [col for col in df.columns if col not in schema_order]
+
+    logger.info(
+        "Reordering %s columns to match schema (%s extra columns preserved)",
+        len(existing_cols),
+        len(extra_cols)
+    )
+
+    return df.select(existing_cols + extra_cols)
 
 
 def ingest_survey_batches(
@@ -1018,6 +1055,7 @@ def extract_and_ingest_metadata(
         version, commit, data_hash = version_info.get(
             (operator, year), (1, "unknown", "unknown")
         )
+        row["survey_id"] = f"{operator}_{year}"
         row["data_version"] = version
         row["data_commit"] = commit
         row["data_hash"] = data_hash
@@ -1026,6 +1064,23 @@ def extract_and_ingest_metadata(
         rows.append(row)
 
     metadata_df = pl.DataFrame(rows)
+
+    # Reorder columns to match SurveyMetadata model field order
+    metadata_df = metadata_df.select([
+        "survey_id",
+        "survey_year",
+        "canonical_operator",
+        "survey_name",
+        "source",
+        "field_start",
+        "field_end",
+        "inflation_year",
+        "data_version",
+        "data_commit",
+        "data_hash",
+        "ingestion_timestamp",
+        "processing_notes",
+    ])
 
     logger.info("Found %d unique survey combinations", len(metadata_df))
 
@@ -1088,7 +1143,7 @@ def extract_and_ingest_weights(
 
     # Select weight columns and add constants
     weights_df = df.select([
-        "unique_id",
+        pl.col("response_id"),
         pl.col("weight").alias("boarding_weight"),
         "trip_weight",
     ]).with_columns([
@@ -1108,9 +1163,9 @@ def extract_and_ingest_weights(
                 SurveyWeight(**row_dict)
                 valid_rows.append(i)
             except ValidationError as e:
-                unique_id = row_dict["unique_id"]
+                response_id = row_dict["response_id"]
                 errors.append({
-                    "unique_id": unique_id,
+                    "response_id": response_id,
                     "error": str(e)
                 })
 
@@ -1122,7 +1177,7 @@ def extract_and_ingest_weights(
 
             max_errors_to_show = 10
             for err in errors[:max_errors_to_show]:
-                logger.warning("\n%s:", err["unique_id"])
+                logger.warning("\n%s:", err["response_id"])
                 error_lines = err["error"].split("\n")
                 for line in error_lines:
                     if (
@@ -1176,6 +1231,12 @@ def main() -> None:
         logger.info("VALIDATING SCHEMA")
         logger.info("%s", "="*80)
         validate_schema(df)
+
+        # Reorder columns to match schema
+        logger.info("\n%s", "="*80)
+        logger.info("REORDERING COLUMNS TO MATCH SCHEMA")
+        logger.info("%s", "="*80)
+        df = reorder_columns_to_match_schema(df)
 
         # Ingest survey data (collect errors mode)
         logger.info("\n%s", "="*80)

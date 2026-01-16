@@ -474,3 +474,81 @@ def create_views() -> None:
         weights_count = conn.execute("SELECT COUNT(*) FROM survey_weights").fetchone()[0]  # type: ignore[index]
         logger.info("  Verified: survey_weights has %s rows", f"{weights_count:,}")
 
+
+def validate_referential_integrity() -> dict[str, int]:
+    """Validate foreign key relationships in the data lake.
+
+    Checks:
+    1. All SurveyWeight.response_id values reference existing SurveyResponse.response_id
+    2. All SurveyResponse.survey_id values reference existing SurveyMetadata.survey_id
+
+    Returns:
+        Dict with validation results: {
+            'orphaned_weights': count,
+            'orphaned_responses': count
+        }
+
+    Raises:
+        ValueError: If referential integrity violations are found
+    """
+    conn = connect(read_only=True)
+    try:
+        results = {}
+        errors = []
+
+        # Check 1: Weights must reference existing responses
+        orphaned_weights = conn.execute("""
+            SELECT COUNT(*)
+            FROM survey_weights w
+            LEFT JOIN survey_responses r ON w.response_id = r.response_id
+            WHERE r.response_id IS NULL
+        """).fetchone()[0]  # type: ignore[index]
+
+        results["orphaned_weights"] = orphaned_weights
+
+        if orphaned_weights > 0:
+            sample = conn.execute("""
+                SELECT w.response_id
+                FROM survey_weights w
+                LEFT JOIN survey_responses r ON w.response_id = r.response_id
+                WHERE r.response_id IS NULL
+                LIMIT 5
+            """).fetchall()
+            sample_ids = [row[0] for row in sample]
+            errors.append(
+                f"{orphaned_weights} weight records reference non-existent responses. "
+                f"Sample IDs: {', '.join(sample_ids)}"
+            )
+
+        # Check 2: Responses must have metadata (via survey_id foreign key)
+        orphaned_responses = conn.execute("""
+            SELECT COUNT(*)
+            FROM survey_responses r
+            LEFT JOIN survey_metadata m ON r.survey_id = m.survey_id
+            WHERE m.survey_id IS NULL
+        """).fetchone()[0]  # type: ignore[index]
+
+        results["orphaned_responses"] = orphaned_responses
+
+        if orphaned_responses > 0:
+            sample = conn.execute("""
+                SELECT DISTINCT r.survey_id
+                FROM survey_responses r
+                LEFT JOIN survey_metadata m ON r.survey_id = m.survey_id
+                WHERE m.survey_id IS NULL
+                LIMIT 5
+            """).fetchall()
+            sample_ids = [row[0] for row in sample]
+            errors.append(
+                f"{orphaned_responses} response records lack metadata. "
+                f"Missing survey_id: {', '.join(sample_ids)}"
+            )
+
+        if errors:
+            msg = "Referential integrity violations found:\n  - " + "\n  - ".join(errors)
+            raise ValueError(msg)
+
+        logger.info("✓ Referential integrity validation passed")
+        return results
+    finally:
+        conn.close()
