@@ -68,6 +68,17 @@ class Weekpart(str, Enum):
     MISSING = "Missing"
 
 
+class DayPart(str, Enum):
+    """Part of day for survey or trip timing."""
+
+    EARLY_AM = "EARLY AM"
+    AM_PEAK = "AM PEAK"
+    MIDDAY = "MIDDAY"
+    PM_PEAK = "PM PEAK"
+    EVENING = "EVENING"
+    MISSING = "Missing"
+
+
 class TransferOperator(str, Enum):
     """Transit operator for transfers."""
 
