@@ -1,11 +1,17 @@
 """Helpers for adding zone information based on spatial joins.
 
 Using GeoPandas for now but waiting for GeoPolars to mature.
+
+This module provides functions to spatially join survey coordinates to
+various geographic zones (TAZ, MAZ, Census tracts, counties, etc.).
 """
+
+import logging
 
 import geopandas as gpd
 import polars as pl
 
+logger = logging.getLogger(__name__)
 
 def spatial_join_coordinates_to_shapefile(
     df: pl.DataFrame,
@@ -87,4 +93,47 @@ def spatial_join_coordinates_to_shapefile(
 
     # Convert back to polars and select only ID columns
     result = pl.from_pandas(result_pandas)
-    return result.select([id_col, output_id_col])
+    result_slim = result.select([id_col, output_id_col])
+
+    # Join back to original dataframe to preserve all rows data type
+    final_result = df.join(result_slim, on=id_col, how="left")
+
+    return final_result
+
+
+def parse_latlons_from_columns(
+    df: pl.DataFrame,
+    latlon_suffixes: tuple[str, str] = ("lat", "lon"),
+    id_suffix: str = "TAZ"
+    ) -> list[tuple[str, str, str]]:
+    """Parse latitude and longitude column pairs from dataframe columns.
+
+    Parameters:
+    -----------
+    df : pl.DataFrame
+        Input dataframe with coordinate columns
+
+    Returns:
+    --------
+    list[tuple[str, str, str]]
+        List of (latitude_column, longitude_column) tuples
+    """
+    lat_cols = [col for col in df.columns if latlon_suffixes[0] in col]
+    lon_cols = [col for col in df.columns if latlon_suffixes[1] in col]
+
+    lat_lon_pairs = []
+    for lat_col in lat_cols:
+        # Drop lat/lon suffix to find matching prefix, but keep origin case
+        prefix = lat_col.replace(latlon_suffixes[0], "")
+        output_col = lat_col.replace(latlon_suffixes[0], id_suffix)
+        matching_col = next(
+            (
+                lon for lon in lon_cols
+                if prefix == lon.replace(latlon_suffixes[1], "")
+            ),
+            None
+        )
+        if matching_col:
+            lat_lon_pairs.append((lat_col, matching_col, output_col))
+
+    return lat_lon_pairs
