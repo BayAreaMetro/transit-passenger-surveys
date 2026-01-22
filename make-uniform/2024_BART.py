@@ -3,6 +3,7 @@
 from pathlib import Path
 import polars as pl
 import geopandas as gpd
+import os
 
 # Set up input and output directories
 SURVEY_PATH = r"M:/Data/OnBoard/Data and Reports/BART/2024_StationProfileV1_NewWeights_ReducedVariables.xlsx"
@@ -10,12 +11,22 @@ SHP_PATH = r"M:/Data/Requests/Louisa Leung/Caltrain Survey Data/VTATAZ_CCAG/VTAT
 BG_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_bg/tl_2025_06_bg.shp"
 OUTPUT_DIR = r"M:/Data/Requests/Louisa Leung/BART Survey Data/"
 
+Path(r"M:/Data/OnBoard/Data and Reports/BART/").exists()
+
+# If it doesn't already exist, map the network drive
+if not Path("M:/").exists():
+    os.system(r'net use M: \\models.ad.mtc.ca.gov\data\models /persistent:no')
+
+if not Path("M:/").exists():
+    raise FileNotFoundError("Could not access M: drive. Please check network connection.")
+
+
 # NOTE: Will become a reusable function in a shared utils module
 def spatial_join_coordinates_to_shapefile(
     df: pl.DataFrame,
     lat_col: str,
     lon_col: str,
-    shapefile_path: str,
+    shapefile_gdf: gpd.GeoDataFrame,
     shapefile_id_col: str,
     output_id_col: str | None = None,
     id_col: str = "id",
@@ -31,8 +42,8 @@ def spatial_join_coordinates_to_shapefile(
         Name of the latitude column in the input dataframe
     lon_col : str
         Name of the longitude column in the input dataframe
-    shapefile_path : str
-        Path to the shapefile
+    shapefile_gdf : gpd.GeoDataFrame
+        GeoDataFrame of the shapefile
     shapefile_id_col : str
         Name of the ID column in the shapefile (e.g., 'TAZ')
     output_id_col : str | None
@@ -48,7 +59,7 @@ def spatial_join_coordinates_to_shapefile(
         DataFrame with id_col and output_id_col columns
     """
     # Read shapefile and get target CRS
-    shapefile_gdf = gpd.read_file(shapefile_path)[[shapefile_id_col, "geometry"]]
+    shapefile_gdf = shapefile_gdf[[shapefile_id_col, "geometry"]]
     target_crs = shapefile_gdf.crs
 
     if output_id_col is None:
@@ -147,6 +158,8 @@ def main() -> None:
     print("Reading survey data...")
     survey = pl.read_excel(SURVEY_PATH, sheet_name="data")
     codebook = pl.read_excel(SURVEY_PATH, sheet_name="codebook", has_header=False)
+    taz_gdf = gpd.read_file(SHP_PATH)
+    bg_gdf = gpd.read_file(BG_PATH)
 
     codebook.columns = ["Variable", "Description", "Value", "Value_Description"]
 
@@ -155,43 +168,56 @@ def main() -> None:
     taz_configs = parse_latlons_from_columns(survey, ("LAT", "LONG"), "TAZ")
     
     # Process each location type and collect results
+    _survey = survey.clone()
     for lat_col, lon_col, output_col in taz_configs:
         print(f"  Processing {output_col}...")
-        survey_final = spatial_join_coordinates_to_shapefile(
-            df=survey,
+        _survey = spatial_join_coordinates_to_shapefile(
+            df=_survey,
             lat_col=lat_col,
             lon_col=lon_col,
-            shapefile_path=SHP_PATH,
+            shapefile_gdf=taz_gdf,
             shapefile_id_col="TAZ",
             output_id_col=output_col,
             id_col="UNIQUE_IDENTIFIER"
         )
         # Also do block groups
-        survey_final = spatial_join_coordinates_to_shapefile(
-            df=survey_final,
+        _survey = spatial_join_coordinates_to_shapefile(
+            df=_survey,
             lat_col=lat_col,
             lon_col=lon_col,
-            shapefile_path=BG_PATH,
+            shapefile_gdf=bg_gdf,
             shapefile_id_col="GEOID",
             output_id_col=output_col.replace("TAZ", "BG"),
             id_col="UNIQUE_IDENTIFIER"
         )
         # Drop the LAT/LONG columns to sanitize
-        survey_final = survey_final.drop([lat_col, lon_col])
+        print(f"Dropping columns {lat_col}, {lon_col}...")
+        _survey = _survey.drop([lat_col, lon_col])
 
     # Remove PII columns
     pii_columns = []
 
     # Also remove any other columns containing "address"
-    address_cols = [col for col in survey_final.columns if "address_addr" in col.lower()]
+    pii_columns += [col for col in _survey.columns if "address_addr" in col.lower()]
+    pii_columns += [
+        col for col in _survey.columns
+        if any(suffix in col.lower() for suffix in ("lat", "lon", "latitude", "longitude"))
+    ]
     columns_to_drop = [
-        col for col in list(set(pii_columns + address_cols))
-        if col in survey_final.columns
+        col for col in list(set(pii_columns))
+        if col in _survey.columns
     ]
 
     if columns_to_drop:
-        survey_final = survey_final.drop(columns_to_drop)
-
+        print(f"Dropping PII columns: {columns_to_drop}...")
+        _survey = _survey.drop(columns_to_drop)
+    
+    # Check one last time if for any PII columns
+    for col in pii_columns:
+        if col in _survey.columns:
+            raise ValueError(f"PII column {col} was not dropped successfully.")
+    
+    survey_final = _survey
     # Write output
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
     output_file = Path(OUTPUT_DIR) / "BART_2024_Aggregated.csv"
