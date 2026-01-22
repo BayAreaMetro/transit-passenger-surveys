@@ -12,6 +12,7 @@ dependencies = [
     "polars>=1.37.0",
     "pyarrow>=22.0.0",
     "pydantic>=2.12.5",
+    "rapidfuzz>=3.14.3",
 ]
 
 [build-system]
@@ -33,7 +34,7 @@ lint.ignore = [
     "ERA001",  # Ignore commented out code
 ]
 lint.pydocstyle.convention = "google"
-exclude = ["archive", "*.html", "uv.lock"]
+exclude = ["archive/**", "*.html", "uv.lock"]
 
 [tool.ruff.lint.pylint]
 max-args = 10
