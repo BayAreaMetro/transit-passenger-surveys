@@ -7,8 +7,9 @@ import os
 
 # Set up input and output directories
 SURVEY_PATH = r"M:/Data/OnBoard/Data and Reports/BART/2024_StationProfileV1_NewWeights_ReducedVariables.xlsx"
-SHP_PATH = r"M:/Data/Requests/Louisa Leung/Caltrain Survey Data/VTATAZ_CCAG/VTATAZ.shp"
-BG_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_bg/tl_2025_06_bg.shp"
+TAZ_PATH = r"M:/Data/Requests/Louisa Leung/Caltrain Survey Data/VTATAZ_CCAG/VTATAZ.shp"
+BG_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_bg.zip"
+TRACT_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_tract.zip"
 OUTPUT_DIR = r"M:/Data/Requests/Louisa Leung/BART Survey Data/"
 
 Path(r"M:/Data/OnBoard/Data and Reports/BART/").exists()
@@ -113,8 +114,8 @@ def spatial_join_coordinates_to_shapefile(
 def parse_latlons_from_columns(
     df: pl.DataFrame,
     latlon_suffixes: tuple[str, str] = ("lat", "lon"),
-    id_suffix: str = "TAZ"
-    ) -> list[tuple[str, str, str]]:
+    id_suffixes: list = ["TAZ"]
+    ) -> list[tuple[str, str, str, str]]:
     """Parse latitude and longitude column pairs from dataframe columns.
 
     Parameters:
@@ -124,8 +125,8 @@ def parse_latlons_from_columns(
 
     Returns:
     --------
-    list[tuple[str, str, str]]
-        List of (latitude_column, longitude_column) tuples
+    list[tuple[str, str, str, str]]
+        List of (latitude_column, longitude_column, output_column, id_suffix) tuples
     """
     lat_cols = [col for col in df.columns if latlon_suffixes[0] in col]
     lon_cols = [col for col in df.columns if latlon_suffixes[1] in col]
@@ -134,16 +135,17 @@ def parse_latlons_from_columns(
     for lat_col in lat_cols:
         # Drop lat/lon suffix to find matching prefix, but keep origin case
         prefix = lat_col.replace(latlon_suffixes[0], "")
-        output_col = lat_col.replace(latlon_suffixes[0], id_suffix)
-        matching_col = next(
-            (
-                lon for lon in lon_cols
-                if prefix == lon.replace(latlon_suffixes[1], "")
-            ),
-            None
-        )
-        if matching_col:
-            lat_lon_pairs.append((lat_col, matching_col, output_col))
+        for id_suffix in id_suffixes:
+            output_col = lat_col.replace(latlon_suffixes[0], id_suffix)
+            matching_col = next(
+                (
+                    lon for lon in lon_cols
+                    if prefix == lon.replace(latlon_suffixes[1], "")
+                ),
+                None
+            )
+            if matching_col:
+                lat_lon_pairs.append((lat_col, matching_col, output_col, id_suffix))
 
     return lat_lon_pairs
 
@@ -156,73 +158,66 @@ def main() -> None:
     """Main processing function for BART spatial aggregation."""
     # Read survey data
     print("Reading survey data...")
-    survey = pl.read_excel(SURVEY_PATH, sheet_name="data")
+    survey = pl.read_excel(SURVEY_PATH, sheet_name="data", infer_schema_length=15000)
     codebook = pl.read_excel(SURVEY_PATH, sheet_name="codebook", has_header=False)
-    taz_gdf = gpd.read_file(SHP_PATH)
-    bg_gdf = gpd.read_file(BG_PATH)
+    
+    geo_cache = {
+        "TAZ": gpd.read_file(TAZ_PATH),
+        "BG": gpd.read_file(BG_PATH).rename(columns={"GEOID": "BG"}),
+        "TRACT": gpd.read_file(TRACT_PATH).rename(columns={"GEOID": "TRACT"})
+    }
 
     codebook.columns = ["Variable", "Description", "Value", "Value_Description"]
 
     # Process each location type
     print("Processing spatial joins...")
-    taz_configs = parse_latlons_from_columns(survey, ("LAT", "LONG"), "TAZ")
+    taz_configs = parse_latlons_from_columns(survey, ("LAT", "LONG"), ["TAZ", "TRACT", "BG"])   
     
     # Process each location type and collect results
     _survey = survey.clone()
-    for lat_col, lon_col, output_col in taz_configs:
+    for lat_col, lon_col, output_col, shp_id_col in taz_configs:
         print(f"  Processing {output_col}...")
         _survey = spatial_join_coordinates_to_shapefile(
             df=_survey,
             lat_col=lat_col,
             lon_col=lon_col,
-            shapefile_gdf=taz_gdf,
-            shapefile_id_col="TAZ",
+            shapefile_gdf=geo_cache[shp_id_col],
+            shapefile_id_col=shp_id_col,
             output_id_col=output_col,
             id_col="UNIQUE_IDENTIFIER"
         )
-        # Also do block groups
-        _survey = spatial_join_coordinates_to_shapefile(
-            df=_survey,
-            lat_col=lat_col,
-            lon_col=lon_col,
-            shapefile_gdf=bg_gdf,
-            shapefile_id_col="GEOID",
-            output_id_col=output_col.replace("TAZ", "BG"),
-            id_col="UNIQUE_IDENTIFIER"
-        )
-        # Drop the LAT/LONG columns to sanitize
-        print(f"Dropping columns {lat_col}, {lon_col}...")
-        _survey = _survey.drop([lat_col, lon_col])
 
     # Remove PII columns
-    pii_columns = []
+    print("Removing PII columns...")   
+    danger_parts = (
+        "lat", "lon", "latitude", "longitude",
+        "address_place", "address_addr", "address_searchkey",
+        "_OLD"
+    )
 
-    # Also remove any other columns containing "address"
-    pii_columns += [col for col in _survey.columns if "address_addr" in col.lower()]
-    pii_columns += [
-        col for col in _survey.columns
-        if any(suffix in col.lower() for suffix in ("lat", "lon", "latitude", "longitude"))
-    ]
-    columns_to_drop = [
-        col for col in list(set(pii_columns))
-        if col in _survey.columns
-    ]
+    # Scan through for columns to remove
+    for col in _survey.columns:
+        if any(suffix in col.lower() for suffix in danger_parts):
+            print(f"Dropping PII column: {col}...")
+            _survey = _survey.drop(col)
 
-    if columns_to_drop:
-        print(f"Dropping PII columns: {columns_to_drop}...")
-        _survey = _survey.drop(columns_to_drop)
-    
-    # Check one last time if for any PII columns
-    for col in pii_columns:
-        if col in _survey.columns:
-            raise ValueError(f"PII column {col} was not dropped successfully.")
-    
+    # Final survey store    
     survey_final = _survey
-    # Write output
+
+    # Write output - Split by Zone aggregation type
+    print("Writing output files...")   
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-    output_file = Path(OUTPUT_DIR) / "BART_2024_Aggregated.csv"
-    print(f"Writing output to {output_file}...")
-    survey_final.write_csv(output_file)
+    
+    zones = ["TAZ", "TRACT", "BG"]
+    for zone_type in zones:
+        output_file = Path(OUTPUT_DIR) / f"BART_2024_Aggregated_{zone_type}.csv"
+        print(f"Writing output to {output_file}...")
+        
+        # Drop all other zone types
+        other_zones = [z for z in zones if z != zone_type]
+        drop_cols = [col for col in survey_final.columns if any(f"_{oz}" in col for oz in other_zones)]
+        _survey_zone = survey_final.drop(drop_cols)
+        _survey_zone.write_csv(output_file)
 
     codebook_output_file = Path(OUTPUT_DIR) / "BART_2024_Codebook.csv"
     print(f"Writing codebook to {codebook_output_file}...")
