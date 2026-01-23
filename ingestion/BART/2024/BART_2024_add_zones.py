@@ -10,10 +10,24 @@ from transit_passenger_tools.add_zone import (
 )
 
 # Set up input and output directories
-SURVEY_PATH = r"M:/Data/OnBoard/Data and Reports/BART/2024/2024 BART OD Data (sent 11.7.2024).xlsx"
+SURVEY_PATH = (
+    r"M:/Data/OnBoard/Data and Reports/BART/"
+    r"2024_StationProfileV1_NewWeights_ReducedVariables.xlsx"
+)
 SHP_PATH = r"M:/Data/Requests/Louisa Leung/BART Survey Data/VTATAZ_CCAG/VTATAZ.shp"
+BG_PATH = r"M:/Data/GIS layers/Census/2020/tl_2020_06_bg2020/tl_2020_06_bg2020.shp"
 OUTPUT_DIR = r"M:/Data/Requests/Louisa Leung/BART Survey Data/"
 
+net_paths = {
+    "M:": r"\\models.ad.mtc.ca.gov\data\models"
+}
+
+# Replace letter drives with UNC paths for compatibility
+for drive, unc_path in net_paths.items():
+    SURVEY_PATH = SURVEY_PATH.replace(drive, unc_path)
+    SHP_PATH = SHP_PATH.replace(drive, unc_path)
+    BG_PATH = BG_PATH.replace(drive, unc_path)
+    OUTPUT_DIR = OUTPUT_DIR.replace(drive, unc_path)
 
 # ============================================================================
 # MAIN PROCESSING

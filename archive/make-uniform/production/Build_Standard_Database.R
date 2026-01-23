@@ -30,6 +30,7 @@
 # To use these scripts, analysts must intervene at specific locations. To assist
 # in this work, we've added notes where interventions are necessary.
 
+system("net use M: \\\\models.ad.mtc.ca.gov\\data\\models /persistent:no")
 
 #### Libraries
 
@@ -63,6 +64,10 @@ source("Combine_Legacy_Standard_Surveys.R")
 source("Impute_Continuous_Income_Value.R")
 
 #### Parameters
+TEST_MODE_OPERATORS = c('BART')
+TEST_MODE_YEARS = c(2024)
+LOG = FALSE
+
 OPERATOR_DELIMITER = "___"
 ROUTE_DELIMITER = "&&&"
 
@@ -94,18 +99,20 @@ user_list <- data.frame(
            "ftsang",
            "ywang",
            "SIsrael",
-           "lzorn"),
+           "lzorn",
+           "nfournier"),
   path = c("~/GitHub/onboard-surveys/Data and Reports",
            "M:/Data/OnBoard/Data and Reports",
            "M:/Data/OnBoard/Data and Reports",
            "M:/Data/OnBoard/Data and Reports", 
+           "M:/Data/OnBoard/Data and Reports",
            "M:/Data/OnBoard/Data and Reports"
   )
 )
 
 today = Sys.Date()
 TPS_SURVEY_PATH <- user_list %>%
-  filter(user == Sys.getenv("USERNAME")) %>%
+  dplyr::filter(user == Sys.getenv("USERNAME")) %>%
   .$path
 TPS_SURVEY_STANDARDIZED_PATH <- file.path(
   TPS_SURVEY_PATH,
@@ -118,21 +125,25 @@ if (!file.exists(TPS_SURVEY_STANDARDIZED_PATH)) {
   print(paste("Created",TPS_SURVEY_STANDARDIZED_PATH))
 }
 
+
 # Setup the log file
 run_log <- file.path(TPS_SURVEY_STANDARDIZED_PATH,
   "Build_Standard_Database.log")
 print(paste("Writing log to",run_log))
 # print wide since it's to a log file
-options(width = 10000)
-options(dplyr.width = 10000)
-options(datatable.print.nrows = 1000)
+
+if (LOG) {
+  sink(run_log, append=FALSE, type = c('output', 'message'))
+  options(width = 10000)
+  options(dplyr.width = 10000)
+  options(datatable.print.nrows = 1000)
+}
+
 options(warn=2) # error on warning
 # don't warn: "summarise()` has grouped output by ... You can override using the `.groups` argument."
 options(dplyr.summarise.inform=F) 
 # enable caching
 options(tigris_use_cache = TRUE)
-
-sink(run_log, append=FALSE, type = c('output', 'message'))
 
 # Inputs - dictionary and other utils
 f_dict_standard <- "Dictionary_for_Standard_Database.csv"
@@ -184,9 +195,10 @@ f_canonical_routes_path <- "canonical_route_crosswalk.csv"
 # here and add route-specific # changes to the `canonical` route database 
 # (e.g., SF Muni Metro routes are `light rail`)
 
-TEST_MODE_OPERATORS = c()
 print("TEST_MODE_OPERATORS:")
 print(TEST_MODE_OPERATORS)
+print("TEST_MODE_YEARS:")
+print(TEST_MODE_YEARS)
 
 survey_input_df <- data.frame(
   survey_name      = character(),
@@ -216,6 +228,17 @@ survey_input_df <- survey_input_df %>% add_row(
     TPS_SURVEY_PATH,
     "BART","As CSV",
     "BART_Final_Database_Mar18_SUBMITTED_with_station_xy_with_first_board_last_alight_fixColname_modifyTransfer_NO POUND OR SINGLE QUOTE.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  survey_name     = 'BART',
+  survey_year     = 2024,
+  operator        = 'BART',
+  default_tech    = 'heavy rail',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "BART",
+    "BART_2024_preprocessed.csv"
   )
 )
 survey_input_df <- survey_input_df %>% add_row(
@@ -585,9 +608,15 @@ print('Read and combine survey raw data from multiple operators')
 survey_combine <- data.frame()
 for( i in rownames(survey_input_df) ) {
   # if we are only processing TEST_MODE_OPERATORS then skip others
-  if ((length(TEST_MODE_OPERATORS) > 0) & 
-        !(survey_input_df[i, "survey_name"] %in% TEST_MODE_OPERATORS))
-  {
+  if (
+    (
+      (length(TEST_MODE_OPERATORS) > 0) &&
+      !(survey_input_df[i, "survey_name"] %in% TEST_MODE_OPERATORS)
+    ) || (
+      (length(TEST_MODE_YEARS) > 0) &&
+      !(survey_input_df[i, "survey_year"] %in% TEST_MODE_YEARS)
+    )
+  ) {
     next
   }
   print(paste("Processing", survey_input_df[i, "survey_name"], 
@@ -667,14 +696,15 @@ survey_flat <- bind_rows(survey_cat, survey_non) %>%
 survey_flat <- mutate(survey_flat,
   survey_name_year = paste(survey_name, survey_year))
 
-# Cast certain columns to numeric - hour, lat/lon, weight
+# Cast certain columns to numeric - hour, lat/lon, weight, survey_year
 # don't warn on NAs introduced by coercion
 suppressWarnings(
   survey_flat <- survey_flat %>%
     mutate_at(vars(contains("hour")), as.numeric) %>%
     mutate(across(ends_with('_lat'), as.double)) %>%
     mutate(across(ends_with('_lon'), as.double)) %>%
-    mutate(weight = as.numeric(weight))
+    mutate(weight = as.numeric(weight)) %>%
+    mutate(survey_year = as.integer(survey_year))
 )
 
 print("str(survey_flat):")
@@ -1665,6 +1695,23 @@ table(survey_standard$eng_proficient, useNA = 'ifany')
 # Step 8:  Set dates and times ---------------------------------------------------------
 print('Configure date- and time-related variables')
 
+# If field missing add null columns
+if(!"date_string" %in% colnames(survey_standard)) {
+  survey_standard <- survey_standard %>%
+    mutate(date_string = NA_character_)
+}
+
+# If field missing add null columns
+if(!"time_string" %in% colnames(survey_standard)) {
+  survey_standard <- survey_standard %>%
+    mutate(time_string = NA_character_)
+}
+
+if (!"weekpart" %in% colnames(survey_standard)) {
+  survey_standard <- survey_standard %>%
+    mutate(weekpart = NA_character_)
+}
+
 # Deal with date and time
 survey_standard <- survey_standard %>%
   mutate(date_string = ifelse(str_length(date_string) == 0, NA, date_string)) %>%
@@ -2111,34 +2158,41 @@ saveRDS(survey_decomposition, file = f_output_decom_rdata_path)
 write.csv(survey_decomposition, file = f_output_decom_csv_path,  row.names = FALSE)
 
 # Drop variables we don't want to carry forward to standard dataset
+columns_to_drop <- c(
+    "survey_name_year",
+    "at_school_after_dest_purp",
+    "at_school_prior_to_orig_purp",
+    "at_work_after_dest_purp",
+    "at_work_prior_to_orig_purp",
+    "date",
+    "date1",
+    "date2",
+    "time_start",
+    "day_part_temp",
+    "year_born",
+    "number_transfers_alight_dest",
+    "number_transfers_orig_board",
+    "first_route_before_survey_board",
+    "first_route_after_survey_alight",
+    "second_route_before_survey_board",
+    "second_route_after_survey_alight",
+    "third_route_before_survey_board",
+    "third_route_after_survey_alight",
+    "alt_weight",
+    "rate_conductors",
+    "rate_overall",
+    "rate_schedules",
+    "rate_station",
+    "rate_value",
+    "wcode",
+    "tweight"
+)
+
+# Only drop columns that exist
+columns_to_drop <- columns_to_drop[columns_to_drop %in% colnames(survey_standard)]
+
 survey_standard <- survey_standard %>%
-  select(-survey_name_year,
-         -at_school_after_dest_purp,
-         -at_school_prior_to_orig_purp,
-         -at_work_after_dest_purp,
-         -at_work_prior_to_orig_purp,
-         -date,
-         -date1,
-         -date2,
-         -time_start,
-         -day_part_temp,
-         -year_born,
-         -number_transfers_alight_dest,
-         -number_transfers_orig_board,
-         -first_route_before_survey_board,
-         -first_route_after_survey_alight,
-         -second_route_before_survey_board,
-         -second_route_after_survey_alight,
-         -third_route_before_survey_board,
-         -third_route_after_survey_alight,
-         -alt_weight,
-         -rate_conductors,
-         -rate_overall,
-         -rate_schedules,
-         -rate_station,
-         -rate_value,
-         -wcode,
-         -tweight)
+  select(-all_of(columns_to_drop))
 
 
 ## Write RDS to disk
