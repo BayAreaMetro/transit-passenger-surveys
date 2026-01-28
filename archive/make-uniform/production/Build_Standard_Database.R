@@ -2260,7 +2260,7 @@ str(survey_combine, list.len=ncol(survey_combine))
 
 unique_years <- unique(survey_combine$survey_year)
 
-pums_comparisons <- map_dfr(unique_years, ~ create_PUMS_data_in_TPS_format(survey_year = .x, inflation_year = 2023))
+pums_comparisons <- map_dfr(unique_years, ~ create_PUMS_data_in_TPS_format(survey_year = .x, inflation_year = 2024))
 
 # Step 13:  Bind the files together for export, export data----------------------------------
 # Add source to survey file first
