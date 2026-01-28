@@ -12,7 +12,43 @@ BG_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_bg.zip"
 TRACT_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_tract.zip"
 OUTPUT_DIR = r"M:/Data/Requests/Louisa Leung/BART Survey Data/"
 
-Path(r"M:/Data/OnBoard/Data and Reports/BART/").exists()
+# ============================================================================
+# FINALCOLUMNS | Optional: Specify final columns to keep in output
+# ============================================================================
+FINAL_COLUMNS = [
+    "UNIQUE_IDENTIFIER",
+    "ID",
+    "combined_OD_weight_NEW",
+    "DATE_COMPLETED",
+    "SURVEY_START_TIME",
+    "ENTRY_STATION_FINAL",
+    "EXIT_STATION_FINAL",
+    "TIME_ON_fnl",
+    "ORIGIN_PLACE_TYPE_FINAL",
+    "ORIGIN_TRANSPORT_FINAL",
+    "ACCESS_WALK_TIME",
+    "ACCESS_PARKED",
+    "ORIGIN_TRANSIT_AGENCY_TOBART_fnl",
+    "ORIGIN_TRANSIT_ROUTE_TOBART_fnl",
+    "ORIGIN_TRANSIT_ROUTE_PRIOR_fnl",
+    "ORIGIN_SHUTTLE_FINAL",
+    "DESTIN_PLACE_FINAL",
+    "DESTIN_ADDRESS_LAT",
+    "DESTIN_ADDRESS_LONG",
+    "DESTIN_TRANSPORT_FINAL",
+    "EGRESS_WALK_TIME",
+    "EGRESS_PARKED",
+    "EGRESS_AGENCY_fnl",
+    "EgressRoute_FromBART1_fnl",
+    "EGRESS_TRANSIT_FromBART2_fnl",
+    "EGRESS_TRANSIT_FromBART3_fnl",
+    "EGRESS_SHUTTLE_FINAL",
+    "TYPE_OF_FARE",
+    "COUNT_VH_HH",
+    "PREV_TRANSFERS",
+    "NEXT_TRANSFERS",
+]
+
 
 # If it doesn't already exist, map the network drive
 if not Path("M:/").exists():
@@ -161,17 +197,25 @@ def main() -> None:
     survey = pl.read_excel(SURVEY_PATH, sheet_name="data", infer_schema_length=15000)
     codebook = pl.read_excel(SURVEY_PATH, sheet_name="codebook", has_header=False)
     
+    # Prepare codebook
+    codebook.columns = ["Variable", "Description", "Value", "Value_Description"]
+    
+    # Filter survey to the required columns
+    survey = survey.select(FINAL_COLUMNS)
+    print(f"Survey data contains {survey.height} records and {survey.width} columns.")
+    
+    # Load shapefiles into GeoDataFrames
+    print("Loading shapefiles...")
     geo_cache = {
         "TAZ": gpd.read_file(TAZ_PATH),
         "BG": gpd.read_file(BG_PATH).rename(columns={"GEOID": "BG"}),
         "TRACT": gpd.read_file(TRACT_PATH).rename(columns={"GEOID": "TRACT"})
     }
-
-    codebook.columns = ["Variable", "Description", "Value", "Value_Description"]
+    zones = list(geo_cache.keys())
 
     # Process each location type
     print("Processing spatial joins...")
-    taz_configs = parse_latlons_from_columns(survey, ("LAT", "LONG"), ["TAZ", "TRACT", "BG"])   
+    taz_configs = parse_latlons_from_columns(survey, ("LAT", "LONG"), zones)   
     
     # Process each location type and collect results
     _survey = survey.clone()
@@ -208,9 +252,14 @@ def main() -> None:
     print("Writing output files...")   
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
     
-    zones = ["TAZ", "TRACT", "BG"]
+    # Save the full survey with all zone types and LAT/LON included
+    full_output_file = Path(OUTPUT_DIR) / "BART_2024_latlon_and_zones.csv"
+    print(f"Writing full output to {full_output_file}...")
+    survey_final.write_csv(full_output_file)
+    
+    # Save separate files for each zone type
     for zone_type in zones:
-        output_file = Path(OUTPUT_DIR) / f"BART_2024_Aggregated_{zone_type}.csv"
+        output_file = Path(OUTPUT_DIR) / f"BART_2024_{zone_type}.csv"
         print(f"Writing output to {output_file}...")
         
         # Drop all other zone types
