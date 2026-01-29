@@ -1,0 +1,100 @@
+# Transit Passenger Survey Pipeline Configuration
+
+# Shapefile paths for geocoding (use M: mapped drive, falls back to remote_name if unmapped)
+shapefiles:
+  tm1_taz: "M:\\Data\\OnBoard\\Geography Files\\bayarea_rtaz1454_rev1_WGS84.shp"
+  tm2_taz: "M:\\Data\\OnBoard\\Geography Files\\tazs_TM2_v2_2.shp"
+  tm2_maz: "M:\\Data\\OnBoard\\Geography Files\\mazs_TM2_v2_2.shp"
+  counties: "M:\\Data\\OnBoard\\Geography Files\\tl_2020_us_county.shp"
+  tracts: "M:\\Data\\OnBoard\\Geography Files\\tl_2020_06_tract.shp"
+  puma: "M:\\Data\\OnBoard\\Geography Files\\tl_2020_06_puma20"
+  stations: "M:\\Data\\OnBoard\\Geography Files\\Passenger_Railway_Stations_2018.shp"
+
+# Remote UNC path mapping (fallback when M: not mapped)
+remote_name: "\\\\models.ad.mtc.ca.gov\\data\\models"
+
+# Geographic zone configurations for geocoding
+# Maps output field names to shapefile keys and their field names
+geocoding_zones:
+  - zone_type: "tm1_taz"
+    shapefile_key: "tm1_taz"
+    field_name: "TAZ1454"
+  - zone_type: "tm2_taz"
+    shapefile_key: "tm2_taz"
+    field_name: "TAZ"
+  - zone_type: "tm2_maz"
+    shapefile_key: "tm2_maz"
+    field_name: "MAZ"
+  - zone_type: "tract_geoid"
+    shapefile_key: "tracts"
+    field_name: "GEOID"
+  - zone_type: "county_geoid"
+    shapefile_key: "counties"
+    field_name: "GEOID"
+  - zone_type: "puma_geoid"
+    shapefile_key: "puma"
+    field_name: "GEOID20"
+
+# Distance pairs to calculate for geocoding (from_location, to_location, output_column)
+geocoding_distances:
+  - from: "orig"
+    to: "dest"
+    column: "orig_dest_dist"
+  - from: "orig"
+    to: "first_board"
+    column: "orig_firstboard_dist"
+  - from: "orig"
+    to: "survey_board"
+    column: "orig_surveyboard_dist"
+  - from: "survey_alight"
+    to: "dest"
+    column: "survey_alight_dest_dist"
+  - from: "last_alight"
+    to: "dest"
+    column: "last_alight_dest_dist"
+  - from: "first_board"
+    to: "last_alight"
+    column: "firstboard_lastalight_dist"
+
+# Coordinate reference systems
+crs:
+  nad83_ca_zone6: 2230  # EPSG:2230 - NAD83 California Zone 6 Feet
+  wgs84: 4326           # EPSG:4326 - WGS84
+
+# Data lake configuration
+data_lake_root: "\\\\models.ad.mtc.ca.gov\\data\\models\\Data\\OnBoard\\Data and Reports\\_data_lake"
+
+# Reference data paths
+canonical_route_crosswalk_path: "fixtures/canonical_route_crosswalk.csv"
+
+# Megaregion counties (Bay Area + adjacent) - FIPS codes
+megaregion_counties:
+  - "06001"  # Alameda
+  - "06013"  # Contra Costa
+  - "06041"  # Marin
+  - "06055"  # Napa
+  - "06075"  # San Francisco
+  - "06081"  # San Mateo
+  - "06085"  # Santa Clara
+  - "06095"  # Solano
+  - "06097"  # Sonoma
+  - "06069"  # San Benito
+  - "06087"  # Santa Cruz
+  - "06099"  # Stanislaus
+  - "06077"  # San Joaquin
+  - "06047"  # Merced
+  - "06067"  # Sacramento
+  - "06113"  # Yolo
+  - "06061"  # Placer
+  - "06115"  # Yuba
+  - "06101"  # Sutter
+  - "06017"  # El Dorado
+  - "06057"  # Nevada
+  - "06005"  # Amador
+  - "06103"  # Tehama
+
+# Validation thresholds
+# TODO: We'll need to remove these fields after this development cycle
+validation_thresholds:
+  tier2_completion_min: 0.95      # Minimum completion rate for critical Tier 2 fields
+  anomaly_count_max: 100          # Maximum number of anomalies allowed

@@ -23,7 +23,7 @@ class AccessEgressMode(str, Enum):
     MISSING_NOT_ASKED = "Missing - Question Not Asked"
 
 
-# NOTE: Standardize these values... maybe...
+# NOTE: Standardize these values...
 class Direction(str, Enum):
     """Direction of travel."""
 
@@ -77,6 +77,48 @@ class DayPart(str, Enum):
     PM_PEAK = "PM PEAK"
     EVENING = "EVENING"
     MISSING = "Missing"
+
+    def time_range(self) -> tuple[int, int] | None:
+        """Get the hour range for this day part (closed intervals).
+        
+        Returns:
+            Tuple of (start_hour, end_hour) inclusive, or None for EVENING/MISSING.
+            EVENING covers 19:00-2:59 (wraps around midnight).
+        """
+        ranges = {
+            DayPart.EARLY_AM: (3, 5),    # 3:00 - 5:59
+            DayPart.AM_PEAK: (6, 9),     # 6:00 - 9:59
+            DayPart.MIDDAY: (10, 14),    # 10:00 - 14:59
+            DayPart.PM_PEAK: (15, 18),   # 15:00 - 18:59
+            # EVENING: everything else (19-2)
+        }
+        return ranges.get(self)
+
+    def to_period_code(self) -> str | None:
+        """Convert to travel model period code by taking first letter(s).
+        
+        Returns:
+            Period code string ("EA", "AM", "MD", "PM", "EV"), or None for MISSING.
+            
+        Examples:
+            >>> DayPart.EARLY_AM.to_period_code()
+            'EA'
+            >>> DayPart.AM_PEAK.to_period_code()
+            'AM'
+            >>> DayPart.MISSING.to_period_code()
+            None
+        """
+        if self == DayPart.MISSING:
+            return None
+        # Map each day part to its period code
+        codes = {
+            DayPart.EARLY_AM: "EA",
+            DayPart.AM_PEAK: "AM",
+            DayPart.MIDDAY: "MD",
+            DayPart.PM_PEAK: "PM",
+            DayPart.EVENING: "EV",
+        }
+        return codes.get(self)
 
 
 class TransferOperator(str, Enum):
@@ -169,6 +211,7 @@ class TripPurpose(str, Enum):
     HOME = "Home"
     WORK = "Work"
     WORK_RELATED = "Work-related"
+    SCHOOL = "School"
     COLLEGE = "College"
     UNIVERSITY = "University"
     HIGH_SCHOOL = "High school"
@@ -188,15 +231,84 @@ class TripPurpose(str, Enum):
 
 
 class TechnologyType(str, Enum):
-    """Transit vehicle technology type."""
+    """Transit vehicle technology type.
+    
+    Order matters - defines hierarchy for BEST_MODE (lowest to highest priority).
+    """
 
     LOCAL_BUS = "Local Bus"
     EXPRESS_BUS = "Express Bus"
+    FERRY = "Ferry Boat"
     LIGHT_RAIL = "Light Rail"
     HEAVY_RAIL = "Heavy Rail"
     COMMUTER_RAIL = "Commuter Rail"
-    FERRY = "Ferry"
     MISSING = "Missing"
+
+    def to_short_code(self) -> str | None:
+        """Convert to technology short code by taking first letter of each word.
+        
+        Returns:
+            Short code string (e.g., "LB" for Local Bus, "FB" for Ferry Boat),
+            or None for MISSING.
+            
+        Examples:
+            >>> TechnologyType.LOCAL_BUS.to_short_code()
+            'LB'
+            >>> TechnologyType.FERRY.to_short_code()
+            'FB'
+            >>> TechnologyType.MISSING.to_short_code()
+            None
+        """
+        if self == TechnologyType.MISSING:
+            return None
+        # Take first letter of each word
+        return "".join(word[0].upper() for word in self.value.split())
+
+    def to_column_name(self) -> str:
+        """Convert to database/column-safe name (lowercase with underscores).
+        
+        Returns:
+            Column-safe name string (e.g., "local_bus", "ferry", "heavy_rail").
+            Special case: "Ferry Boat" becomes "ferry" not "ferry_boat".
+            
+        Examples:
+            >>> TechnologyType.LOCAL_BUS.to_column_name()
+            'local_bus'
+            >>> TechnologyType.FERRY.to_column_name()
+            'ferry'
+            >>> TechnologyType.HEAVY_RAIL.to_column_name()
+            'heavy_rail'
+        """
+        # Special case for Ferry Boat -> ferry
+        if self == TechnologyType.FERRY:
+            return "ferry"
+        # Convert to lowercase with underscores
+        return self.value.replace(" ", "_").lower()
+
+    @classmethod
+    def hierarchy(cls) -> list["TechnologyType"]:
+        """Get technology types in hierarchy order (lowest to highest priority).
+        
+        Returns list excluding MISSING.
+        """
+        return [
+            cls.LOCAL_BUS,
+            cls.EXPRESS_BUS,
+            cls.FERRY,
+            cls.LIGHT_RAIL,
+            cls.HEAVY_RAIL,
+            cls.COMMUTER_RAIL,
+        ]
+
+    def hierarchy_rank(self) -> int | None:
+        """Get hierarchy rank (0=lowest priority, higher=more important).
+        
+        Returns None for MISSING.
+        """
+        try:
+            return self.hierarchy().index(self)
+        except ValueError:
+            return None
 
 
 class Gender(str, Enum):
@@ -244,6 +356,7 @@ class StudentStatus(str, Enum):
     FULL_OR_PART_TIME = "Full- or part-time"
     NON_STUDENT = "Non-student"
     MISSING = "Missing"
+
 
 # NOTE: Standardize these values...
 class EnglishProficiency(str, Enum):
@@ -335,8 +448,13 @@ class SurveyType(str, Enum):
     MISSING = "Missing"
 
 
-class InterviewLanguage(str, Enum):
-    """Language used for survey interview."""
+class Language(str, Enum):
+    """Language values used across survey fields.
+    
+    Used for interview language, field language, and language at home.
+    When checking for OTHER sentinel value, use .str.to_titlecase() 
+    for case-insensitive comparison.
+    """
 
     ENGLISH = "English"
     SPANISH = "Spanish"
@@ -357,21 +475,37 @@ class InterviewLanguage(str, Enum):
     MISSING = "Missing"
 
 
-class FieldLanguage(str, Enum):
-    """Survey field language."""
+# =============================================================================
+# Pipeline-specific enums and mappings
+# =============================================================================
 
-    ENGLISH = "English"
-    SPANISH = "Spanish"
-    CHINESE = "Chinese"
-    VIETNAMESE = "Vietnamese"
-    TAGALOG = "Tagalog"
-    KOREAN = "Korean"
-    RUSSIAN = "Russian"
-    FRENCH = "French"
-    ARABIC = "Arabic"
-    PUNJABI = "Punjabi"
-    CANTONESE = "Cantonese"
-    DONT_KNOW_REFUSE = "Don't know/refuse"
-    SKIP_PAPER_SURVEY = "Skip - Paper Survey"
-    OTHER = "Other"
+class AutoRatioCategory(str, Enum):
+    """Household vehicle-to-worker ratio categories."""
+
+    ZERO_AUTOS = "Zero autos"
+    WORKERS_GT_AUTOS = "Autos < workers"
+    WORKERS_LE_AUTOS = "Autos >= workers"
+
+
+class TourPurpose(str, Enum):
+    """Tour purpose categories matching travel model definitions."""
+
+    WORK = "Work"
+    SCHOOL = "School"
+    GRADE_SCHOOL = "Grade school"
+    HIGH_SCHOOL = "High school"
+    UNIVERSITY = "University"
+    WORK_BASED = "Work-based"
+    SHOPPING = "Shopping"
+    OTHER_MAINTENANCE = "Other maintenance"
+    EATING_OUT = "Eating out"
+    OTHER_DISCRETIONARY = "Other discretionary"
+    SOCIAL = "Social"
+    ESCORTING = "Escorting"
+    AT_WORK = "At-work"
     MISSING = "Missing"
+
+
+# =============================================================================
+# Mapping dictionaries
+# =============================================================================

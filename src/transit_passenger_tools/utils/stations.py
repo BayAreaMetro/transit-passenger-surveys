@@ -99,7 +99,7 @@ def geocode_stops_from_names(  # noqa: PLR0912, PLR0915, C901
             .unique()
             .drop_nulls()
         )
-        
+
         # Build lookup from survey name -> canonical name/coords
         name_to_canonical = {}
         name_to_lat = {}

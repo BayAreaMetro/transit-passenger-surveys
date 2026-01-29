@@ -1,13 +1,15 @@
 """Geocoding module for survey standardization.
 
-Assigns geographic zones to all location types using spatial joins.
+Assigns geographic zones to all location types using spatial joins
+and calculates Haversine distances between key location pairs.
 """
-import logging
+
+import math
 from pathlib import Path
 
 import polars as pl
 
-logger = logging.getLogger(__name__)
+from transit_passenger_tools.utils.config import get_config
 
 # Location types to geocode
 LOCATION_TYPES = [
@@ -22,44 +24,108 @@ LOCATION_TYPES = [
     "last_alight"    # last alighting on full trip
 ]
 
-# Geographic zone types to assign
-ZONE_TYPES = [
-    "tm1_taz",      # Travel Model 1 TAZ
-    "tm2_taz",      # Travel Model 2 TAZ
-    "tm2_maz",      # Travel Model 2 MAZ
-    "county_geoid", # Census county GEOID
-    "tract_geoid",  # Census tract GEOID
-    "puma_geoid"    # Census PUMA GEOID
-]
+# Earth radius in kilometers for Haversine calculation
+EARTH_RADIUS_KM = 6371.0
 
 
-def geocode_all_locations(
-    df: pl.DataFrame,
-    shapefiles_dir: Path | None = None
-) -> pl.DataFrame:
-    """Geocode all location types and assign geographic zones.
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate Haversine distance between two points in kilometers.
+    
+    Args:
+        lat1, lon1: First point coordinates in degrees
+        lat2, lon2: Second point coordinates in degrees
+        
+    Returns:
+        Distance in kilometers
+    """
+    if any(x is None for x in [lat1, lon1, lat2, lon2]):
+        return None
 
-    For each location type (home, work, school, etc.), assigns:
-    - TM1 TAZ
-    - TM2 TAZ and MAZ
-    - Census county, tract, and PUMA
+    # Convert to radians
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
 
+    # Haversine formula
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2) ** 2
+    c = 2 * math.asin(math.sqrt(a))
+
+    return EARTH_RADIUS_KM * c
+
+
+def calculate_distances(df: pl.DataFrame) -> pl.DataFrame:
+    """Calculate Haversine distances between location pairs in kilometers.
+    
+    Distance pairs are loaded from pipeline configuration.
+    
+    Args:
+        df: DataFrame with lat/lon columns for locations
+        
+    Returns:
+        DataFrame with added distance columns (in kilometers)
+    """
+    config = get_config()
+    result_df = df
+
+    for distance_config in config.geocoding_distances:
+        from_loc = distance_config.from_
+        to_loc = distance_config.to
+        dist_col = distance_config.column
+
+        from_lat = f"{from_loc}_lat"
+        from_lon = f"{from_loc}_lon"
+        to_lat = f"{to_loc}_lat"
+        to_lon = f"{to_loc}_lon"
+
+        # Check if all columns exist
+        required_cols = [from_lat, from_lon, to_lat, to_lon]
+        if not all(col in result_df.columns for col in required_cols):
+            result_df = result_df.with_columns(pl.lit(None).cast(pl.Float64).alias(dist_col))
+            continue
+
+        # Calculate distance using Polars expressions
+        result_df = result_df.with_columns(
+            pl.struct([from_lat, from_lon, to_lat, to_lon])
+            .map_elements(
+                lambda row: haversine_km(
+                    row[from_lat], row[from_lon], row[to_lat], row[to_lon]
+                ),
+                return_dtype=pl.Float64
+            )
+            .alias(dist_col)
+        )
+
+    return result_df
+
+
+def assign_zones_and_distances(df: pl.DataFrame, shapefiles_dir: Path | None = None) -> pl.DataFrame:
+    """Transform geocoding fields - assign zones and calculate distances.
+    
+    For each location type (home, work, school, etc.), assigns geographic zones
+    (TM1 TAZ, TM2 TAZ/MAZ, Census county/tract/PUMA) based on configuration.
+    
+    Also calculates Haversine distances between key location pairs.
+    
     Args:
         df: Input DataFrame with lat/lon columns for each location
-        shapefiles_dir: Directory containing zone shapefiles
-    
+        shapefiles_dir: Directory containing zone shapefiles (optional).
+            If None, only distance calculations are performed.
+        
     Returns:
-        DataFrame with added geographic zone columns
+        DataFrame with added geographic zone and distance columns
     """
+    config = get_config()
+
+    # Calculate distances first (doesn't require external files)
+    result_df = calculate_distances(df)
+
+    # If no shapefiles directory, skip spatial joins
     if shapefiles_dir is None:
-        shapefiles_dir = Path("M:/Data/GIS layers")
+        return result_df
 
-    logger.info("Starting geocoding for all locations")
-
-    # Import add_zone function
-    from ..add_zone import add_zone_to_lat_lon
-
-    result_df = df.clone()
+    # Import add_zone function for spatial joins
+    from transit_passenger_tools.add_zone import add_zone_to_lat_lon
 
     # Process each location type
     for location in LOCATION_TYPES:
@@ -68,7 +134,6 @@ def geocode_all_locations(
 
         # Check if these columns exist
         if lat_col not in result_df.columns or lon_col not in result_df.columns:
-            logger.debug(f"Skipping {location}: columns not found")
             continue
 
         # Count non-null coordinates
@@ -77,76 +142,19 @@ def geocode_all_locations(
         ).height
 
         if non_null_count == 0:
-            logger.debug(f"Skipping {location}: no valid coordinates")
             continue
 
-        logger.info(f"Geocoding {location} ({non_null_count:,} records with coordinates)")
+        # Geocode all zone types for this location
+        for zone_config in config.geocoding_zones:
+            shapefile_path = Path(config.shapefiles[zone_config.shapefile_key])
 
-        # Geocode TM1 TAZ
-        logger.debug(f"  Assigning TM1 TAZ for {location}")
-        result_df = add_zone_to_lat_lon(
-            df=result_df,
-            lat_colname=lat_col,
-            lon_colname=lon_col,
-            shapefile_path=shapefiles_dir / "TM1_taz" / "bayarea_rtaz1454_rev1_WGS84.shp",
-            zone_name_in_shapefile="TAZ1454",
-            new_zone_colname=f"{location}_tm1_taz"
-        )
+            result_df = add_zone_to_lat_lon(
+                df=result_df,
+                lat_colname=lat_col,
+                lon_colname=lon_col,
+                shapefile_path=shapefile_path,
+                zone_name_in_shapefile=zone_config.field_name,
+                new_zone_colname=f"{location}_{zone_config.zone_type}"
+            )
 
-        # Geocode TM2 TAZ
-        logger.debug(f"  Assigning TM2 TAZ for {location}")
-        result_df = add_zone_to_lat_lon(
-            df=result_df,
-            lat_colname=lat_col,
-            lon_colname=lon_col,
-            shapefile_path=shapefiles_dir / "TM2_maz_taz_v2.2" / "taz1454_v2.2_WGS84.shp",
-            zone_name_in_shapefile="TAZ",
-            new_zone_colname=f"{location}_tm2_taz"
-        )
-
-        # Geocode TM2 MAZ
-        logger.debug(f"  Assigning TM2 MAZ for {location}")
-        result_df = add_zone_to_lat_lon(
-            df=result_df,
-            lat_colname=lat_col,
-            lon_colname=lon_col,
-            shapefile_path=shapefiles_dir / "TM2_maz_taz_v2.2" / "maz_v2.2_WGS84.shp",
-            zone_name_in_shapefile="MAZ",
-            new_zone_colname=f"{location}_tm2_maz"
-        )
-
-        # Geocode Census tract
-        logger.debug(f"  Assigning Census tract for {location}")
-        result_df = add_zone_to_lat_lon(
-            df=result_df,
-            lat_colname=lat_col,
-            lon_colname=lon_col,
-            shapefile_path=shapefiles_dir / "Census" / "2020" / "tl_2020_06_tract" / "tl_2020_06_tract.shp",
-            zone_name_in_shapefile="GEOID",
-            new_zone_colname=f"{location}_tract_geoid"
-        )
-
-        # Geocode Census county
-        logger.debug(f"  Assigning Census county for {location}")
-        result_df = add_zone_to_lat_lon(
-            df=result_df,
-            lat_colname=lat_col,
-            lon_colname=lon_col,
-            shapefile_path=shapefiles_dir / "Census" / "2020" / "tl_2020_us_county" / "tl_2020_us_county.shp",
-            zone_name_in_shapefile="GEOID",
-            new_zone_colname=f"{location}_county_geoid"
-        )
-
-        # Geocode Census PUMA
-        logger.debug(f"  Assigning Census PUMA for {location}")
-        result_df = add_zone_to_lat_lon(
-            df=result_df,
-            lat_colname=lat_col,
-            lon_colname=lon_col,
-            shapefile_path=shapefiles_dir / "Census" / "2020" / "tl_2020_06_puma20" / "tl_2020_06_puma20.shp",
-            zone_name_in_shapefile="GEOID20",
-            new_zone_colname=f"{location}_puma_geoid"
-        )
-
-    logger.info("Geocoding complete")
     return result_df

@@ -2,10 +2,10 @@
 
 # ruff: noqa: S608
 
-
 import hashlib
 import io
 import logging
+import os
 import re
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -13,6 +13,7 @@ from pathlib import Path
 
 import duckdb
 import polars as pl
+import yaml
 from pydantic import ValidationError
 
 try:
@@ -26,10 +27,11 @@ from transit_passenger_tools.data_models import SurveyMetadata, SurveyResponse, 
 
 logger = logging.getLogger(__name__)
 
-DATA_LAKE_ROOT = Path(
-    r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard"
-    r"\Data and Reports\_data_Standardized\transit_data_lake"
-)
+# Load data lake root from config (avoid triggering shapefile validation)
+_config_path = Path(os.getenv("PIPELINE_CONFIG", "config/pipeline.yaml"))
+with _config_path.open() as f:
+    DATA_LAKE_ROOT = Path(yaml.safe_load(f)["data_lake_root"])
+
 DUCKDB_PATH = DATA_LAKE_ROOT / "surveys.duckdb"
 LOCK_FILE = DATA_LAKE_ROOT / ".surveys.lock"
 
@@ -294,7 +296,7 @@ def ingest_survey_weights(df: pl.DataFrame, validate: bool = True) -> Path:
     if output_path.exists():
         combined = pl.concat([pl.read_parquet(output_path), df])
         combined = combined.unique(
-            subset=["unique_id", "weight_scheme"], keep="last"
+            subset=["response_id", "weight_scheme"], keep="last"
         )
         combined.write_parquet(output_path, compression="zstd", statistics=True)
         logger.info("Appended %d weight records", len(df))

@@ -25,6 +25,7 @@ from pydantic import ValidationError
 
 from transit_passenger_tools import db
 from transit_passenger_tools.data_models import SurveyMetadata, SurveyResponse, SurveyWeight
+from transit_passenger_tools.pipeline import auto_sufficiency
 
 # Configure logging
 logging.basicConfig(
@@ -101,7 +102,7 @@ def find_latest_standardized_dir() -> Path:
 def _fill_enum_fields_with_missing(df: pl.DataFrame) -> pl.DataFrame:
     """Fill NULL enum fields with 'Missing' to match schema."""
     enum_fields_with_missing = [
-        "direction", "access_mode", "egress_mode", "survey_tech", "first_board_tech",
+        "direction", "access_mode", "egress_mode", "vehicle_tech", "first_board_tech",
         "last_alight_tech", "orig_purp", "dest_purp", "tour_purp", "trip_purp", "fare_medium",
         "fare_category", "weekpart", "day_of_the_week", "gender", "work_status",
         "student_status", "interview_language", "field_language", "survey_type", "hispanic",
@@ -109,7 +110,7 @@ def _fill_enum_fields_with_missing(df: pl.DataFrame) -> pl.DataFrame:
     ]
     return df.with_columns([
         pl.col(field).fill_null("Missing")
-        for field in enum_fields_with_missing if field in df.columns
+        for field in enum_fields_with_missing
     ])
 
 
@@ -121,15 +122,18 @@ def _clean_numeric_fields(df: pl.DataFrame) -> pl.DataFrame:
         .when(pl.col(field).cast(pl.Utf8).str.to_lowercase() == field.lower()).then(None)
         .otherwise(pl.col(field))
         .alias(field)
-        for field in numeric_fields if field in df.columns
+        for field in numeric_fields
     ])
 
 
 def _convert_word_numbers(df: pl.DataFrame) -> pl.DataFrame:
     """Convert word numbers to integers for numeric fields (persons, workers, vehicles)."""
     return df.with_columns([
-        pl.col(field).replace_strict(WORD_TO_NUMBER, default=pl.col(field)).alias(field)
-        for field in ["persons", "workers", "vehicles"] if field in df.columns
+        pl.col(field)
+        .replace_strict(WORD_TO_NUMBER, default=pl.col(field))
+        .cast(pl.Int32, strict=False)
+        .alias(field)
+        for field in ["persons", "workers", "vehicles"]
     ])
 
 
@@ -144,7 +148,7 @@ def _convert_binary_fields(df: pl.DataFrame) -> pl.DataFrame:
         .when(pl.col(field).str.to_uppercase() == "FALSE").then(0)
         .otherwise(pl.col(field).cast(pl.Int64, strict=False))
         .alias(field)
-        for field in binary_fields if field in df.columns
+        for field in binary_fields
     ])
 
 
@@ -170,7 +174,7 @@ def _add_optional_fields(df: pl.DataFrame) -> pl.DataFrame:
         "orig_taz", "dest_taz", "home_taz", "workplace_taz", "school_taz",
         "first_board_tap", "last_alight_tap",
         # Optional sparse response fields
-        "race_other_string", "auto_suff",
+        "race_other_string", "auto_to_workers_ratio",
     ]
     for field in optional_fields_tier3:
         if field not in df.columns:
@@ -225,16 +229,42 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
     )
     logger.info("Loaded %s rows with %s columns", len(df), len(df.columns))
 
+    # Calculate household_income from bounds if hh_income_nominal_continuous is missing/invalid
+    # Try to cast to float, set invalid strings (like "Refused") to null
+    df = df.with_columns([
+        pl.col("hh_income_nominal_continuous").cast(pl.Float64, strict=False).alias("hh_income_nominal_continuous")
+    ])
+    
+    # For null values, calculate midpoint from bounds
+    df = df.with_columns([
+        pl.when(pl.col("hh_income_nominal_continuous").is_null())
+        .then(
+            (pl.col("income_lower_bound") + pl.col("income_upper_bound")) / 2.0
+        )
+        .otherwise(pl.col("hh_income_nominal_continuous"))
+        .alias("hh_income_nominal_continuous"),
+        
+        # Flag rows where we approximated from bounds (where original was null after cast)
+        pl.col("hh_income_nominal_continuous").is_null().alias("income_approximated")
+    ])
+    logger.info("Calculated household_income from bounds for rows with missing/invalid values")
+
+    # Rename columns FIRST before stripping (so we don't strip the float income column)
+    # For legacy data: preserve original household_income category and flag as approximated
+    df = df.rename({
+        "unique_ID": "response_id",
+        "ID": "original_id",
+        "household_income": "household_income_category",  # Preserve original category string
+        "hh_income_nominal_continuous": "household_income",  # Use continuous value as main field
+        "survey_tech": "vehicle_tech"  # Rename to match schema
+    })
+    
     # Strip whitespace from all string columns to simplify corrections
     string_cols = [
         col for col, dtype in zip(df.columns, df.dtypes, strict=False)
         if dtype == pl.Utf8
     ]
-    if string_cols:
-        df = df.with_columns([pl.col(col).str.strip_chars() for col in string_cols])
-
-    # Rename columns to match our schema (CSV uses unique_ID, we use response_id)
-    df = df.rename({"unique_ID": "response_id", "ID": "original_id"})
+    df = df.with_columns([pl.col(col).str.strip_chars() for col in string_cols])
 
     # Fill NULL canonical_operator with "REGIONAL - PUMS" (for PUMS synthetic data)
     df = df.with_columns(
@@ -440,7 +470,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
     # Normalize categorical fields efficiently by mapping unique values
     # This avoids slow row-by-row Python UDF calls
     categorical_fields_complex = [
-        "hispanic", "work_status", "student_status", "household_income",
+        "hispanic", "work_status", "student_status", "household_income_category",
         "survey_type", "interview_language", "field_language",
         "orig_purp", "dest_purp", "tour_purp", "trip_purp", "transfer_from", "transfer_to",
         "access_mode", "egress_mode", "fare_medium", "eng_proficient", "fare_category"
@@ -448,23 +478,31 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
     # Normalize complex categorical fields efficiently by mapping unique values
     # This avoids slow row-by-row Python UDF calls
     for field in categorical_fields_complex:
-        if field in df.columns:
-            unique_vals = df[field].unique().drop_nulls().to_list()
-            if unique_vals:
-                mapping = {val: normalize_to_sentence_case(val) for val in unique_vals}
-                df = df.with_columns(
-                    pl.col(field).replace_strict(mapping, default=pl.col(field)).alias(field)
-                )
+        unique_vals = df[field].unique().drop_nulls().to_list()
+        if unique_vals:
+            mapping = {val: normalize_to_sentence_case(val) for val in unique_vals}
+            df = df.with_columns(
+                pl.col(field).replace_strict(mapping, default=pl.col(field)).alias(field)
+            )
 
     # Simple title case for fields without complex rules
     categorical_fields_simple = [
         "weekpart", "day_of_the_week", "direction",
-        "survey_tech", "first_board_tech", "last_alight_tech", "gender", "race"
+        "vehicle_tech", "first_board_tech", "last_alight_tech", "gender", "race"
     ]
     df = df.with_columns([
         pl.col(field).str.to_titlecase().alias(field)
-        for field in categorical_fields_simple if field in df.columns
+        for field in categorical_fields_simple
     ])
+    
+    # Fix Ferry→Ferry Boat for technology fields
+    for tech_field in ["vehicle_tech", "first_board_tech", "last_alight_tech"]:
+        df = df.with_columns(
+            pl.when(pl.col(tech_field) == "Ferry")
+            .then(pl.lit("Ferry Boat"))
+            .otherwise(pl.col(tech_field))
+            .alias(tech_field)
+        )
 
     # ============================================================================
     # TYPO FIXES & EXPLICIT VALUE MAPPINGS
@@ -698,7 +736,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         # ------------------------------------------------------------------------
         # DEMOGRAPHICS & HOUSEHOLD
         # ------------------------------------------------------------------------
-        "household_income": {
+        "household_income_category": {
             "Refused": "Missing",
             "refused": "Missing",
             "$200,000 or Higher": "$200,000 or higher",
@@ -763,15 +801,19 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             "Emery-go-round": "Emery-Go-Round",
             "Blue & Gold Ferry": "Blue Gold Ferry",
             "Fairfield-suisun": "Fairfield-Suisun"
+        },
+        "day_part": {
+            "NIGHT": "EVENING",  # Normalize NIGHT to EVENING for DayPart enum
+            "WEEKEND": "Missing",  # WEEKEND not a valid time of day, map to Missing
+            ".": "Missing"  # Period indicates missing data
         }
     }
     # ============================================================================
 
     for field, mapping in typo_fixes.items():
-        if field in df.columns:
-            df = df.with_columns(
-                pl.col(field).replace_strict(mapping, default=pl.col(field)).alias(field)
-            )
+        df = df.with_columns(
+            pl.col(field).replace_strict(mapping, default=pl.col(field)).alias(field)
+        )
 
     # Add survey_id (computed from canonical_operator and survey_year)
     df = df.with_columns(
@@ -821,11 +863,22 @@ def validate_schema(df: pl.DataFrame, sample_size: int = 100) -> None:
             for error in e.errors():
                 field = error["loc"][0] if error["loc"] else "unknown"
                 if field not in error_details:
-                    error_details[field] = {"count": 0, "unique_values": set(), "rows": []}
+                    error_details[field] = {
+                        "count": 0,
+                        "unique_values": set(),
+                        "rows": [],
+                        "error_types": set(),
+                    }
                 error_details[field]["count"] += 1
                 error_details[field]["rows"].append(i)
+                error_details[field]["error_types"].add(error["type"])
+                # Store actual field value, not entire record
                 if "input" in error:
-                    error_details[field]["unique_values"].add(str(error["input"]))
+                    # For missing fields, input is the whole dict - just note it's missing
+                    if error["type"] == "missing" or isinstance(error["input"], dict):
+                        error_details[field]["unique_values"].add("<missing>")
+                    else:
+                        error_details[field]["unique_values"].add(str(error["input"]))
 
     if validation_errors:
         logger.error(
@@ -835,13 +888,14 @@ def validate_schema(df: pl.DataFrame, sample_size: int = 100) -> None:
         )
         logger.error("\nErrors grouped by field:")
         for field, details in sorted(error_details.items()):
-            logger.error("\n  %s:", field)
-            logger.error("    Count: %s", details["count"])
-            logger.error("    Rows: %s", details["rows"][:10])  # Show first 10 rows
+            logger.error("\n  Field: %s", field)
+            logger.error("    Error types: %s", ", ".join(sorted(details["error_types"])))
+            logger.error("    Failed in %s records (rows: %s...)", details["count"], details["rows"][:5])
             if details["unique_values"]:
                 logger.error(
-                    "    Unique problematic values: %s",
-                    sorted(details["unique_values"])[:20]
+                    "    Unique problematic values (%s total): %s",
+                    len(details["unique_values"]),
+                    list(sorted(details["unique_values"]))[:10]
                 )
         msg = "Schema validation failed. Fix data or schema before importing."
         raise ValueError(msg)
@@ -1211,8 +1265,9 @@ def main() -> None:
             raise FileNotFoundError(msg)
 
     try:
-        # Find latest data
-        latest_dir = find_latest_standardized_dir()
+        # Use specific standardized directory
+        # latest_dir = find_latest_standardized_dir()
+        latest_dir = STANDARDIZED_DATA_PATH / "standardized_2025-10-13"
         csv_path = latest_dir / "survey_combined.csv"
         _validate_csv_exists(csv_path)
 
@@ -1225,6 +1280,13 @@ def main() -> None:
         logger.info("\nTotal records in CSV: %s", f"{len(df):,}")
         logger.info("Unique operators: %s", df["canonical_operator"].n_unique())
         logger.info("Year range: %s - %s", df["survey_year"].min(), df["survey_year"].max())
+
+        # Derive auto_to_workers_ratio from vehicles and workers
+        logger.info("\n%s", "="*80)
+        logger.info("DERIVING AUTO_TO_WORKERS_RATIO")
+        logger.info("%s", "="*80)
+        df = auto_sufficiency.derive_auto_sufficiency(df)
+        logger.info("Columns after derivation: auto_to_workers_ratio present = %s", "auto_to_workers_ratio" in df.columns)
 
         # Validate schema
         logger.info("\n%s", "="*80)

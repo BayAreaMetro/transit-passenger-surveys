@@ -1,0 +1,71 @@
+# Transit Passenger Survey Pipeline Configuration - Test Environment
+
+# Shapefile paths for testing (use zipped fixtures)
+shapefiles:
+  tm1_taz: "tests/fixtures/test_tm1_taz.zip"
+  tm2_taz: "tests/fixtures/test_tm2_taz.zip"
+  tm2_maz: "tests/fixtures/test_tm2_maz.zip"
+  counties: "tests/fixtures/test_counties.zip"
+  tracts: "tests/fixtures/test_tracts.zip"
+  puma: "tests/fixtures/test_puma.zip"
+  stations: "tests/fixtures/test_stations.zip"
+
+# Geographic zone configurations for geocoding
+geocoding_zones:
+  - zone_type: "tm1_taz"
+    shapefile_key: "tm1_taz"
+    field_name: "TAZ1454"
+  - zone_type: "tm2_taz"
+    shapefile_key: "tm2_taz"
+    field_name: "TAZ"
+  - zone_type: "tm2_maz"
+    shapefile_key: "tm2_maz"
+    field_name: "MAZ"
+  - zone_type: "tract_geoid"
+    shapefile_key: "tracts"
+    field_name: "GEOID"
+  - zone_type: "county_geoid"
+    shapefile_key: "counties"
+    field_name: "GEOID"
+  - zone_type: "puma_geoid"
+    shapefile_key: "puma"
+    field_name: "GEOID20"
+
+# Distance pairs - same as production
+geocoding_distances:
+  - from: "orig"
+    to: "dest"
+    column: "orig_dest_dist"
+  - from: "orig"
+    to: "first_board"
+    column: "orig_firstboard_dist"
+  - from: "orig"
+    to: "survey_board"
+    column: "orig_surveyboard_dist"
+  - from: "survey_alight"
+    to: "dest"
+    column: "survey_alight_dest_dist"
+  - from: "last_alight"
+    to: "dest"
+    column: "last_alight_dest_dist"
+
+# CRS codes
+crs:
+  wgs84: 4326
+  ca_albers: 3310
+
+# Megaregion counties (for geography-based summaries)
+megaregion_counties:
+  - "06001"  # Alameda
+  - "06075"  # San Francisco
+
+# Validation thresholds
+validation_thresholds:
+  max_trip_distance_km: 500
+  max_access_distance_km: 50
+
+# Data lake root (use fixtures for testing)
+data_lake_root: "tests/fixtures/test_data_lake"
+
+# Canonical route crosswalk (reuse existing fixture)
+canonical_route_crosswalk_path: "fixtures/canonical_route_crosswalk.csv"

@@ -1,14 +1,16 @@
-"""Transfer and technology processing module.
+"""Transform transfer and technology fields.
 
-Assigns technology to transfer legs and calculates technology presence flags.
+This module:
+- Assigns technology to 6 transfer legs via canonical route lookups
+- Calculates 6 technology presence flags
+- Calculates total boardings (1 + transfer count)
+- Raises ValueError for unmapped routes
 """
-import logging
 
 import polars as pl
 
-from transit_passenger_tools.reference import ReferenceData
-
-logger = logging.getLogger(__name__)
+from transit_passenger_tools.codebook import TechnologyType
+from transit_passenger_tools.utils.reference_data import ReferenceData
 
 # Transfer leg columns (before and after surveyed vehicle)
 TRANSFER_LEGS = [
@@ -20,278 +22,154 @@ TRANSFER_LEGS = [
     "third_after"
 ]
 
-# Technology types
-TECHNOLOGIES = [
-    "local bus",
-    "express bus",
-    "light rail",
-    "heavy rail",
-    "commuter rail",
-    "ferry"
-]
+# Technology types for presence flags (derived from enum)
+TECHNOLOGIES = [tech.value for tech in TechnologyType]
 
 
-def assign_transfer_technologies(
-    df: pl.DataFrame,
-    survey_name: str,
-    survey_year: int,
-    reference: ReferenceData | None = None
-) -> pl.DataFrame:
-    """Assign technology to each transfer leg based on route names.
+def derive_transfer_fields(df: pl.DataFrame) -> pl.DataFrame:
+    """Transform transfer-related fields.
 
-    Uses canonical route crosswalk to map route names to technologies.
+    Implements R Lines 1200-1478 logic:
+    1. Assigns technology to 6 transfer legs via canonical route lookups
+    2. Fills null technologies with "Missing"
+    3. Calculates 6 technology presence flags
+    4. Calculates total boardings (1 + transfer count)
+    5. Raises ValueError for unmapped critical routes
 
     Args:
-        df: DataFrame with transfer route columns
-        survey_name: Name of survey
-        survey_year: Year of survey
-        reference: ReferenceData instance (creates new if None)
+        df: Input DataFrame with survey_tech and transfer route/operator columns
 
     Returns:
-        DataFrame with added technology columns for each transfer leg
+        DataFrame with technology columns, presence flags, and boardings
+
+    Raises:
+        ValueError: If required columns missing or critical routes cannot be mapped
     """
-    logger.info("Assigning transfer technologies")
+    # Validate required columns
+    required = ["vehicle_tech"]
+    missing = [col for col in required if col not in df.columns]
+    if missing:
+        raise ValueError(f"transfers transform requires columns: {missing}")
 
-    if reference is None:
-        reference = ReferenceData()
+    # Validate at least one transfer leg column set exists (route + operator)
+    # Transfer columns are optional, but if present they should be complete
+    has_transfer_data = any(
+        f"{leg}_route_before_survey_board" in df.columns if "before" in leg
+        else f"{leg}_route_after_survey_alight" in df.columns
+        for leg in TRANSFER_LEGS
+    )
 
-    result_df = df.clone()
+    reference = ReferenceData()
 
-    # For each transfer leg, assign technology based on route
+    # Get survey metadata from first row (assume uniform within batch)
+    survey_name = df["survey_name"][0]
+    survey_year = df["survey_year"][0]
+
+    result_df = df
+
+    # For each of 6 transfer legs, assign technology
     for leg in TRANSFER_LEGS:
-        route_col = f"{leg}_route"
+        route_col = f"{leg}_route_before_survey_board" if "before" in leg else f"{leg}_route_after_survey_alight"
         operator_col = f"{leg}_operator"
         tech_col = f"{leg}_technology"
 
-        # Check if route column exists
+        # Skip if route column doesn't exist
         if route_col not in df.columns:
-            logger.debug(f"Column {route_col} not found, skipping")
             continue
 
-        # Get unique routes to look up
-        unique_routes = df.select(route_col).unique().to_series().to_list()
-        unique_routes = [r for r in unique_routes if r is not None]
+        # Get unique non-null routes
+        unique_routes = df.filter(pl.col(route_col).is_not_null()).select(route_col).unique().to_series().to_list()
 
         if not unique_routes:
-            logger.debug(f"No routes found in {route_col}")
-            result_df = result_df.with_columns([
-                pl.lit(None).cast(pl.Utf8).alias(tech_col)
-            ])
+            result_df = result_df.with_columns(pl.lit(None).cast(pl.Utf8).alias(tech_col))
             continue
 
-        # Build lookup dictionary from crosswalk
+        # Build technology lookup dictionary
         tech_lookup = {}
+        unmapped_routes = []
         for route in unique_routes:
-            tech = reference.get_route_technology(survey_name, survey_year, route)
-            if tech:
+            try:
+                tech = reference.get_route_technology(route)
                 tech_lookup[route] = tech
+            except ValueError:
+                unmapped_routes.append(route)
 
-        logger.debug(f"Found technology for {len(tech_lookup)}/{len(unique_routes)} routes in {route_col}")
+        # Raise error if critical routes unmapped
+        if unmapped_routes:
+            msg = f"Cannot map routes to technology for {leg}: {unmapped_routes}"
+            raise ValueError(msg)
 
-        # Create technology column via mapping
-        result_df = result_df.with_columns([
+        # Apply mapping
+        result_df = result_df.with_columns(
             pl.col(route_col).replace(tech_lookup, default=None).alias(tech_col)
-        ])
+        )
 
-        # Log any unmapped routes
-        unmapped = result_df.filter(
-            pl.col(route_col).is_not_null() & pl.col(tech_col).is_null()
-        ).select(route_col).unique()
+    # Technology columns remain NULL when no transfer exists (not "Missing" string)
 
-        if unmapped.height > 0:
-            logger.warning(f"Unmapped routes in {route_col}: {unmapped.to_series().to_list()}")
-
-    return result_df
-
-
-def calculate_technology_flags(df: pl.DataFrame) -> pl.DataFrame:
-    """Calculate boolean flags for presence of each technology type in the trip.
-
-    Checks survey_tech and all 6 transfer technology columns.
-
-    Args:
-        df: DataFrame with survey_tech and transfer technology columns
-
-    Returns:
-        DataFrame with added technology presence flags
-    """
-    logger.info("Calculating technology presence flags")
-
-    result_df = df.clone()
-
-    # Build list of technology columns to check
-    tech_cols = ["survey_tech"]
+    # Calculate technology presence flags (6 technologies)
+    tech_cols = ["vehicle_tech"]
     for leg in TRANSFER_LEGS:
         tech_col = f"{leg}_technology"
-        if tech_col in df.columns:
+        if tech_col in result_df.columns:
             tech_cols.append(tech_col)
 
-    # For each technology type, create a presence flag
-    for tech in TECHNOLOGIES:
-        flag_col = f"{tech.replace(' ', '_')}_present"
-
-        # Check if technology appears in any of the columns
-        conditions = [pl.col(col) == tech for col in tech_cols if col in result_df.columns]
+    for tech in TechnologyType:
+        if tech == TechnologyType.MISSING:
+            continue  # Skip MISSING
+        flag_col = f"{tech.to_column_name()}_present"
+        tech_value = tech.value
+        conditions = [pl.col(col) == tech_value for col in tech_cols if col in result_df.columns]
 
         if conditions:
-            # Any of the conditions being true means technology is present
-            tech_present = conditions[0]
+            tech_present_expr = conditions[0]
             for condition in conditions[1:]:
-                tech_present = tech_present | condition
-
-            result_df = result_df.with_columns([
-                tech_present.alias(flag_col)
-            ])
+                tech_present_expr = tech_present_expr | condition
+            # fill_null(False) because NULL == "tech" returns NULL, not False
+            result_df = result_df.with_columns(tech_present_expr.fill_null(False).alias(flag_col))
         else:
-            # No columns to check, set to False
-            result_df = result_df.with_columns([
-                pl.lit(False).alias(flag_col)
-            ])
+            result_df = result_df.with_columns(pl.lit(False).alias(flag_col))
 
-    # Log technology distribution
-    for tech in TECHNOLOGIES:
-        flag_col = f"{tech.replace(' ', '_')}_present"
-        if flag_col in result_df.columns:
-            count = result_df.filter(pl.col(flag_col) == True).height
-            pct = count / result_df.height * 100
-            logger.info(f"{tech}: {count:,} trips ({pct:.1f}%)")
-
-    return result_df
-
-
-def calculate_boardings(df: pl.DataFrame) -> pl.DataFrame:
-    """Calculate total number of boardings on the trip.
-
-    Uses transfer counts if available, otherwise sums technology columns.
-
-    Args:
-        df: DataFrame with transfer information
-
-    Returns:
-        DataFrame with added boardings column
-    """
-    logger.info("Calculating boardings")
-
-    # Check if we have number_transfers columns
-    has_orig_transfers = "number_transfers_orig_board" in df.columns
-    has_dest_transfers = "number_transfers_alight_dest" in df.columns
-
-    if has_orig_transfers and has_dest_transfers:
-        # Calculate boardings from transfer counts
-        # Total boardings = 1 (surveyed vehicle) + transfers before + transfers after
-        result_df = df.with_columns([
-            (
-                pl.lit(1) +
-                pl.col("number_transfers_orig_board").fill_null(0) +
-                pl.col("number_transfers_alight_dest").fill_null(0)
-            ).alias("boardings")
-        ])
-    else:
-        # Calculate from technology columns
-        # Count non-null transfer technologies + 1 for surveyed vehicle
-        tech_cols = [f"{leg}_technology" for leg in TRANSFER_LEGS]
-        existing_cols = [col for col in tech_cols if col in df.columns]
-
-        if existing_cols:
-            # Sum non-null technologies + 1
-            boardings_expr = pl.lit(1)
-            for col in existing_cols:
-                boardings_expr = boardings_expr + pl.col(col).is_not_null().cast(pl.Int64)
-
-            result_df = df.with_columns([
-                boardings_expr.alias("boardings")
-            ])
-        else:
-            # No transfer info, assume single boarding
-            result_df = df.with_columns([
-                pl.lit(1).alias("boardings")
-            ])
-
-    # Log boardings distribution
-    boardings_dist = result_df.group_by("boardings").agg(pl.count()).sort("boardings")
-    logger.info(f"Boardings distribution:\n{boardings_dist}")
-
-    return result_df
-
-
-def generate_transfer_validation(
-    df: pl.DataFrame,
-    survey_name: str,
-    survey_year: int
-) -> pl.DataFrame:
-    """Generate validation dataframe for transfer assignments.
-
-    Identifies records with transfer routes that couldn't be matched to
-    operators or technologies (equivalent to R's check_transfers.csv).
-
-    Args:
-        df: Processed DataFrame
-        survey_name: Name of survey
-        survey_year: Year of survey
-
-    Returns:
-        DataFrame with problematic transfer records
-    """
-    logger.info("Generating transfer validation report")
-
-    problems = []
-
-    # Check each transfer leg for missing technology
+    # Calculate boardings: 1 (surveyed vehicle) + count of non-null transfer technologies
+    boardings_expr = pl.lit(1)
     for leg in TRANSFER_LEGS:
-        route_col = f"{leg}_route"
         tech_col = f"{leg}_technology"
+        if tech_col in result_df.columns:
+            boardings_expr = boardings_expr + pl.col(tech_col).is_not_null().cast(pl.Int64)
 
-        if route_col not in df.columns or tech_col not in df.columns:
-            continue
+    result_df = result_df.with_columns(boardings_expr.alias("boardings"))
 
-        # Find records with route but no technology
-        missing_tech = df.filter(
-            pl.col(route_col).is_not_null() & pl.col(tech_col).is_null()
-        ).select([
-            pl.lit(survey_name).alias("survey_name"),
-            pl.lit(survey_year).alias("survey_year"),
-            pl.lit(leg).alias("transfer_leg"),
-            pl.col("ID"),
-            pl.col(route_col).alias("route"),
-            pl.col(tech_col).alias("technology"),
-        ])
+    # Calculate transfer_from (last before operator) and transfer_to (first after operator)
+    if "third_before_operator" in result_df.columns:
+        result_df = result_df.with_columns(
+            pl.coalesce(
+                ["third_before_operator", "second_before_operator", "first_before_operator"]
+            ).alias("transfer_from")
+        )
 
-        if missing_tech.height > 0:
-            problems.append(missing_tech)
+    if "first_after_operator" in result_df.columns:
+        result_df = result_df.with_columns(pl.col("first_after_operator").alias("transfer_to"))
 
-    if problems:
-        validation_df = pl.concat(problems)
-        logger.warning(f"Found {validation_df.height} transfer assignment problems")
-        return validation_df
-    logger.info("No transfer assignment problems found")
-    return pl.DataFrame()
+    # Calculate first_board_tech (earliest technology) and last_alight_tech (latest technology)
+    # Only if we have transfer columns; otherwise use vehicle_tech directly
+    # coalesce naturally handles NULL values - picks first non-null
+    # TODO: Why is vehicle_tech not required? I think it should be.
+    if "vehicle_tech" in result_df.columns:
+        # Build list of columns that exist for first_board_tech coalesce
+        first_board_cols = []
+        if "first_before_technology" in result_df.columns:
+            first_board_cols.append("first_before_technology")
+        first_board_cols.append("vehicle_tech")
 
+        # Build list of columns that exist for last_alight_tech coalesce
+        last_alight_cols = []
+        for col in ["third_after_technology", "second_after_technology", "first_after_technology"]:
+            if col in result_df.columns:
+                last_alight_cols.append(col)
+        last_alight_cols.append("vehicle_tech")
 
-def process_transfers(
-    df: pl.DataFrame,
-    survey_name: str,
-    survey_year: int,
-    reference: ReferenceData | None = None
-) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """Process all transfer-related fields.
+        result_df = result_df.with_columns(
+            pl.coalesce(first_board_cols).alias("first_board_tech"),
+            pl.coalesce(last_alight_cols).alias("last_alight_tech"),
+        )
 
-    Args:
-        df: Input DataFrame
-        survey_name: Name of survey
-        survey_year: Year of survey
-        reference: ReferenceData instance (creates new if None)
-
-    Returns:
-        Tuple of (processed DataFrame, validation DataFrame)
-    """
-    logger.info("Processing transfers")
-
-    result_df = df
-    result_df = assign_transfer_technologies(result_df, survey_name, survey_year, reference)
-    result_df = calculate_technology_flags(result_df)
-    result_df = calculate_boardings(result_df)
-
-    validation_df = generate_transfer_validation(result_df, survey_name, survey_year)
-
-    logger.info("Transfer processing complete")
-    return result_df, validation_df
+    return result_df

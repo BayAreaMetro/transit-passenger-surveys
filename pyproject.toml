@@ -1,7 +1,7 @@
 [project]
 name = "transit-passenger-surveys"
 version = "0.1.0"
-description = "Add your description here"
+description = "This package ingests and processes transit passenger survey data."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -12,6 +12,7 @@ dependencies = [
     "polars>=1.37.0",
     "pyarrow>=22.0.0",
     "pydantic>=2.12.5",
+    "pyyaml>=6.0.0",
     "rapidfuzz>=3.14.3",
 ]
 
@@ -71,6 +72,7 @@ extend-exclude = '''
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

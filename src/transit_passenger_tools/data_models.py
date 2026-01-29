@@ -14,17 +14,16 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from transit_passenger_tools.codebook import (
     AccessEgressMode,
+    AutoRatioCategory,
     DayOfWeek,
     DayPart,
     Direction,
     EnglishProficiency,
     FareCategory,
     FareMedium,
-    FieldLanguage,
     Gender,
     Hispanic,
-    HouseholdIncome,
-    InterviewLanguage,
+    Language,
     Race,
     StudentStatus,
     SurveyType,
@@ -35,6 +34,7 @@ from transit_passenger_tools.codebook import (
     WorkStatus,
 )
 
+# TODO: Since we have changed the data model, we may need to re-create the database and modify the backfill script
 
 class SurveyMetadata(BaseModel):
     """Survey-wide metadata and collection information.
@@ -78,21 +78,20 @@ class SurveyMetadata(BaseModel):
 class CoreSurveyResponse(BaseModel):
     """Core survey data provided by vendors/operators.
 
-    This model defines the standard schema that vendors should conform to.
-    All fields here are expected to come directly from survey collection,
-    not derived by MTC processing.
-
-    Can be exported as JSON/CSV codebook for vendors to pre-conform to.
+    This model defines the minimum required schema that preprocessing scripts
+    must produce. These fields are needed as inputs for pipeline derivations.
+    
+    Inheritance chain: CoreSurveyResponse → DerivedSurveyResponse → SurveyResponse
     """
 
     model_config = ConfigDict(
-        use_enum_values=True,  # Store enums as strings in database
+        use_enum_values=True,
         validate_assignment=True,
         str_strip_whitespace=True,
     )
 
     # ========== Primary Key ==========
-    response_id: str = Field(..., max_length=100, description="Unique response record identifier (concatenation of original_id, operator, year)")
+    response_id: str = Field(..., max_length=100, description="Unique response record identifier")
 
     # ========== Foreign Keys ==========
     survey_id: str = Field(..., max_length=100, description="Foreign key to SurveyMetadata.survey_id")
@@ -143,20 +142,13 @@ class CoreSurveyResponse(BaseModel):
     third_after_technology: str | None = Field(..., max_length=50, description="Third technology after survey alight ")
 
     # ========== Technology/Path ==========
-    survey_tech: TechnologyType = Field(..., description="Survey vehicle technology type")
+    vehicle_tech: TechnologyType | None = Field(None, description="Technology type of vehicle being surveyed")
     first_board_tech: TechnologyType = Field(..., description="Vehicle technology type of first boarding")
     last_alight_tech: TechnologyType = Field(..., description="Vehicle technology type of last alighting")
     path_access: str | None = Field(..., max_length=20, description="Aggregated access mode")
     path_egress: str | None = Field(..., max_length=20, description="Aggregated egress mode")
     path_line_haul: str | None = Field(..., max_length=20, description="Path line haul mode")
     path_label: str | None = Field(..., max_length=50, description="Full path")
-
-    # ========== Mode Presence Flags  ==========
-    commuter_rail_present: int | None = Field(..., ge=0, le=1, description="Commuter rail present in trip")
-    heavy_rail_present: int | None = Field(..., ge=0, le=1, description="Heavy rail present in trip")
-    express_bus_present: int | None = Field(..., ge=0, le=1, description="Express bus present in trip")
-    ferry_present: int | None = Field(..., ge=0, le=1, description="Ferry present in trip")
-    light_rail_present: int | None = Field(..., ge=0, le=1, description="Light rail present in trip")
 
     # ========== Trip Purpose ==========
     orig_purp: TripPurpose = Field(..., description="Origin trip purpose")
@@ -184,78 +176,21 @@ class CoreSurveyResponse(BaseModel):
     survey_alight_lon: float | None = Field(..., ge=-180, le=180, description="Survey vehicle alighting location longitude")
 
     # ========== Geographic - Rail Stations ==========
-    onoff_enter_station: str | None = Field(..., max_length=100, description="Rail boarding station name ")
-    onoff_exit_station: str | None = Field(..., max_length=100, description="Rail alighting station name ")
-    dest_tract_GEOID: str | None = Field(..., max_length=15, description="Destination census tract GEOID ")
-    home_tract_GEOID: str | None = Field(..., max_length=15, description="Home census tract GEOID ")
-    workplace_tract_GEOID: str | None = Field(..., max_length=15, description="Workplace census tract GEOID ")
-    school_tract_GEOID: str | None = Field(..., max_length=15, description="School census tract GEOID ")
-    first_board_tract_GEOID: str | None = Field(..., max_length=15, description="First boarding location census tract GEOID ")
-    last_alight_tract_GEOID: str | None = Field(..., max_length=15, description="Last alighting location census tract GEOID ")
-    survey_board_tract_GEOID: str | None = Field(..., max_length=15, description="Survey boarding location census tract GEOID ")
-    survey_alight_tract_GEOID: str | None = Field(..., max_length=15, description="Survey alighting location census tract GEOID ")
-
-    # ========== Geographic - Travel Model Zones (TM1 TAZ)  ==========
-    orig_tm1_taz: int | None = Field(..., description="Origin TM1 TAZ ")
-    dest_tm1_taz: int | None = Field(..., description="Destination TM1 TAZ ")
-    home_tm1_taz: int | None = Field(..., description="Home TM1 TAZ ")
-    workplace_tm1_taz: int | None = Field(..., description="Workplace TM1 TAZ ")
-    school_tm1_taz: int | None = Field(..., description="School TM1 TAZ ")
-    first_board_tm1_taz: str | None = Field(..., max_length=20, description="First boarding location TM1 TAZ ")
-    last_alight_tm1_taz: str | None = Field(..., max_length=20, description="Last alighting location TM1 TAZ ")
-    survey_board_tm1_taz: str | None = Field(..., max_length=20, description="Survey boarding location TM1 TAZ ")
-    survey_alight_tm1_taz: str | None = Field(..., max_length=20, description="Survey alighting location TM1 TAZ ")
-
-    # ========== Geographic - Travel Model Zones (TM2 TAZ)  ==========
-    orig_tm2_taz: str | None = Field(..., max_length=20, description="Origin TM2 TAZ ")
-    dest_tm2_taz: str | None = Field(..., max_length=20, description="Destination TM2 TAZ ")
-    home_tm2_taz: str | None = Field(..., max_length=20, description="Home TM2 TAZ ")
-    workplace_tm2_taz: str | None = Field(..., max_length=20, description="Workplace TM2 TAZ ")
-    school_tm2_taz: str | None = Field(..., max_length=20, description="School TM2 TAZ ")
-    first_board_tm2_taz: str | None = Field(..., max_length=20, description="First boarding location TM2 TAZ ")
-    last_alight_tm2_taz: str | None = Field(..., max_length=20, description="Last alighting location TM2 TAZ ")
-    survey_board_tm2_taz: str | None = Field(..., max_length=20, description="Survey boarding location TM2 TAZ ")
-    survey_alight_tm2_taz: str | None = Field(..., max_length=20, description="Survey alighting location TM2 TAZ ")
-
-    # ========== Geographic - Travel Model Zones (TM2 MAZ)  ==========
-    orig_tm2_maz: str | None = Field(..., max_length=20, description="Origin TM2 MAZ ")
-    dest_tm2_maz: str | None = Field(..., max_length=20, description="Destination TM2 MAZ ")
-    home_tm2_maz: str | None = Field(..., max_length=20, description="Home TM2 MAZ ")
-    workplace_tm2_maz: str | None = Field(..., max_length=20, description="Workplace TM2 MAZ ")
-    school_tm2_maz: str | None = Field(..., max_length=20, description="School TM2 MAZ ")
-    first_board_tm2_maz: str | None = Field(..., max_length=20, description="First boarding location TM2 MAZ ")
-    last_alight_tm2_maz: str | None = Field(..., max_length=20, description="Last alighting location TM2 MAZ ")
-    survey_board_tm2_maz: str | None = Field(..., max_length=20, description="Survey boarding location TM2 MAZ ")
-    survey_alight_tm2_maz: str | None = Field(..., max_length=20, description="Survey alighting location TM2 MAZ ")
-
-    # ========== Geographic - Resolution Level  ==========
-    orig_geo_level: str | None = Field(..., max_length=20, description="Geographic resolution level for origin ")
-    dest_geo_level: str | None = Field(..., max_length=20, description="Geographic resolution level for destination ")
-    home_geo_level: str | None = Field(..., max_length=20, description="Geographic resolution level for home ")
-
-    # ========== Distance Measures  ==========
-    distance_orig_dest: float | None = Field(..., description="Distance from origin to destination (miles) ")
-    distance_board_alight: float | None = Field(..., description="Distance from first board to last alight (miles) ")
-    distance_orig_first_board: float | None = Field(..., description="Distance from origin to first board (miles) ")
-    distance_orig_survey_board: float | None = Field(..., description="Distance from origin to survey board (miles) ")
-    distance_survey_alight_dest: float | None = Field(..., description="Distance from survey alight to destination (miles) ")
-    distance_last_alight_dest: float | None = Field(..., description="Distance from last alight to destination (miles) ")
+    onoff_enter_station: str | None = Field(..., max_length=100, description="Rail boarding station name")
+    onoff_exit_station: str | None = Field(..., max_length=100, description="Rail alighting station name")
 
     # ========== Fare Information ==========
     fare_medium: FareMedium | None = Field(..., description="Payment method for fare")
     fare_category: FareCategory = Field(..., description="Fare category (adult/youth/senior/disabled)")
 
-    # ========== Time Information  ==========
-    depart_hour: int | None = Field(..., ge=0, le=23, description="Hour leaving home prior to transit trip ")
-    return_hour: int | None = Field(..., ge=0, le=23, description="Hour next expected home after transit trip ")
+    # ========== Time Information ==========
+    depart_hour: int | None = Field(..., ge=0, le=23, description="Hour leaving home prior to transit trip")
+    return_hour: int | None = Field(..., ge=0, le=23, description="Hour next expected home after transit trip")
     survey_time: str | None = Field(..., max_length=20, description="Time survey conducted (may be missing)")
-    weekpart: Weekpart = Field(..., description="Weekday or weekend")
     day_of_the_week: DayOfWeek = Field(..., description="Day of week")
-    day_part: DayPart = Field(..., description="Part of day (EARLY AM, AM PEAK, MIDDAY, PM PEAK, EVENING)")
 
     # ========== Person Demographics ==========
     approximate_age: int | None = Field(..., ge=0, le=120, description="Approximate age")
-    year_born_four_digit: int | None = Field(None, ge=1900, le=2025, description="Four-digit birth year")
     gender: Gender = Field(..., description="Gender identity")
     hispanic: Hispanic = Field(..., description="Hispanic/Latino ethnicity")
     race: Race = Field(..., description="Race")
@@ -273,52 +208,79 @@ class CoreSurveyResponse(BaseModel):
     persons: int | None = Field(..., ge=0, description="Number of persons in household ")
     workers: int | None = Field(..., ge=0, description="Number of workers in household ")
     vehicles: int | None = Field(..., ge=0, description="Number of vehicles in household ")
-    household_income: HouseholdIncome | None = Field(..., description="Annual household income bracket ")
+    household_income: float | None = Field(..., ge=0, description="Annual household income (continuous, nominal dollars)")
+    household_income_category: str | None = Field(None, max_length=100, description="Original household income category string")
+    income_approximated: bool | None = Field(None, description="True if household_income was calculated from bounds rather than provided directly")
 
-    # ========== Income Continuous Values  ==========
-    income_lower_bound: float | None = Field(..., description="Lower bound of income bracket (dollars) ")
-    income_upper_bound: float | None = Field(..., description="Upper bound of income bracket (dollars) ")
-    hh_income_nominal_continuous: float | None = Field(..., description="Household income continuous value nominal dollars ")
-    hh_income_2023dollars_continuous: float | None = Field(..., description="Household income continuous value in 2023 dollars ")
-
-    auto_suff: str | None = Field(..., max_length=50, description="Auto sufficiency (sufficient/negotiating) ")
+    auto_to_workers_ratio: AutoRatioCategory | None = Field(..., description="Auto sufficiency (vehicle to worker ratio)")
     language_at_home: str | None = Field(..., max_length=100, description="Language spoken at home ")
     language_at_home_detail: str | None = Field(None, max_length=100, description="Specific language spoken at home ")
 
     # ========== Survey Administration ==========
     survey_type: SurveyType | None = Field(..., description="Survey administration method (CATI/paper/tablet)")
-    interview_language: InterviewLanguage = Field(..., description="Language survey conducted in")
-    field_language: FieldLanguage = Field(..., description="Survey field language")
-
-    # ========== Vendor-Specific Fields ==========
-    extra_fields: dict[str, Any] | None = Field(None, description="Survey-specific non-standard fields as JSON")
-
-    # ========== Derived Analysis Fields ==========
-    autos_vs_workers: str | None = Field(..., max_length=50, description="Auto sufficiency category (autos vs workers)")
-    vehicle_numeric_cat: str | None = Field(..., max_length=20, description="Vehicle count numeric category")
-    worker_numeric_cat: str | None = Field(..., max_length=20, description="Worker count numeric category")
-    tour_purp_case: str | None = Field(..., max_length=50, description="Tour purpose case for analysis")
-    time_period: str | None = Field(..., max_length=20, description="Time period classification")
-    transit_type: str | None = Field(..., max_length=50, description="Transit type classification")
-    transfers_surveyed: str | None = Field(..., max_length=20, description="Number of transfers surveyed")
+    interview_language: Language = Field(..., description="Language survey conducted in")
+    field_language: Language = Field(..., description="Survey field language")
 
 
-class SurveyResponse(CoreSurveyResponse):
-    """Extended survey response with MTC-derived fields.
+class DerivedSurveyResponse(CoreSurveyResponse):
+    """Survey response with pipeline-derived fields.
 
-    Inherits all core survey fields from vendors and adds fields that MTC
-    calculates during ingestion (geocoding, tour logic, distances, etc.).
+    Inherits all core vendor fields and adds fields calculated by the MTC
+    processing pipeline (geocoding, tour logic, distances, zone assignments).
+    
+    Inheritance chain: CoreSurveyResponse → DerivedSurveyResponse → SurveyResponse
     """
+
+    # ========== Time Classification (Derived) ==========
+    day_part: DayPart | None = Field(None, description="Part of day (EARLY AM, AM PEAK, MIDDAY, PM PEAK, EVENING)")
+    weekpart: Weekpart | None = Field(None, description="Weekday or weekend")
+    time_period: str | None = Field(None, max_length=20, description="Time period classification")
 
     # ========== Trip Calculations ==========
     boardings: int | None = Field(None, ge=1, le=10, description="Number of boardings in transit trip (calculated from transfers)")
+    transfers_surveyed: str | None = Field(None, max_length=20, description="Number of transfers surveyed")
 
     # ========== Tour Purpose Logic ==========
     tour_purp: TripPurpose | None = Field(None, description="Tour purpose (calculated from trip purposes + work/school status)")
-    at_work_prior_to_orig_purp: str | None = Field(None, max_length=50, description="Was at work before surveyed trip")
-    at_work_after_dest_purp: str | None = Field(None, max_length=50, description="Will be at work after surveyed trip")
-    at_school_prior_to_orig_purp: str | None = Field(None, max_length=50, description="Was at school before surveyed trip")
-    at_school_after_dest_purp: str | None = Field(None, max_length=50, description="Will be at school after surveyed trip")
+    tour_purp_case: str | None = Field(None, max_length=50, description="Tour purpose case for analysis")
+    at_work_prior_to_orig_purp: bool | None = Field(None, description="Was at work before surveyed trip")
+    at_work_after_dest_purp: bool | None = Field(None, description="Will be at work after surveyed trip")
+    at_school_prior_to_orig_purp: bool | None = Field(None, description="Was at school before surveyed trip")
+    at_school_after_dest_purp: bool | None = Field(None, description="Will be at school after surveyed trip")
+
+    # ========== Auto Sufficiency (Derived) ==========
+    autos_vs_workers: str | None = Field(None, max_length=50, description="Auto sufficiency category (autos vs workers)")
+    vehicle_numeric_cat: str | None = Field(None, max_length=20, description="Vehicle count numeric category")
+    worker_numeric_cat: str | None = Field(None, max_length=20, description="Worker count numeric category")
+
+    # ========== Transit Classification ==========
+    transit_type: str | None = Field(None, max_length=50, description="Transit type classification")
+
+    # ========== Mode Presence Flags (Derived) ==========
+    commuter_rail_present: int | None = Field(None, ge=0, le=1, description="Commuter rail present in trip")
+    heavy_rail_present: int | None = Field(None, ge=0, le=1, description="Heavy rail present in trip")
+    express_bus_present: int | None = Field(None, ge=0, le=1, description="Express bus present in trip")
+    ferry_present: int | None = Field(None, ge=0, le=1, description="Ferry present in trip")
+    light_rail_present: int | None = Field(None, ge=0, le=1, description="Light rail present in trip")
+
+    # ========== Income (Derived) ==========
+    # NOTE: These fields are derived during preprocessing, not in standardization pipeline
+    # Income binning/approximation should happen in preprocessing stage for historical surveys
+    income_lower_bound: float | None = Field(None, description="Lower bound of income bracket (dollars) - for binned data only")
+    income_upper_bound: float | None = Field(None, description="Upper bound of income bracket (dollars) - for binned data only")
+    hh_income_nominal_continuous: float | None = Field(None, description="Household income continuous value nominal dollars")
+    hh_income_2023dollars_continuous: float | None = Field(None, description="Household income continuous value in 2023 dollars")
+
+    # ========== Demographics (Derived) ==========
+    year_born_four_digit: int | None = Field(None, ge=1900, le=2100, description="Four-digit birth year (derived from age + survey year)")
+
+    # ========== Distance Measures ==========
+    distance_orig_dest: float | None = Field(None, description="Distance from origin to destination (miles)")
+    distance_board_alight: float | None = Field(None, description="Distance from first board to last alight (miles)")
+    distance_orig_first_board: float | None = Field(None, description="Distance from origin to first board (miles)")
+    distance_orig_survey_board: float | None = Field(None, description="Distance from origin to survey board (miles)")
+    distance_survey_alight_dest: float | None = Field(None, description="Distance from survey alight to destination (miles)")
+    distance_last_alight_dest: float | None = Field(None, description="Distance from last alight to destination (miles)")
 
     # ========== Geographic - Travel Model Zones (MAZ) ==========
     orig_maz: int | None = Field(None, description="Origin MAZ (Travel Model geography)")
@@ -338,32 +300,43 @@ class SurveyResponse(CoreSurveyResponse):
     first_board_tap: int | None = Field(None, description="TAP of first boarding location (Travel Model geography)")
     last_alight_tap: int | None = Field(None, description="TAP of last alighting location")
 
+    # ========== Geographic - Travel Model Zones (TM1 TAZ) ==========
+    orig_tm1_taz: int | None = Field(None, description="Origin TM1 TAZ")
+    dest_tm1_taz: int | None = Field(None, description="Destination TM1 TAZ")
+    home_tm1_taz: int | None = Field(None, description="Home TM1 TAZ")
+    workplace_tm1_taz: int | None = Field(None, description="Workplace TM1 TAZ")
+    school_tm1_taz: int | None = Field(None, description="School TM1 TAZ")
+    first_board_tm1_taz: int | None = Field(None, description="First boarding location TM1 TAZ")
+    last_alight_tm1_taz: int | None = Field(None, description="Last alighting location TM1 TAZ")
+    survey_board_tm1_taz: int | None = Field(None, description="Survey boarding location TM1 TAZ")
+    survey_alight_tm1_taz: int | None = Field(None, description="Survey alighting location TM1 TAZ")
+
+    # ========== Geographic - Travel Model Zones (TM2 TAZ) ==========
+    orig_tm2_taz: int | None = Field(None, description="Origin TM2 TAZ")
+    dest_tm2_taz: int | None = Field(None, description="Destination TM2 TAZ")
+    home_tm2_taz: int | None = Field(None, description="Home TM2 TAZ")
+    workplace_tm2_taz: int | None = Field(None, description="Workplace TM2 TAZ")
+    school_tm2_taz: int | None = Field(None, description="School TM2 TAZ")
+    first_board_tm2_taz: int | None = Field(None, description="First boarding location TM2 TAZ")
+    last_alight_tm2_taz: int | None = Field(None, description="Last alighting location TM2 TAZ")
+    survey_board_tm2_taz: int | None = Field(None, description="Survey boarding location TM2 TAZ")
+    survey_alight_tm2_taz: int | None = Field(None, description="Survey alighting location TM2 TAZ")
+
+    # ========== Geographic - Travel Model Zones (TM2 MAZ) ==========
+    orig_tm2_maz: int | None = Field(None, description="Origin TM2 MAZ")
+    dest_tm2_maz: int | None = Field(None, description="Destination TM2 MAZ")
+    home_tm2_maz: int | None = Field(None, description="Home TM2 MAZ")
+    workplace_tm2_maz: int | None = Field(None, description="Workplace TM2 MAZ")
+    school_tm2_maz: int | None = Field(None, description="School TM2 MAZ")
+    first_board_tm2_maz: int | None = Field(None, description="First boarding location TM2 MAZ")
+    last_alight_tm2_maz: int | None = Field(None, description="Last alighting location TM2 MAZ")
+    survey_board_tm2_maz: int | None = Field(None, description="Survey boarding location TM2 MAZ")
+    survey_alight_tm2_maz: int | None = Field(None, description="Survey alighting location TM2 MAZ")
+
     # ========== Geographic - Counties ==========
     home_county: str | None = Field(None, max_length=50, description="Home county")
     workplace_county: str | None = Field(None, max_length=50, description="Workplace county")
     school_county: str | None = Field(None, max_length=50, description="School county")
-
-    # ========== Geographic - Census GEOIDs (PUMA) ==========
-    orig_PUMA_GEOID: str | None = Field(None, max_length=20, description="Origin PUMA GEOID")
-    dest_PUMA_GEOID: str | None = Field(None, max_length=20, description="Destination PUMA GEOID")
-    home_PUMA_GEOID: str | None = Field(None, max_length=20, description="Home PUMA GEOID")
-    workplace_PUMA_GEOID: str | None = Field(None, max_length=20, description="Workplace PUMA GEOID")
-    school_PUMA_GEOID: str | None = Field(None, max_length=20, description="School PUMA GEOID")
-    first_board_PUMA_GEOID: str | None = Field(None, max_length=20, description="First boarding location PUMA GEOID")
-    last_alight_PUMA_GEOID: str | None = Field(None, max_length=20, description="Last alighting location PUMA GEOID")
-    survey_board_PUMA_GEOID: str | None = Field(None, max_length=20, description="Survey boarding location PUMA GEOID")
-    survey_alight_PUMA_GEOID: str | None = Field(None, max_length=20, description="Survey alighting location PUMA GEOID")
-
-    # ========== Geographic - Census GEOIDs (County) ==========
-    orig_county_GEOID: str | None = Field(None, max_length=10, description="Origin county GEOID")
-    dest_county_GEOID: str | None = Field(None, max_length=10, description="Destination county GEOID")
-    home_county_GEOID: str | None = Field(None, max_length=10, description="Home county GEOID")
-    workplace_county_GEOID: str | None = Field(None, max_length=10, description="Workplace county GEOID")
-    school_county_GEOID: str | None = Field(None, max_length=10, description="School county GEOID")
-    first_board_county_GEOID: str | None = Field(None, max_length=10, description="First boarding location county GEOID")
-    last_alight_county_GEOID: str | None = Field(None, max_length=10, description="Last alighting location county GEOID")
-    survey_board_county_GEOID: str | None = Field(None, max_length=10, description="Survey boarding location county GEOID")
-    survey_alight_county_GEOID: str | None = Field(None, max_length=10, description="Survey alighting location county GEOID")
 
     # ========== Geographic - Census GEOIDs (Tract) ==========
     orig_tract_GEOID: str | None = Field(None, max_length=15, description="Origin census tract GEOID")
@@ -376,51 +349,49 @@ class SurveyResponse(CoreSurveyResponse):
     survey_board_tract_GEOID: str | None = Field(None, max_length=15, description="Survey boarding location census tract GEOID")
     survey_alight_tract_GEOID: str | None = Field(None, max_length=15, description="Survey alighting location census tract GEOID")
 
-    # ========== Geographic - Travel Model Zones (TM1 TAZ) ==========
-    orig_tm1_taz: int | None = Field(None, description="Origin TM1 TAZ")
-    dest_tm1_taz: int | None = Field(None, description="Destination TM1 TAZ")
-    home_tm1_taz: int | None = Field(None, description="Home TM1 TAZ")
-    workplace_tm1_taz: int | None = Field(None, description="Workplace TM1 TAZ")
-    school_tm1_taz: int | None = Field(None, description="School TM1 TAZ")
-    first_board_tm1_taz: str | None = Field(None, max_length=20, description="First boarding location TM1 TAZ")
-    last_alight_tm1_taz: str | None = Field(None, max_length=20, description="Last alighting location TM1 TAZ")
-    survey_board_tm1_taz: str | None = Field(None, max_length=20, description="Survey boarding location TM1 TAZ")
-    survey_alight_tm1_taz: str | None = Field(None, max_length=20, description="Survey alighting location TM1 TAZ")
+    # ========== Geographic - Census GEOIDs (County) ==========
+    orig_county_GEOID: str | None = Field(None, max_length=10, description="Origin county GEOID")
+    dest_county_GEOID: str | None = Field(None, max_length=10, description="Destination county GEOID")
+    home_county_GEOID: str | None = Field(None, max_length=10, description="Home county GEOID")
+    workplace_county_GEOID: str | None = Field(None, max_length=10, description="Workplace county GEOID")
+    school_county_GEOID: str | None = Field(None, max_length=10, description="School county GEOID")
+    first_board_county_GEOID: str | None = Field(None, max_length=10, description="First boarding location county GEOID")
+    last_alight_county_GEOID: str | None = Field(None, max_length=10, description="Last alighting location county GEOID")
+    survey_board_county_GEOID: str | None = Field(None, max_length=10, description="Survey boarding location county GEOID")
+    survey_alight_county_GEOID: str | None = Field(None, max_length=10, description="Survey alighting location county GEOID")
 
-    # ========== Geographic - Travel Model Zones (TM2 TAZ) ==========
-    orig_tm2_taz: str | None = Field(None, max_length=20, description="Origin TM2 TAZ")
-    dest_tm2_taz: str | None = Field(None, max_length=20, description="Destination TM2 TAZ")
-    home_tm2_taz: str | None = Field(None, max_length=20, description="Home TM2 TAZ")
-    workplace_tm2_taz: str | None = Field(None, max_length=20, description="Workplace TM2 TAZ")
-    school_tm2_taz: str | None = Field(None, max_length=20, description="School TM2 TAZ")
-    first_board_tm2_taz: str | None = Field(None, max_length=20, description="First boarding location TM2 TAZ")
-    last_alight_tm2_taz: str | None = Field(None, max_length=20, description="Last alighting location TM2 TAZ")
-    survey_board_tm2_taz: str | None = Field(None, max_length=20, description="Survey boarding location TM2 TAZ")
-    survey_alight_tm2_taz: str | None = Field(None, max_length=20, description="Survey alighting location TM2 TAZ")
-
-    # ========== Geographic - Travel Model Zones (TM2 MAZ) ==========
-    orig_tm2_maz: str | None = Field(None, max_length=20, description="Origin TM2 MAZ")
-    dest_tm2_maz: str | None = Field(None, max_length=20, description="Destination TM2 MAZ")
-    home_tm2_maz: str | None = Field(None, max_length=20, description="Home TM2 MAZ")
-    workplace_tm2_maz: str | None = Field(None, max_length=20, description="Workplace TM2 MAZ")
-    school_tm2_maz: str | None = Field(None, max_length=20, description="School TM2 MAZ")
-    first_board_tm2_maz: str | None = Field(None, max_length=20, description="First boarding location TM2 MAZ")
-    last_alight_tm2_maz: str | None = Field(None, max_length=20, description="Last alighting location TM2 MAZ")
-    survey_board_tm2_maz: str | None = Field(None, max_length=20, description="Survey boarding location TM2 MAZ")
-    survey_alight_tm2_maz: str | None = Field(None, max_length=20, description="Survey alighting location TM2 MAZ")
+    # ========== Geographic - Census GEOIDs (PUMA) ==========
+    orig_PUMA_GEOID: str | None = Field(None, max_length=20, description="Origin PUMA GEOID")
+    dest_PUMA_GEOID: str | None = Field(None, max_length=20, description="Destination PUMA GEOID")
+    home_PUMA_GEOID: str | None = Field(None, max_length=20, description="Home PUMA GEOID")
+    workplace_PUMA_GEOID: str | None = Field(None, max_length=20, description="Workplace PUMA GEOID")
+    school_PUMA_GEOID: str | None = Field(None, max_length=20, description="School PUMA GEOID")
+    first_board_PUMA_GEOID: str | None = Field(None, max_length=20, description="First boarding location PUMA GEOID")
+    last_alight_PUMA_GEOID: str | None = Field(None, max_length=20, description="Last alighting location PUMA GEOID")
+    survey_board_PUMA_GEOID: str | None = Field(None, max_length=20, description="Survey boarding location PUMA GEOID")
+    survey_alight_PUMA_GEOID: str | None = Field(None, max_length=20, description="Survey alighting location PUMA GEOID")
 
     # ========== Geographic - Resolution Level ==========
     orig_geo_level: str | None = Field(None, max_length=20, description="Geographic resolution level for origin")
     dest_geo_level: str | None = Field(None, max_length=20, description="Geographic resolution level for destination")
     home_geo_level: str | None = Field(None, max_length=20, description="Geographic resolution level for home")
 
-    # ========== Distance Measures ==========
-    distance_orig_dest: float | None = Field(None, description="Distance from origin to destination (miles)")
-    distance_board_alight: float | None = Field(None, description="Distance from first board to last alight (miles)")
-    distance_orig_first_board: float | None = Field(None, description="Distance from origin to first board (miles)")
-    distance_orig_survey_board: float | None = Field(None, description="Distance from origin to survey board (miles)")
-    distance_survey_alight_dest: float | None = Field(None, description="Distance from survey alight to destination (miles)")
-    distance_last_alight_dest: float | None = Field(None, description="Distance from last alight to destination (miles)")
+    # ========== Vendor Pass-Through ==========
+    extra_fields: dict[str, Any] | None = Field(None, description="Vendor-specific non-standard fields preserved for data lake")
+
+
+class SurveyResponse(DerivedSurveyResponse):
+    """Complete survey response schema for database storage.
+
+    Inherits Core + Derived fields. This is the final schema for validated
+    survey responses ready for database insertion.
+    
+    Inheritance chain: CoreSurveyResponse → DerivedSurveyResponse → SurveyResponse
+    
+    Currently identical to DerivedSurveyResponse but available for future
+    optional validation fields that don't fit in Core or Derived.
+    """
+
 
 
 class SurveyWeight(BaseModel):

@@ -12,7 +12,7 @@ from pathlib import Path
 import geopandas as gpd
 import polars as pl
 
-from transit_passenger_tools.preprocessing import (
+from transit_passenger_tools.utils.stations import (
     geocode_stops_from_names,
 )
 
@@ -42,7 +42,7 @@ for drive, unc_path in net_paths.items():
 
 # Constants
 CANONICAL_OPERATOR = "BART"
-SURVEY_TECH = "heavy rail"
+SURVEY_TECH = "Heavy Rail"  # Must match TechnologyType enum
 SURVEY_YEAR = 2024
 FUZZY_MATCH_THRESHOLD = 80
 
