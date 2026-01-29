@@ -191,7 +191,7 @@ class CoreSurveyResponse(BaseModel):
 
     # ========== Person Demographics ==========
     approximate_age: int | None = Field(..., ge=0, le=120, description="Approximate age")
-    gender: Gender = Field(..., description="Gender identity")
+    gender: Gender | None = Field(..., description="Gender identity")
     hispanic: Hispanic = Field(..., description="Hispanic/Latino ethnicity")
     race: Race = Field(..., description="Race")
     race_dmy_ind: int | None = Field(None, ge=0, le=1, description="American Indian/Alaskan Native (dummy)")

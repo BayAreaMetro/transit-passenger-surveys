@@ -128,7 +128,7 @@ def process_race(df: pl.DataFrame) -> pl.DataFrame:
         .alias("race")
     )
 
-    # Drop intermediate race columns
+    # Drop intermediate race columns (but keep race_other_string for schema)
     cols_to_drop = [
         "race_dmy_ind",
         "race_dmy_asn",
@@ -140,7 +140,6 @@ def process_race(df: pl.DataFrame) -> pl.DataFrame:
         "race_dmy_sum_limited",
         "race_cat",
         "race_categories",
-        "race_other_string",
     ]
     df = df.drop([col for col in cols_to_drop if col in df.columns])
 

@@ -1,7 +1,7 @@
 """Preprocess BART 2024 survey data for standardization pipeline.
 
 Reads raw BART 2024 Excel file, geocodes locations, processes demographics,
-and outputs CSV in format expected by Build_Standard_Database.R
+and returns DataFrame ready for pipeline processing.
 
 Uses Polars for efficient data processing.
 """
@@ -14,66 +14,39 @@ import polars as pl
 
 from transit_passenger_tools.utils.stations import geocode_stops_from_names
 
-# Paths
-SURVEY_PATH = (
-    r"M:/Data/OnBoard/Data and Reports/BART/"
-    r"2024_StationProfileV1_NewWeights_ReducedVariables.xlsx"
-)
+# ============================================================================
+# BART 2024 SURVEY FIELD CONSTANTS
+# These are specific to the BART 2024 data structure and don't need to be
+# configured at the ingestion level
+# ============================================================================
 
-STATION_GEOJSON = (
-    r"M:/Data/OnBoard/Data and Reports/Geography Files/"
-    r"cdot_ca_transit_stops_4312132402745178866.geojson"
-)
-OUTPUT_DIR = r"M:/Data/OnBoard/Data and Reports/BART"
-
-net_paths = {
-    "M:": r"\\models.ad.mtc.ca.gov\data\models"
-}
-
-# Replace letter drives with UNC paths for compatibility
-for drive, unc_path in net_paths.items():
-    SURVEY_PATH = SURVEY_PATH.replace(drive, unc_path)
-    STATION_GEOJSON = STATION_GEOJSON.replace(drive, unc_path)
-    OUTPUT_DIR = OUTPUT_DIR.replace(drive, unc_path)
-
-
-
-# Constants
-CANONICAL_OPERATOR = "BART"
-SURVEY_TECH = "Heavy Rail"  # Must match TechnologyType enum
-SURVEY_YEAR = 2024
-FUZZY_MATCH_THRESHOLD = 80
-
-# Station geocoding configuration
-OPERATOR_NAMES = ["BART", "Bay Area Rapid Transit"]
-STOP_NAME_FIELD = "stop_name"
-AGENCY_FIELD = "agency"
-
-# Survey field names (configurable)
+# Survey field names (specific to BART 2024 Excel structure)
 ENTRY_STATION_FIELD = "ENTRY_STATION_FINAL"
 EXIT_STATION_FIELD = "EXIT_STATION_FINAL"
 TRIP_WEIGHT_FIELD = "combined_OD_weight_NEW"  # Trip weight
 BOARDING_WEIGHT_FIELD = "combined_entry_weight_NEW"  # Boarding weight
 
-# Home coordinate column names (already in survey)
+# Home coordinate column names (already in BART survey)
 HOME_ADDRESS_LAT = "HOME_ADDRESS_LAT"
 HOME_ADDRESS_LONG = "HOME_ADDRESS_LONG"
 
+
 # Setup logging
-def setup_logging() -> None:
+def setup_logging(output_dir: str = None) -> None:
     """Setup logging to both console and file."""
-    # Check if OUTPUT_DIR is accessible, otherwise use local directory
-    if Path(OUTPUT_DIR).exists() or Path(OUTPUT_DIR).drive == "":
-        log_dir = Path(OUTPUT_DIR)
+    # Use provided output_dir or fallback to local directory
+    if output_dir and (Path(output_dir).exists() or Path(output_dir).drive == ""):
+        log_dir = Path(output_dir)
     else:
         # Fallback to local output directory
-        log_dir = Path(__file__).parent.parent / "output"
+        log_dir = Path(__file__).parent / "output"
         logger_temp = logging.getLogger(__name__)
-        logger_temp.warning(
-            "OUTPUT_DIR %s not accessible, using local directory: %s",
-            OUTPUT_DIR,
-            log_dir
-        )
+        if output_dir:
+            logger_temp.warning(
+                "Output directory %s not accessible, using local directory: %s",
+                output_dir,
+                log_dir
+            )
 
     # Create directory if it doesn't exist
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -123,7 +96,7 @@ def read_survey_excel(
     logger.info("Reading survey data from %s", path)
 
     # Read data sheet
-    survey_df = pl.read_excel(path, sheet_name=data_sheet, infer_schema_length=10000)
+    survey_df = pl.read_excel(path, sheet_name=data_sheet, infer_schema_length=20000)
     logger.info("Read %s records from data sheet", f"{len(survey_df):,}")
     logger.info("Columns: %d", len(survey_df.columns))
 
@@ -261,7 +234,8 @@ def process_access_egress(
 
 def process_demographics(  # noqa: PLR0912, PLR0915
     survey_df: pl.DataFrame,
-    codebook_df: pl.DataFrame
+    codebook_df: pl.DataFrame,
+    survey_year: int,
     ) -> pl.DataFrame:
     """Process demographic fields: race, age, language, gender using codebook."""
     logger.info("Processing demographics")
@@ -331,12 +305,12 @@ def process_demographics(  # noqa: PLR0912, PLR0915
             logger.info("Converting age categories to year_born")
             # This mapping needs to be customized based on actual categories
             age_to_birth_year = {
-                1: SURVEY_YEAR - 20,  # Approximate midpoint
-                2: SURVEY_YEAR - 30,
-                3: SURVEY_YEAR - 40,
-                4: SURVEY_YEAR - 50,
-                5: SURVEY_YEAR - 60,
-                6: SURVEY_YEAR - 70,
+                1: survey_year - 20,  # Approximate midpoint
+                2: survey_year - 30,
+                3: survey_year - 40,
+                4: survey_year - 50,
+                5: survey_year - 60,
+                6: survey_year - 70,
             }
             survey_df = survey_df.with_columns([
                 pl.col(age_cols[0]).replace_strict(
@@ -392,10 +366,11 @@ def process_demographics(  # noqa: PLR0912, PLR0915
                 ).alias("gender")
             ])
         else:
-            # No codebook, use as-is
             survey_df = survey_df.with_columns([
                 pl.col(gender_cols[0]).alias("gender")
             ])
+    else:
+        survey_df = survey_df.with_columns([pl.lit(None).cast(pl.Utf8).alias("gender")])
 
     # Add race dummy variable (1 if any race field is populated)
     logger.info("Adding race_dmy_ind field")
@@ -433,13 +408,13 @@ def process_demographics(  # noqa: PLR0912, PLR0915
         pl.lit(0).cast(pl.Int8).alias("race_dmy_hwi"),  # Hawaiian not in BART 2024
         pl.lit(0).cast(pl.Int8).alias("race_dmy_mdl_estn"),  # Middle Eastern not in BART 2024
         pl.col("SingleRaceCode").replace(race_cat_mapping, default=None).alias("race_cat"),
-        pl.col("RACE_OTHER").alias("race_other_string")
+        pl.col("RACE_OTHER").cast(pl.Utf8).alias("race_other_string")
     ])
 
     return survey_df
 
 def process_trip_characteristics(
-    bart_df: pl.DataFrame, _codebook_df: pl.DataFrame
+    bart_df: pl.DataFrame, codebook_df: pl.DataFrame
 ) -> pl.DataFrame:
     """Process trip characteristics: origin/destination purposes, transfers, etc."""
     logger.info("Processing trip characteristics")
@@ -452,10 +427,10 @@ def process_trip_characteristics(
         pl.lit(None).cast(pl.Utf8).alias("orig_purp"),
         pl.lit(None).cast(pl.Utf8).alias("dest_purp"),
         pl.lit(None).cast(pl.Utf8).alias("trip_purp"),
-        pl.lit(None).cast(pl.Utf8).alias("at_work_prior_to_orig_purp"),
-        pl.lit(None).cast(pl.Utf8).alias("at_school_prior_to_orig_purp"),
-        pl.lit(None).cast(pl.Utf8).alias("at_work_after_dest_purp"),
-        pl.lit(None).cast(pl.Utf8).alias("at_school_after_dest_purp")
+        pl.lit(None).cast(pl.Boolean).alias("at_work_prior_to_orig_purp"),
+        pl.lit(None).cast(pl.Boolean).alias("at_school_prior_to_orig_purp"),
+        pl.lit(None).cast(pl.Boolean).alias("at_work_after_dest_purp"),
+        pl.lit(None).cast(pl.Boolean).alias("at_school_after_dest_purp")
     ])
 
     # Add workplace and school location fields (BART 2024 has these)
@@ -558,8 +533,11 @@ def process_trip_characteristics(
 
     # Add metadata fields
     logger.info("Adding interview_language and survey_type fields")
+    # Create lookup for SURVEY_LANGUAGE_FINAL
+    survey_lang_lookup = create_codebook_lookup(codebook_df, "SURVEY_LANGUAGE_FINAL")
+
     bart_df = bart_df.with_columns([
-        pl.lit("ENGLISH").alias("interview_language"),  # Default to English
+        pl.col("SURVEY_LANGUAGE_FINAL").replace(survey_lang_lookup, default="Missing").alias("interview_language"),
         pl.when(pl.col("DATE_COMPLETED").is_not_null())
           .then(pl.lit("online - modeling platform"))
           .when(pl.col("DATE_STARTED_SAS").is_not_null())
@@ -570,12 +548,148 @@ def process_trip_characteristics(
 
     # Add fare fields (household_income and eng_proficient already renamed above)
     logger.info("Adding fare_category and fare_medium fields")
+
+    # Decode fare_category from TYPE_OF_FARE using codebook
+    fare_cat_lookup = create_codebook_lookup(codebook_df, "TYPE_OF_FARE")
+    if fare_cat_lookup:
+        bart_df = bart_df.with_columns([
+            pl.col("TYPE_OF_FARE").replace_strict(
+                fare_cat_lookup, default=None, return_dtype=pl.Utf8
+            ).alias("fare_category")
+        ])
+    else:
+        bart_df = bart_df.with_columns([
+            pl.col("TYPE_OF_FARE").cast(pl.Utf8).alias("fare_category")
+        ])
+
+    # Standardize fare_category to match enum
     bart_df = bart_df.with_columns([
-        pl.col("TYPE_OF_FARE").alias("fare_category"),
+        pl.when(pl.col("fare_category").str.contains("Adult", literal=False))
+          .then(pl.lit("Adult"))
+          .when(pl.col("fare_category").str.contains("Youth", literal=False))
+          .then(pl.lit("Youth"))
+          .when(pl.col("fare_category").str.contains("Senior", literal=False))
+          .then(pl.lit("Senior"))
+          .when(pl.col("fare_category").str.contains("Disabled|RTC", literal=False))
+          .then(pl.lit("RTC"))
+          .when(pl.col("fare_category").str.contains("Student|Pass", literal=False))
+          .then(pl.lit("Student"))
+          .when(pl.col("fare_category").str.contains("Medicare", literal=False))
+          .then(pl.lit("Medicare"))
+          .when(pl.col("fare_category").str.contains("Free", literal=False))
+          .then(pl.lit("Free"))
+          .when(pl.col("fare_category").is_not_null())
+          .then(pl.lit("Other"))
+          .otherwise(pl.lit("Missing"))
+          .alias("fare_category")
+    ])
+
+    bart_df = bart_df.with_columns([
         pl.lit(None).cast(pl.Utf8).alias("fare_medium"),
         pl.lit(None).cast(pl.Utf8).alias("clipper_detail"),
         pl.lit(None).cast(pl.Utf8).alias("fare_medium_other"),
         pl.lit(None).cast(pl.Utf8).alias("fare_category_other")
+    ])
+
+    # Decode work_status and student_status from numeric to text
+    logger.info("Decoding work_status and student_status from codebook")
+    work_status_lookup = create_codebook_lookup(codebook_df, "EMPLOYMENT_STATUS_EDITED")
+    student_status_lookup = create_codebook_lookup(codebook_df, "STUDENT_STATUS_EDITED")
+
+    if work_status_lookup:
+        bart_df = bart_df.with_columns([
+            pl.col("work_status").replace_strict(
+                work_status_lookup, default=None, return_dtype=pl.Utf8
+            ).alias("work_status")
+        ])
+
+    if student_status_lookup:
+        bart_df = bart_df.with_columns([
+            pl.col("student_status").replace_strict(
+                student_status_lookup, default=None, return_dtype=pl.Utf8
+            ).alias("student_status")
+        ])
+
+    # Standardize work_status and student_status to match enum
+    bart_df = bart_df.with_columns([
+        pl.when(pl.col("work_status").str.contains("full time|part time", literal=False))
+          .then(pl.lit("Full- or part-time"))
+          .when(pl.col("work_status").str.contains("No Answer|Not employed", literal=False))
+          .then(pl.lit("Non-worker"))
+          .when(pl.col("work_status").is_not_null())
+          .then(pl.lit("Other"))
+          .otherwise(pl.lit("Missing"))
+          .alias("work_status"),
+        pl.when(pl.col("student_status").str.to_lowercase() == "yes")
+          .then(pl.lit("Full- or part-time"))
+          .when(pl.col("student_status").str.to_lowercase() == "no")
+          .then(pl.lit("Non-student"))
+          .otherwise(pl.lit("Missing"))
+          .alias("student_status")
+    ])
+
+    # Decode household_income from HHI_EDITED using codebook
+    hh_income_lookup = create_codebook_lookup(codebook_df, "HHI_EDITED")
+    if hh_income_lookup:
+        bart_df = bart_df.with_columns([
+            pl.col("household_income").replace_strict(
+                hh_income_lookup, default=None, return_dtype=pl.Utf8
+            ).alias("household_income")
+        ])
+
+    # Convert household_income from text ranges to numeric (use midpoint)
+    # Keep original string and mark as approximated
+    bart_df = bart_df.with_columns([
+        pl.col("household_income").alias("household_income_original"),  # Keep original string
+        pl.when(pl.col("household_income").str.contains("Less than|Under", literal=False))
+          .then(pl.lit(7500.0))  # "Less than $15,000" -> 7,500
+        .when(pl.col("household_income").str.contains("15,000.*29,999", literal=False))
+          .then(pl.lit(22500.0))
+        .when(pl.col("household_income").str.contains("30,000.*49,999", literal=False))
+          .then(pl.lit(40000.0))
+        .when(pl.col("household_income").str.contains("50,000.*74,999", literal=False))
+          .then(pl.lit(62500.0))
+        .when(pl.col("household_income").str.contains("75,000.*99,999", literal=False))
+          .then(pl.lit(87500.0))
+        .when(pl.col("household_income").str.contains("100,000.*149,999", literal=False))
+          .then(pl.lit(125000.0))
+        .when(pl.col("household_income").str.contains("150,000.*199,999", literal=False))
+          .then(pl.lit(175000.0))
+        .when(pl.col("household_income").str.contains("200,000.*above|200,000.*over", literal=False))
+          .then(pl.lit(250000.0))  # "$200,000 and above" -> 250,000
+        .when(pl.col("household_income").is_not_null())
+          .then(pl.col("household_income").cast(pl.Float64, strict=False))
+        .otherwise(None)
+        .alias("household_income"),
+        pl.when(pl.col("household_income").is_not_null())
+          .then(pl.lit(True))
+          .otherwise(pl.lit(False))
+          .alias("income_approximated")
+    ])
+
+
+    # Fix survey_type to match enum
+    logger.info("Normalizing survey_type values")
+    bart_df = bart_df.with_columns([
+        pl.when(pl.col("survey_type").str.contains("modeling"))
+          .then(pl.lit("Online"))
+          .when(pl.col("survey_type").str.contains("SAS"))
+          .then(pl.lit("Online"))
+          .when(pl.col("survey_type") == "online")
+          .then(pl.lit("Online"))
+          .otherwise(pl.col("survey_type"))
+          .alias("survey_type")
+    ])
+
+    # Fix hispanic field - convert from 0/1 to enum text
+    logger.info("Converting hispanic from 0/1 to enum text")
+    bart_df = bart_df.with_columns([
+        pl.when(pl.col("hispanic") == 1)
+          .then(pl.lit("Hispanic/Latino or of Spanish origin"))
+          .when(pl.col("hispanic") == 0)
+          .then(pl.lit("Not Hispanic/Latino or of Spanish origin"))
+          .otherwise(pl.lit("Missing"))
+          .alias("hispanic")
     ])
 
     # Add weight fields
@@ -597,21 +711,40 @@ def process_trip_characteristics(
 # This includes both NONCATEGORICAL (ID, weight, etc.) and categorical (work_status, etc.) mappings
 
 
-def main() -> None:  # noqa: PLR0915
-    """Main preprocessing pipeline."""
-    setup_logging()
-
+def preprocess(
+    survey_path: str,
+    station_geojson: str,
+    canonical_operator: str,
+    vehicle_tech: str,
+    survey_year: int,
+    fuzzy_match_threshold: int,
+    operator_names: list[str],
+) -> pl.DataFrame:
+    """Preprocess BART 2024 survey data.
+    
+    Args:
+        survey_path: Path to survey Excel file
+        station_geojson: Path to station GeoJSON file
+        canonical_operator: Canonical operator name (e.g., 'BART')
+        vehicle_tech: Vehicle technology type (e.g., 'Heavy Rail')
+        survey_year: Survey year
+        fuzzy_match_threshold: Threshold for fuzzy station name matching
+        operator_names: List of operator name variants for geocoding
+        
+    Returns:
+        Preprocessed survey DataFrame ready for canonical pipeline ingestion.
+    """
     logger.info("=" * 80)
     logger.info("BART 2024 Preprocessing Pipeline")
     logger.info("=" * 80)
     # Read data
-    survey_df, codebook_df = read_survey_excel(SURVEY_PATH)
+    survey_df, codebook_df = read_survey_excel(survey_path)
 
     logger.info("\nInitial data shape: %s", survey_df.shape)
     logger.info("Initial columns: %s", len(survey_df.columns))
 
     logger.info("Loading station GeoJSON")
-    stations_gdf = gpd.read_file(STATION_GEOJSON)
+    stations_gdf = gpd.read_file(station_geojson)
 
     # Decode station codes to names using codebook
     logger.info("Decoding station codes to names")
@@ -629,6 +762,7 @@ def main() -> None:  # noqa: PLR0915
 
     # Geocode decoded station names to coordinates
     logger.info("Geocoding stations")
+    stations_gdf = gpd.read_file(station_geojson)
     survey_df = geocode_stops_from_names(
         survey_df=survey_df,
         stops_gdf=stations_gdf,
@@ -646,10 +780,10 @@ def main() -> None:  # noqa: PLR0915
                 "geo_level": "survey_alight_geo_level",
             },
         },
-        operator_names=OPERATOR_NAMES,
-        stop_name_field=STOP_NAME_FIELD,
-        agency_field=AGENCY_FIELD,
-        fuzzy_threshold=FUZZY_MATCH_THRESHOLD,
+        operator_names=operator_names,
+        stop_name_field="stop_name",
+        agency_field="agency",
+        fuzzy_threshold=fuzzy_match_threshold,
     )
 
     # Use existing home coordinates from survey
@@ -670,7 +804,7 @@ def main() -> None:  # noqa: PLR0915
     survey_df = process_access_egress(survey_df, codebook_df)
 
     # Process demographics
-    survey_df = process_demographics(survey_df, codebook_df)
+    survey_df = process_demographics(survey_df, codebook_df, survey_year)
 
     # Process trip characteristics
     survey_df = process_trip_characteristics(survey_df, codebook_df)
@@ -678,11 +812,11 @@ def main() -> None:  # noqa: PLR0915
     # Add metadata
     logger.info("Adding metadata columns")
     survey_df = survey_df.with_columns([
-        pl.lit(CANONICAL_OPERATOR).alias("canonical_operator"),
-        pl.lit(SURVEY_TECH).alias("survey_tech"),
-        pl.lit(SURVEY_YEAR).alias("survey_year"),
-        pl.lit(CANONICAL_OPERATOR).alias("survey_name"),
-        pl.lit(CANONICAL_OPERATOR).alias("operator"),
+        pl.lit(canonical_operator).alias("canonical_operator"),
+        pl.lit(vehicle_tech).alias("vehicle_tech"),  # Use correct schema field name
+        pl.lit(survey_year).alias("survey_year"),
+        pl.lit(canonical_operator).alias("survey_name"),
+        pl.lit(canonical_operator).alias("operator"),
     ])
 
     # Add route field (BART doesn't have routes in traditional sense, use line or null)
@@ -725,16 +859,107 @@ def main() -> None:  # noqa: PLR0915
             "UNIQUE_IDENTIFIER": "ID"
         })
 
-    # Determine output directory (use local if M: drive not accessible)
-    if Path(OUTPUT_DIR).exists() or Path(OUTPUT_DIR).drive == "":
-        output_dir = Path(OUTPUT_DIR)
-    else:
-        output_dir = Path(__file__).parent.parent / "output"
-        logger.warning(
-            "OUTPUT_DIR %s not accessible, using local directory: %s",
-            OUTPUT_DIR, output_dir
-        )
-        output_dir.mkdir(parents=True, exist_ok=True)
+    # Add missing required fields for schema validation
+    logger.info("Adding missing required schema fields...")
+    survey_df = survey_df.with_columns([
+        # survey_id and original_id (will be set properly in ingest.py)
+        pl.col("ID").alias("survey_id"),  # Placeholder, will be overwritten
+        pl.col("ID").alias("original_id"),
+
+        # Direction - set to Missing for BART (no traditional direction)
+        pl.lit("Missing").alias("direction") if "direction" in survey_df.columns and survey_df["direction"].null_count() > 0 else pl.col("direction"),
+
+        # Access/egress modes - set null to "Missing"
+        pl.when(pl.col("access_mode").is_null()).then(pl.lit("Missing")).otherwise(pl.col("access_mode")).alias("access_mode"),
+        pl.when(pl.col("egress_mode").is_null()).then(pl.lit("Missing")).otherwise(pl.col("egress_mode")).alias("egress_mode"),
+        pl.lit("Missing").alias("immediate_access_mode"),
+        pl.lit("Missing").alias("immediate_egress_mode"),
+
+        # Transfer fields
+        pl.lit("Missing").alias("transfer_from"),
+        pl.lit("Missing").alias("transfer_to"),
+
+        # Transfer operator/technology fields (before survey)
+        pl.lit(None).cast(pl.Utf8).alias("first_before_operator"),
+        pl.lit(None).cast(pl.Utf8).alias("first_before_operator_detail"),
+        pl.lit("Missing").alias("first_before_technology"),
+        pl.lit(None).cast(pl.Utf8).alias("second_before_operator"),
+        pl.lit(None).cast(pl.Utf8).alias("second_before_operator_detail"),
+        pl.lit("Missing").alias("second_before_technology"),
+        pl.lit(None).cast(pl.Utf8).alias("third_before_operator"),
+        pl.lit(None).cast(pl.Utf8).alias("third_before_operator_detail"),
+        pl.lit("Missing").alias("third_before_technology"),
+
+        # Transfer operator/technology fields (after survey)
+        pl.lit(None).cast(pl.Utf8).alias("first_after_operator"),
+        pl.lit(None).cast(pl.Utf8).alias("first_after_operator_detail"),
+        pl.lit("Missing").alias("first_after_technology"),
+        pl.lit(None).cast(pl.Utf8).alias("second_after_operator"),
+        pl.lit(None).cast(pl.Utf8).alias("second_after_operator_detail"),
+        pl.lit("Missing").alias("second_after_technology"),
+        pl.lit(None).cast(pl.Utf8).alias("third_after_operator"),
+        pl.lit(None).cast(pl.Utf8).alias("third_after_operator_detail"),
+        pl.lit("Missing").alias("third_after_technology"),
+
+        # First/last board technology
+        pl.lit("Heavy Rail").alias("first_board_tech"),
+        pl.lit("Heavy Rail").alias("last_alight_tech"),
+
+        # Path labels (not yet derived)
+        pl.lit(None).cast(pl.Utf8).alias("path_access"),
+        pl.lit(None).cast(pl.Utf8).alias("path_egress"),
+        pl.lit(None).cast(pl.Utf8).alias("path_line_haul"),
+        pl.lit(None).cast(pl.Utf8).alias("path_label"),
+
+        # Trip purposes - set null to "Missing"
+        pl.when(pl.col("orig_purp").is_null()).then(pl.lit("Missing")).otherwise(pl.col("orig_purp")).alias("orig_purp"),
+        pl.when(pl.col("dest_purp").is_null()).then(pl.lit("Missing")).otherwise(pl.col("dest_purp")).alias("dest_purp"),
+
+        # On/off station fields
+        pl.col("survey_board").alias("onoff_enter_station"),
+        pl.col("survey_alight").alias("onoff_exit_station"),
+
+        # survey_time field (combine date_string and time_string)
+        (pl.col("date_string").cast(pl.Utf8) + " " + pl.col("time_string").cast(pl.Utf8)).alias("survey_time"),
+
+        # day_of_the_week (derive from date_string)
+        pl.when(pl.col("date_string").is_not_null())
+          .then(pl.col("date_string").str.to_date("%m/%d/%Y").dt.weekday().cast(pl.Utf8)
+            .replace_strict({
+              "1": "Monday", "2": "Tuesday", "3": "Wednesday",
+              "4": "Thursday", "5": "Friday", "6": "Saturday", "7": "Sunday"
+            }, default="Missing", return_dtype=pl.Utf8))
+          .otherwise(pl.lit("Missing"))
+          .alias("day_of_the_week"),
+
+        # approximate_age (calculate from year_born_four_digit)
+        (survey_year - pl.col("year_born_four_digit")).alias("approximate_age"),
+
+        # field_language (use same as interview_language)
+        pl.col("interview_language").alias("field_language"),
+
+        # race field (combine race_cat or use Missing)
+        pl.when(pl.col("race_cat").is_not_null()).then(pl.col("race_cat")).otherwise(pl.lit("Missing")).alias("race"),
+
+        # language_at_home (use language_at_home_binary)
+        pl.when(pl.col("language_at_home_binary").is_not_null()).then(pl.col("language_at_home_binary")).otherwise(pl.lit("Missing")).alias("language_at_home"),
+    ])
+
+    # Convert eng_proficient from int to string enum
+    survey_df = survey_df.with_columns([
+        pl.when(pl.col("eng_proficient").cast(pl.Utf8, strict=False) == "1")
+          .then(pl.lit("Very well"))
+        .when(pl.col("eng_proficient").cast(pl.Utf8, strict=False) == "2")
+          .then(pl.lit("Well"))
+        .when(pl.col("eng_proficient").cast(pl.Utf8, strict=False) == "3")
+          .then(pl.lit("Not well"))
+        .when(pl.col("eng_proficient").cast(pl.Utf8, strict=False) == "4")
+          .then(pl.lit("Not at all"))
+        .when(pl.col("eng_proficient").is_null())
+          .then(pl.lit("Missing"))
+        .otherwise(pl.col("eng_proficient").cast(pl.Utf8))
+        .alias("eng_proficient")
+    ])
 
     # Sanitize the comment field to remove bad characters
     survey_df = survey_df.with_columns(
@@ -746,149 +971,54 @@ def main() -> None:  # noqa: PLR0915
         .str.replace_all("\n", r"\n")
     )
 
-    # Move COMMENT to the end to keep CSV slightly neater
-    if "COMMENT" in survey_df.columns:
-        cols = [col for col in survey_df.columns if col != "COMMENT"] + ["COMMENT"]
-        survey_df = survey_df.select(cols)
-
-    # Write output
-    output_file = output_dir / "BART_2024_preprocessed.csv"
-    logger.info("\nWriting output to %s", output_file)
-    survey_df.write_csv(
-        output_file,
-        line_terminator="\n",
-        quote_style="necessary"
-    )
-
-    # Prepare codebook for R Pipeline
-    codebook_df_r = (
-        codebook_df
-        .rename(
-            {
-                "field": "Survey_Variable",
-                "value": "Survey_Response",
-                "description": "Survey_Description",
-                "value_description": "Survey_Value_Description"
-            }
-        )
-        .with_columns([
-            pl.lit(CANONICAL_OPERATOR).alias("Survey_Name"),
-            pl.lit(SURVEY_YEAR).alias("Survey_Year"),
-            pl.col("Survey_Response").fill_null(pl.lit("NONCATEGORICAL")),
-            pl.lit(None).cast(pl.Utf8).alias("Generic_Variable"),
-            pl.lit(None).cast(pl.Utf8).alias("Generic_Response"),
-        ])
-        .with_columns(
-            pl.when(pl.col("Survey_Response") == "NONCATEGORICAL")
-                .then(pl.lit("NONCATEGORICAL"))
-                .otherwise(pl.col("Generic_Response"))
-                .alias("Generic_Response")
-        )
-        .select(
-            "Survey_Name","Survey_Year","Survey_Variable",
-            "Survey_Response","Generic_Variable","Generic_Response",
-            "Survey_Description", "Survey_Value_Description"
-        )
-    )
-
-    codebook_file = output_dir / "BART_2024_codebook.csv"
-    logger.info("Writing codebook to %s", codebook_file)
-    codebook_df.write_csv(
-        codebook_file,
-        line_terminator="\n",
-        quote_style="necessary"
-    )
-    codebook_df_r.write_csv(
-        output_dir / "BART_2024_codebook_for_R.csv",
-        line_terminator="\n",
-        quote_style="necessary"
-    )
-
-    # Check that the CSV is written correctly
-    _ = pl.read_csv(output_file, infer_schema_length=10000)
-
-    logger.info(
-        "Wrote %s records with %s columns", f"{len(survey_df):,}", len(survey_df.columns)
-    )
-
-    logger.info("\n=== Output Summary ===")
-    logger.info("Output file: %s", output_file)
+    logger.info("\n%s", "=" * 80)
+    logger.info("Preprocessing complete!")
     logger.info("Records: %s", f"{len(survey_df):,}")
     logger.info("Columns: %s", len(survey_df.columns))
-
-    # Log sample of key columns
-    key_cols = ["ID", "canonical_operator", "survey_tech", "survey_year"]
-    key_cols = [col for col in key_cols if col in survey_df.columns]
-    logger.info("\nSample data (first 3 rows): %d columns shown", len(key_cols))
-
-    logger.info("%s", "\n" + "=" * 80)
-    logger.info("Preprocessing complete!")
     logger.info("%s", "=" * 80)
 
-    # Update main dictionary file
-    update_main_dictionary()
-
-
-def update_main_dictionary() -> None:
-    """Update the main Dictionary_for_Standard_Database.csv with BART 2024 entries.
-
-    Removes any existing BART 2024 entries and appends current entries from
-    BART_2024_dictionary_mappings.csv to prevent duplicates.
-    """
-    logger.info("\n%s", "=" * 80)
-    logger.info("Updating main dictionary file")
-    logger.info("%s", "=" * 80)
-
-    # Paths
-    bart_dict_path = Path(__file__).parent / "BART_2024_dictionary_mappings.csv"
-    main_dict_path = (
-        Path(__file__).parent.parent.parent.parent /
-        "archive" / "make-uniform" / "production" /
-        "Dictionary_for_Standard_Database.csv"
-    )
-
-    if not bart_dict_path.exists():
-        logger.error("BART dictionary file not found: %s", bart_dict_path)
-        return
-
-    if not main_dict_path.exists():
-        logger.error("Main dictionary file not found: %s", main_dict_path)
-        return
-
-    # Read BART 2024 entries (skip header)
-    logger.info("Reading BART 2024 entries from: %s", bart_dict_path)
-    bart_entries = bart_dict_path.read_text(encoding="utf-8").split("\n")
-    bart_data = [line for line in bart_entries[1:] if line.strip()] # skip header
-    logger.info("Found %d BART 2024 entries", len(bart_data))
-
-    # Read main dictionary
-    logger.info("Reading main dictionary from: %s", main_dict_path)
-    main_content = main_dict_path.read_text(encoding="utf-8").strip().split("\n")
-    header = main_content[0]
-    main_data = main_content[1:]
-
-    # Remove existing BART 2024 entries (keep only non-empty, non-BART 2024 lines)
-    original_count = len([line for line in main_data if line.strip()])
-    main_data_filtered = [
-        line for line in main_data
-        if line.strip() and not line.startswith("BART,2024,")
-    ]
-    filtered_count = len(main_data_filtered)
-    removed_count = original_count - filtered_count
-    logger.info("Removed %d existing BART 2024 entries", removed_count)
-
-    # Combine: header + filtered main data + BART 2024 entries
-    updated_content = [header, *main_data_filtered, *bart_data]
-
-    # Write back with single newline at end
-    main_dict_path.write_text("\n".join(updated_content) + "\n", encoding="utf-8")
-
-    final_count = len([line for line in updated_content[1:] if line.strip()])
-    logger.info(
-        "Updated main dictionary: %d total entries (%d BART 2024)", final_count, len(bart_data)
-    )
-    logger.info("Main dictionary updated: %s", main_dict_path)
+    return survey_df
 
 
 if __name__ == "__main__":
-    main()
+    # Debugging configuration - mirrors parameters in ingest.py
+    # These values are used when running preprocessing.py directly for testing
+
+    # Paths
+    SURVEY_PATH = (
+        r"M:/Data/OnBoard/Data and Reports/BART/"
+        r"2024_StationProfileV1_NewWeights_ReducedVariables.xlsx"
+    )
+
+    STATION_GEOJSON = (
+        r"M:/Data/OnBoard/Data and Reports/Geography Files/"
+        r"cdot_ca_transit_stops_4312132402745178866.geojson"
+    )
+
+    # Replace letter drives with UNC paths for compatibility
+    net_paths = {
+        "M:": r"\\models.ad.mtc.ca.gov\data\models"
+    }
+
+    for drive, unc_path in net_paths.items():
+        SURVEY_PATH = SURVEY_PATH.replace(drive, unc_path)
+        STATION_GEOJSON = STATION_GEOJSON.replace(drive, unc_path)
+
+    # High-level configuration constants
+    CANONICAL_OPERATOR = "BART"
+    VEHICLE_TECH = "Heavy Rail"
+    SURVEY_YEAR = 2024
+    FUZZY_MATCH_THRESHOLD = 80
+    OPERATOR_NAMES = ["BART", "Bay Area Rapid Transit"]
+
+    # Run preprocessing for debugging
+    preprocess(
+        survey_path=SURVEY_PATH,
+        station_geojson=STATION_GEOJSON,
+        canonical_operator=CANONICAL_OPERATOR,
+        vehicle_tech=VEHICLE_TECH,
+        survey_year=SURVEY_YEAR,
+        fuzzy_match_threshold=FUZZY_MATCH_THRESHOLD,
+        operator_names=OPERATOR_NAMES,
+    )
+

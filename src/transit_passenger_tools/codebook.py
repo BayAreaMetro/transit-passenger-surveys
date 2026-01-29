@@ -320,7 +320,6 @@ class Gender(str, Enum):
     TRANSGENDER = "Transgender"
     OTHER = "Other"
     PREFER_NOT_TO_ANSWER = "Prefer not to answer"
-    MISSING = "Missing"
 
 
 class Hispanic(str, Enum):

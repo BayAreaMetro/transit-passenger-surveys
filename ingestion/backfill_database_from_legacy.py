@@ -234,7 +234,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
     df = df.with_columns([
         pl.col("hh_income_nominal_continuous").cast(pl.Float64, strict=False).alias("hh_income_nominal_continuous")
     ])
-    
+
     # For null values, calculate midpoint from bounds
     df = df.with_columns([
         pl.when(pl.col("hh_income_nominal_continuous").is_null())
@@ -243,7 +243,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         )
         .otherwise(pl.col("hh_income_nominal_continuous"))
         .alias("hh_income_nominal_continuous"),
-        
+
         # Flag rows where we approximated from bounds (where original was null after cast)
         pl.col("hh_income_nominal_continuous").is_null().alias("income_approximated")
     ])
@@ -258,7 +258,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         "hh_income_nominal_continuous": "household_income",  # Use continuous value as main field
         "survey_tech": "vehicle_tech"  # Rename to match schema
     })
-    
+
     # Strip whitespace from all string columns to simplify corrections
     string_cols = [
         col for col, dtype in zip(df.columns, df.dtypes, strict=False)
@@ -494,7 +494,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         pl.col(field).str.to_titlecase().alias(field)
         for field in categorical_fields_simple
     ])
-    
+
     # Fix Ferry→Ferry Boat for technology fields
     for tech_field in ["vehicle_tech", "first_board_tech", "last_alight_tech"]:
         df = df.with_columns(
@@ -895,7 +895,7 @@ def validate_schema(df: pl.DataFrame, sample_size: int = 100) -> None:
                 logger.error(
                     "    Unique problematic values (%s total): %s",
                     len(details["unique_values"]),
-                    list(sorted(details["unique_values"]))[:10]
+                    sorted(details["unique_values"])[:10]
                 )
         msg = "Schema validation failed. Fix data or schema before importing."
         raise ValueError(msg)
