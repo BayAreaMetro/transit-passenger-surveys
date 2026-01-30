@@ -292,6 +292,12 @@ def ingest_survey_batch(
         version,
         commit_id,
     )
+
+    # Refresh views to ensure they match the current schema
+    logger.info("Refreshing views to match current schema...")
+    create_views()
+    logger.info("Views refreshed successfully")
+
     return output_path, version, commit_id, data_hash
 
 
@@ -324,6 +330,9 @@ def ingest_survey_metadata(df: pl.DataFrame, validate: bool = True) -> Path:
         df.write_parquet(output_path, compression="zstd", statistics=True)
         logger.info("Wrote %d metadata records", len(df))
 
+    # Refresh views to ensure they match the current schema
+    create_views()
+
     return output_path
 
 
@@ -353,6 +362,9 @@ def ingest_survey_weights(df: pl.DataFrame, validate: bool = True) -> Path:
     else:
         df.write_parquet(output_path, compression="zstd", statistics=True)
         logger.info("Wrote %d weight records", len(df))
+
+    # Refresh views to ensure they match the current schema
+    create_views()
 
     return output_path
 
