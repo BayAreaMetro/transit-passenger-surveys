@@ -330,6 +330,59 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
     # Add missing Tier 3 (Optional) fields with NULL if they don't exist in CSV
     df = _add_optional_fields(df)
 
+    # Cast numeric fields to proper types (before database enforcement)
+    logger.info("Casting numeric fields to proper types...")
+
+    # Float fields
+    float_fields = [
+        "orig_lat", "orig_lon", "dest_lat", "dest_lon",
+        "home_lat", "home_lon", "workplace_lat", "workplace_lon",
+        "school_lat", "school_lon", "first_board_lat", "first_board_lon",
+        "last_alight_lat", "last_alight_lon", "survey_board_lat", "survey_board_lon",
+        "survey_alight_lat", "survey_alight_lon",
+        "distance_orig_dest", "distance_board_alight", "distance_orig_first_board",
+        "distance_orig_survey_board", "distance_survey_alight_dest", "distance_last_alight_dest",
+        "household_income", "income_lower_bound", "income_upper_bound",
+    ]
+
+    # Int fields
+    int_fields = [
+        "depart_hour", "return_hour", "approximate_age", "boardings",
+        "persons", "workers", "vehicles",
+        "orig_maz", "dest_maz", "home_maz", "workplace_maz", "school_maz",
+        "orig_taz", "dest_taz", "home_taz", "workplace_taz", "school_taz",
+        "first_board_tap", "last_alight_tap",
+        "first_board_tm1_taz", "last_alight_tm1_taz", "survey_board_tm1_taz",
+        "survey_alight_tm1_taz", "orig_tm2_taz", "dest_tm2_taz", "home_tm2_taz",
+        "workplace_tm2_taz", "school_tm2_taz", "first_board_tm2_taz", "last_alight_tm2_taz",
+        "survey_board_tm2_taz", "survey_alight_tm2_taz", "orig_tm2_maz", "dest_tm2_maz",
+        "home_tm2_maz", "workplace_tm2_maz", "school_tm2_maz",
+        "first_board_tm2_maz", "last_alight_tm2_maz", "survey_board_tm2_maz",
+        "survey_alight_tm2_maz",
+    ]
+
+    # String fields that may be null
+    string_fields = [
+        "first_route_before_survey_board", "second_route_before_survey_board",
+        "third_route_before_survey_board", "first_route_after_survey_alight",
+        "second_route_after_survey_alight", "third_route_after_survey_alight",
+        "race_other_string", "home_county", "workplace_county", "school_county",
+    ]
+
+    cast_exprs = []
+    for col in df.columns:
+        if col in float_fields:
+            cast_exprs.append(pl.col(col).cast(pl.Float64, strict=False).alias(col))
+        elif col in int_fields:
+            cast_exprs.append(pl.col(col).cast(pl.Int64, strict=False).alias(col))
+        elif col in string_fields:
+            cast_exprs.append(pl.col(col).cast(pl.Utf8, strict=False).alias(col))
+        else:
+            cast_exprs.append(pl.col(col))
+
+    df = df.select(cast_exprs)
+    logger.info("Type casting complete")
+
     # This word-to-number conversion was already handled earlier using WORD_TO_NUMBER constant
 
     # Helper functions for text normalization
@@ -1007,7 +1060,9 @@ def ingest_survey_batches(
                 df=group_df,
                 survey_year=survey_year,
                 canonical_operator=canonical_operator,
-                validate=True
+                validate=True,
+                refresh_views=False,  # Skip view refresh during bulk ingestion
+                require_clean_git=False,  # Allow uncommitted changes during backfill
             )
             version_info[(canonical_operator, survey_year)] = (version, commit, data_hash)
             total_records += len(group_df)
@@ -1197,7 +1252,7 @@ def extract_and_ingest_metadata(
         logger.info("All %s metadata records validated successfully", len(metadata_df))
         return len(metadata_df)
     # Write metadata to data lake (will fail on first error)
-    database.ingest_survey_metadata(metadata_df, validate=True)
+    database.ingest_survey_metadata(metadata_df, validate=True, refresh_views=False)
     return len(metadata_df)
 
 def extract_and_ingest_weights(
@@ -1271,7 +1326,7 @@ def extract_and_ingest_weights(
         logger.info("All %s weight records validated successfully", len(weights_df))
         return len(weights_df)
     # Write weights to data lake (will fail on first error)
-    database.ingest_survey_weights(weights_df, validate=True)
+    database.ingest_survey_weights(weights_df, validate=True, refresh_views=False)
     return len(weights_df)
 
 

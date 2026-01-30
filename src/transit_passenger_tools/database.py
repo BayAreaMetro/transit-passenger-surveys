@@ -10,6 +10,7 @@ import re
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import get_args, get_origin
 
 import duckdb
 import polars as pl
@@ -57,6 +58,51 @@ def get_git_commit() -> str:
     except (NoSuchPathError, GitCommandError) as e:
         logger.warning("Could not determine git commit: %s, using 'unknown'", e)
         return "unknown"
+
+
+def check_git_clean(strict: bool = True) -> bool:
+    """Check if git repository has uncommitted changes.
+
+    Args:
+        strict: If True, raise error on uncommitted changes. If False, just warn.
+
+    Returns:
+        True if repository is clean, False otherwise
+
+    Raises:
+        ValueError: If strict=True and repository has uncommitted changes
+    """
+    if not HAS_GITPYTHON:
+        logger.warning("GitPython not installed, cannot verify clean repository")
+        return True
+
+    try:
+        repo_root = Path(__file__).parent.parent.parent
+        repo = Repo(repo_root, search_parent_directories=True)
+
+        if repo.is_dirty(untracked_files=True):
+            uncommitted = [item.a_path for item in repo.index.diff(None) if item.a_path]
+            untracked = repo.untracked_files
+
+            msg = "Repository has uncommitted changes. Commit changes before ingesting data.\n"
+            if uncommitted:
+                msg += f"  Modified: {', '.join(uncommitted[:5])}\n"
+            if untracked:
+                msg += f"  Untracked: {', '.join(untracked[:5])}\n"
+
+            if strict:
+                raise ValueError(msg)
+            logger.warning(msg)
+            return False
+
+    except InvalidGitRepositoryError:
+        logger.warning("Not in a git repository, cannot verify clean state")
+        return True
+    except (NoSuchPathError, GitCommandError) as e:
+        logger.warning("Could not check git status: %s", e)
+        return True
+    else:
+        return True
 
 
 def get_next_version(partition_dir: Path) -> int:
@@ -150,6 +196,113 @@ def query(sql: str) -> pl.DataFrame:
         conn.close()
 
 
+def enforce_dataframe_types(df: pl.DataFrame) -> pl.DataFrame:
+    """Cast DataFrame columns to match Pydantic schema types.
+
+    This ensures that Parquet files have correct data types even if CSV
+    inference gets them wrong (e.g., lat/lon as VARCHAR instead of Float64).
+    """
+    # Map Python types to Polars types
+    python_to_polars = {
+        int: pl.Int64,
+        float: pl.Float64,
+        bool: pl.Boolean,
+        str: pl.Utf8,
+    }
+
+    type_map = {}
+
+    for field_name, field_info in SurveyResponse.model_fields.items():
+        if field_name not in df.columns:
+            continue
+
+        # Get the annotation (type hint)
+        annotation = field_info.annotation
+
+        # Handle Optional/Union types using typing.get_origin and get_args
+        origin = get_origin(annotation)
+        if origin is not None:
+            # This is a generic type (Union, Optional, etc.)
+            args = get_args(annotation)
+            # Filter out None to get the actual type
+            non_none_types = [t for t in args if t is not type(None)]
+            if non_none_types:
+                annotation = non_none_types[0]
+
+        # Map Python type to Polars type
+        if annotation in python_to_polars:
+            type_map[field_name] = python_to_polars[annotation]
+        else:
+            # Skip types we don't handle (date, datetime, enums, etc.)
+            # These are handled automatically by Polars or are already correct
+            pass
+
+    # Cast columns that need type correction
+    cast_exprs = []
+    for col in df.columns:
+        if col in type_map and df[col].dtype != type_map[col]:
+            logger.info("Casting %s from %s to %s", col, df[col].dtype, type_map[col])
+            cast_exprs.append(pl.col(col).cast(type_map[col], strict=False).alias(col))
+        else:
+            cast_exprs.append(pl.col(col))
+
+    return df.select(cast_exprs) if cast_exprs else df
+
+
+def validate_dataframe_schema(df: pl.DataFrame, strict: bool = True) -> None:
+    """Validate DataFrame schema matches expected Pydantic schema types.
+
+    Args:
+        df: DataFrame to validate
+        strict: If True, raise error on type mismatches. If False, just warn.
+
+    Raises:
+        ValueError: If strict=True and schema validation fails
+    """
+    python_to_polars = {
+        int: pl.Int64,
+        float: pl.Float64,
+        bool: pl.Boolean,
+        str: pl.Utf8,
+    }
+
+    mismatches = []
+
+    for field_name, field_info in SurveyResponse.model_fields.items():
+        if field_name not in df.columns:
+            continue
+
+        annotation = field_info.annotation
+
+        # Handle Optional/Union types
+        origin = get_origin(annotation)
+        if origin is not None:
+            args = get_args(annotation)
+            non_none_types = [t for t in args if t is not type(None)]
+            if non_none_types:
+                annotation = non_none_types[0]
+
+        # Check if we can map this type
+        if annotation not in python_to_polars:
+            # Skip types we don't validate (date, datetime, enums)
+            continue
+
+        # Check type matches
+        expected_type = python_to_polars[annotation]
+        actual_type = df[field_name].dtype
+
+        if actual_type != expected_type:
+            mismatches.append(
+                f"  {field_name}: expected {expected_type}, got {actual_type}"
+            )
+
+    if mismatches:
+        msg = "Schema validation failed. Type mismatches:\n" + "\n".join(mismatches)
+        if strict:
+            raise ValueError(msg)
+        logger.warning(msg)
+
+
 @contextmanager
 def write_session() -> Generator[duckdb.DuckDBPyConnection, None, None]:
     """Context manager for safe write operations with file-based locking."""
@@ -172,21 +325,10 @@ def write_session() -> Generator[duckdb.DuckDBPyConnection, None, None]:
             LOCK_FILE.unlink()
 
 
-def ingest_survey_batch(
-    df: pl.DataFrame,
-    survey_year: int,
-    canonical_operator: str,
-    validate: bool = True,
-) -> tuple[Path, int, str, str]:
-    """Write survey batch to hive-partitioned Parquet.
-
-    Returns:
-        Tuple of (output_path, version, commit_id, data_hash)
-
-    Raises:
-        ValueError: If schema version mismatch detected (migration required)
-    """
-    # Check for schema version compatibility with existing data
+def _check_schema_compatibility(
+    canonical_operator: str, survey_year: int, new_schema: dict
+) -> None:
+    """Check if new data schema is compatible with existing data."""
     partition_dir = (
         DATA_LAKE_ROOT
         / "survey_responses"
@@ -194,72 +336,109 @@ def ingest_survey_batch(
         / f"year={survey_year}"
     )
 
-    if partition_dir.exists():
-        # Check if existing data has schema version metadata
-        existing_files = list(partition_dir.glob("*.parquet"))
-        if existing_files:
-            # Read schema from first existing file
-            existing_schema = pl.read_parquet_schema(existing_files[0])
-            new_schema = df.schema
+    if not partition_dir.exists():
+        return
 
-            # Check for breaking schema changes
-            schema_issues = []
+    existing_files = list(partition_dir.glob("*.parquet"))
+    if not existing_files:
+        return
 
-            # Check 1: Column renames (old column exists in existing, new column in new data)
-            if "hispanic" in existing_schema and "is_hispanic" in new_schema:
-                schema_issues.append(
-                    "Column rename detected: 'hispanic' → 'is_hispanic'. "
-                    "Run migration script: scripts/migrate_schema_v1_to_v2.py"
-                )
+    existing_schema = pl.read_parquet_schema(existing_files[0])
+    schema_issues = []
 
-            # Check 2: Type changes for same column name
-            common_cols = set(existing_schema.keys()) & set(new_schema.keys())
-            schema_issues.extend(
-                f"Type mismatch for '{col}': existing={existing_schema[col]}, "
-                f"new={new_schema[col]}. Migration required."
-                for col in common_cols
-                if existing_schema[col] != new_schema[col]
-            )
+    # Check for column renames
+    if "hispanic" in existing_schema and "is_hispanic" in new_schema:
+        schema_issues.append(
+            "Column rename detected: 'hispanic' → 'is_hispanic'. "
+            "Run migration script: scripts/migrate_schema_v1_to_v2.py"
+        )
 
-            if schema_issues:
-                error_msg = (
-                    f"\n\nSCHEMA VERSION MISMATCH for {canonical_operator}/{survey_year}:\n"
-                    + "\n".join(f"  - {issue}" for issue in schema_issues)
-                    + f"\n\nCurrent schema version: {SCHEMA_VERSION}\n"
-                    + "\nBefore ingesting new data, you must migrate existing data "
-                    + "to match the new schema.\n"
-                    + "See docs/schema_migration.md for instructions.\n"
-                )
-                raise ValueError(error_msg)
+    # Check for type changes
+    common_cols = set(existing_schema.keys()) & set(new_schema.keys())
+    schema_issues.extend(
+        f"Type mismatch for '{col}': existing={existing_schema[col]}, new={new_schema[col]}"
+        for col in common_cols
+        if existing_schema[col] != new_schema[col]
+    )
 
-    # Compute hash of incoming data for deduplication
-    data_hash = compute_dataframe_hash(df)
+    if schema_issues:
+        error_msg = (
+            f"\n\nSCHEMA VERSION MISMATCH for {canonical_operator}/{survey_year}:\n"
+            + "\n".join(f"  - {issue}" for issue in schema_issues)
+            + f"\n\nCurrent schema version: {SCHEMA_VERSION}\n"
+            + "\nMigration required. See docs/schema_migration.md\n"
+        )
+        raise ValueError(error_msg)
 
-    # Check if identical data already exists
+
+def _check_duplicate_data(
+    canonical_operator: str, survey_year: int, data_hash: str
+) -> tuple[Path, int, str, str] | None:
+    """Check if identical data already exists. Returns existing version info if found."""
     existing_metadata = get_latest_metadata(canonical_operator, survey_year)
-    if existing_metadata and existing_metadata["hash"] == data_hash:
-        # Data unchanged - reuse existing version
-        existing_version = int(existing_metadata["version"])
-        existing_commit = str(existing_metadata["commit"])
+    if not existing_metadata or existing_metadata["hash"] != data_hash:
+        return None
 
-        partition_dir = (
-            DATA_LAKE_ROOT
-            / "survey_responses"
-            / f"operator={canonical_operator}"
-            / f"year={survey_year}"
-        )
-        existing_path = partition_dir / f"data-{existing_version}-{existing_commit}.parquet"
+    existing_version = int(existing_metadata["version"])
+    existing_commit = str(existing_metadata["commit"])
+    partition_dir = (
+        DATA_LAKE_ROOT
+        / "survey_responses"
+        / f"operator={canonical_operator}"
+        / f"year={survey_year}"
+    )
+    existing_path = partition_dir / f"data-{existing_version}-{existing_commit}.parquet"
 
-        logger.info(
-            "Data unchanged (hash %s...), reusing version %d for %s/%d",
-            data_hash[:8],
-            existing_version,
-            canonical_operator,
-            survey_year,
-        )
-        return existing_path, existing_version, existing_commit, data_hash
+    logger.info(
+        "Data unchanged (hash %s...), reusing version %d for %s/%d",
+        data_hash[:8],
+        existing_version,
+        canonical_operator,
+        survey_year,
+    )
+    return existing_path, existing_version, existing_commit, data_hash
 
-    # Data has changed or doesn't exist - proceed with validation and write
+
+def ingest_survey_batch(
+    df: pl.DataFrame,
+    survey_year: int,
+    canonical_operator: str,
+    validate: bool = True,
+    refresh_views: bool = True,
+    require_clean_git: bool = True,
+) -> tuple[Path, int, str, str]:
+    """Write survey batch to hive-partitioned Parquet.
+
+    Args:
+        df: DataFrame to ingest
+        survey_year: Survey year
+        canonical_operator: Canonical operator name
+        validate: Whether to validate data against schema
+        refresh_views: Whether to refresh DuckDB views after ingestion
+        require_clean_git: Whether to require no uncommitted git changes
+
+    Returns:
+        Tuple of (output_path, version, commit_id, data_hash)
+
+    Raises:
+        ValueError: If schema version mismatch detected (migration required)
+    """
+    if require_clean_git:
+        check_git_clean(strict=True)
+
+    # Check schema compatibility
+    _check_schema_compatibility(canonical_operator, survey_year, df.schema)
+
+    # Check for duplicate data
+    data_hash = compute_dataframe_hash(df)
+    duplicate_check = _check_duplicate_data(canonical_operator, survey_year, data_hash)
+    if duplicate_check:
+        return duplicate_check
+
+    # Enforce types and validate
+    df = enforce_dataframe_types(df)
+    validate_dataframe_schema(df, strict=True)
+
     if validate:
         sample_size = min(100, len(df))
         for i, row_dict in enumerate(df.head(sample_size).iter_rows(named=True)):
@@ -270,6 +449,7 @@ def ingest_survey_batch(
                 raise ValueError(msg) from e
         logger.info("Validated %d rows", sample_size)
 
+    # Write data
     partition_dir = (
         DATA_LAKE_ROOT
         / "survey_responses"
@@ -281,7 +461,6 @@ def ingest_survey_batch(
     version = get_next_version(partition_dir)
     commit_id = get_git_commit()
     output_path = partition_dir / f"data-{version}-{commit_id}.parquet"
-
     df.write_parquet(output_path, compression="zstd", statistics=True)
 
     logger.info(
@@ -293,16 +472,25 @@ def ingest_survey_batch(
         commit_id,
     )
 
-    # Refresh views to ensure they match the current schema
-    logger.info("Refreshing views to match current schema...")
-    create_views()
-    logger.info("Views refreshed successfully")
+    if refresh_views:
+        logger.info("Refreshing views to match current schema...")
+        create_views()
+        logger.info("Views refreshed successfully")
 
     return output_path, version, commit_id, data_hash
 
 
-def ingest_survey_metadata(df: pl.DataFrame, validate: bool = True) -> Path:
+def ingest_survey_metadata(
+    df: pl.DataFrame,
+    validate: bool = True,
+    refresh_views: bool = True
+    ) -> Path:
     """Write or append survey metadata to metadata.parquet.
+
+    Args:
+        df: DataFrame to ingest
+        validate: Whether to validate data against schema
+        refresh_views: Whether to refresh DuckDB views after ingestion
 
     Deduplicates by (survey_year, canonical_operator, data_version).
     """
@@ -330,14 +518,23 @@ def ingest_survey_metadata(df: pl.DataFrame, validate: bool = True) -> Path:
         df.write_parquet(output_path, compression="zstd", statistics=True)
         logger.info("Wrote %d metadata records", len(df))
 
-    # Refresh views to ensure they match the current schema
-    create_views()
+    if refresh_views:
+        create_views()
 
     return output_path
 
 
-def ingest_survey_weights(df: pl.DataFrame, validate: bool = True) -> Path:
+def ingest_survey_weights(
+    df: pl.DataFrame,
+    validate: bool = True,
+    refresh_views: bool = True
+    ) -> Path:
     """Write or append survey weights to weights.parquet.
+
+    Args:
+        df: DataFrame to ingest
+        validate: Whether to validate data against schema
+        refresh_views: Whether to refresh DuckDB views after ingestion
 
     Deduplicates by (unique_id, weight_scheme).
     """
@@ -363,8 +560,8 @@ def ingest_survey_weights(df: pl.DataFrame, validate: bool = True) -> Path:
         df.write_parquet(output_path, compression="zstd", statistics=True)
         logger.info("Wrote %d weight records", len(df))
 
-    # Refresh views to ensure they match the current schema
-    create_views()
+    if refresh_views:
+        create_views()
 
     return output_path
 
@@ -504,31 +701,37 @@ def create_views() -> None:
         )
         logger.info("  Created view: survey_responses_all_versions")
 
-        # Create view for survey_metadata
+        # Create view for survey_metadata (only if file exists)
         metadata_file = DATA_LAKE_ROOT / "survey_metadata" / "metadata.parquet"
-        conn.execute(
-            f"""
-            CREATE OR REPLACE VIEW survey_metadata AS
-            SELECT * FROM read_parquet(
-                '{metadata_file}',
-                union_by_name = true
+        if metadata_file.exists():
+            conn.execute(
+                f"""
+                CREATE OR REPLACE VIEW survey_metadata AS
+                SELECT * FROM read_parquet(
+                    '{metadata_file}',
+                    union_by_name = true
+                )
+            """
             )
-        """
-        )
-        logger.info("  Created view: survey_metadata")
+            logger.info("  Created view: survey_metadata")
+        else:
+            logger.warning("  Skipped survey_metadata view (file does not exist yet)")
 
-        # Create view for survey_weights
+        # Create view for survey_weights (only if file exists)
         weights_file = DATA_LAKE_ROOT / "survey_weights" / "weights.parquet"
-        conn.execute(
-            f"""
-            CREATE OR REPLACE VIEW survey_weights AS
-            SELECT * FROM read_parquet(
-                '{weights_file}',
-                union_by_name = true
+        if weights_file.exists():
+            conn.execute(
+                f"""
+                CREATE OR REPLACE VIEW survey_weights AS
+                SELECT * FROM read_parquet(
+                    '{weights_file}',
+                    union_by_name = true
+                )
+            """
             )
-        """
-        )
-        logger.info("  Created view: survey_weights")
+            logger.info("  Created view: survey_weights")
+        else:
+            logger.warning("  Skipped survey_weights view (file does not exist yet)")
 
         # Verify views work
         count = conn.execute("SELECT COUNT(*) FROM survey_responses").fetchone()[0]  # type: ignore[index]
@@ -536,18 +739,19 @@ def create_views() -> None:
 
         all_versions_count = conn.execute(
             "SELECT COUNT(*) FROM survey_responses_all_versions"
-        ).fetchone()[
-            0
-        ]  # type: ignore[index]
+        ).fetchone()[0]  # type: ignore[index]
+
         logger.info(
             "  Verified: survey_responses_all_versions has %s rows", f"{all_versions_count:,}"
         )
 
-        meta_count = conn.execute("SELECT COUNT(*) FROM survey_metadata").fetchone()[0]  # type: ignore[index]
-        logger.info("  Verified: survey_metadata has %s rows", f"{meta_count:,}")
+        if metadata_file.exists():
+            meta_count = conn.execute("SELECT COUNT(*) FROM survey_metadata").fetchone()[0]  # type: ignore[index]
+            logger.info("  Verified: survey_metadata has %s rows", f"{meta_count:,}")
 
-        weights_count = conn.execute("SELECT COUNT(*) FROM survey_weights").fetchone()[0]  # type: ignore[index]
-        logger.info("  Verified: survey_weights has %s rows", f"{weights_count:,}")
+        if weights_file.exists():
+            weights_count = conn.execute("SELECT COUNT(*) FROM survey_weights").fetchone()[0]  # type: ignore[index]
+            logger.info("  Verified: survey_weights has %s rows", f"{weights_count:,}")
 
 
 def validate_referential_integrity() -> dict[str, int]:
@@ -579,9 +783,7 @@ def validate_referential_integrity() -> dict[str, int]:
             LEFT JOIN survey_responses r ON w.response_id = r.response_id
             WHERE r.response_id IS NULL
         """
-        ).fetchone()[
-            0
-        ]  # type: ignore[index]
+        ).fetchone()[0]  # type: ignore[index]
 
         results["orphaned_weights"] = orphaned_weights
 
@@ -609,9 +811,7 @@ def validate_referential_integrity() -> dict[str, int]:
             LEFT JOIN survey_metadata m ON r.survey_id = m.survey_id
             WHERE m.survey_id IS NULL
         """
-        ).fetchone()[
-            0
-        ]  # type: ignore[index]
+        ).fetchone()[0]  # type: ignore[index]
 
         results["orphaned_responses"] = orphaned_responses
 
