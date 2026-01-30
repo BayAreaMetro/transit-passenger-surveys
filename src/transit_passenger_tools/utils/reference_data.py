@@ -4,7 +4,7 @@ Provides centralized access to canonical route crosswalk and shapefiles
 used for geocoding and technology assignment.
 """
 
-from typing import Optional
+from typing import ClassVar, Optional
 
 import geopandas as gpd
 import polars as pl
@@ -14,7 +14,7 @@ from transit_passenger_tools.utils.config import get_config
 
 class ReferenceData:
     """Singleton class for loading and caching reference data.
-    
+
     Provides lazy-loaded access to:
     - Canonical route crosswalk (route names -> technology/operator)
     - Shapefiles for geocoding (TAZ, MAZ, counties, tracts, PUMA, stations)
@@ -22,9 +22,9 @@ class ReferenceData:
 
     _instance: Optional["ReferenceData"] = None
     _canonical_routes: pl.DataFrame | None = None
-    _shapefiles: dict[str, gpd.GeoDataFrame] = {}
+    _shapefiles: ClassVar[dict[str, gpd.GeoDataFrame]] = {}
 
-    def __new__(cls):
+    def __new__(cls) -> "ReferenceData":
         """Ensure only one instance exists (singleton pattern)."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -33,59 +33,66 @@ class ReferenceData:
     @property
     def canonical_routes(self) -> pl.DataFrame:
         """Get canonical route crosswalk as Polars DataFrame.
-        
+
         Loads from fixtures/canonical_route_crosswalk.csv on first access.
         Contains mappings from survey_route_name to:
         - canonical_route
-        - canonical_operator  
+        - canonical_operator
         - operator_detail
         - technology
         - technology_detail
-        
+
         Returns:
             Polars DataFrame with ~10,137 rows of route mappings.
         """
         if self._canonical_routes is None:
             config = get_config()
-            self._canonical_routes = pl.read_csv(config.canonical_route_crosswalk_path)
+            self._canonical_routes = pl.read_csv(
+                config.canonical_route_crosswalk_path,
+                encoding="utf8-lossy"
+            )
         return self._canonical_routes
 
     def get_route_technology(self, operator: str, route: str) -> dict[str, str]:
         """Get technology and operator details for a route.
-        
+
         Args:
             operator: Canonical operator name (e.g., "BART", "AC TRANSIT")
             route: Route name from survey
-            
+
         Returns:
             Dictionary with keys: canonical_operator, technology, operator_detail
-            
+            Technology value is normalized to match TechnologyType enum values
+
         Raises:
             ValueError: If route not found in canonical crosswalk
         """
         result = self.canonical_routes.filter(
-            (pl.col("canonical_operator") == operator) &
-            (pl.col("survey_route_name") == route)
+            (pl.col("canonical_operator") == operator) & (pl.col("survey_route_name") == route)
         )
 
         if result.height == 0:
-            raise ValueError(
-                f"Route not found in canonical crosswalk: operator='{operator}', route='{route}'"
-            )
+            msg = f"Route not found in canonical crosswalk: operator='{operator}', route='{route}'"
+            raise ValueError(msg)
 
         row = result.row(0, named=True)
+        technology_raw = row["technology"]
+
+        # Normalize technology value to match TechnologyType enum (title case)
+        technology_normalized = technology_raw.title() if technology_raw else technology_raw
+
         return {
             "canonical_operator": row["canonical_operator"],
-            "technology": row["technology"],
-            "operator_detail": row.get("operator_detail", row["canonical_operator"])
+            "technology": technology_normalized,
+            "operator_detail": row.get("operator_detail", row["canonical_operator"]),
         }
 
     def get_zone_shapefile(self, zone_type: str) -> gpd.GeoDataFrame:
         """Get shapefile for a specific zone type.
-        
+
         Loads and caches shapefiles on first access. Shapefiles are used for
         spatial joins to assign geographic zones to survey locations.
-        
+
         Args:
             zone_type: Type of zone to load. One of:
                 - 'tm1_taz': Travel Model 1 TAZ zones
@@ -95,10 +102,10 @@ class ReferenceData:
                 - 'tracts': Census tracts
                 - 'puma': PUMA boundaries
                 - 'stations': Rail station points
-        
+
         Returns:
             GeoDataFrame with zone geometry and attributes
-            
+
         Raises:
             KeyError: If zone_type not recognized
             FileNotFoundError: If shapefile path doesn't exist
@@ -111,7 +118,7 @@ class ReferenceData:
             gdf = gpd.read_file(shapefile_path)
 
             # Transform to NAD83 California Zone 6 Feet for consistent CRS
-            if gdf.crs.to_epsg() != config.crs["nad83_ca_zone6"]:
+            if gdf.crs is None or gdf.crs.to_epsg() != config.crs["nad83_ca_zone6"]:
                 gdf = gdf.to_crs(epsg=config.crs["nad83_ca_zone6"])
 
             self._shapefiles[zone_type] = gdf
@@ -121,7 +128,7 @@ class ReferenceData:
     @property
     def shapefiles(self) -> dict[str, gpd.GeoDataFrame]:
         """Get all loaded shapefiles as dictionary.
-        
+
         Returns:
             Dictionary mapping zone_type -> GeoDataFrame
         """
@@ -130,7 +137,7 @@ class ReferenceData:
 
 def get_reference_data() -> ReferenceData:
     """Get singleton ReferenceData instance.
-    
+
     Returns:
         Shared ReferenceData instance
     """

@@ -10,6 +10,7 @@ ARCHITECTURE:
 - Output includes all CoreSurveyResponse + DerivedSurveyResponse fields
 """
 
+import logging
 from pathlib import Path
 
 import polars as pl
@@ -25,16 +26,18 @@ from transit_passenger_tools.pipeline import (
     validate,
 )
 
+logger = logging.getLogger(__name__)
+
 # Pipeline execution order (dependencies must come before dependents)
 # Each tuple: (module_name, transform_function, kwargs_needed)
 PIPELINE_MODULES = [
-    ("date_time", date_time.derive_temporal_fields, False),  # Derives weekpart, day_part
-    ("auto_sufficiency", auto_sufficiency.derive_auto_sufficiency, False),  # Derives autos_vs_workers
-    ("demographics", demographics.derive_demographics, False),  # Processes race/ethnicity, derives year_born_four_digit
-    ("transfers", transfers.derive_transfer_fields, False),  # Must run before path_labels
-    ("path_labels", path_labels.derive_path_labels, False),  # Depends on transfers output
+    ("date_time", date_time.derive_temporal_fields, False),
+    ("auto_sufficiency", auto_sufficiency.derive_auto_sufficiency, False),
+    ("demographics", demographics.derive_demographics, False),
+    ("transfers", transfers.derive_transfer_fields, False),
+    ("path_labels", path_labels.derive_path_labels, False),
     ("tour_purpose", tour_purpose.derive_tour_purpose, False),
-    ("geocoding", geocoding.assign_zones_and_distances, True),  # Requires shapefiles_dir kwarg
+    ("geocoding", geocoding.assign_zones_and_distances, True),
 ]
 
 
@@ -46,10 +49,10 @@ def process_survey(
     shapefiles_dir: Path | None = None,
 ) -> pl.DataFrame:
     """Process a preprocessed survey DataFrame through the derivation pipeline.
-    
+
     Validates input meets CoreSurveyResponse contract, then executes
     transformation modules in the correct order to derive DerivedSurveyResponse fields.
-    
+
     Pipeline order:
     1. date_time: Derive weekpart (from day_of_the_week), day_part (from survey_time)
     2. income: Derive income bounds from household_income enum
@@ -60,7 +63,7 @@ def process_survey(
     7. path_labels: Derive mode codes, usage flags, BEST_MODE, TRANSFER_TYPE
     8. tour_purpose: Derive tour purposes from origin/destination activities
     9. geocoding: Calculate distances (optional, requires coordinates)
-    
+
     Args:
         df: Input DataFrame with preprocessed survey data (CoreSurveyResponse format)
         survey_name: Optional survey identifier for logging/filtering
@@ -68,17 +71,21 @@ def process_survey(
             coordinate columns are not present)
         skip_validation: If True, skip input validation (not recommended)
         shapefiles_dir: Directory containing zone shapefiles for geocoding (optional)
-    
+
     Returns:
         DataFrame with all derived columns added
-    
+
     Raises:
         ValueError: If validation fails (required columns missing, invalid enum values)
-    
+
     Example:
         >>> preprocessed_df = pl.read_parquet("surveys/bart_2024_preprocessed.parquet")
         >>> processed = process_survey(preprocessed_df, survey_name="BART 2024")
     """
+    # Log processing start
+    if survey_name:
+        logger.info("Processing survey: %s", survey_name)
+
     # Build list of transforms to skip for validation
     skip_transforms = []
     if skip_geocoding:
@@ -112,10 +119,10 @@ def process_survey_file(
     shapefiles_dir: Path | None = None,
 ) -> pl.DataFrame:
     """Process a survey file through the standardization pipeline.
-    
+
     Reads a CSV or Parquet file, validates it meets CoreSurveyResponse contract,
     processes it through all transformation modules, and optionally writes the result.
-    
+
     Args:
         input_path: Path to input CSV or Parquet file
         output_path: Optional path to write output. If None, result is
@@ -124,13 +131,13 @@ def process_survey_file(
         skip_geocoding: If True, skip the geocoding module
         skip_validation: If True, skip input validation (not recommended)
         shapefiles_dir: Directory containing zone shapefiles for geocoding (optional)
-    
+
     Returns:
         Processed DataFrame
-    
+
     Raises:
         ValueError: If input file format is not supported or validation fails
-    
+
     Example:
         >>> result = process_survey_file(
         ...     "data/preprocessed/bart_2024.parquet",
@@ -145,7 +152,8 @@ def process_survey_file(
     elif input_path.suffix.lower() in (".parquet", ".pq"):
         df = pl.read_parquet(input_path)
     else:
-        raise ValueError(f"Unsupported input format: {input_path.suffix}")
+        msg = f"Unsupported input format: {input_path.suffix}"
+        raise ValueError(msg)
 
     # Process through pipeline
     result_df = process_survey(
@@ -166,6 +174,7 @@ def process_survey_file(
         elif output_path.suffix.lower() in (".parquet", ".pq"):
             result_df.write_parquet(output_path)
         else:
-            raise ValueError(f"Unsupported output format: {output_path.suffix}")
+            msg = f"Unsupported output format: {output_path.suffix}"
+            raise ValueError(msg)
 
     return result_df

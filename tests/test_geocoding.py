@@ -1,6 +1,5 @@
 """Tests for geocoding transformation module."""
 
-
 import polars as pl
 
 from transit_passenger_tools.pipeline.geocoding import (
@@ -63,12 +62,14 @@ class TestCalculateDistances:
 
     def test_orig_dest_distance(self):
         """Test origin to destination distance calculation."""
-        df = pl.DataFrame({
-            "orig_lat": [37.7749],
-            "orig_lon": [-122.4194],
-            "dest_lat": [37.8044],
-            "dest_lon": [-122.2712],
-        })
+        df = pl.DataFrame(
+            {
+                "orig_lat": [37.7749],
+                "orig_lon": [-122.4194],
+                "dest_lat": [37.8044],
+                "dest_lon": [-122.2712],
+            }
+        )
 
         result = assign_zones_and_distances(df)
 
@@ -78,11 +79,13 @@ class TestCalculateDistances:
 
     def test_missing_columns_handled(self):
         """Test that missing location columns result in null distance."""
-        df = pl.DataFrame({
-            "orig_lat": [37.7749],
-            "orig_lon": [-122.4194],
-            # No dest columns
-        })
+        df = pl.DataFrame(
+            {
+                "orig_lat": [37.7749],
+                "orig_lon": [-122.4194],
+                # No dest columns
+            }
+        )
 
         result = assign_zones_and_distances(df)
 
@@ -91,12 +94,14 @@ class TestCalculateDistances:
 
     def test_null_coordinates_produce_null_distance(self):
         """Test that null coordinates result in null distance."""
-        df = pl.DataFrame({
-            "orig_lat": [37.7749, None],
-            "orig_lon": [-122.4194, -122.4194],
-            "dest_lat": [37.8044, 37.8044],
-            "dest_lon": [-122.2712, -122.2712],
-        })
+        df = pl.DataFrame(
+            {
+                "orig_lat": [37.7749, None],
+                "orig_lon": [-122.4194, -122.4194],
+                "dest_lat": [37.8044, 37.8044],
+                "dest_lon": [-122.2712, -122.2712],
+            }
+        )
 
         result = assign_zones_and_distances(df)
 
@@ -107,20 +112,22 @@ class TestCalculateDistances:
 
     def test_all_distance_pairs_calculated(self):
         """Test that all configured distance pairs are calculated."""
-        df = pl.DataFrame({
-            "orig_lat": [37.7749],
-            "orig_lon": [-122.4194],
-            "dest_lat": [37.8044],
-            "dest_lon": [-122.2712],
-            "first_board_lat": [37.7800],
-            "first_board_lon": [-122.4000],
-            "survey_board_lat": [37.7850],
-            "survey_board_lon": [-122.3900],
-            "survey_alight_lat": [37.7900],
-            "survey_alight_lon": [-122.3500],
-            "last_alight_lat": [37.8000],
-            "last_alight_lon": [-122.3000],
-        })
+        df = pl.DataFrame(
+            {
+                "orig_lat": [37.7749],
+                "orig_lon": [-122.4194],
+                "dest_lat": [37.8044],
+                "dest_lon": [-122.2712],
+                "first_board_lat": [37.7800],
+                "first_board_lon": [-122.4000],
+                "survey_board_lat": [37.7850],
+                "survey_board_lon": [-122.3900],
+                "survey_alight_lat": [37.7900],
+                "survey_alight_lon": [-122.3500],
+                "last_alight_lat": [37.8000],
+                "last_alight_lon": [-122.3000],
+            }
+        )
 
         result = assign_zones_and_distances(df)
 
@@ -137,12 +144,14 @@ class TestTransform:
 
     def test_transform_calculates_distances_without_shapefiles(self):
         """Test that transform calculates distances when no shapefiles_dir provided."""
-        df = pl.DataFrame({
-            "orig_lat": [37.7749],
-            "orig_lon": [-122.4194],
-            "dest_lat": [37.8044],
-            "dest_lon": [-122.2712],
-        })
+        df = pl.DataFrame(
+            {
+                "orig_lat": [37.7749],
+                "orig_lon": [-122.4194],
+                "dest_lat": [37.8044],
+                "dest_lon": [-122.2712],
+            }
+        )
 
         # No shapefiles_dir - should still calculate distances
         result = assign_zones_and_distances(df, shapefiles_dir=None)
@@ -152,14 +161,16 @@ class TestTransform:
 
     def test_transform_preserves_original_columns(self):
         """Test that transform preserves all original columns."""
-        df = pl.DataFrame({
-            "id": [1, 2, 3],
-            "survey_name": ["BART", "BART", "BART"],
-            "orig_lat": [37.7749, 37.7800, 37.7850],
-            "orig_lon": [-122.4194, -122.4000, -122.3900],
-            "dest_lat": [37.8044, 37.8100, 37.8200],
-            "dest_lon": [-122.2712, -122.2500, -122.2300],
-        })
+        df = pl.DataFrame(
+            {
+                "id": [1, 2, 3],
+                "survey_name": ["BART", "BART", "BART"],
+                "orig_lat": [37.7749, 37.7800, 37.7850],
+                "orig_lon": [-122.4194, -122.4000, -122.3900],
+                "dest_lat": [37.8044, 37.8100, 37.8200],
+                "dest_lon": [-122.2712, -122.2500, -122.2300],
+            }
+        )
 
         result = assign_zones_and_distances(df, shapefiles_dir=None)
 
@@ -170,12 +181,14 @@ class TestTransform:
 
     def test_transform_multiple_rows(self):
         """Test transform handles multiple rows correctly."""
-        df = pl.DataFrame({
-            "orig_lat": [37.7749, 37.8044, 37.8500],
-            "orig_lon": [-122.4194, -122.2712, -122.2000],
-            "dest_lat": [37.8044, 37.8500, 37.9000],
-            "dest_lon": [-122.2712, -122.2000, -122.1500],
-        })
+        df = pl.DataFrame(
+            {
+                "orig_lat": [37.7749, 37.8044, 37.8500],
+                "orig_lon": [-122.4194, -122.2712, -122.2000],
+                "dest_lat": [37.8044, 37.8500, 37.9000],
+                "dest_lon": [-122.2712, -122.2000, -122.1500],
+            }
+        )
 
         result = assign_zones_and_distances(df, shapefiles_dir=None)
 

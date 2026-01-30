@@ -28,7 +28,7 @@ from transit_passenger_tools.pipeline.validate import (
 
 def make_minimal_preprocessed_df(**overrides) -> pl.DataFrame:
     """Create a minimal DataFrame that passes validation.
-    
+
     Provides all core required fields with sensible defaults.
     """
     defaults = {
@@ -82,7 +82,11 @@ class TestProcessSurvey:
             survey_id=["TEST_2024"] * 3,
             original_id=["R001", "R002", "R003"],
             survey_name=["Test Survey"] * 3,
-            vehicle_tech=[TechnologyType.HEAVY_RAIL.value, TechnologyType.LOCAL_BUS.value, TechnologyType.COMMUTER_RAIL.value],
+            vehicle_tech=[
+                TechnologyType.HEAVY_RAIL.value,
+                TechnologyType.LOCAL_BUS.value,
+                TechnologyType.COMMUTER_RAIL.value,
+            ],
             day_of_the_week=["Monday"] * 3,
             survey_time=["09:30:00"] * 3,
             vehicles=[2, 1, 0],
@@ -162,7 +166,7 @@ class TestProcessSurveyFile:
             df.write_csv(input_path)
 
             # Process
-            result = process_survey_file(
+            process_survey_file(
                 input_path,
                 output_path,
                 skip_geocoding=True,
@@ -188,7 +192,7 @@ class TestProcessSurveyFile:
             df.write_parquet(input_path)
 
             # Process
-            result = process_survey_file(
+            process_survey_file(
                 input_path,
                 output_path,
                 skip_geocoding=True,
@@ -233,52 +237,62 @@ class TestValidation:
 
     def test_validation_passes_with_core_identifiers(self):
         """Test validation passes when core identifiers are present."""
-        df = pl.DataFrame({
-            "response_id": [1],
-            "survey_id": ["BART_2024"],
-            "original_id": ["ABC123"],
-            "vehicle_tech": ["heavy rail"],
-        })
+        df = pl.DataFrame(
+            {
+                "response_id": [1],
+                "survey_id": ["BART_2024"],
+                "original_id": ["ABC123"],
+                "vehicle_tech": ["heavy rail"],
+            }
+        )
 
         errors = validate_core_required(df)
         assert errors == []
 
     def test_validation_fails_missing_response_id(self):
         """Test validation fails without response_id."""
-        df = pl.DataFrame({
-            "survey_id": ["BART_2024"],
-            "original_id": ["ABC123"],
-            "vehicle_tech": ["heavy rail"],
-        })
+        df = pl.DataFrame(
+            {
+                "survey_id": ["BART_2024"],
+                "original_id": ["ABC123"],
+                "vehicle_tech": ["heavy rail"],
+            }
+        )
 
         errors = validate_core_required(df)
         assert any("response_id" in e for e in errors)
 
     def test_validation_fails_missing_survey_id(self):
         """Test validation fails without survey_id."""
-        df = pl.DataFrame({
-            "response_id": [1],
-            "original_id": ["ABC123"],
-            "vehicle_tech": ["heavy rail"],
-        })
+        df = pl.DataFrame(
+            {
+                "response_id": [1],
+                "original_id": ["ABC123"],
+                "vehicle_tech": ["heavy rail"],
+            }
+        )
 
         errors = validate_core_required(df)
         assert any("survey_id" in e for e in errors)
 
     def test_strict_validation_raises_on_errors(self):
         """Test that strict validation raises ValueError."""
-        df = pl.DataFrame({
-            "other_column": ["value"],
-        })
+        df = pl.DataFrame(
+            {
+                "other_column": ["value"],
+            }
+        )
 
         with pytest.raises(ValueError, match="VALIDATION FAILED"):
             validate_preprocessed_input(df, strict=True)
 
-    def test_nonstrict_validation_warns_on_errors(self, capsys):
-        """Test that non-strict validation prints warning."""
-        df = pl.DataFrame({
-            "other_column": ["value"],
-        })
+    def test_nonstrict_validation_warns_on_errors(self, caplog):
+        """Test that non-strict validation logs warning."""
+        df = pl.DataFrame(
+            {
+                "other_column": ["value"],
+            }
+        )
 
         # Should not raise
         result = validate_preprocessed_input(df, strict=False)
@@ -286,6 +300,5 @@ class TestValidation:
         # Should return input df unchanged
         assert result.equals(df)
 
-        # Should print warning
-        captured = capsys.readouterr()
-        assert "WARNING" in captured.out
+        # Should log warning
+        assert "VALIDATION FAILED" in caplog.text

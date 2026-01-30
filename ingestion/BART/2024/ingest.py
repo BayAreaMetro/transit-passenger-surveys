@@ -2,6 +2,7 @@
 
 import polars as pl
 import preprocessing
+from pydantic import ValidationError
 
 from transit_passenger_tools import db
 from transit_passenger_tools.data_models import SurveyResponse
@@ -51,14 +52,15 @@ def validate(survey_df: pl.DataFrame, sample_size: int = 10) -> None:
     for i, row_dict in enumerate(survey_df.head(sample_size).iter_rows(named=True)):
         try:
             SurveyResponse(**row_dict)
-        except Exception as e:
+        except ValidationError as e:
             errors.append((i, str(e)))
 
     if errors:
         print(f"\nValidation errors found in {len(errors)} records:")
         for i, err in errors[:3]:
             print(f"  Row {i}: {err}")
-        raise ValueError(f"Validation failed: {len(errors)} errors")
+        msg = f"Validation failed: {len(errors)} errors"
+        raise ValueError(msg)
     print("Validation passed!")
 
 
@@ -93,7 +95,11 @@ def main() -> None:
     # Create response_id
     print("\n3. Creating response_id...")
     survey_df = survey_df.with_columns([
-        (pl.col("canonical_operator") + "_" + pl.col("survey_year").cast(pl.Utf8) + "_" + pl.col("ID")).alias("response_id")
+        (
+            pl.col("canonical_operator") + "_" +
+            pl.col("survey_year").cast(pl.Utf8) + "_" +
+            pl.col("ID")
+        ).alias("response_id")
     ])
 
     # Validate
@@ -102,22 +108,21 @@ def main() -> None:
 
     # Filter to standard schema columns only (remove vendor-specific raw columns)
     print("\n5. Filtering to standard schema columns...")
-    from transit_passenger_tools.data_models import SurveyResponse
     standard_columns = list(SurveyResponse.model_fields.keys())
     # Keep only columns that exist in both the schema and the dataframe
     keep_columns = [col for col in standard_columns if col in survey_df.columns]
     missing_columns = [col for col in standard_columns if col not in survey_df.columns]
     extra_columns = [col for col in survey_df.columns if col not in standard_columns]
-    
+
     print(f"   Standard columns present: {len(keep_columns)}")
     print(f"   Missing from data: {len(missing_columns)}")
     print(f"   Extra vendor columns dropped: {len(extra_columns)}")
-    
+
     survey_df_clean = survey_df.select(keep_columns)
 
     # Ingest surveys
     print("\n6. Ingesting survey responses...")
-    output_path, version, commit_id, data_hash = db.ingest_survey_batch(
+    _output_path, version, commit_id, _data_hash = db.ingest_survey_batch(
         survey_df_clean,
         survey_year=SURVEY_YEAR,
         canonical_operator=CANONICAL_OPERATOR,

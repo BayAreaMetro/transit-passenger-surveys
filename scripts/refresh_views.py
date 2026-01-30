@@ -21,22 +21,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main() -> None:
     """Refresh all DuckDB views."""
     logger.info("=" * 80)
     logger.info("REFRESHING DUCKDB VIEWS")
     logger.info("=" * 80)
     logger.info("Database: %s", db.DUCKDB_PATH)
     logger.info("")
-    
+
     try:
         db.create_views()
-        
+
         logger.info("")
         logger.info("=" * 80)
         logger.info("VIEWS REFRESHED SUCCESSFULLY")
         logger.info("=" * 80)
-        
+
     except Exception:
         logger.exception("Failed to refresh views")
         raise

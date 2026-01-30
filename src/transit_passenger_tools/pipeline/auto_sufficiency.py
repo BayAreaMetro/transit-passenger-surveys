@@ -21,19 +21,19 @@ VEHICLE_WORKER_MAPPING = {
 
 def derive_auto_sufficiency(df: pl.DataFrame) -> pl.DataFrame:
     """Transform vehicles and workers to calculate vehicle-to-worker ratio category.
-    
+
     Maps text values ("one", "two", etc.) to numeric, then calculates
     auto_to_workers_ratio category:
     - "Zero autos" if vehicles = 0
     - "Autos < workers" if workers > vehicles > 0
     - "Autos >= workers" if 0 < workers <= vehicles
-    
+
     Args:
         df: Input DataFrame with vehicles and workers columns
-        
+
     Returns:
         DataFrame with added columns: vehicle_numeric, worker_numeric, auto_to_workers_ratio
-        
+
     Raises:
         ValueError: If vehicles or workers columns are missing
     """
@@ -41,7 +41,8 @@ def derive_auto_sufficiency(df: pl.DataFrame) -> pl.DataFrame:
     required = ["vehicles", "workers"]
     missing = [col for col in required if col not in df.columns]
     if missing:
-        raise ValueError(f"auto_sufficiency transform requires columns: {missing}")
+        msg = f"auto_sufficiency transform requires columns: {missing}"
+        raise ValueError(msg)
 
     # Map vehicles - handle both string and numeric input
     if df.schema.get("vehicles") == pl.Utf8:
@@ -65,9 +66,7 @@ def derive_auto_sufficiency(df: pl.DataFrame) -> pl.DataFrame:
             .alias("worker_numeric")
         )
     else:
-        df = df.with_columns(
-            pl.col("workers").cast(pl.Int32, strict=False).alias("worker_numeric")
-        )
+        df = df.with_columns(pl.col("workers").cast(pl.Int32, strict=False).alias("worker_numeric"))
 
     # Check for unmapped values
     unmapped_vehicles = df.filter(
@@ -75,36 +74,40 @@ def derive_auto_sufficiency(df: pl.DataFrame) -> pl.DataFrame:
     )
     if unmapped_vehicles.height > 0:
         sample_values = unmapped_vehicles.select("vehicles").head(5)["vehicles"].to_list()
-        raise ValueError(
+        msg = (
             f"Unrecognized vehicle values found ({unmapped_vehicles.height} records). "
             f"Sample values: {sample_values}"
         )
+        raise ValueError(msg)
 
     unmapped_workers = df.filter(
         pl.col("workers").is_not_null() & pl.col("worker_numeric").is_null()
     )
     if unmapped_workers.height > 0:
         sample_values = unmapped_workers.select("workers").head(5)["workers"].to_list()
-        raise ValueError(
+        msg = (
             f"Unrecognized worker values found ({unmapped_workers.height} records). "
             f"Sample values: {sample_values}"
         )
+        raise ValueError(msg)
 
     # Calculate auto_to_workers_ratio category
-    df = df.with_columns([
-        pl.when(pl.col("vehicle_numeric") == 0)
-        .then(pl.lit(AutoRatioCategory.ZERO_AUTOS.value))
-        .when(
-            (pl.col("worker_numeric") > pl.col("vehicle_numeric")) &
-            (pl.col("vehicle_numeric") > 0)
-        )
-        .then(pl.lit(AutoRatioCategory.WORKERS_GT_AUTOS.value))
-        .when(
-            (pl.col("worker_numeric") <= pl.col("vehicle_numeric")) &
-            (pl.col("worker_numeric") > 0)
-        )
-        .then(pl.lit(AutoRatioCategory.WORKERS_LE_AUTOS.value))
-        .alias("auto_to_workers_ratio")
-    ])
+    df = df.with_columns(
+        [
+            pl.when(pl.col("vehicle_numeric") == 0)
+            .then(pl.lit(AutoRatioCategory.ZERO_AUTOS.value))
+            .when(
+                (pl.col("worker_numeric") > pl.col("vehicle_numeric"))
+                & (pl.col("vehicle_numeric") > 0)
+            )
+            .then(pl.lit(AutoRatioCategory.WORKERS_GT_AUTOS.value))
+            .when(
+                (pl.col("worker_numeric") <= pl.col("vehicle_numeric"))
+                & (pl.col("worker_numeric") > 0)
+            )
+            .then(pl.lit(AutoRatioCategory.WORKERS_LE_AUTOS.value))
+            .alias("auto_to_workers_ratio")
+        ]
+    )
 
     return df

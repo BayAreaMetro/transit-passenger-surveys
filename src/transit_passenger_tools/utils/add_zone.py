@@ -13,6 +13,7 @@ import polars as pl
 
 logger = logging.getLogger(__name__)
 
+
 def spatial_join_coordinates_to_shapefile(
     df: pl.DataFrame,
     lat_col: str,
@@ -21,7 +22,7 @@ def spatial_join_coordinates_to_shapefile(
     shapefile_id_col: str,
     output_id_col: str | None = None,
     id_col: str = "id",
-    source_crs: str = "EPSG:4326"
+    source_crs: str = "EPSG:4326",
 ) -> pl.DataFrame:
     """Perform spatial join between dataframe with lat/lon coordinates and a shapefile.
 
@@ -57,18 +58,20 @@ def spatial_join_coordinates_to_shapefile(
         output_id_col = id_col
 
     # Convert coordinate columns to numeric and filter out nulls
-    subset = df.select([
-        id_col,
-        pl.col(lat_col).cast(pl.Float64, strict=False).alias(lat_col),
-        pl.col(lon_col).cast(pl.Float64, strict=False).alias(lon_col)
-    ]).drop_nulls(subset=[lat_col, lon_col])
+    subset = df.select(
+        [
+            id_col,
+            pl.col(lat_col).cast(pl.Float64, strict=False).alias(lat_col),
+            pl.col(lon_col).cast(pl.Float64, strict=False).alias(lon_col),
+        ]
+    ).drop_nulls(subset=[lat_col, lon_col])
 
     # Convert to GeoDataFrame
     subset_pandas = subset.to_pandas()
     points_gdf = gpd.GeoDataFrame(
         subset_pandas,
         geometry=gpd.points_from_xy(subset_pandas[lon_col], subset_pandas[lat_col]),
-        crs=source_crs
+        crs=source_crs,
     )
 
     # Reproject to match shapefile CRS
@@ -102,10 +105,8 @@ def spatial_join_coordinates_to_shapefile(
 
 
 def parse_latlons_from_columns(
-    df: pl.DataFrame,
-    latlon_suffixes: tuple[str, str] = ("lat", "lon"),
-    id_suffix: str = "TAZ"
-    ) -> list[tuple[str, str, str]]:
+    df: pl.DataFrame, latlon_suffixes: tuple[str, str] = ("lat", "lon"), id_suffix: str = "TAZ"
+) -> list[tuple[str, str, str]]:
     """Parse latitude and longitude column pairs from dataframe columns.
 
     Parameters:
@@ -127,11 +128,7 @@ def parse_latlons_from_columns(
         prefix = lat_col.replace(latlon_suffixes[0], "")
         output_col = lat_col.replace(latlon_suffixes[0], id_suffix)
         matching_col = next(
-            (
-                lon for lon in lon_cols
-                if prefix == lon.replace(latlon_suffixes[1], "")
-            ),
-            None
+            (lon for lon in lon_cols if prefix == lon.replace(latlon_suffixes[1], "")), None
         )
         if matching_col:
             lat_lon_pairs.append((lat_col, matching_col, output_col))

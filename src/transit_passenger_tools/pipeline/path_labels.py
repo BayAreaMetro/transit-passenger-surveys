@@ -35,22 +35,22 @@ DAY_PART_TO_PERIOD = {
 
 def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:
     """Transform path-related fields.
-    
+
     Creates:
     - survey_mode: Short code for vehicle_tech
-    - first_board_mode: Short code for first_board_tech  
+    - first_board_mode: Short code for first_board_tech
     - last_alight_mode: Short code for last_alight_tech
     - usedLB, usedEB, usedLR, usedHR, usedCR, usedFR: Usage flags
     - BEST_MODE: Highest technology in hierarchy
     - TRANSFER_TYPE: Mode combination for transfers
     - period: Time period code
-    
+
     Args:
         df: Input DataFrame with technology and day_part columns
-        
+
     Returns:
         DataFrame with added path label columns
-        
+
     Raises:
         ValueError: If required technology columns are missing
     """
@@ -58,7 +58,8 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:
     required = ["vehicle_tech", "first_board_tech", "last_alight_tech"]
     missing = [col for col in required if col not in df.columns]
     if missing:
-        raise ValueError(f"path_labels transform requires columns: {missing}")
+        msg = f"path_labels transform requires columns: {missing}"
+        raise ValueError(msg)
 
     result_df = df
 
@@ -67,16 +68,10 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:
         """Map technology long name to short code, preserving nulls."""
         expr = pl.lit(None).cast(pl.Utf8)
         for long_name, short_code in TECH_SHORT_CODES.items():
-            expr = (
-                pl.when(pl.col(col_name) == long_name)
-                .then(pl.lit(short_code))
-                .otherwise(expr)
-            )
+            expr = pl.when(pl.col(col_name) == long_name).then(pl.lit(short_code)).otherwise(expr)
         return expr
 
-    result_df = result_df.with_columns(
-        map_tech_to_short("vehicle_tech").alias("survey_mode")
-    )
+    result_df = result_df.with_columns(map_tech_to_short("vehicle_tech").alias("survey_mode"))
 
     result_df = result_df.with_columns(
         map_tech_to_short("first_board_tech").alias("first_board_mode")
@@ -100,15 +95,14 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:
         combined = conditions[0]
         for cond in conditions[1:]:
             combined = combined | cond
+        false_value = pl.lit(0).cast(pl.Boolean)
         result_df = result_df.with_columns(
-            combined.fill_null(False).cast(pl.Int8).alias(flag_col)
+            combined.fill_null(false_value).cast(pl.Int8).alias(flag_col)
         )
 
     # Calculate total technologies used
     used_cols = [f"used{code}" for code in TECH_SHORT_CODES.values()]
-    result_df = result_df.with_columns(
-        pl.sum_horizontal(used_cols).alias("usedTotal")
-    )
+    result_df = result_df.with_columns(pl.sum_horizontal(used_cols).alias("usedTotal"))
 
     # Calculate BEST_MODE using hierarchy (CR > HR > LR > FR > EB > LB)
     # Start with LB as default, override with higher priority modes
@@ -116,17 +110,13 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:
     for tech_code in TECH_HIERARCHY[1:]:  # Skip LB (default)
         flag_col = f"used{tech_code}"
         best_mode_expr = (
-            pl.when(pl.col(flag_col) == 1)
-            .then(pl.lit(tech_code))
-            .otherwise(best_mode_expr)
+            pl.when(pl.col(flag_col) == 1).then(pl.lit(tech_code)).otherwise(best_mode_expr)
         )
     result_df = result_df.with_columns(best_mode_expr.alias("BEST_MODE"))
 
     # Calculate number of transfers (boardings - 1)
     if "boardings" in result_df.columns:
-        result_df = result_df.with_columns(
-            (pl.col("boardings") - 1).alias("nTransfers")
-        )
+        result_df = result_df.with_columns((pl.col("boardings") - 1).alias("nTransfers"))
     else:
         result_df = result_df.with_columns(pl.lit(0).alias("nTransfers"))
 
@@ -140,9 +130,7 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:
         period_expr = pl.lit(None).cast(pl.Utf8)
         for day_part, period in DAY_PART_TO_PERIOD.items():
             period_expr = (
-                pl.when(pl.col("day_part") == day_part)
-                .then(pl.lit(period))
-                .otherwise(period_expr)
+                pl.when(pl.col("day_part") == day_part).then(pl.lit(period)).otherwise(period_expr)
             )
         result_df = result_df.with_columns(period_expr.alias("period"))
 
@@ -151,7 +139,7 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:
 
 def _calculate_transfer_type(df: pl.DataFrame) -> pl.DataFrame:
     """Calculate TRANSFER_TYPE field based on technologies used.
-    
+
     Logic:
     - NO_TRANSFERS if nTransfers == 0
     - XX_YY where XX and YY are the two most prominent technologies used
@@ -162,18 +150,26 @@ def _calculate_transfer_type(df: pl.DataFrame) -> pl.DataFrame:
 
     # NO_TRANSFERS case
     transfer_type = (
-        pl.when(pl.col("nTransfers") == 0)
-        .then(pl.lit("NO_TRANSFERS"))
-        .otherwise(transfer_type)
+        pl.when(pl.col("nTransfers") == 0).then(pl.lit("NO_TRANSFERS")).otherwise(transfer_type)
     )
 
     # Build transfer type combinations
     # Order matters - lower tech listed first (e.g., LB_HR not HR_LB)
     transfer_combos = [
-        ("LB", "EB"), ("LB", "FB"), ("LB", "LR"), ("LB", "HR"), ("LB", "CR"),
-        ("EB", "FB"), ("EB", "LR"), ("EB", "HR"), ("EB", "CR"),
-        ("FB", "LR"), ("FB", "HR"), ("FB", "CR"),
-        ("LR", "HR"), ("LR", "CR"),
+        ("LB", "EB"),
+        ("LB", "FB"),
+        ("LB", "LR"),
+        ("LB", "HR"),
+        ("LB", "CR"),
+        ("EB", "FB"),
+        ("EB", "LR"),
+        ("EB", "HR"),
+        ("EB", "CR"),
+        ("FB", "LR"),
+        ("FB", "HR"),
+        ("FB", "CR"),
+        ("LR", "HR"),
+        ("LR", "CR"),
         ("HR", "CR"),
     ]
 
@@ -183,11 +179,7 @@ def _calculate_transfer_type(df: pl.DataFrame) -> pl.DataFrame:
         flag2 = f"used{tech2}"
 
         transfer_type = (
-            pl.when(
-                (pl.col("nTransfers") > 0) &
-                (pl.col(flag1) == 1) &
-                (pl.col(flag2) == 1)
-            )
+            pl.when((pl.col("nTransfers") > 0) & (pl.col(flag1) == 1) & (pl.col(flag2) == 1))
             .then(pl.lit(combo_name))
             .otherwise(transfer_type)
         )
@@ -199,9 +191,7 @@ def _calculate_transfer_type(df: pl.DataFrame) -> pl.DataFrame:
 
         transfer_type = (
             pl.when(
-                (pl.col("nTransfers") > 0) &
-                (pl.col(flag_col) == 1) &
-                (pl.col("usedTotal") == 1)
+                (pl.col("nTransfers") > 0) & (pl.col(flag_col) == 1) & (pl.col("usedTotal") == 1)
             )
             .then(pl.lit(same_combo))
             .otherwise(transfer_type)

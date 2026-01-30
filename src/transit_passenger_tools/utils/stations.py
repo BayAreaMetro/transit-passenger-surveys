@@ -1,4 +1,5 @@
 """Utilities for geocoding transit stations using codebook and stop data."""
+
 import logging
 
 import geopandas as gpd
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 COMMON_STATION_ALIASES = {
     "SFO": "San Francisco International Airport",
     "OAK": "Oakland International Airport",
-    "Millbrae": "Millbrae (Caltrain Transfer Platform)"
+    "Millbrae": "Millbrae (Caltrain Transfer Platform)",
 }
 
 
@@ -60,9 +61,7 @@ def geocode_stops_from_names(  # noqa: PLR0912, PLR0915, C901
 
     # Filter to operator's stops
     search_pattern = "|".join(operator_names)
-    mask = stops_gdf[agency_field].str.contains(
-        search_pattern, case=False, na=False, regex=True
-    )
+    mask = stops_gdf[agency_field].str.contains(search_pattern, case=False, na=False, regex=True)
     operator_stops = stops_gdf[mask].copy()
 
     if len(operator_stops) == 0:
@@ -70,9 +69,7 @@ def geocode_stops_from_names(  # noqa: PLR0912, PLR0915, C901
         raise ValueError(msg)
 
     logger.info(
-        "Found %s stops for operator(s): %s",
-        len(operator_stops),
-        ", ".join(operator_names)
+        "Found %s stops for operator(s): %s", len(operator_stops), ", ".join(operator_names)
     )
 
     # Convert to WGS84 and extract coordinates
@@ -94,11 +91,7 @@ def geocode_stops_from_names(  # noqa: PLR0912, PLR0915, C901
         logger.info("Processing station column: %s", station_col)
 
         # Get unique station names from survey
-        unique_stations = (
-            survey_df.select(pl.col(station_col))
-            .unique()
-            .drop_nulls()
-        )
+        unique_stations = survey_df.select(pl.col(station_col)).unique().drop_nulls()
 
         # Build lookup from survey name -> canonical name/coords
         name_to_canonical = {}
@@ -147,13 +140,14 @@ def geocode_stops_from_names(  # noqa: PLR0912, PLR0915, C901
                     lat = best_lat
                     lon = best_lon
                     logger.debug(
-                        "Fuzzy matched '%s' -> '%s' (%.1f%%)",
-                        survey_name, canonical, best_score
+                        "Fuzzy matched '%s' -> '%s' (%.1f%%)", survey_name, canonical, best_score
                     )
                 else:
                     logger.warning(
                         "No match for '%s' (best: %s at %.1f%%)",
-                        survey_name, best_match, best_score
+                        survey_name,
+                        best_match,
+                        best_score,
                     )
                     unmatched_stations.append(survey_name)
                     continue
@@ -164,34 +158,37 @@ def geocode_stops_from_names(  # noqa: PLR0912, PLR0915, C901
 
         match_rate = (
             len(name_to_canonical) / unique_stations.height * 100
-            if unique_stations.height > 0 else 0
+            if unique_stations.height > 0
+            else 0
         )
         logger.info(
             "  Matched %s/%s unique stations (%.1f%%)",
-            len(name_to_canonical), unique_stations.height, match_rate
+            len(name_to_canonical),
+            unique_stations.height,
+            match_rate,
         )
 
         if unmatched_stations:
-            all_unmatched.extend(
-                [f"{station_col}: {name}" for name in unmatched_stations]
-            )
+            all_unmatched.extend([f"{station_col}: {name}" for name in unmatched_stations])
 
         # Add columns to dataframe
-        survey_df = survey_df.with_columns([
-            pl.col(station_col).replace_strict(
-                name_to_canonical, default=None, return_dtype=pl.Utf8
-            ).alias(output_cols["station"]),
-            pl.col(station_col).replace_strict(
-                name_to_lat, default=None, return_dtype=pl.Float64
-            ).alias(output_cols["lat"]),
-            pl.col(station_col).replace_strict(
-                name_to_lon, default=None, return_dtype=pl.Float64
-            ).alias(output_cols["lon"]),
-            pl.when(pl.col(station_col).is_not_null())
-            .then(pl.lit("station"))
-            .otherwise(None)
-            .alias(output_cols["geo_level"])
-        ])
+        survey_df = survey_df.with_columns(
+            [
+                pl.col(station_col)
+                .replace_strict(name_to_canonical, default=None, return_dtype=pl.Utf8)
+                .alias(output_cols["station"]),
+                pl.col(station_col)
+                .replace_strict(name_to_lat, default=None, return_dtype=pl.Float64)
+                .alias(output_cols["lat"]),
+                pl.col(station_col)
+                .replace_strict(name_to_lon, default=None, return_dtype=pl.Float64)
+                .alias(output_cols["lon"]),
+                pl.when(pl.col(station_col).is_not_null())
+                .then(pl.lit("station"))
+                .otherwise(None)
+                .alias(output_cols["geo_level"]),
+            ]
+        )
 
     # Raise error if any stations were unmatched
     if all_unmatched:

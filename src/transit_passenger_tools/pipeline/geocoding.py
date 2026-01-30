@@ -9,6 +9,7 @@ from pathlib import Path
 
 import polars as pl
 
+from transit_passenger_tools.utils.add_zone import spatial_join_coordinates_to_shapefile
 from transit_passenger_tools.utils.config import get_config
 
 # Location types to geocode
@@ -19,9 +20,9 @@ LOCATION_TYPES = [
     "orig",  # trip origin
     "dest",  # trip destination
     "survey_board",  # where passenger boarded surveyed vehicle
-    "survey_alight", # where passenger alighted surveyed vehicle
-    "first_board",   # first boarding on full trip
-    "last_alight"    # last alighting on full trip
+    "survey_alight",  # where passenger alighted surveyed vehicle
+    "first_board",  # first boarding on full trip
+    "last_alight",  # last alighting on full trip
 ]
 
 # Earth radius in kilometers for Haversine calculation
@@ -30,11 +31,17 @@ EARTH_RADIUS_KM = 6371.0
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate Haversine distance between two points in kilometers.
-    
+
+    Args:
+        lat1: Latitude of first point
+        lon1: Longitude of first point
+        lat2: Latitude of second point
+        lon2: Longitude of second point
+
     Args:
         lat1, lon1: First point coordinates in degrees
         lat2, lon2: Second point coordinates in degrees
-        
+
     Returns:
         Distance in kilometers
     """
@@ -56,12 +63,12 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 def calculate_distances(df: pl.DataFrame) -> pl.DataFrame:
     """Calculate Haversine distances between location pairs in kilometers.
-    
+
     Distance pairs are loaded from pipeline configuration.
-    
+
     Args:
         df: DataFrame with lat/lon columns for locations
-        
+
     Returns:
         DataFrame with added distance columns (in kilometers)
     """
@@ -88,10 +95,10 @@ def calculate_distances(df: pl.DataFrame) -> pl.DataFrame:
         result_df = result_df.with_columns(
             pl.struct([from_lat, from_lon, to_lat, to_lon])
             .map_elements(
-                lambda row: haversine_km(
-                    row[from_lat], row[from_lon], row[to_lat], row[to_lon]
+                lambda row, fl=from_lat, flon=from_lon, tl=to_lat, tlon=to_lon: haversine_km(
+                    row[fl], row[flon], row[tl], row[tlon]
                 ),
-                return_dtype=pl.Float64
+                return_dtype=pl.Float64,
             )
             .alias(dist_col)
         )
@@ -99,19 +106,21 @@ def calculate_distances(df: pl.DataFrame) -> pl.DataFrame:
     return result_df
 
 
-def assign_zones_and_distances(df: pl.DataFrame, shapefiles_dir: Path | None = None) -> pl.DataFrame:
+def assign_zones_and_distances(
+    df: pl.DataFrame, shapefiles_dir: Path | None = None
+) -> pl.DataFrame:
     """Transform geocoding fields - assign zones and calculate distances.
-    
+
     For each location type (home, work, school, etc.), assigns geographic zones
     (TM1 TAZ, TM2 TAZ/MAZ, Census county/tract/PUMA) based on configuration.
-    
+
     Also calculates Haversine distances between key location pairs.
-    
+
     Args:
         df: Input DataFrame with lat/lon columns for each location
         shapefiles_dir: Directory containing zone shapefiles (optional).
             If None, only distance calculations are performed.
-        
+
     Returns:
         DataFrame with added geographic zone and distance columns
     """
@@ -123,9 +132,6 @@ def assign_zones_and_distances(df: pl.DataFrame, shapefiles_dir: Path | None = N
     # If no shapefiles directory, skip spatial joins
     if shapefiles_dir is None:
         return result_df
-
-    # Import add_zone function for spatial joins
-    from transit_passenger_tools.utils.add_zone import add_zone_to_lat_lon
 
     # Process each location type
     for location in LOCATION_TYPES:
@@ -148,13 +154,13 @@ def assign_zones_and_distances(df: pl.DataFrame, shapefiles_dir: Path | None = N
         for zone_config in config.geocoding_zones:
             shapefile_path = Path(config.shapefiles[zone_config.shapefile_key])
 
-            result_df = add_zone_to_lat_lon(
+            result_df = spatial_join_coordinates_to_shapefile(
                 df=result_df,
-                lat_colname=lat_col,
-                lon_colname=lon_col,
-                shapefile_path=shapefile_path,
-                zone_name_in_shapefile=zone_config.field_name,
-                new_zone_colname=f"{location}_{zone_config.zone_type}"
+                lat_col=lat_col,
+                lon_col=lon_col,
+                shapefile_path=str(shapefile_path),
+                shapefile_id_col=zone_config.field_name,
+                output_id_col=f"{location}_{zone_config.zone_type}",
             )
 
     return result_df

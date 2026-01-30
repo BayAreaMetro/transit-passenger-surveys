@@ -17,6 +17,7 @@ Model Structure:
 For categorical fields, MISSING enum values distinguish "not asked" from processing errors.
 """
 
+import logging
 from enum import Enum
 from typing import get_args, get_origin
 
@@ -25,10 +26,12 @@ from pydantic.fields import FieldInfo
 
 from transit_passenger_tools.data_models import CoreSurveyResponse
 
+logger = logging.getLogger(__name__)
+
 
 def extract_core_fields() -> list[str]:
     """Extract all field names from CoreSurveyResponse.
-    
+
     Returns:
         List of core field names
     """
@@ -37,7 +40,7 @@ def extract_core_fields() -> list[str]:
 
 def extract_enum_validators() -> dict[str, type[Enum]]:
     """Extract enum validators from CoreSurveyResponse field type hints.
-    
+
     Returns:
         Dictionary mapping field name to Enum class
     """
@@ -64,7 +67,7 @@ def extract_enum_validators() -> dict[str, type[Enum]]:
     return validators
 
 
-# Tier 2: Transform-specific requirements
+# Transform-specific field requirements
 # These specify which CoreSurveyResponse fields are needed by each pipeline transform
 # All fields referenced here MUST exist in CoreSurveyResponse schema
 TRANSFORM_REQUIREMENTS = {
@@ -92,14 +95,14 @@ TRANSFORM_REQUIREMENTS = {
 
 def validate_core_required(df: pl.DataFrame) -> list[str]:
     """Validate required core identifier fields exist and are not all null.
-    
+
     Only the essential identifiers (response_id, survey_id, original_id) are
     truly required for all surveys. Other fields are validated by transform
     requirements when those transforms are enabled.
-    
+
     Args:
         df: Input DataFrame to validate
-        
+
     Returns:
         List of error messages (empty if valid)
     """
@@ -116,16 +119,16 @@ def validate_core_required(df: pl.DataFrame) -> list[str]:
     return errors
 
 
-def validate_transform_requirements(
+def validate_transform_requirements(  # noqa: C901
     df: pl.DataFrame,
     skip_transforms: list[str] | None = None,
 ) -> list[str]:
-    """Validate Tier 2 transform-specific field requirements.
-    
+    """Validate transform-specific field requirements.
+
     Args:
         df: Input DataFrame to validate
         skip_transforms: List of transform names to skip validation for
-        
+
     Returns:
         List of error messages (empty if valid)
     """
@@ -138,11 +141,11 @@ def validate_transform_requirements(
 
         # Check required fields
         if "required" in requirements:
-            for field in requirements["required"]:
-                if field not in df.columns:
-                    errors.append(
-                        f"TIER 2 ({transform_name}): Missing required column '{field}'"
-                    )
+            errors.extend(
+                f"TRANSFORM ({transform_name}): Missing required column '{field}'"
+                for field in requirements["required"]
+                if field not in df.columns
+            )
 
         # Check required_together (all or none)
         if "required_together" in requirements:
@@ -151,7 +154,7 @@ def validate_transform_requirements(
                 if present and len(present) != len(field_group):
                     missing = [f for f in field_group if f not in df.columns]
                     errors.append(
-                        f"TIER 2 ({transform_name}): Partial field group present. "
+                        f"TRANSFORM ({transform_name}): Partial field group present. "
                         f"Have {present}, missing {missing}. "
                         f"Must have all or none of: {field_group}"
                     )
@@ -167,7 +170,7 @@ def validate_transform_requirements(
 
             if not satisfied:
                 errors.append(
-                    f"TIER 2 ({transform_name}): Must have at least one complete field group. "
+                    f"TRANSFORM ({transform_name}): Must have at least one complete field group. "
                     f"Options: {groups}"
                 )
 
@@ -176,10 +179,10 @@ def validate_transform_requirements(
 
 def validate_enum_values(df: pl.DataFrame) -> list[str]:
     """Validate categorical fields contain only valid enum values.
-    
+
     Args:
         df: Input DataFrame to validate
-        
+
     Returns:
         List of error messages (empty if valid)
     """
@@ -194,9 +197,7 @@ def validate_enum_values(df: pl.DataFrame) -> list[str]:
         valid_values = {e.value for e in enum_class}
 
         # Get actual values in data (excluding nulls)
-        actual_values = set(
-            df[field].drop_nulls().unique().to_list()
-        )
+        actual_values = set(df[field].drop_nulls().unique().to_list())
 
         # Find invalid values
         invalid_values = actual_values - valid_values
@@ -206,7 +207,7 @@ def validate_enum_values(df: pl.DataFrame) -> list[str]:
             sample = list(invalid_values)[:5]
             errors.append(
                 f"ENUM VALIDATION: Column '{field}' has invalid values: {sample}. "
-                f"Valid values include: {sorted(list(valid_values))[:10]}..."
+                f"Valid values include: {sorted(valid_values)[:10]}..."
             )
 
     return errors
@@ -218,20 +219,20 @@ def validate_preprocessed_input(
     strict: bool = True,
 ) -> pl.DataFrame:
     """Validate preprocessed survey data meets pipeline requirements.
-    
-    Enforces three-tier field contract:
-    - Tier 1: Always required (extracted from model)
-    - Tier 2: Transform-specific requirements (business logic)
-    - Tier 3: Optional fields (all other CoreSurveyResponse fields)
-    
+
+    Enforces field contract:
+    - Core required: Always required fields (response_id, survey_id, etc.)
+    - Transform-specific: Fields required by specific transforms (business logic)
+    - Optional: All other CoreSurveyResponse fields
+
     Args:
         df: Input DataFrame from preprocessing
         skip_transforms: List of transform names to skip (e.g., ["geocoding"])
         strict: If True, raise ValueError on any errors
-        
+
     Returns:
         Input DataFrame (unmodified)
-        
+
     Raises:
         ValueError: If validation errors found and strict=True
     """
@@ -267,24 +268,23 @@ def validate_preprocessed_input(
 
         if strict:
             raise ValueError(error_msg)
-        print(f"WARNING: {error_msg}")
+        # Log warning in non-strict mode
+        logger.warning(error_msg)
 
     return df
 
 
 def get_preprocessing_requirements() -> dict[str, list[str]]:
     """Get comprehensive list of preprocessing requirements.
-    
+
     Useful for documentation and preprocessing script development.
-    
+
     Returns:
         Dictionary with requirement information
     """
     return {
         "core_required": ["response_id", "survey_id", "original_id"],
         "core_fields": extract_core_fields(),
-        "transform_requirements": {
-            name: reqs for name, reqs in TRANSFORM_REQUIREMENTS.items()
-        },
+        "transform_requirements": dict(TRANSFORM_REQUIREMENTS.items()),
         "enum_fields": list(extract_enum_validators().keys()),
     }

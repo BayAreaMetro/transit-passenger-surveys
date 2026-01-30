@@ -13,21 +13,22 @@ from pathlib import Path
 
 import duckdb
 import polars as pl
-
-# Schema version - increment when making breaking changes to data_models.py
-# When incrementing, you MUST run migration script before ingesting new data
-SCHEMA_VERSION = 1  # v1: Initial schema
 import yaml
 from pydantic import ValidationError
 
 try:
     from git import Repo
     from git.exc import GitCommandError, InvalidGitRepositoryError, NoSuchPathError
+
     HAS_GITPYTHON = True
 except ImportError:
     HAS_GITPYTHON = False
 
 from transit_passenger_tools.data_models import SurveyMetadata, SurveyResponse, SurveyWeight
+
+# Schema version - increment when making breaking changes to data_models.py
+# When incrementing, you MUST run migration script before ingesting new data
+SCHEMA_VERSION = 1  # v1: Initial schema
 
 logger = logging.getLogger(__name__)
 
@@ -98,9 +99,7 @@ def compute_dataframe_hash(df: pl.DataFrame) -> str:
     return hash_obj.hexdigest()
 
 
-def get_latest_metadata(
-    canonical_operator: str, survey_year: int
-) -> dict[str, str | int] | None:
+def get_latest_metadata(canonical_operator: str, survey_year: int) -> dict[str, str | int] | None:
     """Get latest version metadata for an operator/year combination.
 
     Returns:
@@ -118,7 +117,7 @@ def get_latest_metadata(
                 ORDER BY data_version DESC
                 LIMIT 1
                 """,
-                [canonical_operator, survey_year]
+                [canonical_operator, survey_year],
             ).pl()
         finally:
             conn.close()
@@ -183,7 +182,7 @@ def ingest_survey_batch(
 
     Returns:
         Tuple of (output_path, version, commit_id, data_hash)
-        
+
     Raises:
         ValueError: If schema version mismatch detected (migration required)
     """
@@ -194,7 +193,7 @@ def ingest_survey_batch(
         / f"operator={canonical_operator}"
         / f"year={survey_year}"
     )
-    
+
     if partition_dir.exists():
         # Check if existing data has schema version metadata
         existing_files = list(partition_dir.glob("*.parquet"))
@@ -202,36 +201,37 @@ def ingest_survey_batch(
             # Read schema from first existing file
             existing_schema = pl.read_parquet_schema(existing_files[0])
             new_schema = df.schema
-            
+
             # Check for breaking schema changes
             schema_issues = []
-            
+
             # Check 1: Column renames (old column exists in existing, new column in new data)
             if "hispanic" in existing_schema and "is_hispanic" in new_schema:
                 schema_issues.append(
                     "Column rename detected: 'hispanic' → 'is_hispanic'. "
                     "Run migration script: scripts/migrate_schema_v1_to_v2.py"
                 )
-            
+
             # Check 2: Type changes for same column name
             common_cols = set(existing_schema.keys()) & set(new_schema.keys())
-            for col in common_cols:
-                if existing_schema[col] != new_schema[col]:
-                    schema_issues.append(
-                        f"Type mismatch for '{col}': existing={existing_schema[col]}, "
-                        f"new={new_schema[col]}. Migration required."
-                    )
-            
+            schema_issues.extend(
+                f"Type mismatch for '{col}': existing={existing_schema[col]}, "
+                f"new={new_schema[col]}. Migration required."
+                for col in common_cols
+                if existing_schema[col] != new_schema[col]
+            )
+
             if schema_issues:
                 error_msg = (
                     f"\n\nSCHEMA VERSION MISMATCH for {canonical_operator}/{survey_year}:\n"
                     + "\n".join(f"  - {issue}" for issue in schema_issues)
                     + f"\n\nCurrent schema version: {SCHEMA_VERSION}\n"
-                    + "\nBefore ingesting new data, you must migrate existing data to match the new schema.\n"
+                    + "\nBefore ingesting new data, you must migrate existing data "
+                    + "to match the new schema.\n"
                     + "See docs/schema_migration.md for instructions.\n"
                 )
                 raise ValueError(error_msg)
-    
+
     # Compute hash of incoming data for deduplication
     data_hash = compute_dataframe_hash(df)
 
@@ -347,9 +347,7 @@ def ingest_survey_weights(df: pl.DataFrame, validate: bool = True) -> Path:
 
     if output_path.exists():
         combined = pl.concat([pl.read_parquet(output_path), df])
-        combined = combined.unique(
-            subset=["response_id", "weight_scheme"], keep="last"
-        )
+        combined = combined.unique(subset=["response_id", "weight_scheme"], keep="last")
         combined.write_parquet(output_path, compression="zstd", statistics=True)
         logger.info("Appended %d weight records", len(df))
     else:
@@ -402,9 +400,7 @@ def run_migrations() -> None:
     with write_session() as conn:
         # Get already-applied migrations
         try:
-            applied = conn.execute(
-                "SELECT name FROM schema_migrations ORDER BY name"
-            ).fetchall()
+            applied = conn.execute("SELECT name FROM schema_migrations ORDER BY name").fetchall()
             applied_names = {row[0] for row in applied}
         except duckdb.CatalogException:
             # Table doesn't exist yet, no migrations applied
@@ -434,7 +430,7 @@ def run_migrations() -> None:
             # Record migration
             conn.execute(
                 "INSERT INTO schema_migrations (name, applied_at) VALUES (?, CURRENT_TIMESTAMP)",
-                [migration_name]
+                [migration_name],
             )
 
             logger.info("  Applied: %s", migration_name)
@@ -442,7 +438,7 @@ def run_migrations() -> None:
 
 def create_views() -> None:
     """Create or recreate DuckDB views over Parquet files in data lake.
-    
+
     Views use SELECT * to handle schema evolution but vendor-specific raw
     survey fields are preserved in parquet files for future reference.
     """
@@ -451,7 +447,8 @@ def create_views() -> None:
     with write_session() as conn:
         # Create view for survey_responses (latest version only)
         survey_responses_pattern = f"{DATA_LAKE_ROOT}/survey_responses/**/data-*.parquet"
-        conn.execute(f"""
+        conn.execute(
+            f"""
             CREATE OR REPLACE VIEW survey_responses AS
             WITH versioned_data AS (
                 SELECT *,
@@ -474,11 +471,13 @@ def create_views() -> None:
                 ON versioned_data.operator = latest_versions.operator
                 AND versioned_data.year = latest_versions.year
                 AND versioned_data._version = latest_versions.max_version
-        """)
+        """
+        )
         logger.info("  Created view: survey_responses")
 
         # Create view for all versions (power users)
-        conn.execute(f"""
+        conn.execute(
+            f"""
             CREATE OR REPLACE VIEW survey_responses_all_versions AS
             SELECT *,
                    CAST(regexp_extract(filename, 'data-(\\d+)-', 1) AS INTEGER) as data_version,
@@ -489,29 +488,34 @@ def create_views() -> None:
                 union_by_name = true,
                 filename = true
             )
-        """)
+        """
+        )
         logger.info("  Created view: survey_responses_all_versions")
 
         # Create view for survey_metadata
         metadata_file = DATA_LAKE_ROOT / "survey_metadata" / "metadata.parquet"
-        conn.execute(f"""
+        conn.execute(
+            f"""
             CREATE OR REPLACE VIEW survey_metadata AS
             SELECT * FROM read_parquet(
                 '{metadata_file}',
                 union_by_name = true
             )
-        """)
+        """
+        )
         logger.info("  Created view: survey_metadata")
 
         # Create view for survey_weights
         weights_file = DATA_LAKE_ROOT / "survey_weights" / "weights.parquet"
-        conn.execute(f"""
+        conn.execute(
+            f"""
             CREATE OR REPLACE VIEW survey_weights AS
             SELECT * FROM read_parquet(
                 '{weights_file}',
                 union_by_name = true
             )
-        """)
+        """
+        )
         logger.info("  Created view: survey_weights")
 
         # Verify views work
@@ -520,10 +524,11 @@ def create_views() -> None:
 
         all_versions_count = conn.execute(
             "SELECT COUNT(*) FROM survey_responses_all_versions"
-        ).fetchone()[0]  # type: ignore[index]
+        ).fetchone()[
+            0
+        ]  # type: ignore[index]
         logger.info(
-            "  Verified: survey_responses_all_versions has %s rows",
-            f"{all_versions_count:,}"
+            "  Verified: survey_responses_all_versions has %s rows", f"{all_versions_count:,}"
         )
 
         meta_count = conn.execute("SELECT COUNT(*) FROM survey_metadata").fetchone()[0]  # type: ignore[index]
@@ -555,23 +560,29 @@ def validate_referential_integrity() -> dict[str, int]:
         errors = []
 
         # Check 1: Weights must reference existing responses
-        orphaned_weights = conn.execute("""
+        orphaned_weights = conn.execute(
+            """
             SELECT COUNT(*)
             FROM survey_weights w
             LEFT JOIN survey_responses r ON w.response_id = r.response_id
             WHERE r.response_id IS NULL
-        """).fetchone()[0]  # type: ignore[index]
+        """
+        ).fetchone()[
+            0
+        ]  # type: ignore[index]
 
         results["orphaned_weights"] = orphaned_weights
 
         if orphaned_weights > 0:
-            sample = conn.execute("""
+            sample = conn.execute(
+                """
                 SELECT w.response_id
                 FROM survey_weights w
                 LEFT JOIN survey_responses r ON w.response_id = r.response_id
                 WHERE r.response_id IS NULL
                 LIMIT 5
-            """).fetchall()
+            """
+            ).fetchall()
             sample_ids = [row[0] for row in sample]
             errors.append(
                 f"{orphaned_weights} weight records reference non-existent responses. "
@@ -579,23 +590,29 @@ def validate_referential_integrity() -> dict[str, int]:
             )
 
         # Check 2: Responses must have metadata (via survey_id foreign key)
-        orphaned_responses = conn.execute("""
+        orphaned_responses = conn.execute(
+            """
             SELECT COUNT(*)
             FROM survey_responses r
             LEFT JOIN survey_metadata m ON r.survey_id = m.survey_id
             WHERE m.survey_id IS NULL
-        """).fetchone()[0]  # type: ignore[index]
+        """
+        ).fetchone()[
+            0
+        ]  # type: ignore[index]
 
         results["orphaned_responses"] = orphaned_responses
 
         if orphaned_responses > 0:
-            sample = conn.execute("""
+            sample = conn.execute(
+                """
                 SELECT DISTINCT r.survey_id
                 FROM survey_responses r
                 LEFT JOIN survey_metadata m ON r.survey_id = m.survey_id
                 WHERE m.survey_id IS NULL
                 LIMIT 5
-            """).fetchall()
+            """
+            ).fetchall()
             sample_ids = [row[0] for row in sample]
             errors.append(
                 f"{orphaned_responses} response records lack metadata. "

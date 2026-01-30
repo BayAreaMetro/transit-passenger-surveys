@@ -32,7 +32,7 @@ HOME_ADDRESS_LONG = "HOME_ADDRESS_LONG"
 
 
 # Setup logging
-def setup_logging(output_dir: str = None) -> None:
+def setup_logging(output_dir: str | None = None) -> None:
     """Setup logging to both console and file."""
     # Use provided output_dir or fallback to local directory
     if output_dir and (Path(output_dir).exists() or Path(output_dir).drive == ""):
@@ -413,7 +413,7 @@ def process_demographics(  # noqa: PLR0912, PLR0915
 
     return survey_df
 
-def process_trip_characteristics(
+def process_trip_characteristics(  # noqa: PLR0915
     bart_df: pl.DataFrame, codebook_df: pl.DataFrame
 ) -> pl.DataFrame:
     """Process trip characteristics: origin/destination purposes, transfers, etc."""
@@ -537,7 +537,9 @@ def process_trip_characteristics(
     survey_lang_lookup = create_codebook_lookup(codebook_df, "SURVEY_LANGUAGE_FINAL")
 
     bart_df = bart_df.with_columns([
-        pl.col("SURVEY_LANGUAGE_FINAL").replace(survey_lang_lookup, default=None).alias("interview_language"),
+        pl.col("SURVEY_LANGUAGE_FINAL").replace(
+            survey_lang_lookup, default=None
+        ).alias("interview_language"),
         pl.when(pl.col("DATE_COMPLETED").is_not_null())
           .then(pl.lit("online - modeling platform"))
           .when(pl.col("DATE_STARTED_SAS").is_not_null())
@@ -655,15 +657,19 @@ def process_trip_characteristics(
           .then(pl.lit(125000.0))
         .when(pl.col("household_income").str.contains("150,000.*199,999", literal=False))
           .then(pl.lit(175000.0))
-        .when(pl.col("household_income").str.contains("200,000.*above|200,000.*over", literal=False))
+        .when(
+            pl.col("household_income").str.contains(
+                "200,000.*above|200,000.*over", literal=False
+            )
+        )
           .then(pl.lit(250000.0))  # "$200,000 and above" -> 250,000
         .when(pl.col("household_income").is_not_null())
           .then(pl.col("household_income").cast(pl.Float64, strict=False))
         .otherwise(None)
         .alias("household_income"),
         pl.when(pl.col("household_income").is_not_null())
-          .then(pl.lit(True))
-          .otherwise(pl.lit(False))
+          .then(pl.lit(1).cast(pl.Boolean))
+          .otherwise(pl.lit(0).cast(pl.Boolean))
           .alias("income_approximated")
     ])
 
@@ -685,9 +691,9 @@ def process_trip_characteristics(
     logger.info("Renaming hispanic to is_hispanic")
     bart_df = bart_df.with_columns([
         pl.when(pl.col("hispanic") == 1)
-          .then(pl.lit(True))
+          .then(pl.lit(1).cast(pl.Boolean))
           .when(pl.col("hispanic") == 0)
-          .then(pl.lit(False))
+          .then(pl.lit(0).cast(pl.Boolean))
           .otherwise(None)
           .alias("is_hispanic")
     ]).drop("hispanic")
@@ -721,7 +727,7 @@ def preprocess(
     operator_names: list[str],
 ) -> pl.DataFrame:
     """Preprocess BART 2024 survey data.
-    
+
     Args:
         survey_path: Path to survey Excel file
         station_geojson: Path to station GeoJSON file
@@ -730,7 +736,7 @@ def preprocess(
         survey_year: Survey year
         fuzzy_match_threshold: Threshold for fuzzy station name matching
         operator_names: List of operator name variants for geocoding
-        
+
     Returns:
         Preprocessed survey DataFrame ready for canonical pipeline ingestion.
     """
@@ -867,11 +873,11 @@ def preprocess(
         pl.col("ID").alias("original_id"),
 
 # Direction already set as None earlier
-        
+
         # Access/egress modes already set earlier, immediate modes are None
         pl.lit(None).alias("immediate_access_mode"),
         pl.lit(None).alias("immediate_egress_mode"),
-        
+
         # Transfer fields as None
         pl.lit(None).alias("transfer_from"),
         pl.lit(None).alias("transfer_to"),
@@ -886,7 +892,7 @@ def preprocess(
         pl.lit(None).cast(pl.Utf8).alias("third_before_operator"),
         pl.lit(None).cast(pl.Utf8).alias("third_before_operator_detail"),
         pl.lit(None).alias("third_before_technology"),
-        
+
         # Transfer operator/technology fields (after survey)
         pl.lit(None).cast(pl.Utf8).alias("first_after_operator"),
         pl.lit(None).cast(pl.Utf8).alias("first_after_operator_detail"),
@@ -912,7 +918,10 @@ def preprocess(
         pl.col("survey_alight").alias("onoff_exit_station"),
 
         # survey_time field (combine date_string and time_string)
-        (pl.col("date_string").cast(pl.Utf8) + " " + pl.col("time_string").cast(pl.Utf8)).alias("survey_time"),
+        (
+            pl.col("date_string").cast(pl.Utf8) + " " +
+            pl.col("time_string").cast(pl.Utf8)
+        ).alias("survey_time"),
 
         # day_of_the_week (derive from date_string)
         pl.when(pl.col("date_string").is_not_null())

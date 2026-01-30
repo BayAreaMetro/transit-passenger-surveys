@@ -103,12 +103,12 @@ def _convert_hispanic_to_bool(df: pl.DataFrame) -> pl.DataFrame:
     """Convert hispanic enum strings to boolean."""
     if "hispanic" not in df.columns:
         return df
-    
+
     return df.with_columns([
         pl.when(pl.col("hispanic").str.to_uppercase() == "HISPANIC/LATINO OR OF SPANISH ORIGIN")
-          .then(True)
+          .then(pl.lit(1).cast(pl.Boolean))
           .when(pl.col("hispanic").str.to_uppercase() == "NOT HISPANIC/LATINO OR OF SPANISH ORIGIN")
-          .then(False)
+          .then(pl.lit(0).cast(pl.Boolean))
           .otherwise(None)
           .alias("is_hispanic")
     ]).drop("hispanic")
@@ -232,7 +232,9 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
     # Calculate household_income from bounds if hh_income_nominal_continuous is missing/invalid
     # Try to cast to float, set invalid strings (like "Refused") to null
     df = df.with_columns([
-        pl.col("hh_income_nominal_continuous").cast(pl.Float64, strict=False).alias("hh_income_nominal_continuous")
+        pl.col("hh_income_nominal_continuous").cast(
+            pl.Float64, strict=False
+        ).alias("hh_income_nominal_continuous")
     ])
 
     # For null values, calculate midpoint from bounds
@@ -904,7 +906,10 @@ def validate_schema(df: pl.DataFrame, sample_size: int = 100) -> None:
         for field, details in sorted(error_details.items()):
             logger.error("\n  Field: %s", field)
             logger.error("    Error types: %s", ", ".join(sorted(details["error_types"])))
-            logger.error("    Failed in %s records (rows: %s...)", details["count"], details["rows"][:5])
+            logger.error(
+                "    Failed in %s records (rows: %s...)",
+                details["count"], details["rows"][:5]
+            )
             if details["unique_values"]:
                 logger.error(
                     "    Unique problematic values (%s total): %s",
@@ -1300,7 +1305,10 @@ def main() -> None:
         logger.info("DERIVING AUTO_TO_WORKERS_RATIO")
         logger.info("%s", "="*80)
         df = auto_sufficiency.derive_auto_sufficiency(df)
-        logger.info("Columns after derivation: auto_to_workers_ratio present = %s", "auto_to_workers_ratio" in df.columns)
+        logger.info(
+            "Columns after derivation: auto_to_workers_ratio present = %s",
+            "auto_to_workers_ratio" in df.columns
+        )
 
         # Validate schema
         logger.info("\n%s", "="*80)

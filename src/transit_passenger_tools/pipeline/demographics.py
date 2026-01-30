@@ -10,6 +10,11 @@ import polars as pl
 
 from transit_passenger_tools.codebook import Language, Race
 
+# Minimum length for race text fields to be considered valid
+MIN_RACE_TEXT_LENGTH = 2
+
+# Number of races that qualify for White+Middle Eastern exception
+DUAL_RACE_COUNT = 2
 # Required columns for race processing (at least one group must exist)
 RACE_DMY_COLUMNS = [
     "race_dmy_ind",
@@ -28,7 +33,7 @@ def process_race(df: pl.DataFrame) -> pl.DataFrame:
     - Multi-racial (>=2): OTHER (except white + middle_eastern → WHITE)
     - Single race: ASIAN, BLACK, WHITE (includes middle_eastern)
     - Native American or Pacific Islander (any combo): OTHER
-    - race_dmy_oth only: OTHER  
+    - race_dmy_oth only: OTHER
     - No race: MISSING
 
     Args:
@@ -36,7 +41,7 @@ def process_race(df: pl.DataFrame) -> pl.DataFrame:
 
     Returns:
         DataFrame with standardized 'race' column, intermediate columns dropped
-        
+
     Raises:
         ValueError: If neither race_dmy columns nor race_cat column exists
     """
@@ -45,10 +50,11 @@ def process_race(df: pl.DataFrame) -> pl.DataFrame:
     has_race_cat = "race_cat" in df.columns
 
     if not has_race_dmy and not has_race_cat:
-        raise ValueError(
+        msg = (
             f"demographics transform requires either race_cat column or "
             f"at least one of: {RACE_DMY_COLUMNS}"
         )
+        raise ValueError(msg)
 
     # Fill missing values in race dummy columns with 0
     race_cols = RACE_DMY_COLUMNS
@@ -61,23 +67,32 @@ def process_race(df: pl.DataFrame) -> pl.DataFrame:
             # Add missing race_dmy columns as 0
             df = df.with_columns(pl.lit(0).alias(col))
 
-    # Create race_other_string and race_cat columns if missing (leave as null, don't use "NA" sentinel)
+    # Create race_other_string and race_cat columns if missing
+    # (leave as null, don't use "NA" sentinel)
     if "race_other_string" not in df.columns:
         df = df.with_columns(pl.lit(None).cast(pl.Utf8).alias("race_other_string"))
     if "race_cat" not in df.columns:
         df = df.with_columns(pl.lit(None).cast(pl.Utf8).alias("race_cat"))
 
-    # Calculate race_dmy_oth based on race_other_string length (>2 chars, ignoring nulls)
+    # Calculate race_dmy_oth based on race_other_string length
+    # (>MIN_RACE_TEXT_LENGTH chars, ignoring nulls)
     df = df.with_columns(
-        pl.when(pl.col("race_other_string").is_not_null() & (pl.col("race_other_string").str.len_chars() > 2))
+        pl.when(
+            pl.col("race_other_string").is_not_null()
+            & (pl.col("race_other_string").str.len_chars() > MIN_RACE_TEXT_LENGTH)
+        )
         .then(1)
         .otherwise(0)
         .alias("race_dmy_oth")
     )
 
-    # Calculate race_categories based on race_cat length (>2 chars, ignoring nulls)
+    # Calculate race_categories based on race_cat length
+    # (>MIN_RACE_TEXT_LENGTH chars, ignoring nulls)
     df = df.with_columns(
-        pl.when(pl.col("race_cat").is_not_null() & (pl.col("race_cat").str.len_chars() > 2))
+        pl.when(
+            pl.col("race_cat").is_not_null()
+            & (pl.col("race_cat").str.len_chars() > MIN_RACE_TEXT_LENGTH)
+        )
         .then(1)
         .otherwise(0)
         .alias("race_categories")
@@ -103,12 +118,12 @@ def process_race(df: pl.DataFrame) -> pl.DataFrame:
     df = df.with_columns(
         pl.when(
             # White + Middle Eastern exception (before multi-racial check!)
-            (pl.col("race_dmy_sum_limited") == 2)
+            (pl.col("race_dmy_sum_limited") == DUAL_RACE_COUNT)
             & (pl.col("race_dmy_wht") == 1)
             & (pl.col("race_dmy_mdl_estn") == 1)
         )
         .then(pl.lit(Race.WHITE.value))  # White + Middle Eastern → WHITE
-        .when(pl.col("race_dmy_sum_limited") >= 2)
+        .when(pl.col("race_dmy_sum_limited") >= DUAL_RACE_COUNT)
         .then(pl.lit(Race.OTHER.value))  # Multi-racial
         .when((pl.col("race_dmy_sum_limited") == 0) & (pl.col("race_dmy_oth") == 1))
         .then(pl.lit(Race.OTHER.value))  # Other race only
@@ -164,7 +179,8 @@ def process_language(df: pl.DataFrame) -> pl.DataFrame:
     if "language_at_home_binary" not in df.columns:
         return df
 
-    # Consolidate: binary → detail if OTHER (case-insensitive), then detail_other if "other" (case-insensitive)
+    # Consolidate: binary → detail if OTHER (case-insensitive),
+    # then detail_other if "other" (case-insensitive)
     df = df.with_columns(
         pl.when(pl.col("language_at_home_binary").str.to_titlecase() == Language.OTHER)
         .then(pl.col("language_at_home_detail"))
@@ -257,15 +273,15 @@ def derive_demographics(df: pl.DataFrame) -> pl.DataFrame:
 
     # Derive year_born_four_digit from approximate_age if available
     if "approximate_age" in df.columns and "survey_year" in df.columns:
-        df = df.with_columns([
-            pl.when(pl.col("approximate_age").is_not_null())
-            .then(pl.col("survey_year") - pl.col("approximate_age"))
-            .alias("year_born_four_digit")
-        ])
+        df = df.with_columns(
+            [
+                pl.when(pl.col("approximate_age").is_not_null())
+                .then(pl.col("survey_year") - pl.col("approximate_age"))
+                .alias("year_born_four_digit")
+            ]
+        )
     elif "approximate_age" in df.columns:
         # approximate_age exists but no survey_year - leave as null
-        df = df.with_columns([
-            pl.lit(None).cast(pl.Int32).alias("year_born_four_digit")
-        ])
+        df = df.with_columns([pl.lit(None).cast(pl.Int32).alias("year_born_four_digit")])
 
     return df

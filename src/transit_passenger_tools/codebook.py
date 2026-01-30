@@ -8,6 +8,7 @@ from enum import Enum
 
 # ruff: noqa: S105
 
+
 class AccessEgressMode(str, Enum):
     """Mode used to access transit from origin."""
 
@@ -73,26 +74,26 @@ class DayPart(str, Enum):
 
     def time_range(self) -> tuple[int, int] | None:
         """Get the hour range for this day part (closed intervals).
-        
+
         Returns:
             Tuple of (start_hour, end_hour) inclusive, or None for EVENING/MISSING.
             EVENING covers 19:00-2:59 (wraps around midnight).
         """
         ranges = {
-            DayPart.EARLY_AM: (3, 5),    # 3:00 - 5:59
-            DayPart.AM_PEAK: (6, 9),     # 6:00 - 9:59
-            DayPart.MIDDAY: (10, 14),    # 10:00 - 14:59
-            DayPart.PM_PEAK: (15, 18),   # 15:00 - 18:59
+            DayPart.EARLY_AM: (3, 5),  # 3:00 - 5:59
+            DayPart.AM_PEAK: (6, 9),  # 6:00 - 9:59
+            DayPart.MIDDAY: (10, 14),  # 10:00 - 14:59
+            DayPart.PM_PEAK: (15, 18),  # 15:00 - 18:59
             # EVENING: everything else (19-2)
         }
         return ranges.get(self)
 
     def to_period_code(self) -> str:
         """Convert to travel model period code by taking first letter(s).
-        
+
         Returns:
             Period code string ("EA", "AM", "MD", "PM", "EV").
-            
+
         Examples:
             >>> DayPart.EARLY_AM.to_period_code()
             'EA'
@@ -217,7 +218,7 @@ class TripPurpose(str, Enum):
 
 class TechnologyType(str, Enum):
     """Transit vehicle technology type.
-    
+
     Order matters - defines hierarchy for BEST_MODE (lowest to highest priority).
     """
 
@@ -230,10 +231,10 @@ class TechnologyType(str, Enum):
 
     def to_short_code(self) -> str:
         """Convert to technology short code by taking first letter of each word.
-        
+
         Returns:
             Short code string (e.g., "LB" for Local Bus, "FB" for Ferry Boat).
-            
+
         Examples:
             >>> TechnologyType.LOCAL_BUS.to_short_code()
             'LB'
@@ -245,11 +246,11 @@ class TechnologyType(str, Enum):
 
     def to_column_name(self) -> str:
         """Convert to database/column-safe name (lowercase with underscores).
-        
+
         Returns:
             Column-safe name string (e.g., "local_bus", "ferry", "heavy_rail").
             Special case: "Ferry Boat" becomes "ferry" not "ferry_boat".
-            
+
         Examples:
             >>> TechnologyType.LOCAL_BUS.to_column_name()
             'local_bus'
@@ -267,7 +268,7 @@ class TechnologyType(str, Enum):
     @classmethod
     def hierarchy(cls) -> list["TechnologyType"]:
         """Get technology types in hierarchy order (lowest to highest priority).
-        
+
         Returns list excluding MISSING.
         """
         return [
@@ -337,6 +338,7 @@ class EnglishProficiency(str, Enum):
     NOT_AT_ALL = "Not at all"
     SKIP_PAPER_SURVEY = "Skip - Paper Survey"
 
+
 # NOTE: Standardize these values...
 class VehicleCount(str, Enum):
     """Number of vehicles in household."""
@@ -358,6 +360,7 @@ class VehicleCount(str, Enum):
     DONT_KNOW = "Don't know"
     REF = "Ref"
     OTHER = "Other"
+
 
 # NOTE: Standardize these values...
 class HouseholdIncome(str, Enum):
@@ -440,6 +443,7 @@ class Language(str, Enum):
 # =============================================================================
 # Pipeline-specific enums and mappings
 # =============================================================================
+
 
 class AutoRatioCategory(str, Enum):
     """Household vehicle-to-worker ratio categories."""

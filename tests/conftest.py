@@ -35,13 +35,15 @@ def setup_test_environment():
 def _create_test_shapefiles(fixtures_dir: Path):
     """Generate minimal test shapefiles as zip files."""
     # Skip if already exists (for speed during development)
-    if all((fixtures_dir / f"test_{name}.zip").exists()
-           for name in ["tm1_taz", "tm2_taz", "tm2_maz", "counties", "tracts", "puma", "stations"]):
+    if all(
+        (fixtures_dir / f"test_{name}.zip").exists()
+        for name in ["tm1_taz", "tm2_taz", "tm2_maz", "counties", "tracts", "puma", "stations"]
+    ):
         return
 
     # Test coordinates from test_geocoding.py
-    SF_LAT, SF_LON = 37.7793, -122.4193
-    OAK_LAT, OAK_LON = 37.8044, -122.2712
+    _sf_lat, _sf_lon = 37.7793, -122.4193
+    _oak_lat, _oak_lon = 37.8044, -122.2712
 
     # Temporary directory for generation
     temp_dir = fixtures_dir / "temp_shapefiles"
@@ -49,75 +51,96 @@ def _create_test_shapefiles(fixtures_dir: Path):
 
     try:
         # TM1 TAZ
-        gdf = gpd.GeoDataFrame({
-            "TAZ1454": [100, 200],
-            "geometry": [
-                box(-122.52, 37.70, -122.38, 37.81),
-                box(-122.30, 37.75, -122.15, 37.85)
-            ]
-        }, crs="EPSG:4326")
+        gdf = gpd.GeoDataFrame(
+            {
+                "TAZ1454": [100, 200],
+                "geometry": [
+                    box(-122.52, 37.70, -122.38, 37.81),
+                    box(-122.30, 37.75, -122.15, 37.85),
+                ],
+            },
+            crs="EPSG:4326",
+        )
         _save_and_zip(gdf, temp_dir, fixtures_dir, "test_tm1_taz")
 
         # TM2 TAZ
-        gdf = gpd.GeoDataFrame({
-            "TAZ": [1, 2],
-            "geometry": [
-                box(-122.52, 37.70, -122.38, 37.81),
-                box(-122.30, 37.75, -122.15, 37.85)
-            ]
-        }, crs="EPSG:4326")
+        gdf = gpd.GeoDataFrame(
+            {
+                "TAZ": [1, 2],
+                "geometry": [
+                    box(-122.52, 37.70, -122.38, 37.81),
+                    box(-122.30, 37.75, -122.15, 37.85),
+                ],
+            },
+            crs="EPSG:4326",
+        )
         _save_and_zip(gdf, temp_dir, fixtures_dir, "test_tm2_taz")
 
         # TM2 MAZ
-        gdf = gpd.GeoDataFrame({
-            "MAZ": [1, 2, 3, 4],
-            "geometry": [
-                box(-122.52, 37.70, -122.45, 37.81),
-                box(-122.45, 37.70, -122.38, 37.81),
-                box(-122.30, 37.75, -122.225, 37.85),
-                box(-122.225, 37.75, -122.15, 37.85)
-            ]
-        }, crs="EPSG:4326")
+        gdf = gpd.GeoDataFrame(
+            {
+                "MAZ": [1, 2, 3, 4],
+                "geometry": [
+                    box(-122.52, 37.70, -122.45, 37.81),
+                    box(-122.45, 37.70, -122.38, 37.81),
+                    box(-122.30, 37.75, -122.225, 37.85),
+                    box(-122.225, 37.75, -122.15, 37.85),
+                ],
+            },
+            crs="EPSG:4326",
+        )
         _save_and_zip(gdf, temp_dir, fixtures_dir, "test_tm2_maz")
 
         # Counties
-        gdf = gpd.GeoDataFrame({
-            "GEOID": ["06075", "06001"],
-            "NAME": ["San Francisco", "Alameda"],
-            "geometry": [
-                box(-122.52, 37.70, -122.38, 37.81),
-                box(-122.30, 37.75, -122.15, 37.85)
-            ]
-        }, crs="EPSG:4326")
+        gdf = gpd.GeoDataFrame(
+            {
+                "GEOID": ["06075", "06001"],
+                "NAME": ["San Francisco", "Alameda"],
+                "geometry": [
+                    box(-122.52, 37.70, -122.38, 37.81),
+                    box(-122.30, 37.75, -122.15, 37.85),
+                ],
+            },
+            crs="EPSG:4326",
+        )
         _save_and_zip(gdf, temp_dir, fixtures_dir, "test_counties")
 
         # Tracts
-        gdf = gpd.GeoDataFrame({
-            "GEOID": ["06075017101", "06001400100"],
-            "NAME": ["Census Tract 171.01", "Census Tract 4001"],
-            "geometry": [
-                box(-122.52, 37.70, -122.38, 37.81),
-                box(-122.30, 37.75, -122.15, 37.85)
-            ]
-        }, crs="EPSG:4326")
+        gdf = gpd.GeoDataFrame(
+            {
+                "GEOID": ["06075017101", "06001400100"],
+                "NAME": ["Census Tract 171.01", "Census Tract 4001"],
+                "geometry": [
+                    box(-122.52, 37.70, -122.38, 37.81),
+                    box(-122.30, 37.75, -122.15, 37.85),
+                ],
+            },
+            crs="EPSG:4326",
+        )
         _save_and_zip(gdf, temp_dir, fixtures_dir, "test_tracts")
 
         # PUMA
-        gdf = gpd.GeoDataFrame({
-            "GEOID20": ["0607501", "0600101"],
-            "NAME": ["SF PUMA", "Alameda PUMA"],
-            "geometry": [
-                box(-122.52, 37.70, -122.15, 37.85),
-                box(-122.52, 37.70, -122.15, 37.85)
-            ]
-        }, crs="EPSG:4326")
+        gdf = gpd.GeoDataFrame(
+            {
+                "GEOID20": ["0607501", "0600101"],
+                "NAME": ["SF PUMA", "Alameda PUMA"],
+                "geometry": [
+                    box(-122.52, 37.70, -122.15, 37.85),
+                    box(-122.52, 37.70, -122.15, 37.85),
+                ],
+            },
+            crs="EPSG:4326",
+        )
         _save_and_zip(gdf, temp_dir, fixtures_dir, "test_puma")
 
         # Stations
-        gdf = gpd.GeoDataFrame({
-            "NAME": ["SF Civic Center", "Oakland 12th St"],
-            "geometry": [Point(SF_LON, SF_LAT), Point(OAK_LON, OAK_LAT)]
-        }, crs="EPSG:4326")
+        gdf = gpd.GeoDataFrame(
+            {
+                "NAME": ["SF Civic Center", "Oakland 12th St"],
+                "geometry": [Point(_sf_lon, _sf_lat), Point(_oak_lon, _oak_lat)],
+            },
+            crs="EPSG:4326",
+        )
         _save_and_zip(gdf, temp_dir, fixtures_dir, "test_stations")
 
     finally:
