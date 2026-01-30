@@ -4,7 +4,7 @@ from pathlib import Path
 
 import polars as pl
 
-from transit_passenger_tools.add_zone import (
+from transit_passenger_tools.utils.add_zone import (
     parse_latlons_from_columns,
     spatial_join_coordinates_to_shapefile,
 )
