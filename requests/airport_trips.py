@@ -9,8 +9,6 @@ by worker vs air passenger
 Search for BART, AC Transit, SamTrans trips to/from SFO, OAK, SJC airports
 """
 
-import polars as pl
-
 from transit_passenger_tools.database import connect
 
 # Target operators
@@ -51,5 +49,6 @@ query = f"""
     AND ({' OR '.join(airport_conditions)})
 """  # noqa: S608
 
-df = pl.read_database(query=query, connection=conn)
+# We execute the query over duckdb and convert to polars dataframe
+df = conn.execute(query).pl()
 conn.close()
