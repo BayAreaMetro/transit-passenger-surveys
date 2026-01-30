@@ -7,7 +7,7 @@ Derives temporal categorizations from Core fields:
 
 import polars as pl
 
-from transit_passenger_tools.codebook import (
+from transit_passenger_tools.schemas.codebook import (
     DayOfWeek,
     DayPart,
     Weekpart,

@@ -3,8 +3,8 @@
 import polars as pl
 import pytest
 
-from transit_passenger_tools.codebook import AutoRatioCategory
 from transit_passenger_tools.pipeline import auto_sufficiency
+from transit_passenger_tools.schemas.codebook import AutoRatioCategory
 
 
 def test_text_to_numeric_mapping():

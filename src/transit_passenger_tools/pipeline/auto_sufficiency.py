@@ -6,7 +6,7 @@ to number of workers.
 
 import polars as pl
 
-from transit_passenger_tools.codebook import AutoRatioCategory
+from transit_passenger_tools.schemas.codebook import AutoRatioCategory
 
 # Mapping from text to numeric values
 VEHICLE_WORKER_MAPPING = {

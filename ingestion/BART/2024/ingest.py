@@ -4,9 +4,9 @@ import polars as pl
 import preprocessing
 from pydantic import ValidationError
 
-from transit_passenger_tools import db
-from transit_passenger_tools.data_models import SurveyResponse
+from transit_passenger_tools import database
 from transit_passenger_tools.pipeline import process_survey
+from transit_passenger_tools.schemas.models import SurveyResponse
 
 # ============================================================================
 # PROJECT-SPECIFIC CONFIGURATION
@@ -122,7 +122,7 @@ def main() -> None:
 
     # Ingest surveys
     print("\n6. Ingesting survey responses...")
-    _output_path, version, commit_id, _data_hash = db.ingest_survey_batch(
+    _output_path, version, commit_id, _data_hash = database.ingest_survey_batch(
         survey_df_clean,
         survey_year=SURVEY_YEAR,
         canonical_operator=CANONICAL_OPERATOR,
@@ -141,7 +141,7 @@ def main() -> None:
         pl.lit("baseline").alias("weight_scheme"),
         pl.lit("Baseline weights from BART 2024 survey").alias("description"),
     ])
-    db.ingest_survey_weights(weights_df, validate=False)
+    database.ingest_survey_weights(weights_df, validate=False)
     print(f"   {len(weights_df):,} weight records ingested")
 
     print("\n" + "=" * 80)

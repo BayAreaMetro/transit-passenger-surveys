@@ -9,8 +9,8 @@ from pathlib import Path
 
 import polars as pl
 
-from transit_passenger_tools.utils.add_zone import spatial_join_coordinates_to_shapefile
-from transit_passenger_tools.utils.config import get_config
+from transit_passenger_tools.config.settings import get_config
+from transit_passenger_tools.geocoding.zones import spatial_join_coordinates_to_shapefile
 
 # Location types to geocode
 LOCATION_TYPES = [

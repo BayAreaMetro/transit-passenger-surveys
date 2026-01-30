@@ -12,8 +12,8 @@ It derives:
 import polars as pl
 import pytest
 
-from transit_passenger_tools.codebook import DayOfWeek, DayPart, Weekpart
 from transit_passenger_tools.pipeline import date_time
+from transit_passenger_tools.schemas.codebook import DayOfWeek, DayPart, Weekpart
 
 
 class TestWeekpartDerivation:

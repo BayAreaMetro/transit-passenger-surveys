@@ -8,7 +8,7 @@ This module standardizes demographic fields including:
 
 import polars as pl
 
-from transit_passenger_tools.codebook import Language, Race
+from transit_passenger_tools.schemas.codebook import Language, Race
 
 # Minimum length for race text fields to be considered valid
 MIN_RACE_TEXT_LENGTH = 2

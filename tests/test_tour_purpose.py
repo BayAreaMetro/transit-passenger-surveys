@@ -2,8 +2,13 @@
 
 import polars as pl
 
-from transit_passenger_tools.codebook import StudentStatus, TourPurpose, TripPurpose, WorkStatus
 from transit_passenger_tools.pipeline.tour_purpose import derive_tour_purpose
+from transit_passenger_tools.schemas.codebook import (
+    StudentStatus,
+    TourPurpose,
+    TripPurpose,
+    WorkStatus,
+)
 
 
 class TestWorkTours:

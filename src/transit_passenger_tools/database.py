@@ -24,7 +24,7 @@ try:
 except ImportError:
     HAS_GITPYTHON = False
 
-from transit_passenger_tools.data_models import SurveyMetadata, SurveyResponse, SurveyWeight
+from transit_passenger_tools.schemas.models import SurveyMetadata, SurveyResponse, SurveyWeight
 
 # Schema version - increment when making breaking changes to data_models.py
 # When incrementing, you MUST run migration script before ingesting new data

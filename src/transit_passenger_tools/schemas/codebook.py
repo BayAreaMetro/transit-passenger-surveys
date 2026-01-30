@@ -108,7 +108,7 @@ class DayPart(str, Enum):
             DayPart.PM_PEAK: "PM",
             DayPart.EVENING: "EV",
         }
-        return codes.get(self)
+        return codes[self]
 
 
 class TransferOperator(str, Enum):

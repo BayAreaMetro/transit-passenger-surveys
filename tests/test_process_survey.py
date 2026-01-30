@@ -6,15 +6,6 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from transit_passenger_tools.codebook import (
-    AutoRatioCategory,
-    DayPart,
-    HouseholdIncome,
-    TechnologyType,
-    TripPurpose,
-    Weekpart,
-    WorkStatus,
-)
 from transit_passenger_tools.pipeline.process_survey import (
     PIPELINE_MODULES,
     process_survey,
@@ -23,6 +14,15 @@ from transit_passenger_tools.pipeline.process_survey import (
 from transit_passenger_tools.pipeline.validate import (
     validate_core_required,
     validate_preprocessed_input,
+)
+from transit_passenger_tools.schemas.codebook import (
+    AutoRatioCategory,
+    DayPart,
+    HouseholdIncome,
+    TechnologyType,
+    TripPurpose,
+    Weekpart,
+    WorkStatus,
 )
 
 

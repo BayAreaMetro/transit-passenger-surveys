@@ -10,7 +10,7 @@ Derives path-related summary fields from technology columns:
 
 import polars as pl
 
-from transit_passenger_tools.codebook import (
+from transit_passenger_tools.schemas.codebook import (
     DayPart,
     TechnologyType,
 )

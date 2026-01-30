@@ -3,7 +3,7 @@
 import polars as pl
 import pytest
 
-from transit_passenger_tools import db
+from transit_passenger_tools import database
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def temp_data_lake(monkeypatch, tmp_path):
     test_lake.mkdir()
 
     # Patch DATA_LAKE_ROOT to use temp directory
-    monkeypatch.setattr(db, "DATA_LAKE_ROOT", test_lake)
+    monkeypatch.setattr(database, "DATA_LAKE_ROOT", test_lake)
 
     return test_lake
 
@@ -72,7 +72,7 @@ def test_schema_mismatch_column_rename_detected(temp_data_lake, old_schema_data,
 
     # Attempt to ingest new schema data - should fail
     with pytest.raises(ValueError, match=r"SCHEMA VERSION MISMATCH"):
-        db.ingest_survey_batch(
+        database.ingest_survey_batch(
             df=new_schema_data,
             survey_year=2020,
             canonical_operator="TEST",
@@ -90,7 +90,7 @@ def test_schema_mismatch_error_message_content(temp_data_lake, old_schema_data, 
 
     # Capture error
     with pytest.raises(ValueError, match="SCHEMA VERSION MISMATCH") as exc_info:
-        db.ingest_survey_batch(
+        database.ingest_survey_batch(
             df=new_schema_data, survey_year=2020, canonical_operator="TEST", validate=False
         )
 
@@ -103,7 +103,7 @@ def test_schema_mismatch_error_message_content(temp_data_lake, old_schema_data, 
     assert "is_hispanic" in error_msg
     assert "migration" in error_msg.lower()
     assert "scripts/migrate_schema_v1_to_v2.py" in error_msg
-    assert f"Current schema version: {db.SCHEMA_VERSION}" in error_msg
+    assert f"Current schema version: {database.SCHEMA_VERSION}" in error_msg
 
 
 def test_schema_mismatch_type_change_detected(temp_data_lake):
@@ -134,7 +134,7 @@ def test_schema_mismatch_type_change_detected(temp_data_lake):
 
     # Attempt to ingest different type
     with pytest.raises(ValueError, match=r"Type mismatch.*gender"):
-        db.ingest_survey_batch(
+        database.ingest_survey_batch(
             df=new_data, survey_year=2020, canonical_operator="TEST", validate=False
         )
 
@@ -181,7 +181,7 @@ def test_schema_compatible_ingestion_succeeds(temp_data_lake):
 
     # Ingest second batch - should succeed (same schema)
     try:
-        db.ingest_survey_batch(
+        database.ingest_survey_batch(
             df=second_batch, survey_year=2020, canonical_operator="TEST", validate=False
         )
         # If we get here without exception, test passes
@@ -196,7 +196,7 @@ def test_new_partition_no_schema_check(new_schema_data):
     """Test that new partitions (no existing data) don't trigger schema checks."""
     # Ingest into fresh partition (no existing files)
     try:
-        db.ingest_survey_batch(
+        database.ingest_survey_batch(
             df=new_schema_data,
             survey_year=2025,  # New year
             canonical_operator="NEWOP",  # New operator
@@ -242,7 +242,7 @@ def test_schema_check_multiple_issues(temp_data_lake):
 
     # Attempt ingestion
     with pytest.raises(ValueError, match="SCHEMA VERSION MISMATCH") as exc_info:
-        db.ingest_survey_batch(
+        database.ingest_survey_batch(
             df=new_data, survey_year=2020, canonical_operator="TEST", validate=False
         )
 
@@ -287,7 +287,7 @@ def test_schema_check_with_additional_columns(temp_data_lake):
 
     # Should succeed - adding columns is non-breaking
     try:
-        db.ingest_survey_batch(
+        database.ingest_survey_batch(
             df=new_data, survey_year=2020, canonical_operator="TEST", validate=False
         )
     except ValueError as e:

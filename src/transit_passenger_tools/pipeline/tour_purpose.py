@@ -6,7 +6,7 @@ Implements R Build_Standard_Database.R Lines 864-970 logic.
 
 import polars as pl
 
-from transit_passenger_tools.codebook import (
+from transit_passenger_tools.schemas.codebook import (
     StudentStatus,
     TourPurpose,
     TripPurpose,

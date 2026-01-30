@@ -12,7 +12,7 @@ Usage:
 
 import logging
 
-from transit_passenger_tools import db
+from transit_passenger_tools import database
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,11 +26,11 @@ def main() -> None:
     logger.info("=" * 80)
     logger.info("REFRESHING DUCKDB VIEWS")
     logger.info("=" * 80)
-    logger.info("Database: %s", db.DUCKDB_PATH)
+    logger.info("Database: %s", database.DUCKDB_PATH)
     logger.info("")
 
     try:
-        db.create_views()
+        database.create_views()
 
         logger.info("")
         logger.info("=" * 80)

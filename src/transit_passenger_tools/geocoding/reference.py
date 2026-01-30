@@ -9,7 +9,7 @@ from typing import ClassVar, Optional
 import geopandas as gpd
 import polars as pl
 
-from transit_passenger_tools.utils.config import get_config
+from transit_passenger_tools.config.settings import get_config
 
 
 class ReferenceData:

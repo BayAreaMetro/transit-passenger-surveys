@@ -12,7 +12,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from transit_passenger_tools.codebook import (
+from transit_passenger_tools.schemas.codebook import (
     AccessEgressMode,
     AutoRatioCategory,
     DayOfWeek,

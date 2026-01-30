@@ -23,9 +23,9 @@ from pathlib import Path
 import polars as pl
 from pydantic import ValidationError
 
-from transit_passenger_tools import db
-from transit_passenger_tools.data_models import SurveyMetadata, SurveyResponse, SurveyWeight
+from transit_passenger_tools import database
 from transit_passenger_tools.pipeline import auto_sufficiency
+from transit_passenger_tools.schemas.models import SurveyMetadata, SurveyResponse, SurveyWeight
 
 # Configure logging
 logging.basicConfig(
@@ -1003,7 +1003,7 @@ def ingest_survey_batches(
                 num_batches += 1
         else:
             # Original behavior: raise on first error
-            _output_path, version, commit, data_hash = db.ingest_survey_batch(
+            _output_path, version, commit, data_hash = database.ingest_survey_batch(
                 df=group_df,
                 survey_year=survey_year,
                 canonical_operator=canonical_operator,
@@ -1197,7 +1197,7 @@ def extract_and_ingest_metadata(
         logger.info("All %s metadata records validated successfully", len(metadata_df))
         return len(metadata_df)
     # Write metadata to data lake (will fail on first error)
-    db.ingest_survey_metadata(metadata_df, validate=True)
+    database.ingest_survey_metadata(metadata_df, validate=True)
     return len(metadata_df)
 
 def extract_and_ingest_weights(
@@ -1271,7 +1271,7 @@ def extract_and_ingest_weights(
         logger.info("All %s weight records validated successfully", len(weights_df))
         return len(weights_df)
     # Write weights to data lake (will fail on first error)
-    db.ingest_survey_weights(weights_df, validate=True)
+    database.ingest_survey_weights(weights_df, validate=True)
     return len(weights_df)
 
 
@@ -1354,7 +1354,7 @@ def main() -> None:
         logger.info("\n%s", "="*80)
         logger.info("CREATING DUCKDB VIEWS")
         logger.info("="*80)
-        db.create_views()
+        database.create_views()
 
         # Summary
         logger.info("\n%s", "="*80)
@@ -1363,8 +1363,8 @@ def main() -> None:
         logger.info("Survey data: %s batches, %s records", num_batches, f"{total_records:,}")
         logger.info("Metadata: %s survey combinations", num_metadata)
         logger.info("Weights: %s records", f"{num_weights:,}")
-        logger.info("Data lake: %s", db.DATA_LAKE_ROOT)
-        logger.info("DuckDB: %s", db.DUCKDB_PATH)
+        logger.info("Data lake: %s", database.DATA_LAKE_ROOT)
+        logger.info("DuckDB: %s", database.DUCKDB_PATH)
 
     except Exception:
         logger.exception("Backfill failed")

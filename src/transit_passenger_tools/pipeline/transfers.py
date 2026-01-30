@@ -9,8 +9,8 @@ This module:
 
 import polars as pl
 
-from transit_passenger_tools.codebook import TechnologyType
-from transit_passenger_tools.utils.reference_data import ReferenceData
+from transit_passenger_tools.geocoding.reference import ReferenceData
+from transit_passenger_tools.schemas.codebook import TechnologyType
 
 # Transfer leg columns (before and after surveyed vehicle)
 TRANSFER_LEGS = [
@@ -90,7 +90,7 @@ def _assign_transfer_technologies(
 
         # Apply mapping
         result_df = result_df.with_columns(
-            pl.col(route_col).replace(tech_lookup, default=None).alias(tech_col)
+            pl.col(route_col).replace_strict(tech_lookup, default=None).alias(tech_col)
         )
 
     return result_df

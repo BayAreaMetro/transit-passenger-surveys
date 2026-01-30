@@ -12,7 +12,7 @@ from pathlib import Path
 import geopandas as gpd
 import polars as pl
 
-from transit_passenger_tools.utils.stations import geocode_stops_from_names
+from transit_passenger_tools.geocoding.stations import geocode_stops_from_names
 
 # ============================================================================
 # BART 2024 SURVEY FIELD CONSTANTS

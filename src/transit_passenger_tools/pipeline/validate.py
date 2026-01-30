@@ -24,7 +24,7 @@ from typing import get_args, get_origin
 import polars as pl
 from pydantic.fields import FieldInfo
 
-from transit_passenger_tools.data_models import CoreSurveyResponse
+from transit_passenger_tools.schemas.models import CoreSurveyResponse
 
 logger = logging.getLogger(__name__)
 

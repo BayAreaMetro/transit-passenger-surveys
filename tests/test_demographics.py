@@ -3,12 +3,12 @@
 import polars as pl
 import pytest
 
-from transit_passenger_tools.codebook import Race
 from transit_passenger_tools.pipeline.demographics import (
     process_fare_medium,
     process_language,
     process_race,
 )
+from transit_passenger_tools.schemas.codebook import Race
 
 
 def make_race_df(**overrides):

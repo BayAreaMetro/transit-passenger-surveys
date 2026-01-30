@@ -3,8 +3,8 @@
 import polars as pl
 import pytest
 
-from transit_passenger_tools.codebook import TechnologyType
 from transit_passenger_tools.pipeline.transfers import derive_transfer_fields
+from transit_passenger_tools.schemas.codebook import TechnologyType
 
 
 class TestTechnologyAssignment:
