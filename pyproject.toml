@@ -5,6 +5,7 @@ description = "This package ingests and processes transit passenger survey data.
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "connectorx>=0.4.5",
     "duckdb>=1.4.3",
     "fastexcel>=0.18.0",
     "geopandas>=1.1.2",
@@ -56,6 +57,10 @@ max-positional-args = 5
 ]
 
 "ingestion/**/*.py" = [
+    "INP001",      # script not part of package
+    "T201",        # allow print statements in scripts
+]
+"requests/**/*.py" = [
     "INP001",      # script not part of package
     "T201",        # allow print statements in scripts
 ]
