@@ -18,9 +18,6 @@ class AccessEgressMode(str, Enum):
     TNC = "TNC"
     TRANSIT = "Transit"
     OTHER = "Other"
-    MISSING = "Missing"
-    MISSING_DUMMY = "Missing - Dummy Record"
-    MISSING_NOT_ASKED = "Missing - Question Not Asked"
 
 
 # NOTE: Standardize these values...
@@ -44,7 +41,6 @@ class Direction(str, Enum):
     S_LOOP = "S. Loop"
     B = "B"
     ZERO = "0"
-    MISSING = "Missing"
 
 
 class DayOfWeek(str, Enum):
@@ -57,7 +53,6 @@ class DayOfWeek(str, Enum):
     FRIDAY = "Friday"
     SATURDAY = "Saturday"
     SUNDAY = "Sunday"
-    MISSING = "Missing"
 
 
 class Weekpart(str, Enum):
@@ -65,7 +60,6 @@ class Weekpart(str, Enum):
 
     WEEKDAY = "Weekday"
     WEEKEND = "Weekend"
-    MISSING = "Missing"
 
 
 class DayPart(str, Enum):
@@ -76,7 +70,6 @@ class DayPart(str, Enum):
     MIDDAY = "MIDDAY"
     PM_PEAK = "PM PEAK"
     EVENING = "EVENING"
-    MISSING = "Missing"
 
     def time_range(self) -> tuple[int, int] | None:
         """Get the hour range for this day part (closed intervals).
@@ -94,22 +87,18 @@ class DayPart(str, Enum):
         }
         return ranges.get(self)
 
-    def to_period_code(self) -> str | None:
+    def to_period_code(self) -> str:
         """Convert to travel model period code by taking first letter(s).
         
         Returns:
-            Period code string ("EA", "AM", "MD", "PM", "EV"), or None for MISSING.
+            Period code string ("EA", "AM", "MD", "PM", "EV").
             
         Examples:
             >>> DayPart.EARLY_AM.to_period_code()
             'EA'
             >>> DayPart.AM_PEAK.to_period_code()
             'AM'
-            >>> DayPart.MISSING.to_period_code()
-            None
         """
-        if self == DayPart.MISSING:
-            return None
         # Map each day part to its period code
         codes = {
             DayPart.EARLY_AM: "EA",
@@ -167,7 +156,6 @@ class TransferOperator(str, Enum):
     WHEELS = "Wheels (LAVTA)"
     OPERATOR_OUTSIDE_BAY_AREA = "Operator Outside Bay Area"
     OTHER = "Other"
-    MISSING = "Missing"
 
 
 class FareMedium(str, Enum):
@@ -187,7 +175,6 @@ class FareMedium(str, Enum):
     TRANSFER = "Transfer"
     FREE = "Free"
     OTHER = "Other"
-    MISSING = "Missing"
 
 
 class FareCategory(str, Enum):
@@ -202,7 +189,6 @@ class FareCategory(str, Enum):
     RTC = "RTC"
     FREE = "Free"
     OTHER = "Other"
-    MISSING = "Missing"
 
 
 class TripPurpose(str, Enum):
@@ -227,7 +213,6 @@ class TripPurpose(str, Enum):
     AIRPORT = "Airport"
     AT_WORK = "At work"
     OTHER = "Other"
-    MISSING = "Missing"
 
 
 class TechnologyType(str, Enum):
@@ -242,25 +227,19 @@ class TechnologyType(str, Enum):
     LIGHT_RAIL = "Light Rail"
     HEAVY_RAIL = "Heavy Rail"
     COMMUTER_RAIL = "Commuter Rail"
-    MISSING = "Missing"
 
-    def to_short_code(self) -> str | None:
+    def to_short_code(self) -> str:
         """Convert to technology short code by taking first letter of each word.
         
         Returns:
-            Short code string (e.g., "LB" for Local Bus, "FB" for Ferry Boat),
-            or None for MISSING.
+            Short code string (e.g., "LB" for Local Bus, "FB" for Ferry Boat).
             
         Examples:
             >>> TechnologyType.LOCAL_BUS.to_short_code()
             'LB'
             >>> TechnologyType.FERRY.to_short_code()
             'FB'
-            >>> TechnologyType.MISSING.to_short_code()
-            None
         """
-        if self == TechnologyType.MISSING:
-            return None
         # Take first letter of each word
         return "".join(word[0].upper() for word in self.value.split())
 
@@ -300,15 +279,9 @@ class TechnologyType(str, Enum):
             cls.COMMUTER_RAIL,
         ]
 
-    def hierarchy_rank(self) -> int | None:
-        """Get hierarchy rank (0=lowest priority, higher=more important).
-        
-        Returns None for MISSING.
-        """
-        try:
-            return self.hierarchy().index(self)
-        except ValueError:
-            return None
+    def hierarchy_rank(self) -> int:
+        """Get hierarchy rank (0=lowest priority, higher=more important)."""
+        return self.hierarchy().index(self)
 
 
 class Gender(str, Enum):
@@ -322,12 +295,10 @@ class Gender(str, Enum):
     PREFER_NOT_TO_ANSWER = "Prefer not to answer"
 
 
-class Hispanic(str, Enum):
-    """Hispanic/Latino ethnicity."""
-
-    HISPANIC = "Hispanic/Latino or of Spanish origin"
-    NOT_HISPANIC = "Not Hispanic/Latino or of Spanish origin"
-    MISSING = "Missing"
+# Hispanic/Latino ethnicity is now represented as bool | None (is_hispanic field)
+# True = Hispanic/Latino or of Spanish origin
+# False = Not Hispanic/Latino or of Spanish origin
+# None = Unknown/missing
 
 
 class Race(str, Enum):
@@ -337,7 +308,6 @@ class Race(str, Enum):
     BLACK = "Black"
     ASIAN = "Asian"
     OTHER = "Other"
-    MISSING = "Missing"
 
 
 class WorkStatus(str, Enum):
@@ -346,7 +316,6 @@ class WorkStatus(str, Enum):
     FULL_OR_PART_TIME = "Full- or part-time"
     NON_WORKER = "Non-worker"
     OTHER = "Other"
-    MISSING = "Missing"
 
 
 class StudentStatus(str, Enum):
@@ -354,7 +323,6 @@ class StudentStatus(str, Enum):
 
     FULL_OR_PART_TIME = "Full- or part-time"
     NON_STUDENT = "Non-student"
-    MISSING = "Missing"
 
 
 # NOTE: Standardize these values...
@@ -368,7 +336,6 @@ class EnglishProficiency(str, Enum):
     NOT_WELL_AT_ALL = "Not well at all"
     NOT_AT_ALL = "Not at all"
     SKIP_PAPER_SURVEY = "Skip - Paper Survey"
-    MISSING = "Missing"
 
 # NOTE: Standardize these values...
 class VehicleCount(str, Enum):
@@ -391,7 +358,6 @@ class VehicleCount(str, Enum):
     DONT_KNOW = "Don't know"
     REF = "Ref"
     OTHER = "Other"
-    MISSING = "Missing"
 
 # NOTE: Standardize these values...
 class HouseholdIncome(str, Enum):
@@ -424,7 +390,6 @@ class HouseholdIncome(str, Enum):
     FROM_150K_TO_200K = "$150,000 to $200,000"
     FROM_200K_OR_HIGHER = "$200,000 or higher"
     REFUSED = "Refused"
-    MISSING = "Missing"
 
 
 class SurveyType(str, Enum):
@@ -444,14 +409,13 @@ class SurveyType(str, Enum):
     ON_OFF_DUMMY = "On-off dummy"
     MIX = "Mix"
     OTHER = "Other"
-    MISSING = "Missing"
 
 
 class Language(str, Enum):
     """Language values used across survey fields.
-    
+
     Used for interview language, field language, and language at home.
-    When checking for OTHER sentinel value, use .str.to_titlecase() 
+    When checking for OTHER sentinel value, use .str.to_titlecase()
     for case-insensitive comparison.
     """
 
@@ -471,7 +435,6 @@ class Language(str, Enum):
     DONT_KNOW_REFUSE = "Don't know/refuse"
     SKIP_PAPER_SURVEY = "Skip - Paper Survey"
     OTHER = "Other"
-    MISSING = "Missing"
 
 
 # =============================================================================
@@ -502,9 +465,3 @@ class TourPurpose(str, Enum):
     SOCIAL = "Social"
     ESCORTING = "Escorting"
     AT_WORK = "At-work"
-    MISSING = "Missing"
-
-
-# =============================================================================
-# Mapping dictionaries
-# =============================================================================

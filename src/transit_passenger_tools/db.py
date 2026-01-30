@@ -13,6 +13,10 @@ from pathlib import Path
 
 import duckdb
 import polars as pl
+
+# Schema version - increment when making breaking changes to data_models.py
+# When incrementing, you MUST run migration script before ingesting new data
+SCHEMA_VERSION = 1  # v1: Initial schema
 import yaml
 from pydantic import ValidationError
 
@@ -179,7 +183,55 @@ def ingest_survey_batch(
 
     Returns:
         Tuple of (output_path, version, commit_id, data_hash)
+        
+    Raises:
+        ValueError: If schema version mismatch detected (migration required)
     """
+    # Check for schema version compatibility with existing data
+    partition_dir = (
+        DATA_LAKE_ROOT
+        / "survey_responses"
+        / f"operator={canonical_operator}"
+        / f"year={survey_year}"
+    )
+    
+    if partition_dir.exists():
+        # Check if existing data has schema version metadata
+        existing_files = list(partition_dir.glob("*.parquet"))
+        if existing_files:
+            # Read schema from first existing file
+            existing_schema = pl.read_parquet_schema(existing_files[0])
+            new_schema = df.schema
+            
+            # Check for breaking schema changes
+            schema_issues = []
+            
+            # Check 1: Column renames (old column exists in existing, new column in new data)
+            if "hispanic" in existing_schema and "is_hispanic" in new_schema:
+                schema_issues.append(
+                    "Column rename detected: 'hispanic' → 'is_hispanic'. "
+                    "Run migration script: scripts/migrate_schema_v1_to_v2.py"
+                )
+            
+            # Check 2: Type changes for same column name
+            common_cols = set(existing_schema.keys()) & set(new_schema.keys())
+            for col in common_cols:
+                if existing_schema[col] != new_schema[col]:
+                    schema_issues.append(
+                        f"Type mismatch for '{col}': existing={existing_schema[col]}, "
+                        f"new={new_schema[col]}. Migration required."
+                    )
+            
+            if schema_issues:
+                error_msg = (
+                    f"\n\nSCHEMA VERSION MISMATCH for {canonical_operator}/{survey_year}:\n"
+                    + "\n".join(f"  - {issue}" for issue in schema_issues)
+                    + f"\n\nCurrent schema version: {SCHEMA_VERSION}\n"
+                    + "\nBefore ingesting new data, you must migrate existing data to match the new schema.\n"
+                    + "See docs/schema_migration.md for instructions.\n"
+                )
+                raise ValueError(error_msg)
+    
     # Compute hash of incoming data for deduplication
     data_hash = compute_dataframe_hash(df)
 
@@ -389,7 +441,11 @@ def run_migrations() -> None:
 
 
 def create_views() -> None:
-    """Create or recreate DuckDB views over Parquet files in data lake."""
+    """Create or recreate DuckDB views over Parquet files in data lake.
+    
+    Views use SELECT * to handle schema evolution but vendor-specific raw
+    survey fields are preserved in parquet files for future reference.
+    """
     logger.info("Creating DuckDB views over Parquet files...")
 
     with write_session() as conn:

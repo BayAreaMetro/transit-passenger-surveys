@@ -286,7 +286,7 @@ def derive_tour_purpose(df: pl.DataFrame) -> pl.DataFrame:
     if "trip_purp" in df.columns:
         result_df = result_df.with_columns([
             pl.when(
-                (pl.col("tour_purp") == WorkStatus.MISSING.value) &
+                (pl.col("tour_purp").is_null()) &
                 (pl.col("trip_purp").is_not_null())
             )
             .then(pl.col("trip_purp"))
@@ -294,7 +294,7 @@ def derive_tour_purpose(df: pl.DataFrame) -> pl.DataFrame:
             .alias("tour_purp"),
 
             pl.when(
-                (pl.col("tour_purp") == WorkStatus.MISSING.value) &
+                (pl.col("tour_purp").is_null()) &
                 (pl.col("trip_purp").is_not_null())
             )
             .then(pl.lit("trip_purp"))

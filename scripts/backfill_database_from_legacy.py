@@ -67,18 +67,18 @@ LANGUAGE_MAPPINGS = {
     "FRENCH": "French", "KOREAN": "Korean", "RUSSIAN": "Russian", "ARABIC": "Arabic",
     "PUNJABI": "Punjabi", "CANTONESE": "Cantonese", "TAGALOG": "Tagalog",
     "TAGALOG/FILIPINO": "Tagalog", "Tagalog/Filipino": "Tagalog",
-    "VIETNAMESE": "Vietnamese", "DONT KNOW/REFUSE": "Missing",
+    "VIETNAMESE": "Vietnamese", "DONT KNOW/REFUSE": None,
     "Skip - Paper Survey": "Skip - Paper Survey", "Skip - paper survey": "Skip - Paper Survey"
 }
 
 # Access/Egress mode fixes - shared by both fields
 ACCESS_EGRESS_MODE_FIXES = {
     "Tnc": "TNC",
-    "Missing - dummy record": "Missing - Dummy Record",
-    "Missing - dummy Record": "Missing - Dummy Record",
+    "Missing - dummy record": None,
+    "Missing - dummy Record": None,
     "Unknown": "Other",
-    "Missing - question not asked": "Missing - Question Not Asked",
-    "Missing - question Not Asked": "Missing - Question Not Asked",
+    "Missing - question not asked": None,
+    "Missing - question Not Asked": None,
 }
 
 # Path to standardized data
@@ -99,19 +99,19 @@ def find_latest_standardized_dir() -> Path:
     return latest
 
 
-def _fill_enum_fields_with_missing(df: pl.DataFrame) -> pl.DataFrame:
-    """Fill NULL enum fields with 'Missing' to match schema."""
-    enum_fields_with_missing = [
-        "direction", "access_mode", "egress_mode", "vehicle_tech", "first_board_tech",
-        "last_alight_tech", "orig_purp", "dest_purp", "tour_purp", "trip_purp", "fare_medium",
-        "fare_category", "weekpart", "day_of_the_week", "gender", "work_status",
-        "student_status", "interview_language", "field_language", "survey_type", "hispanic",
-        "race", "eng_proficient", "transfer_from", "transfer_to"
-    ]
+def _convert_hispanic_to_bool(df: pl.DataFrame) -> pl.DataFrame:
+    """Convert hispanic enum strings to boolean."""
+    if "hispanic" not in df.columns:
+        return df
+    
     return df.with_columns([
-        pl.col(field).fill_null("Missing")
-        for field in enum_fields_with_missing
-    ])
+        pl.when(pl.col("hispanic").str.to_uppercase() == "HISPANIC/LATINO OR OF SPANISH ORIGIN")
+          .then(True)
+          .when(pl.col("hispanic").str.to_uppercase() == "NOT HISPANIC/LATINO OR OF SPANISH ORIGIN")
+          .then(False)
+          .otherwise(None)
+          .alias("is_hispanic")
+    ]).drop("hispanic")
 
 
 def _clean_numeric_fields(df: pl.DataFrame) -> pl.DataFrame:
@@ -285,8 +285,8 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         .alias("field_end"),
     ])
 
-    # Fill NULL enum fields with "Missing" to match schema
-    df = _fill_enum_fields_with_missing(df)
+    # Convert hispanic to boolean
+    df = _convert_hispanic_to_bool(df)
 
     # Convert "missing" strings and field name literals to NULL for numeric fields
     df = _clean_numeric_fields(df)
@@ -387,9 +387,8 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         text = text.strip().replace("_", " ")
 
         # Exact match mappings (case-insensitive input) - consolidated for readability
+        # Note: Hispanic mappings removed - now handled by _convert_hispanic_to_bool
         exact_mappings = {
-            "HISPANIC/LATINO OR OF SPANISH ORIGIN": "Hispanic/Latino or of Spanish origin",
-            "NOT HISPANIC/LATINO OR OF SPANISH ORIGIN": "Not Hispanic/Latino or of Spanish origin",
             "PREFER NOT TO ANSWER": "Prefer not to answer",
             "MUNI": "Muni", "AC TRANSIT": "AC Transit", "SAMTRANS": "SamTrans",
             "WESTCAT": "WestCat", "SOLTRANS": "SolTrans", "TRI-DELTA": "Tri-Delta",
@@ -410,7 +409,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             "INTERVIEWER - ADMINISTERED": "Interviewer-administered",
             "SELF - ADMINISTERED": "Self-administered",
             "SKIP - PAPER SURVEY": "Skip - Paper Survey",
-            "DONT KNOW/REFUSE": "Don't know/refuse", "TAGALOG/FILIPINO": "Tagalog",
+            "TAGALOG/FILIPINO": "Tagalog",
             "SANTA ROSA CITYBUS": "Santa Rosa City Bus", "EMERYVILLE MTA": "Emeryville MTA",
             "WHEELS (LAVTA)": "Wheels (LAVTA)", "EMERY-GO-ROUND": "Emery-Go-Round",
             "RIO-VISTA": "Rio-Vista", "FAIRFIELD-SUISUN": "Fairfield-Suisun",
@@ -469,8 +468,9 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
 
     # Normalize categorical fields efficiently by mapping unique values
     # This avoids slow row-by-row Python UDF calls
+    # Note: hispanic removed from list - now converted to boolean is_hispanic
     categorical_fields_complex = [
-        "hispanic", "work_status", "student_status", "household_income_category",
+        "work_status", "student_status", "household_income_category",
         "survey_type", "interview_language", "field_language",
         "orig_purp", "dest_purp", "tour_purp", "trip_purp", "transfer_from", "transfer_to",
         "access_mode", "egress_mode", "fare_medium", "eng_proficient", "fare_category"
@@ -514,15 +514,16 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         # ACCESS & EGRESS MODES
         # ------------------------------------------------------------------------
         "access_mode": ACCESS_EGRESS_MODE_FIXES,
-        "egress_mode": {**ACCESS_EGRESS_MODE_FIXES, ".": "Missing"},
+        "egress_mode": {**ACCESS_EGRESS_MODE_FIXES, ".": None},
 
         # ------------------------------------------------------------------------
         # SURVEY & FIELD METADATA
         # ------------------------------------------------------------------------
         "eng_proficient": {
             "Very Well": "Very well",
-            "Unknown": "Missing",
+            "Unknown": None,
             "Skip - paper survey": "Skip - Paper Survey",
+            "Missing": None,
         },
         "direction": {
             "Outboudn": "Outbound",
@@ -751,7 +752,8 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         },
         "student_status": {
             "Full- Or Part-Time": "Full- or part-time",
-            "Non-Student": "Non-student"
+            "Non-Student": "Non-student",
+            "Missing": None
         },
         "gender": {
             "Non-Binary": "Non-binary",
@@ -759,15 +761,12 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
             "female": "Female",
             "male": "Male"
         },
-        "hispanic": {
-            "HISPANIC/LATINO OR OF SPANISH ORIGIN": "Hispanic/Latino or of Spanish origin",
-            "NOT HISPANIC/LATINO OR OF SPANISH ORIGIN": "Not Hispanic/Latino or of Spanish origin"
-        },
         "race": {
             "WHITE": "White",
             "ASIAN": "Asian",
             "BLACK": "Black",
-            "OTHER": "Other"
+            "OTHER": "Other",
+            "Missing": None
         },
 
         # ------------------------------------------------------------------------
@@ -804,8 +803,9 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         },
         "day_part": {
             "NIGHT": "EVENING",  # Normalize NIGHT to EVENING for DayPart enum
-            "WEEKEND": "Missing",  # WEEKEND not a valid time of day, map to Missing
-            ".": "Missing"  # Period indicates missing data
+            "WEEKEND": None,  # WEEKEND not a valid time of day, map to None
+            ".": None,  # Period indicates missing data
+            "Missing": None  # Explicit missing values
         }
     }
     # ============================================================================
@@ -814,6 +814,20 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         df = df.with_columns(
             pl.col(field).replace_strict(mapping, default=pl.col(field)).alias(field)
         )
+
+    # Global cleanup: Replace any remaining "Missing" strings with None for enum fields
+    enum_fields = [
+        "direction", "access_mode", "egress_mode", "first_board_tech", "last_alight_tech",
+        "orig_purp", "dest_purp", "fare_category", "day_of_the_week", "race",
+        "work_status", "student_status", "interview_language", "field_language",
+        "transfer_1_operator", "transfer_2_operator", "transfer_3_operator",
+        "fare_medium", "household_income_category", "survey_type", "weekpart",
+        "day_part", "eng_proficient", "tour_purp", "trip_purp", "gender"
+    ]
+    df = df.with_columns([
+        pl.when(pl.col(field) == "Missing").then(None).otherwise(pl.col(field)).alias(field)
+        for field in enum_fields if field in df.columns
+    ])
 
     # Add survey_id (computed from canonical_operator and survey_year)
     df = df.with_columns(

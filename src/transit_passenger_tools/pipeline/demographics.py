@@ -95,8 +95,8 @@ def process_race(df: pl.DataFrame) -> pl.DataFrame:
         ).alias("race_dmy_sum_limited")
     )
 
-    # Initialize race as MISSING
-    df = df.with_columns(pl.lit(Race.MISSING.value).alias("race"))
+    # Initialize race as None (no value)
+    df = df.with_columns(pl.lit(None).alias("race"))
 
     # Apply race/ethnicity categorization
     # NOTE: Order matters! White+MiddleEastern exception must come before general multi-racial check

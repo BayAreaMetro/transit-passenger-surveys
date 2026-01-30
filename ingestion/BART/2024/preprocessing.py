@@ -537,7 +537,7 @@ def process_trip_characteristics(
     survey_lang_lookup = create_codebook_lookup(codebook_df, "SURVEY_LANGUAGE_FINAL")
 
     bart_df = bart_df.with_columns([
-        pl.col("SURVEY_LANGUAGE_FINAL").replace(survey_lang_lookup, default="Missing").alias("interview_language"),
+        pl.col("SURVEY_LANGUAGE_FINAL").replace(survey_lang_lookup, default=None).alias("interview_language"),
         pl.when(pl.col("DATE_COMPLETED").is_not_null())
           .then(pl.lit("online - modeling platform"))
           .when(pl.col("DATE_STARTED_SAS").is_not_null())
@@ -580,7 +580,7 @@ def process_trip_characteristics(
           .then(pl.lit("Free"))
           .when(pl.col("fare_category").is_not_null())
           .then(pl.lit("Other"))
-          .otherwise(pl.lit("Missing"))
+          .otherwise(None)
           .alias("fare_category")
     ])
 
@@ -618,13 +618,13 @@ def process_trip_characteristics(
           .then(pl.lit("Non-worker"))
           .when(pl.col("work_status").is_not_null())
           .then(pl.lit("Other"))
-          .otherwise(pl.lit("Missing"))
+          .otherwise(None)
           .alias("work_status"),
         pl.when(pl.col("student_status").str.to_lowercase() == "yes")
           .then(pl.lit("Full- or part-time"))
           .when(pl.col("student_status").str.to_lowercase() == "no")
           .then(pl.lit("Non-student"))
-          .otherwise(pl.lit("Missing"))
+          .otherwise(None)
           .alias("student_status")
     ])
 
@@ -681,16 +681,16 @@ def process_trip_characteristics(
           .alias("survey_type")
     ])
 
-    # Fix hispanic field - convert from 0/1 to enum text
-    logger.info("Converting hispanic from 0/1 to enum text")
+    # Rename hispanic field to is_hispanic (already 0/1 from processing)
+    logger.info("Renaming hispanic to is_hispanic")
     bart_df = bart_df.with_columns([
         pl.when(pl.col("hispanic") == 1)
-          .then(pl.lit("Hispanic/Latino or of Spanish origin"))
+          .then(pl.lit(True))
           .when(pl.col("hispanic") == 0)
-          .then(pl.lit("Not Hispanic/Latino or of Spanish origin"))
-          .otherwise(pl.lit("Missing"))
-          .alias("hispanic")
-    ])
+          .then(pl.lit(False))
+          .otherwise(None)
+          .alias("is_hispanic")
+    ]).drop("hispanic")
 
     # Add weight fields
     logger.info("Adding weight field")
@@ -828,7 +828,7 @@ def preprocess(
     # Add direction field (BART doesn't have traditional direction data)
     logger.info("Adding direction field")
     survey_df = survey_df.with_columns([
-        pl.lit(None).cast(pl.Utf8).alias("direction")
+        pl.lit(None).alias("direction")
     ])
 
     # Add survey_board and survey_alight (station names from geocoding)
@@ -866,43 +866,37 @@ def preprocess(
         pl.col("ID").alias("survey_id"),  # Placeholder, will be overwritten
         pl.col("ID").alias("original_id"),
 
-        # Direction - set to Missing for BART (no traditional direction)
-        pl.lit("Missing").alias("direction") if "direction" in survey_df.columns and survey_df["direction"].null_count() > 0 else pl.col("direction"),
-
-        # Access/egress modes - set null to "Missing"
-        pl.when(pl.col("access_mode").is_null()).then(pl.lit("Missing")).otherwise(pl.col("access_mode")).alias("access_mode"),
-        pl.when(pl.col("egress_mode").is_null()).then(pl.lit("Missing")).otherwise(pl.col("egress_mode")).alias("egress_mode"),
-        pl.lit("Missing").alias("immediate_access_mode"),
-        pl.lit("Missing").alias("immediate_egress_mode"),
-
-        # Transfer fields
-        pl.lit("Missing").alias("transfer_from"),
-        pl.lit("Missing").alias("transfer_to"),
+# Direction already set as None earlier
+        
+        # Access/egress modes already set earlier, immediate modes are None
+        pl.lit(None).alias("immediate_access_mode"),
+        pl.lit(None).alias("immediate_egress_mode"),
+        
+        # Transfer fields as None
+        pl.lit(None).alias("transfer_from"),
+        pl.lit(None).alias("transfer_to"),
 
         # Transfer operator/technology fields (before survey)
         pl.lit(None).cast(pl.Utf8).alias("first_before_operator"),
         pl.lit(None).cast(pl.Utf8).alias("first_before_operator_detail"),
-        pl.lit("Missing").alias("first_before_technology"),
+        pl.lit(None).alias("first_before_technology"),
         pl.lit(None).cast(pl.Utf8).alias("second_before_operator"),
         pl.lit(None).cast(pl.Utf8).alias("second_before_operator_detail"),
-        pl.lit("Missing").alias("second_before_technology"),
+        pl.lit(None).alias("second_before_technology"),
         pl.lit(None).cast(pl.Utf8).alias("third_before_operator"),
         pl.lit(None).cast(pl.Utf8).alias("third_before_operator_detail"),
-        pl.lit("Missing").alias("third_before_technology"),
-
+        pl.lit(None).alias("third_before_technology"),
+        
         # Transfer operator/technology fields (after survey)
         pl.lit(None).cast(pl.Utf8).alias("first_after_operator"),
         pl.lit(None).cast(pl.Utf8).alias("first_after_operator_detail"),
-        pl.lit("Missing").alias("first_after_technology"),
+        pl.lit(None).alias("first_after_technology"),
         pl.lit(None).cast(pl.Utf8).alias("second_after_operator"),
         pl.lit(None).cast(pl.Utf8).alias("second_after_operator_detail"),
-        pl.lit("Missing").alias("second_after_technology"),
+        pl.lit(None).alias("second_after_technology"),
         pl.lit(None).cast(pl.Utf8).alias("third_after_operator"),
         pl.lit(None).cast(pl.Utf8).alias("third_after_operator_detail"),
-        pl.lit("Missing").alias("third_after_technology"),
-
-        # First/last board technology
-        pl.lit("Heavy Rail").alias("first_board_tech"),
+        pl.lit(None).alias("third_after_technology"),
         pl.lit("Heavy Rail").alias("last_alight_tech"),
 
         # Path labels (not yet derived)
@@ -911,9 +905,7 @@ def preprocess(
         pl.lit(None).cast(pl.Utf8).alias("path_line_haul"),
         pl.lit(None).cast(pl.Utf8).alias("path_label"),
 
-        # Trip purposes - set null to "Missing"
-        pl.when(pl.col("orig_purp").is_null()).then(pl.lit("Missing")).otherwise(pl.col("orig_purp")).alias("orig_purp"),
-        pl.when(pl.col("dest_purp").is_null()).then(pl.lit("Missing")).otherwise(pl.col("dest_purp")).alias("dest_purp"),
+        # Trip purposes already set as None earlier,
 
         # On/off station fields
         pl.col("survey_board").alias("onoff_enter_station"),
@@ -928,8 +920,8 @@ def preprocess(
             .replace_strict({
               "1": "Monday", "2": "Tuesday", "3": "Wednesday",
               "4": "Thursday", "5": "Friday", "6": "Saturday", "7": "Sunday"
-            }, default="Missing", return_dtype=pl.Utf8))
-          .otherwise(pl.lit("Missing"))
+            }, return_dtype=pl.Utf8))
+          .otherwise(None)
           .alias("day_of_the_week"),
 
         # approximate_age (calculate from year_born_four_digit)
@@ -955,8 +947,6 @@ def preprocess(
           .then(pl.lit("Not well"))
         .when(pl.col("eng_proficient").cast(pl.Utf8, strict=False) == "4")
           .then(pl.lit("Not at all"))
-        .when(pl.col("eng_proficient").is_null())
-          .then(pl.lit("Missing"))
         .otherwise(pl.col("eng_proficient").cast(pl.Utf8))
         .alias("eng_proficient")
     ])

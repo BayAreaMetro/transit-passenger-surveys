@@ -47,14 +47,15 @@ class TestRaceProcessing:
             ({"race_dmy_ind": [1], "race_dmy_asn": [1]}, Race.OTHER, "native_american_in_combination"),
             ({"race_dmy_hwi": [1], "race_dmy_blk": [1]}, Race.OTHER, "pacific_islander_in_combination"),
             ({"race_other_string": ["Human"]}, Race.OTHER, "other_string_only"),
-            ({}, Race.MISSING, "no_race_specified"),
+            ({}, None, "no_race_specified"),
         ],
     )
     def test_race_categorization(self, overrides, expected_race, test_id):
         """Test race categorization logic with various input combinations."""
         df = make_race_df(**overrides)
         result = process_race(df)
-        assert result["race"][0] == expected_race.value
+        expected_value = expected_race.value if expected_race is not None else None
+        assert result["race"][0] == expected_value
 
 
 class TestNullHandling:
@@ -77,7 +78,7 @@ class TestNullHandling:
         """Test race_other_string <= 2 chars is ignored."""
         df = make_race_df(race_other_string=["xy"])  # 2 chars - too short
         result = process_race(df)
-        assert result["race"][0] == Race.MISSING.value
+        assert result["race"][0] == None
 
 
 class TestNullRaceHandling:
@@ -88,7 +89,7 @@ class TestNullRaceHandling:
         df = make_race_df()  # Creates with null race_other_string and race_cat
         result = process_race(df)
         # With no race data, should be MISSING (not OTHER)
-        assert result["race"][0] == Race.MISSING.value
+        assert result["race"][0] == None
 
     def test_null_race_cat_not_counted(self):
         """Test that null race_cat doesn't affect race categorization."""

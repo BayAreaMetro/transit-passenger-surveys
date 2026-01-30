@@ -22,7 +22,6 @@ from transit_passenger_tools.codebook import (
     FareCategory,
     FareMedium,
     Gender,
-    Hispanic,
     Language,
     Race,
     StudentStatus,
@@ -102,11 +101,11 @@ class CoreSurveyResponse(BaseModel):
 
     # ========== Trip Information ==========
     route: str | None = Field(..., max_length=200, description="Transit route")
-    direction: Direction = Field(..., description="Travel direction of surveyed vehicle")
+    direction: Direction | None = Field(..., description="Travel direction of surveyed vehicle")
 
     # ========== Access/Egress Modes ==========
-    access_mode: AccessEgressMode = Field(..., description="Mode to access first transit encounter")
-    egress_mode: AccessEgressMode = Field(..., description="Mode to egress from last transit encounter")
+    access_mode: AccessEgressMode | None = Field(..., description="Mode to access first transit encounter")
+    egress_mode: AccessEgressMode | None = Field(..., description="Mode to egress from last transit encounter")
     immediate_access_mode: AccessEgressMode | None = Field(..., description="Access mode to surveyed vehicle")
     immediate_egress_mode: AccessEgressMode | None = Field(..., description="Egress mode from surveyed vehicle")
 
@@ -143,16 +142,16 @@ class CoreSurveyResponse(BaseModel):
 
     # ========== Technology/Path ==========
     vehicle_tech: TechnologyType | None = Field(None, description="Technology type of vehicle being surveyed")
-    first_board_tech: TechnologyType = Field(..., description="Vehicle technology type of first boarding")
-    last_alight_tech: TechnologyType = Field(..., description="Vehicle technology type of last alighting")
+    first_board_tech: TechnologyType | None = Field(..., description="Vehicle technology type of first boarding")
+    last_alight_tech: TechnologyType | None = Field(..., description="Vehicle technology type of last alighting")
     path_access: str | None = Field(..., max_length=20, description="Aggregated access mode")
     path_egress: str | None = Field(..., max_length=20, description="Aggregated egress mode")
     path_line_haul: str | None = Field(..., max_length=20, description="Path line haul mode")
     path_label: str | None = Field(..., max_length=50, description="Full path")
 
     # ========== Trip Purpose ==========
-    orig_purp: TripPurpose = Field(..., description="Origin trip purpose")
-    dest_purp: TripPurpose = Field(..., description="Destination trip purpose")
+    orig_purp: TripPurpose | None = Field(..., description="Origin trip purpose")
+    dest_purp: TripPurpose | None = Field(..., description="Destination trip purpose")
     trip_purp: TripPurpose | None = Field(..., description="Trip purpose")
 
     # ========== Geographic - Lat/Lon Coordinates ==========
@@ -181,27 +180,27 @@ class CoreSurveyResponse(BaseModel):
 
     # ========== Fare Information ==========
     fare_medium: FareMedium | None = Field(..., description="Payment method for fare")
-    fare_category: FareCategory = Field(..., description="Fare category (adult/youth/senior/disabled)")
+    fare_category: FareCategory | None = Field(..., description="Fare category (adult/youth/senior/disabled)")
 
     # ========== Time Information ==========
     depart_hour: int | None = Field(..., ge=0, le=23, description="Hour leaving home prior to transit trip")
     return_hour: int | None = Field(..., ge=0, le=23, description="Hour next expected home after transit trip")
     survey_time: str | None = Field(..., max_length=20, description="Time survey conducted (may be missing)")
-    day_of_the_week: DayOfWeek = Field(..., description="Day of week")
+    day_of_the_week: DayOfWeek | None = Field(..., description="Day of week")
 
     # ========== Person Demographics ==========
     approximate_age: int | None = Field(..., ge=0, le=120, description="Approximate age")
     gender: Gender | None = Field(..., description="Gender identity")
-    hispanic: Hispanic = Field(..., description="Hispanic/Latino ethnicity")
-    race: Race = Field(..., description="Race")
+    is_hispanic: bool | None = Field(..., description="True if Hispanic/Latino or of Spanish origin, False if not, None if unknown")
+    race: Race | None = Field(..., description="Race")
     race_dmy_ind: int | None = Field(None, ge=0, le=1, description="American Indian/Alaskan Native (dummy)")
     race_dmy_asn: int | None = Field(None, ge=0, le=1, description="Asian (dummy)")
     race_dmy_blk: int | None = Field(None, ge=0, le=1, description="Black (dummy)")
     race_dmy_hwi: int | None = Field(None, ge=0, le=1, description="Native Hawaiian/Pacific Islander (dummy)")
     race_dmy_wht: int | None = Field(None, ge=0, le=1, description="White (dummy)")
     race_other_string: str | None = Field(..., max_length=100, description="Other race (text) ")
-    work_status: WorkStatus = Field(..., description="Employment status")
-    student_status: StudentStatus = Field(..., description="Student enrollment status")
+    work_status: WorkStatus | None = Field(..., description="Employment status")
+    student_status: StudentStatus | None = Field(..., description="Student enrollment status")
     eng_proficient: EnglishProficiency | None = Field(..., description="English language proficiency")
 
     # ========== Household Demographics  ==========
@@ -218,8 +217,8 @@ class CoreSurveyResponse(BaseModel):
 
     # ========== Survey Administration ==========
     survey_type: SurveyType | None = Field(..., description="Survey administration method (CATI/paper/tablet)")
-    interview_language: Language = Field(..., description="Language survey conducted in")
-    field_language: Language = Field(..., description="Survey field language")
+    interview_language: Language | None = Field(..., description="Language survey conducted in")
+    field_language: Language | None = Field(..., description="Survey field language")
 
 
 class DerivedSurveyResponse(CoreSurveyResponse):

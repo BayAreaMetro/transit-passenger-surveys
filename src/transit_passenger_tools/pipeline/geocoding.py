@@ -125,7 +125,7 @@ def assign_zones_and_distances(df: pl.DataFrame, shapefiles_dir: Path | None = N
         return result_df
 
     # Import add_zone function for spatial joins
-    from transit_passenger_tools.add_zone import add_zone_to_lat_lon
+    from transit_passenger_tools.utils.add_zone import add_zone_to_lat_lon
 
     # Process each location type
     for location in LOCATION_TYPES:

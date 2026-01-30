@@ -100,19 +100,34 @@ def main() -> None:
     print("\n4. Validating...")
     validate(survey_df, sample_size=10)
 
+    # Filter to standard schema columns only (remove vendor-specific raw columns)
+    print("\n5. Filtering to standard schema columns...")
+    from transit_passenger_tools.data_models import SurveyResponse
+    standard_columns = list(SurveyResponse.model_fields.keys())
+    # Keep only columns that exist in both the schema and the dataframe
+    keep_columns = [col for col in standard_columns if col in survey_df.columns]
+    missing_columns = [col for col in standard_columns if col not in survey_df.columns]
+    extra_columns = [col for col in survey_df.columns if col not in standard_columns]
+    
+    print(f"   Standard columns present: {len(keep_columns)}")
+    print(f"   Missing from data: {len(missing_columns)}")
+    print(f"   Extra vendor columns dropped: {len(extra_columns)}")
+    
+    survey_df_clean = survey_df.select(keep_columns)
+
     # Ingest surveys
-    print("\n5. Ingesting survey responses...")
+    print("\n6. Ingesting survey responses...")
     output_path, version, commit_id, data_hash = db.ingest_survey_batch(
-        survey_df,
+        survey_df_clean,
         survey_year=SURVEY_YEAR,
         canonical_operator=CANONICAL_OPERATOR,
         validate=False
     )
-    print(f"   {len(survey_df):,} responses ingested")
+    print(f"   {len(survey_df_clean):,} responses ingested")
     print(f"   Version: {version}, Commit: {commit_id[:8]}")
 
     # Ingest weights
-    print("\n6. Ingesting weights...")
+    print("\n7. Ingesting weights...")
     weights_df = survey_df.select([
         pl.col("response_id"),
         pl.col("weight").alias("boarding_weight"),

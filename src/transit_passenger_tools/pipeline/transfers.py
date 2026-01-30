@@ -114,8 +114,6 @@ def derive_transfer_fields(df: pl.DataFrame) -> pl.DataFrame:
             tech_cols.append(tech_col)
 
     for tech in TechnologyType:
-        if tech == TechnologyType.MISSING:
-            continue  # Skip MISSING
         flag_col = f"{tech.to_column_name()}_present"
         tech_value = tech.value
         conditions = [pl.col(col) == tech_value for col in tech_cols if col in result_df.columns]
