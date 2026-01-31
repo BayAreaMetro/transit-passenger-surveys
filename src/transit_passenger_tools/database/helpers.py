@@ -206,3 +206,177 @@ def write_session() -> Generator[duckdb.DuckDBPyConnection, None, None]:
     finally:
         if lock_acquired and LOCK_FILE.exists():
             LOCK_FILE.unlink()
+
+
+def check_cache_freshness() -> dict[str, bool]:
+    """Check if DuckDB cache is stale compared to Parquet files.
+
+    Compares last_synced_at timestamp from cache_metadata table against
+    newest file modification time in the data lake.
+
+    Returns:
+        Dict with keys 'is_fresh' (bool) and 'message' (str)
+    """
+    try:
+        conn = connect(read_only=True)
+        try:
+            # Get last sync timestamp
+            result = conn.execute(
+                "SELECT MIN(last_synced_at) as oldest_sync FROM cache_metadata"
+            ).fetchone()
+
+            if not result or result[0] is None:
+                return {
+                    "is_fresh": False,
+                    "message": "Cache has never been synced. Run sync_to_duckdb_cache().",
+                }
+
+            last_sync = result[0]
+
+            # Find newest Parquet file in data lake
+            newest_mtime = 0.0
+            newest_file = None
+
+            for parquet_file in DATA_LAKE_ROOT.rglob("*.parquet"):
+                mtime = parquet_file.stat().st_mtime
+                if mtime > newest_mtime:
+                    newest_mtime = mtime
+                    newest_file = parquet_file
+
+            if newest_file is None:
+                return {
+                    "is_fresh": True,
+                    "message": "No Parquet files found in data lake.",
+                }
+
+            # Compare timestamps (convert mtime to datetime for comparison)
+            from datetime import datetime, timezone
+
+            newest_file_time = datetime.fromtimestamp(newest_mtime, tz=timezone.utc)
+
+            # Parse last_sync if it's a string
+            if isinstance(last_sync, str):
+                from datetime import datetime
+
+                last_sync = datetime.fromisoformat(last_sync.replace("Z", "+00:00"))
+
+            if newest_file_time > last_sync:
+                relative_path = newest_file.relative_to(DATA_LAKE_ROOT)
+                return {
+                    "is_fresh": False,
+                    "message": f"Cache is stale. Newest file: {relative_path} "
+                    f"modified at {newest_file_time.isoformat()}. "
+                    f"Last sync: {last_sync}. Run sync_to_duckdb_cache().",
+                }
+
+            return {
+                "is_fresh": True,
+                "message": f"Cache is fresh (last synced: {last_sync}).",
+            }
+
+        finally:
+            conn.close()
+
+    except duckdb.CatalogException:
+        return {
+            "is_fresh": False,
+            "message": "Cache metadata table doesn't exist. Run sync_to_duckdb_cache().",
+        }
+    except Exception as e:
+        logger.warning("Could not check cache freshness: %s", e)
+        return {
+            "is_fresh": False,
+            "message": f"Error checking cache: {e}",
+        }
+
+
+def query_parquet(sql: str) -> pl.DataFrame:
+    """Execute SQL query directly against Parquet files (bypassing DuckDB cache).
+
+    This is useful for development or when you need to query fresh data
+    without syncing the cache. Creates temporary views over Parquet files.
+
+    Args:
+        sql: SQL query to execute (can reference survey_responses, etc.)
+
+    Returns:
+        Polars DataFrame with query results
+    """
+    conn = duckdb.connect(":memory:")
+    try:
+        # Create temporary views over Parquet files
+        survey_responses_pattern = f"{DATA_LAKE_ROOT}/survey_responses/**/data-*.parquet"
+        conn.execute(
+            f"""
+            CREATE OR REPLACE VIEW survey_responses AS
+            WITH versioned_data AS (
+                SELECT *,
+                       CAST(regexp_extract(filename, 'data-(\\d+)-', 1) AS INTEGER) as _version
+                FROM read_parquet(
+                    '{survey_responses_pattern}',
+                    hive_partitioning = true,
+                    union_by_name = true,
+                    filename = true
+                )
+            ),
+            latest_versions AS (
+                SELECT operator, year, MAX(_version) as max_version
+                FROM versioned_data
+                GROUP BY operator, year
+            )
+            SELECT versioned_data.* EXCLUDE (filename, _version)
+            FROM versioned_data
+            JOIN latest_versions
+                ON versioned_data.operator = latest_versions.operator
+                AND versioned_data.year = latest_versions.year
+                AND versioned_data._version = latest_versions.max_version
+        """
+        )
+
+        conn.execute(
+            f"""
+            CREATE OR REPLACE VIEW survey_responses_all_versions AS
+            SELECT *,
+                   CAST(regexp_extract(filename, 'data-(\\d+)-', 1) AS INTEGER) as data_version,
+                   regexp_extract(filename, 'data-\\d+-(\\w+)\\.parquet', 1) as data_commit
+            FROM read_parquet(
+                '{survey_responses_pattern}',
+                hive_partitioning = true,
+                union_by_name = true,
+                filename = true
+            )
+        """
+        )
+
+        # Create metadata view if file exists
+        metadata_file = DATA_LAKE_ROOT / "survey_metadata" / "metadata.parquet"
+        if metadata_file.exists():
+            conn.execute(
+                f"""
+                CREATE OR REPLACE VIEW survey_metadata AS
+                SELECT * FROM read_parquet(
+                    '{metadata_file}',
+                    union_by_name = true
+                )
+            """
+            )
+
+        # Create weights view if file exists
+        weights_file = DATA_LAKE_ROOT / "survey_weights" / "weights.parquet"
+        if weights_file.exists():
+            conn.execute(
+                f"""
+                CREATE OR REPLACE VIEW survey_weights AS
+                SELECT * FROM read_parquet(
+                    '{weights_file}',
+                    union_by_name = true
+                )
+            """
+            )
+
+        # Execute user query
+        return conn.execute(sql).pl()
+
+    finally:
+        conn.close()
+

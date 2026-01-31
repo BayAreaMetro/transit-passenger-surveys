@@ -17,6 +17,7 @@ from transit_passenger_tools.schemas.models import (
 
 from .helpers import (
     DATA_LAKE_ROOT,
+    DUCKDB_PATH,
     check_git_clean,
     compute_dataframe_hash,
     connect,
@@ -45,7 +46,7 @@ def ingest_survey_batch(
     survey_year: int,
     canonical_operator: str,
     validate: bool = True,
-    refresh_views: bool = True,
+    refresh_cache: bool = True,
     require_clean_git: bool = True,
 ) -> tuple[Path, int, str, str]:
     """Write survey batch to hive-partitioned Parquet.
@@ -55,7 +56,7 @@ def ingest_survey_batch(
         survey_year: Survey year
         canonical_operator: Canonical operator name
         validate: Whether to validate data against schema
-        refresh_views: Whether to refresh DuckDB views after ingestion
+        refresh_cache: Whether to sync data to DuckDB cache after ingestion
         require_clean_git: Whether to require no uncommitted git changes
 
     Returns:
@@ -115,23 +116,21 @@ def ingest_survey_batch(
         commit_id,
     )
 
-    if refresh_views:
-        logger.info("Refreshing views to match current schema...")
-        create_views()
-        logger.info("Views refreshed successfully")
+    if refresh_cache:
+        sync_to_duckdb_cache()
 
     return output_path, version, commit_id, data_hash
 
 
 def ingest_survey_metadata(
-    df: pl.DataFrame, validate: bool = True, refresh_views: bool = True
+    df: pl.DataFrame, validate: bool = True, refresh_cache: bool = True
 ) -> Path:
     """Write or append survey metadata to metadata.parquet.
 
     Args:
         df: DataFrame to ingest
         validate: Whether to validate data against schema
-        refresh_views: Whether to refresh DuckDB views after ingestion
+        refresh_cache: Whether to sync data to DuckDB cache after ingestion
 
     Deduplicates by (survey_year, canonical_operator, data_version).
     """
@@ -159,21 +158,21 @@ def ingest_survey_metadata(
         df.write_parquet(output_path, compression="zstd", statistics=True)
         logger.info("Wrote %d metadata records", len(df))
 
-    if refresh_views:
-        create_views()
+    if refresh_cache:
+        sync_to_duckdb_cache()
 
     return output_path
 
 
 def ingest_survey_weights(
-    df: pl.DataFrame, validate: bool = True, refresh_views: bool = True
+    df: pl.DataFrame, validate: bool = True, refresh_cache: bool = True
 ) -> Path:
     """Write or append survey weights to weights.parquet.
 
     Args:
         df: DataFrame to ingest
         validate: Whether to validate data against schema
-        refresh_views: Whether to refresh DuckDB views after ingestion
+        refresh_cache: Whether to sync data to DuckDB cache after ingestion
 
     Deduplicates by (unique_id, weight_scheme).
     """
@@ -199,8 +198,8 @@ def ingest_survey_weights(
         df.write_parquet(output_path, compression="zstd", statistics=True)
         logger.info("Wrote %d weight records", len(df))
 
-    if refresh_views:
-        create_views()
+    if refresh_cache:
+        sync_to_duckdb_cache()
 
     return output_path
 
@@ -284,20 +283,34 @@ def run_migrations() -> None:
             logger.info("  Applied: %s", migration_name)
 
 
-def create_views() -> None:
-    """Create or recreate DuckDB views over Parquet files in data lake.
+def sync_to_duckdb_cache() -> None:
+    """Sync Parquet data into DuckDB tables for fast BI tool access.
 
-    Views use SELECT * to handle schema evolution but vendor-specific raw
-    survey fields are preserved in parquet files for future reference.
+    Drops and recreates tables from Parquet files. Tables are stored in the
+    .duckdb file for fast access from Tableau, DBeaver, etc. Parquet files
+    remain source of truth.
+
+    This should be called after ingesting new data or metadata.
     """
-    logger.info("Creating DuckDB views over Parquet files...")
+    logger.info("Syncing Parquet data to DuckDB cache...")
 
     with write_session() as conn:
-        # Create view for survey_responses (latest version only)
+        # Create cache metadata table if not exists
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS cache_metadata (
+                table_name VARCHAR PRIMARY KEY,
+                last_synced_at TIMESTAMP,
+                row_count BIGINT
+            )
+        """)
+
+        # Sync survey_responses (latest version only)
+        logger.info("  Syncing survey_responses...")
         survey_responses_pattern = f"{DATA_LAKE_ROOT}/survey_responses/**/data-*.parquet"
+        conn.execute("DROP TABLE IF EXISTS survey_responses")
         conn.execute(
             f"""
-            CREATE OR REPLACE VIEW survey_responses AS
+            CREATE TABLE survey_responses AS
             WITH versioned_data AS (
                 SELECT *,
                        CAST(regexp_extract(filename, 'data-(\\d+)-', 1) AS INTEGER) as _version
@@ -321,12 +334,19 @@ def create_views() -> None:
                 AND versioned_data._version = latest_versions.max_version
         """
         )
-        logger.info("  Created view: survey_responses")
+        count = conn.execute("SELECT COUNT(*) FROM survey_responses").fetchone()[0]  # type: ignore[index]
+        conn.execute(
+            "INSERT OR REPLACE INTO cache_metadata VALUES (?, CURRENT_TIMESTAMP, ?)",
+            ["survey_responses", count],
+        )
+        logger.info("    Cached %s rows", f"{count:,}")
 
-        # Create view for all versions (power users)
+        # Sync survey_responses_all_versions (power users)
+        logger.info("  Syncing survey_responses_all_versions...")
+        conn.execute("DROP TABLE IF EXISTS survey_responses_all_versions")
         conn.execute(
             f"""
-            CREATE OR REPLACE VIEW survey_responses_all_versions AS
+            CREATE TABLE survey_responses_all_versions AS
             SELECT *,
                    CAST(regexp_extract(filename, 'data-(\\d+)-', 1) AS INTEGER) as data_version,
                    regexp_extract(filename, 'data-\\d+-(\\w+)\\.parquet', 1) as data_commit
@@ -338,56 +358,119 @@ def create_views() -> None:
             )
         """
         )
-        logger.info("  Created view: survey_responses_all_versions")
+        all_versions_count = conn.execute(
+            "SELECT COUNT(*) FROM survey_responses_all_versions"
+        ).fetchone()[0]  # type: ignore[index]
+        conn.execute(
+            "INSERT OR REPLACE INTO cache_metadata VALUES (?, CURRENT_TIMESTAMP, ?)",
+            ["survey_responses_all_versions", all_versions_count],
+        )
+        logger.info("    Cached %s rows", f"{all_versions_count:,}")
 
-        # Create view for survey_metadata (only if file exists)
+        # Sync survey_metadata (only if file exists)
         metadata_file = DATA_LAKE_ROOT / "survey_metadata" / "metadata.parquet"
         if metadata_file.exists():
+            logger.info("  Syncing survey_metadata...")
+            conn.execute("DROP TABLE IF EXISTS survey_metadata")
             conn.execute(
                 f"""
-                CREATE OR REPLACE VIEW survey_metadata AS
+                CREATE TABLE survey_metadata AS
                 SELECT * FROM read_parquet(
                     '{metadata_file}',
                     union_by_name = true
                 )
             """
             )
-            logger.info("  Created view: survey_metadata")
+            meta_count = conn.execute("SELECT COUNT(*) FROM survey_metadata").fetchone()[0]  # type: ignore[index]
+            conn.execute(
+                "INSERT OR REPLACE INTO cache_metadata VALUES (?, CURRENT_TIMESTAMP, ?)",
+                ["survey_metadata", meta_count],
+            )
+            logger.info("    Cached %s rows", f"{meta_count:,}")
         else:
-            logger.warning("  Skipped survey_metadata view (file does not exist yet)")
+            logger.warning("    Skipped survey_metadata (file does not exist yet)")
 
-        # Create view for survey_weights (only if file exists)
+        # Sync survey_weights (only if file exists)
         weights_file = DATA_LAKE_ROOT / "survey_weights" / "weights.parquet"
         if weights_file.exists():
+            logger.info("  Syncing survey_weights...")
+            conn.execute("DROP TABLE IF EXISTS survey_weights")
             conn.execute(
                 f"""
-                CREATE OR REPLACE VIEW survey_weights AS
+                CREATE TABLE survey_weights AS
                 SELECT * FROM read_parquet(
                     '{weights_file}',
                     union_by_name = true
                 )
             """
             )
-            logger.info("  Created view: survey_weights")
-        else:
-            logger.warning("  Skipped survey_weights view (file does not exist yet)")
-
-        # Verify views work
-        count = conn.execute("SELECT COUNT(*) FROM survey_responses").fetchone()[0]  # type: ignore[index]
-        logger.info("  Verified: survey_responses has %s rows", f"{count:,}")
-
-        all_versions_count = conn.execute(
-            "SELECT COUNT(*) FROM survey_responses_all_versions"
-        ).fetchone()[0]  # type: ignore[index]
-
-        logger.info(
-            "  Verified: survey_responses_all_versions has %s rows", f"{all_versions_count:,}"
-        )
-
-        if metadata_file.exists():
-            meta_count = conn.execute("SELECT COUNT(*) FROM survey_metadata").fetchone()[0]  # type: ignore[index]
-            logger.info("  Verified: survey_metadata has %s rows", f"{meta_count:,}")
-
-        if weights_file.exists():
             weights_count = conn.execute("SELECT COUNT(*) FROM survey_weights").fetchone()[0]  # type: ignore[index]
-            logger.info("  Verified: survey_weights has %s rows", f"{weights_count:,}")
+            conn.execute(
+                "INSERT OR REPLACE INTO cache_metadata VALUES (?, CURRENT_TIMESTAMP, ?)",
+                ["survey_weights", weights_count],
+            )
+            logger.info("    Cached %s rows", f"{weights_count:,}")
+        else:
+            logger.warning("    Skipped survey_weights (file does not exist yet)")
+
+        # Log .duckdb file size
+        if DUCKDB_PATH.exists():
+            size_mb = DUCKDB_PATH.stat().st_size / (1024 * 1024)
+            logger.info("  DuckDB file size: %.2f MB", size_mb)
+
+    logger.info("DuckDB cache sync complete")
+
+
+def create_views() -> None:
+    """Create view wrappers over cached DuckDB tables.
+
+    These views provide backward compatibility for code that references
+    view names. The actual data is now stored in tables for performance.
+    """
+    logger.info("Creating DuckDB view wrappers...")
+
+    with write_session() as conn:
+        # Check if tables exist; if not, run sync first
+        try:
+            conn.execute("SELECT 1 FROM survey_responses LIMIT 1")
+        except duckdb.CatalogException:
+            logger.warning("Tables don't exist yet. Run sync_to_duckdb_cache() first.")
+            return
+
+        # Create view wrappers (for backward compatibility)
+        # Views simply expose the underlying tables
+        conn.execute("""
+            CREATE OR REPLACE VIEW v_survey_responses AS
+            SELECT * FROM survey_responses
+        """)
+        logger.info("  Created view: v_survey_responses")
+
+        conn.execute("""
+            CREATE OR REPLACE VIEW v_survey_responses_all_versions AS
+            SELECT * FROM survey_responses_all_versions
+        """)
+        logger.info("  Created view: v_survey_responses_all_versions")
+
+        # Check if metadata table exists
+        try:
+            conn.execute("SELECT 1 FROM survey_metadata LIMIT 1")
+            conn.execute("""
+                CREATE OR REPLACE VIEW v_survey_metadata AS
+                SELECT * FROM survey_metadata
+            """)
+            logger.info("  Created view: v_survey_metadata")
+        except duckdb.CatalogException:
+            logger.info("  Skipped v_survey_metadata (table does not exist)")
+
+        # Check if weights table exists
+        try:
+            conn.execute("SELECT 1 FROM survey_weights LIMIT 1")
+            conn.execute("""
+                CREATE OR REPLACE VIEW v_survey_weights AS
+                SELECT * FROM survey_weights
+            """)
+            logger.info("  Created view: v_survey_weights")
+        except duckdb.CatalogException:
+            logger.info("  Skipped v_survey_weights (table does not exist)")
+
+    logger.info("View wrappers created successfully")

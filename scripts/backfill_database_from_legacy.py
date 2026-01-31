@@ -1061,7 +1061,7 @@ def ingest_survey_batches(
                 survey_year=survey_year,
                 canonical_operator=canonical_operator,
                 validate=True,
-                refresh_views=False,  # Skip view refresh during bulk ingestion
+                refresh_cache=False,  # Skip cache sync during bulk ingestion
                 require_clean_git=False,  # Allow uncommitted changes during backfill
             )
             version_info[(canonical_operator, survey_year)] = (version, commit, data_hash)
@@ -1252,7 +1252,7 @@ def extract_and_ingest_metadata(
         logger.info("All %s metadata records validated successfully", len(metadata_df))
         return len(metadata_df)
     # Write metadata to data lake (will fail on first error)
-    database.ingest_survey_metadata(metadata_df, validate=True, refresh_views=False)
+    database.ingest_survey_metadata(metadata_df, validate=True, refresh_cache=False)
     return len(metadata_df)
 
 def extract_and_ingest_weights(
@@ -1326,7 +1326,7 @@ def extract_and_ingest_weights(
         logger.info("All %s weight records validated successfully", len(weights_df))
         return len(weights_df)
     # Write weights to data lake (will fail on first error)
-    database.ingest_survey_weights(weights_df, validate=True, refresh_views=False)
+    database.ingest_survey_weights(weights_df, validate=True, refresh_cache=False)
     return len(weights_df)
 
 
@@ -1409,7 +1409,8 @@ def main() -> None:
         logger.info("\n%s", "="*80)
         logger.info("CREATING DUCKDB VIEWS")
         logger.info("="*80)
-        database.create_views()
+        # database.create_views()
+        database.sync_to_duckdb_cache()
 
         # Summary
         logger.info("\n%s", "="*80)

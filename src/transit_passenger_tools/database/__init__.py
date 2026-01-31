@@ -1,15 +1,15 @@
 """Database utilities for transit passenger survey data lake.
 
 This package provides a modular interface for interacting with the survey data lake:
-- helpers: Low-level utilities (git, hashing, connections)
+- helpers: Low-level utilities (git, hashing, connections, cache checking)
 - validation: Schema enforcement and integrity checking
-- manager: High-level operations (ingestion, views, migrations)
+- manager: High-level operations (ingestion, cache sync, views, migrations)
 
 Example usage:
     from transit_passenger_tools.database import (
         ingest_survey_batch,
         query,
-        create_views,
+        sync_to_duckdb_cache,
     )
 """
 
@@ -20,6 +20,7 @@ from .helpers import (
     DATA_LAKE_ROOT,
     DUCKDB_PATH,
     LOCK_FILE,
+    check_cache_freshness,
     check_git_clean,
     compute_dataframe_hash,
     connect,
@@ -27,6 +28,7 @@ from .helpers import (
     get_latest_metadata,
     get_next_version,
     query,
+    query_parquet,
     write_session,
 )
 
@@ -40,6 +42,7 @@ from .manager import (
     ingest_survey_weights,
     inspect_database,
     run_migrations,
+    sync_to_duckdb_cache,
 )
 
 # Re-export public validation functions
@@ -66,6 +69,7 @@ __all__ = [
     "DUCKDB_PATH",
     "LOCK_FILE",
     "SCHEMA_VERSION",
+    "check_cache_freshness",
     "check_git_clean",
     "compute_dataframe_hash",
     "connect",
@@ -82,7 +86,9 @@ __all__ = [
     "inspect_database",
     "python_to_polars",
     "query",
+    "query_parquet",
     "run_migrations",
+    "sync_to_duckdb_cache",
     "validate_dataframe_schema",
     "validate_referential_integrity",
     "write_session",
