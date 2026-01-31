@@ -9,10 +9,12 @@ by worker vs air passenger
 Search for BART, AC Transit, SamTrans trips to/from SFO, OAK, SJC airports
 """
 
+import polars as pl
+
 from transit_passenger_tools.database import connect
 
 # Target operators
-OPERATORS = ["BART", "AC TRANSIT", "SamTrans"]
+OPERATORS = ["BART", "AC TRANSIT", "SAMTRANS"]
 
 # Airport coordinates (lat, lon) and proximity threshold
 AIRPORTS = {
@@ -52,3 +54,30 @@ query = f"""
 # We execute the query over duckdb and convert to polars dataframe
 df = conn.execute(query).pl()
 conn.close()
+
+# Assign airport trip type based on origin/destination proximity using Polars expressions
+# Create conditions for each airport
+conditions = []
+for airport, (lat, lon) in AIRPORTS.items():
+    # Destination is near airport
+    dest_near = (
+        (pl.col("dest_lat") - lat).abs() <= lat_buffer
+    ) & (
+        (pl.col("dest_lon") - lon).abs() <= lon_buffer
+    )
+    # Origin is near airport
+    orig_near = (
+        (pl.col("orig_lat") - lat).abs() <= lat_buffer
+    ) & (
+        (pl.col("orig_lon") - lon).abs() <= lon_buffer
+    )
+    conditions.append((dest_near, f"to_{airport}"))
+    conditions.append((orig_near, f"from_{airport}"))
+
+# Build when-then chain
+airport_type = pl.lit("non_airport_trip")
+for condition, value in reversed(conditions):
+    airport_type = pl.when(condition).then(pl.lit(value)).otherwise(airport_type)
+
+df = df.with_columns(airport_type.alias("airport_trip_type"))
+
