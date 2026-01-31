@@ -1,8 +1,8 @@
-"""Backfill the data lake with historical survey data from standardized CSV files.
+"""Backfill the Hive warehouse with historical survey data from standardized CSV files.
 
 This script reads survey_combined.csv from the most recent standardized data directory,
 validates the data against the Pydantic schema, and writes Parquet files partitioned
-by operator and year to the data lake.
+by operator and year to the Hive warehouse.
 
 Does not currently ingest survey_decomposition.csv, and ancillary_variables.csv.
 
@@ -1008,7 +1008,7 @@ def reorder_columns_to_match_schema(df: pl.DataFrame) -> pl.DataFrame:
 def ingest_survey_batches(
     df: pl.DataFrame, collect_errors: bool = False
 ) -> tuple[int, int, dict, dict]:
-    """Ingest survey data to the data lake, partitioned by operator and year.
+    """Ingest survey data to the Hive warehouse, partitioned by operator and year.
 
     Args:
         df: DataFrame to ingest
@@ -1147,7 +1147,7 @@ def validate_batch_collect_errors(
 def extract_and_ingest_metadata(
     df: pl.DataFrame, version_info: dict, collect_errors: bool = False
 ) -> int:
-    """Extract survey metadata and write to data lake.
+    """Extract survey metadata and write to Hive warehouse.
 
     Args:
         df: Survey data DataFrame
@@ -1251,14 +1251,14 @@ def extract_and_ingest_metadata(
             return len(valid_rows)
         logger.info("All %s metadata records validated successfully", len(metadata_df))
         return len(metadata_df)
-    # Write metadata to data lake (will fail on first error)
+    # Write metadata to Hive warehouse (will fail on first error)
     database.ingest_survey_metadata(metadata_df, validate=True, refresh_cache=False)
     return len(metadata_df)
 
 def extract_and_ingest_weights(
     df: pl.DataFrame, collect_errors: bool = False
 ) -> int:
-    """Extract survey weights and write to data lake.
+    """Extract survey weights and write to Hive warehouse.
 
     Args:
         df: Survey data DataFrame with weight and trip_weight columns
@@ -1325,7 +1325,7 @@ def extract_and_ingest_weights(
             return len(valid_rows)
         logger.info("All %s weight records validated successfully", len(weights_df))
         return len(weights_df)
-    # Write weights to data lake (will fail on first error)
+    # Write weights to Hive warehouse (will fail on first error)
     database.ingest_survey_weights(weights_df, validate=True, refresh_cache=False)
     return len(weights_df)
 
@@ -1419,7 +1419,7 @@ def main() -> None:
         logger.info("Survey data: %s batches, %s records", num_batches, f"{total_records:,}")
         logger.info("Metadata: %s survey combinations", num_metadata)
         logger.info("Weights: %s records", f"{num_weights:,}")
-        logger.info("Data lake: %s", database.DATA_LAKE_ROOT)
+        logger.info("Hive warehouse: %s", database.HIVE_ROOT)
         logger.info("DuckDB: %s", database.DUCKDB_PATH)
 
     except Exception:

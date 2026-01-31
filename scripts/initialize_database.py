@@ -1,4 +1,4 @@
-"""Initialize the DuckDB data lake for transit passenger surveys.
+"""Initialize the DuckDB Hive warehouse for transit passenger surveys.
 
 This script creates the folder structure and DuckDB database file with tables
 and views. Run this once before ingesting survey data.
@@ -22,17 +22,17 @@ logger = logging.getLogger(__name__)
 
 
 def create_folder_structure() -> None:
-    """Create the data lake folder structure."""
+    """Create the Hive warehouse folder structure."""
     for name in ["survey_responses", "survey_metadata", "survey_weights"]:
-        (database.DATA_LAKE_ROOT / name).mkdir(parents=True, exist_ok=True)
+        (database.HIVE_ROOT / name).mkdir(parents=True, exist_ok=True)
 
 
 def main() -> None:
     """Run initialization."""
-    logger.info("Transit Survey Data Lake Initialization")
+    logger.info("Transit Survey Hive Warehouse Initialization")
 
-    if not database.DATA_LAKE_ROOT.parent.exists():
-        logger.error("Network share not accessible: %s", database.DATA_LAKE_ROOT.parent)
+    if not database.HIVE_ROOT.parent.exists():
+        logger.error("Network share not accessible: %s", database.HIVE_ROOT.parent)
         sys.exit(1)
 
     logger.info("Creating folder structure...")
@@ -41,7 +41,7 @@ def main() -> None:
     logger.info("Running database migrations...")
     database.run_migrations()
 
-    logger.info("\nData lake initialized: %s", database.DATA_LAKE_ROOT)
+    logger.info("\nHive warehouse initialized: %s", database.HIVE_ROOT)
     logger.info("Next: Run backfill_database.py to populate data and create views")
 
 

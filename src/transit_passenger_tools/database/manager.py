@@ -16,8 +16,8 @@ from transit_passenger_tools.schemas.models import (
 )
 
 from .helpers import (
-    DATA_LAKE_ROOT,
     DUCKDB_PATH,
+    HIVE_ROOT,
     check_git_clean,
     compute_dataframe_hash,
     connect,
@@ -49,7 +49,7 @@ def ingest_survey_batch(
     refresh_cache: bool = True,
     require_clean_git: bool = True,
 ) -> tuple[Path, int, str, str]:
-    """Write survey batch to hive-partitioned Parquet.
+    """Write survey batch to Hive-partitioned Parquet storage.
 
     Args:
         df: DataFrame to ingest
@@ -74,7 +74,7 @@ def ingest_survey_batch(
     # Check for duplicate data
     data_hash = compute_dataframe_hash(df)
     duplicate_check = _check_duplicate_data(
-        canonical_operator, survey_year, data_hash, get_latest_metadata, DATA_LAKE_ROOT
+        canonical_operator, survey_year, data_hash, get_latest_metadata, HIVE_ROOT
     )
     if duplicate_check:
         return duplicate_check
@@ -95,7 +95,7 @@ def ingest_survey_batch(
 
     # Write data
     partition_dir = (
-        DATA_LAKE_ROOT
+        HIVE_ROOT
         / "survey_responses"
         / f"operator={canonical_operator}"
         / f"year={survey_year}"
@@ -111,7 +111,7 @@ def ingest_survey_batch(
         "Data changed (hash %s...), wrote %d records to %s (version %d, commit %s)",
         data_hash[:8],
         len(df),
-        output_path.relative_to(DATA_LAKE_ROOT),
+        output_path.relative_to(HIVE_ROOT),
         version,
         commit_id,
     )
@@ -143,7 +143,7 @@ def ingest_survey_metadata(
                 raise ValueError(msg) from e
         logger.info("Validated %d metadata rows", len(df))
 
-    metadata_dir = DATA_LAKE_ROOT / "survey_metadata"
+    metadata_dir = HIVE_ROOT / "survey_metadata"
     metadata_dir.mkdir(parents=True, exist_ok=True)
     output_path = metadata_dir / "metadata.parquet"
 
@@ -185,7 +185,7 @@ def ingest_survey_weights(
                 raise ValueError(msg) from e
         logger.info("Validated %d weight rows", len(df))
 
-    weights_dir = DATA_LAKE_ROOT / "survey_weights"
+    weights_dir = HIVE_ROOT / "survey_weights"
     weights_dir.mkdir(parents=True, exist_ok=True)
     output_path = weights_dir / "weights.parquet"
 
@@ -216,7 +216,7 @@ def get_row_count(view_name: str) -> int:
 
 
 def inspect_database() -> None:
-    """Print summary of data lake views/tables."""
+    """Print summary of Hive warehouse views/tables."""
     conn = connect(read_only=True)
     try:
         tables = conn.execute("SHOW TABLES").pl()
@@ -284,7 +284,7 @@ def run_migrations() -> None:
 
 
 def sync_to_duckdb_cache() -> None:
-    """Sync Parquet data into DuckDB tables for fast BI tool access.
+    """Sync Hive-partitioned Parquet data into DuckDB tables for fast BI tool access.
 
     Drops and recreates tables from Parquet files. Tables are stored in the
     .duckdb file for fast access from Tableau, DBeaver, etc. Parquet files
@@ -292,7 +292,7 @@ def sync_to_duckdb_cache() -> None:
 
     This should be called after ingesting new data or metadata.
     """
-    logger.info("Syncing Parquet data to DuckDB cache...")
+    logger.info("Syncing Hive-partitioned Parquet data to DuckDB cache...")
 
     with write_session() as conn:
         # Create cache metadata table if not exists
@@ -306,7 +306,7 @@ def sync_to_duckdb_cache() -> None:
 
         # Sync survey_responses (latest version only)
         logger.info("  Syncing survey_responses...")
-        survey_responses_pattern = f"{DATA_LAKE_ROOT}/survey_responses/**/data-*.parquet"
+        survey_responses_pattern = f"{HIVE_ROOT}/survey_responses/**/data-*.parquet"
         conn.execute("DROP TABLE IF EXISTS survey_responses")
         conn.execute(
             f"""
@@ -368,7 +368,7 @@ def sync_to_duckdb_cache() -> None:
         logger.info("    Cached %s rows", f"{all_versions_count:,}")
 
         # Sync survey_metadata (only if file exists)
-        metadata_file = DATA_LAKE_ROOT / "survey_metadata" / "metadata.parquet"
+        metadata_file = HIVE_ROOT / "survey_metadata" / "metadata.parquet"
         if metadata_file.exists():
             logger.info("  Syncing survey_metadata...")
             conn.execute("DROP TABLE IF EXISTS survey_metadata")
@@ -391,7 +391,7 @@ def sync_to_duckdb_cache() -> None:
             logger.warning("    Skipped survey_metadata (file does not exist yet)")
 
         # Sync survey_weights (only if file exists)
-        weights_file = DATA_LAKE_ROOT / "survey_weights" / "weights.parquet"
+        weights_file = HIVE_ROOT / "survey_weights" / "weights.parquet"
         if weights_file.exists():
             logger.info("  Syncing survey_weights...")
             conn.execute("DROP TABLE IF EXISTS survey_weights")

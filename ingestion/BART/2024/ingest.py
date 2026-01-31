@@ -1,4 +1,4 @@
-"""Ingest BART 2024 survey data into the data lake."""
+"""Ingest BART 2024 survey data into the Hive warehouse."""
 
 import polars as pl
 import preprocessing
@@ -146,7 +146,7 @@ def main() -> None:
 
     print("\n" + "=" * 80)
     print("COMPLETE")
-    print("Data location: E:\\_data_lake\\survey_responses\\operator=BART\\year=2024\\")
+    print("Data location: E:\\_transit_data_hive\\survey_responses\\operator=BART\\year=2024\\")
     print("=" * 80)
 
 

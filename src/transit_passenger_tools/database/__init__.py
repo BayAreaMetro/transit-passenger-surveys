@@ -1,6 +1,6 @@
-"""Database utilities for transit passenger survey data lake.
+"""Database utilities for transit passenger survey Hive warehouse.
 
-This package provides a modular interface for interacting with the survey data lake:
+This package provides a modular interface for interacting with the survey Hive warehouse:
 - helpers: Low-level utilities (git, hashing, connections, cache checking)
 - validation: Schema enforcement and integrity checking
 - manager: High-level operations (ingestion, cache sync, views, migrations)
@@ -17,8 +17,8 @@ import polars as pl
 
 # Re-export public helpers
 from .helpers import (
-    DATA_LAKE_ROOT,
     DUCKDB_PATH,
+    HIVE_ROOT,
     LOCK_FILE,
     check_cache_freshness,
     check_git_clean,
@@ -65,8 +65,8 @@ python_to_polars = {
 }
 
 __all__ = [
-    "DATA_LAKE_ROOT",
     "DUCKDB_PATH",
+    "HIVE_ROOT",
     "LOCK_FILE",
     "SCHEMA_VERSION",
     "check_cache_freshness",

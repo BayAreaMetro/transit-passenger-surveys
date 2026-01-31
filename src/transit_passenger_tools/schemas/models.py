@@ -616,7 +616,7 @@ class DerivedSurveyResponse(CoreSurveyResponse):
 
     # ========== Vendor Pass-Through ==========
     extra_fields: dict[str, Any] | None = Field(
-        None, description="Vendor-specific non-standard fields preserved for data lake"
+        None, description="Vendor-specific non-standard fields preserved in Hive warehouse"
     )
 
 

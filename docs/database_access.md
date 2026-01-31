@@ -2,7 +2,7 @@
 
 ## Connection Details
 
-**Database Path:** `\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_data_lake\surveys.duckdb`
+**Database Path:** `\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_transit_data_hive\surveys.duckdb`
 
 **Database Type:** DuckDB
 
@@ -43,7 +43,7 @@ import duckdb
 
 # Read-only connection
 conn = duckdb.connect(
-    r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_data_lake\surveys.duckdb",
+    r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_transit_data_hive\surveys.duckdb",
     read_only=True
 )
 

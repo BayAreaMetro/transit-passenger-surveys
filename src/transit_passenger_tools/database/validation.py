@@ -9,7 +9,7 @@ import polars as pl
 
 from transit_passenger_tools.schemas.models import SurveyResponse
 
-from .helpers import DATA_LAKE_ROOT, connect
+from .helpers import HIVE_ROOT, connect
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,7 @@ def validate_dataframe_schema(df: pl.DataFrame, strict: bool = True) -> None:
 
 
 def validate_referential_integrity() -> dict[str, int]:
-    """Validate foreign key relationships in the data lake.
+    """Validate foreign key relationships in the Hive warehouse.
 
     Checks:
     1. All SurveyWeight.response_id values reference existing SurveyResponse.response_id
@@ -206,7 +206,7 @@ def _check_schema_compatibility(
 ) -> None:
     """Check if new data schema is compatible with existing data."""
     partition_dir = (
-        DATA_LAKE_ROOT
+        HIVE_ROOT
         / "survey_responses"
         / f"operator={canonical_operator}"
         / f"year={survey_year}"
@@ -252,7 +252,7 @@ def _check_duplicate_data(
     survey_year: int,
     data_hash: str,
     get_latest_metadata: Callable[[str, int], dict[str, str | int] | None],
-    data_lake_root: Path,
+    hive_root: Path,
 ) -> tuple[Path, int, str, str] | None:
     """Check if identical data already exists. Returns existing version info if found."""
     existing_metadata = get_latest_metadata(canonical_operator, survey_year)
@@ -262,7 +262,7 @@ def _check_duplicate_data(
     existing_version = int(existing_metadata["version"])
     existing_commit = str(existing_metadata["commit"])
     partition_dir = (
-        data_lake_root
+        hive_root
         / "survey_responses"
         / f"operator={canonical_operator}"
         / f"year={survey_year}"

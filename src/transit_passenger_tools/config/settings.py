@@ -45,8 +45,8 @@ class PipelineConfig(BaseModel):
     # Coordinate reference systems
     crs: dict[str, int] = Field(description="CRS EPSG codes")
 
-    # Data lake configuration
-    data_lake_root: str = Field(description="Root path to data lake storage")
+    # Hive warehouse configuration
+    hive_root: str = Field(description="Root path to Hive-partitioned storage")
 
     # Reference data paths
     canonical_route_crosswalk_path: str = Field(description="Path to canonical route crosswalk CSV")
@@ -110,12 +110,12 @@ class PipelineConfig(BaseModel):
             raise FileNotFoundError(msg)
         return v
 
-    @field_validator("data_lake_root")
+    @field_validator("hive_root")
     @classmethod
-    def validate_data_lake_path(cls, v: str) -> str:
-        """Validate that data lake root exists."""
+    def validate_hive_path(cls, v: str) -> str:
+        """Validate that Hive warehouse root exists."""
         if not Path(v).exists():
-            msg = f"Data lake root not found: {v}"
+            msg = f"Hive warehouse root not found: {v}"
             raise FileNotFoundError(msg)
         return v
 

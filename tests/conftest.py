@@ -20,8 +20,8 @@ def setup_test_environment():
     fixtures_dir = Path("tests/fixtures")
     fixtures_dir.mkdir(parents=True, exist_ok=True)
 
-    test_data_lake = fixtures_dir / "test_data_lake"
-    test_data_lake.mkdir(exist_ok=True)
+    test_hive = fixtures_dir / "test_hive"
+    test_hive.mkdir(exist_ok=True)
 
     # Generate test shapefiles
     _create_test_shapefiles(fixtures_dir)

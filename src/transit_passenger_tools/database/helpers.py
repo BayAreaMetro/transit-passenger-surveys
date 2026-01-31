@@ -1,5 +1,7 @@
 """Database helper utilities for git, hashing, versioning, and connections."""
 
+# ruff: noqa: S608
+
 import hashlib
 import io
 import logging
@@ -7,6 +9,7 @@ import os
 import re
 from collections.abc import Generator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -23,13 +26,13 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Load data lake root from config
+# Load Hive warehouse root from config
 _config_path = Path(os.getenv("PIPELINE_CONFIG", "config/pipeline.yaml"))
 with _config_path.open() as f:
-    DATA_LAKE_ROOT = Path(yaml.safe_load(f)["data_lake_root"])
+    HIVE_ROOT = Path(yaml.safe_load(f)["hive_root"])
 
-DUCKDB_PATH = DATA_LAKE_ROOT / "surveys.duckdb"
-LOCK_FILE = DATA_LAKE_ROOT / ".surveys.lock"
+DUCKDB_PATH = HIVE_ROOT / "surveys.duckdb"
+LOCK_FILE = HIVE_ROOT / ".surveys.lock"
 
 
 def get_git_commit() -> str:
@@ -208,11 +211,11 @@ def write_session() -> Generator[duckdb.DuckDBPyConnection, None, None]:
             LOCK_FILE.unlink()
 
 
-def check_cache_freshness() -> dict[str, bool]:
+def check_cache_freshness() -> dict[str, bool | str]:
     """Check if DuckDB cache is stale compared to Parquet files.
 
     Compares last_synced_at timestamp from cache_metadata table against
-    newest file modification time in the data lake.
+    newest file modification time in the Hive warehouse.
 
     Returns:
         Dict with keys 'is_fresh' (bool) and 'message' (str)
@@ -233,11 +236,11 @@ def check_cache_freshness() -> dict[str, bool]:
 
             last_sync = result[0]
 
-            # Find newest Parquet file in data lake
+            # Find newest Parquet file in Hive warehouse
             newest_mtime = 0.0
             newest_file = None
 
-            for parquet_file in DATA_LAKE_ROOT.rglob("*.parquet"):
+            for parquet_file in HIVE_ROOT.rglob("*.parquet"):
                 mtime = parquet_file.stat().st_mtime
                 if mtime > newest_mtime:
                     newest_mtime = mtime
@@ -246,22 +249,18 @@ def check_cache_freshness() -> dict[str, bool]:
             if newest_file is None:
                 return {
                     "is_fresh": True,
-                    "message": "No Parquet files found in data lake.",
+                    "message": "No Parquet files found in Hive warehouse.",
                 }
 
             # Compare timestamps (convert mtime to datetime for comparison)
-            from datetime import datetime, timezone
-
-            newest_file_time = datetime.fromtimestamp(newest_mtime, tz=timezone.utc)
+            newest_file_time = datetime.fromtimestamp(newest_mtime, tz=UTC)
 
             # Parse last_sync if it's a string
             if isinstance(last_sync, str):
-                from datetime import datetime
-
-                last_sync = datetime.fromisoformat(last_sync.replace("Z", "+00:00"))
+                last_sync = datetime.fromisoformat(last_sync)
 
             if newest_file_time > last_sync:
-                relative_path = newest_file.relative_to(DATA_LAKE_ROOT)
+                relative_path = newest_file.relative_to(HIVE_ROOT)
                 return {
                     "is_fresh": False,
                     "message": f"Cache is stale. Newest file: {relative_path} "
@@ -282,7 +281,7 @@ def check_cache_freshness() -> dict[str, bool]:
             "is_fresh": False,
             "message": "Cache metadata table doesn't exist. Run sync_to_duckdb_cache().",
         }
-    except Exception as e:
+    except (OSError, ValueError) as e:
         logger.warning("Could not check cache freshness: %s", e)
         return {
             "is_fresh": False,
@@ -305,7 +304,7 @@ def query_parquet(sql: str) -> pl.DataFrame:
     conn = duckdb.connect(":memory:")
     try:
         # Create temporary views over Parquet files
-        survey_responses_pattern = f"{DATA_LAKE_ROOT}/survey_responses/**/data-*.parquet"
+        survey_responses_pattern = f"{HIVE_ROOT}/survey_responses/**/data-*.parquet"
         conn.execute(
             f"""
             CREATE OR REPLACE VIEW survey_responses AS
@@ -349,7 +348,7 @@ def query_parquet(sql: str) -> pl.DataFrame:
         )
 
         # Create metadata view if file exists
-        metadata_file = DATA_LAKE_ROOT / "survey_metadata" / "metadata.parquet"
+        metadata_file = HIVE_ROOT / "survey_metadata" / "metadata.parquet"
         if metadata_file.exists():
             conn.execute(
                 f"""
@@ -362,7 +361,7 @@ def query_parquet(sql: str) -> pl.DataFrame:
             )
 
         # Create weights view if file exists
-        weights_file = DATA_LAKE_ROOT / "survey_weights" / "weights.parquet"
+        weights_file = HIVE_ROOT / "survey_weights" / "weights.parquet"
         if weights_file.exists():
             conn.execute(
                 f"""

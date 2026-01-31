@@ -7,15 +7,15 @@ from transit_passenger_tools import database
 
 
 @pytest.fixture
-def temp_data_lake(monkeypatch, tmp_path):
-    """Create a temporary data lake directory."""
-    test_lake = tmp_path / "test_data_lake"
-    test_lake.mkdir()
+def temp_hive(monkeypatch, tmp_path):
+    """Create a temporary Hive warehouse directory."""
+    test_hive = tmp_path / "test_hive"
+    test_hive.mkdir()
 
-    # Patch DATA_LAKE_ROOT to use temp directory
-    monkeypatch.setattr(database, "DATA_LAKE_ROOT", test_lake)
+    # Patch HIVE_ROOT to use temp directory
+    monkeypatch.setattr(database, "HIVE_ROOT", test_hive)
 
-    return test_lake
+    return test_hive
 
 
 @pytest.fixture
@@ -62,10 +62,10 @@ def new_schema_data():
     )
 
 
-def test_schema_mismatch_column_rename_detected(temp_data_lake, old_schema_data, new_schema_data):
+def test_schema_mismatch_column_rename_detected(temp_hive, old_schema_data, new_schema_data):
     """Test that column rename (hispanic → is_hispanic) is detected."""
     # Write old schema data to partition
-    partition_dir = temp_data_lake / "survey_responses" / "operator=TEST" / "year=2020"
+    partition_dir = temp_hive / "survey_responses" / "operator=TEST" / "year=2020"
     partition_dir.mkdir(parents=True)
     old_file = partition_dir / "data-1-test.parquet"
     old_schema_data.write_parquet(old_file)
@@ -80,10 +80,10 @@ def test_schema_mismatch_column_rename_detected(temp_data_lake, old_schema_data,
         )
 
 
-def test_schema_mismatch_error_message_content(temp_data_lake, old_schema_data, new_schema_data):
+def test_schema_mismatch_error_message_content(temp_hive, old_schema_data, new_schema_data):
     """Test that error message contains helpful information."""
     # Write old schema data
-    partition_dir = temp_data_lake / "survey_responses" / "operator=TEST" / "year=2020"
+    partition_dir = temp_hive / "survey_responses" / "operator=TEST" / "year=2020"
     partition_dir.mkdir(parents=True)
     old_file = partition_dir / "data-1-test.parquet"
     old_schema_data.write_parquet(old_file)
@@ -106,7 +106,7 @@ def test_schema_mismatch_error_message_content(temp_data_lake, old_schema_data, 
     assert f"Current schema version: {database.SCHEMA_VERSION}" in error_msg
 
 
-def test_schema_mismatch_type_change_detected(temp_data_lake):
+def test_schema_mismatch_type_change_detected(temp_hive):
     """Test that type changes for same column are detected."""
     # Create data with different types for same column
     old_data = pl.DataFrame(
@@ -128,7 +128,7 @@ def test_schema_mismatch_type_change_detected(temp_data_lake):
     )
 
     # Write old schema
-    partition_dir = temp_data_lake / "survey_responses" / "operator=TEST" / "year=2020"
+    partition_dir = temp_hive / "survey_responses" / "operator=TEST" / "year=2020"
     partition_dir.mkdir(parents=True)
     old_data.write_parquet(partition_dir / "data-1-test.parquet")
 
@@ -139,7 +139,7 @@ def test_schema_mismatch_type_change_detected(temp_data_lake):
         )
 
 
-def test_schema_compatible_ingestion_succeeds(temp_data_lake):
+def test_schema_compatible_ingestion_succeeds(temp_hive):
     """Test that ingestion succeeds when schemas match."""
     # Create compatible data (same schema)
     first_batch = pl.DataFrame(
@@ -175,7 +175,7 @@ def test_schema_compatible_ingestion_succeeds(temp_data_lake):
     )
 
     # Write first batch
-    partition_dir = temp_data_lake / "survey_responses" / "operator=TEST" / "year=2020"
+    partition_dir = temp_hive / "survey_responses" / "operator=TEST" / "year=2020"
     partition_dir.mkdir(parents=True)
     first_batch.write_parquet(partition_dir / "data-1-test.parquet")
 
@@ -191,7 +191,7 @@ def test_schema_compatible_ingestion_succeeds(temp_data_lake):
         raise
 
 
-@pytest.mark.usefixtures("temp_data_lake")
+@pytest.mark.usefixtures("temp_hive")
 def test_new_partition_no_schema_check(new_schema_data):
     """Test that new partitions (no existing data) don't trigger schema checks."""
     # Ingest into fresh partition (no existing files)
@@ -209,7 +209,7 @@ def test_new_partition_no_schema_check(new_schema_data):
         raise
 
 
-def test_schema_check_multiple_issues(temp_data_lake):
+def test_schema_check_multiple_issues(temp_hive):
     """Test that multiple schema issues are all reported."""
     # Old schema with multiple columns
     old_data = pl.DataFrame(
@@ -236,7 +236,7 @@ def test_schema_check_multiple_issues(temp_data_lake):
     )
 
     # Write old schema
-    partition_dir = temp_data_lake / "survey_responses" / "operator=TEST" / "year=2020"
+    partition_dir = temp_hive / "survey_responses" / "operator=TEST" / "year=2020"
     partition_dir.mkdir(parents=True)
     old_data.write_parquet(partition_dir / "data-1-test.parquet")
 
@@ -257,7 +257,7 @@ def test_schema_check_multiple_issues(temp_data_lake):
     assert "Type mismatch" in error_msg or "type mismatch" in error_msg.lower()
 
 
-def test_schema_check_with_additional_columns(temp_data_lake):
+def test_schema_check_with_additional_columns(temp_hive):
     """Test that adding new columns (non-breaking change) is allowed."""
     # Old schema
     old_data = pl.DataFrame(
@@ -281,7 +281,7 @@ def test_schema_check_with_additional_columns(temp_data_lake):
     )
 
     # Write old schema
-    partition_dir = temp_data_lake / "survey_responses" / "operator=TEST" / "year=2020"
+    partition_dir = temp_hive / "survey_responses" / "operator=TEST" / "year=2020"
     partition_dir.mkdir(parents=True)
     old_data.write_parquet(partition_dir / "data-1-test.parquet")
 

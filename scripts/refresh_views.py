@@ -1,6 +1,6 @@
 """Refresh DuckDB views after schema changes or new data ingestion.
 
-This script recreates all DuckDB views over the Parquet data lake.
+This script recreates all DuckDB views over the Hive-partitioned Parquet files.
 Run this after:
 - Schema migrations
 - Ingesting new survey data with potentially different column types
