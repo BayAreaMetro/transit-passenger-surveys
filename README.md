@@ -18,12 +18,13 @@ Transit agencies conduct passenger surveys with varying formats, variable names,
 - Ensure data quality through validation
 
 
-## Workplan (Last updated: 01/13/2026)
+## Workplan (Last updated: 02/03/2026)
 - [x] Create placeholder installable `transit_passenger_surveys` Python package in repo
 - [x] Standardized canonical onboard survey schema from `instrument-and-dictionary`
-- [x] Create SQLite database with Pydantic models and Alembic migrations
+- [x] Create Hive-partitioned database with Pydantic models and version control
 - [x] Implement 3-tier field validation (Required/Optional-Enriched/Optional)
-- [x] Backfill existing survey data into database (186,594 records from 26 operators)
+- [x] Backfill existing survey data into database (186,792 records from 27 operators, 2012-2023)
+- [x] Refactor initialization scripts into modular structure (`initialize_helpers/`)
 - [ ] Create Python `requests` scripts to replace R code in `requests` folder
 - [ ] Create new survey ingestion workflow
 - [ ] Migrate `summaries` code into `transit_passenger_surveys` package
@@ -46,9 +47,10 @@ All of this has been moved into `archive` folder and will be maintained there fo
 
 ## Database Viewing
 
-You can query the SQLite using any tool of your choice. Some options:
-- **DB Browser for SQLite** (GUI): [https://sqlitebrowser.org/](https://sqlitebrowser.org/)
-- **DBeaver** (GUI): [https://dbeaver.io/](https://dbeaver.io/) -- I use this because it works for multiple database types (SQLite, PostgreSQL, MySQL, SQL Server, etc.)
+You can query the DuckDB cache or Parquet files directly using any tool of your choice. Some options:
+- **DBeaver** (GUI): [https://dbeaver.io/](https://dbeaver.io/) - Works with DuckDB, Parquet, and many other formats
+- **DuckDB CLI**: Native command-line interface for DuckDB files
+- **Python (Polars/DuckDB)**: Read Parquet files or DuckDB tables programmatically
 
 
 
@@ -57,26 +59,72 @@ You can query the SQLite using any tool of your choice. Some options:
 ```bash
 # Install package in development mode
 uv sync
+```
 
-# Initialize database
-uv run alembic upgrade head
+## Database Setup
+
+### Initialize Database (Single Command)
+
+To create the database, backfill legacy data, and apply corrections:
+
+```bash
+uv run python scripts/initialize_database.py
+```
+
+This single script will:
+1. Create Hive warehouse folder structure (`survey_responses/`, `survey_metadata/`, `survey_weights/`)
+2. Run database migrations
+3. Backfill all legacy survey data from `standardized_2025-10-13/survey_combined.csv`
+   - **186,792 survey responses** from 27 operators (2012-2023)
+   - 74 batches (operator/year combinations)
+   - Validates all records against Pydantic schema during ingestion
+4. Apply data corrections (e.g., fix ACE 2023 commuter_rail_present field)
+5. Refresh DuckDB cache for fast querying
+
+**Configuration**: The standardized data directory and CSV filename are set as constants at the top of `scripts/initialize_database.py`:
+```python
+STANDARDIZED_DIR = Path(r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_data_Standardized\standardized_2025-10-13")
+CSV_FILENAME = "survey_combined.csv"
+```
+
+**Note**: The script uses version control - if data hasn't changed, it will skip writing and log "Data unchanged, reusing version X". To force a clean re-initialization, delete the Hive warehouse directory first.
+
+### Data Processing Pipeline
+
+The backfill process (`initialize_helpers/` modules) includes:
+- **Data loading** (`backfill_loader.py`): CSV reading with schema inference
+- **Transformations** (`backfill_transformations.py`): Type conversions, boolean fields, word-to-number conversion
+- **Normalization** (`backfill_normalization.py`): Text standardization, sentence case, acronym handling
+- **Typo fixes** (`backfill_typo_fixes.py`): 15+ field-specific value mappings and corrections
+- **Validation** (`backfill_validation.py`): Pydantic schema validation with detailed error reporting
+- **Ingestion** (`backfill_ingestion.py`): Write to Hive-partitioned Parquet files with versioning
+
+### Manual Steps (Advanced)
+
+If you need to run corrections separately:
+
+```bash
+# Fix ACE 2023 commuter rail data
+uv run python -c "from initialize_helpers.fix_ace_commuter_rail import fix_ace_commuter_rail; fix_ace_commuter_rail()"
+
+# Refresh DuckDB cache only
+uv run python scripts/refresh_cache.py
 ```
 
 ## Database Configuration
 
-The canonical survey database is stored at:
+The database uses a Hive-partitioned Parquet file structure stored at:
 ```
-\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_data_Standardized\transit_surveys.db
+\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_transit_data_hive
 (accessible via M: drive mapping)
 ```
 
-This path is configured in `alembic.ini`. To change the database location, update the `sqlalchemy.url` setting.
+**Structure**:
+- `survey_responses/` - Partitioned by `operator=<name>/year=<yyyy>/data-<version>-<commit>.parquet`
+- `survey_metadata/` - Survey-level information (dates, source, version tracking)
+- `survey_weights/` - Response weights (boarding_weight, trip_weight)
 
-### Current Database Contents
-
-- **186,594 survey responses** from 26 operators (2011-2024)
-- **203 standardized fields** with 3-tier validation (Required/Optional-Enriched/Optional)
-- **Unique IDs** for all responses, no duplicates
+**DuckDB Cache**: A DuckDB file at `_transit_data_hive/transit_surveys.duckdb` provides fast querying over the Parquet files.
 
 ## Quick Start
 
@@ -119,73 +167,28 @@ The canonical data model uses a flat structure optimized for analysis:
 
 ### 3-Tier Field Classification
 
-**Tier 1 (Required)** - ~50 core fields always present:
-- Survey identifiers (`unique_id`, `survey_name`, `survey_year`)
-- Core demographics (`gender`, `race`, `hispanic`)
-- Trip basics (`route`, `direction`, `access_mode`, `egress_mode`)
-- Trip purpose (`trip_purp`, `orig_purp`, `dest_purp`)
+**Core Fields (CoreSurveyResponse)** - ~90 vendor-provided fields:
+- Survey identifiers (`response_id`, `survey_id`, `original_id`)
+- Trip basics (`route`, `direction`, `access_mode`, `egress_mode`, `trip_purp`, `orig_purp`, `dest_purp`)
+- Demographics (`gender`, `is_hispanic`, `race`, `work_status`, `student_status`)
+- Household (`persons`, `workers`, `vehicles`, `household_income`)
+- Coordinates (lat/lon for origin, destination, home, work, school, board/alight locations)
+- Transfer information (operator, routes, technology)
+- Time and fare (`depart_hour`, `return_hour`, `day_of_the_week`, `fare_medium`, `fare_category`)
 
-**Tier 2 (Optional-Enriched)** - ~90 geocoded/derived fields:
-- Geographic identifiers (GEOID, TAZ, MAZ)
-- Coordinates (lat/lon for all activity locations)
-- Calculated distances
-- Census geographies
+**Derived Fields (DerivedSurveyResponse)** - ~110 pipeline-calculated fields:
+- Time classifications (`day_part`, `weekpart`, `time_period`)
+- Tour logic (`tour_purp`, `tour_purp_case`, at_work/school flags)
+- Mode presence flags (commuter_rail, heavy_rail, express_bus, ferry, light_rail)
+- Distance calculations (origin-destination, board-alight, access/egress distances)
+- Travel model zones (MAZ, TAZ, TAP for TM1/TM2)
+- Census geographies (tract, county, PUMA GEOIDs)
+- Calculated fields (`boardings`, `auto_to_workers_ratio`, `year_born_four_digit`)
 
-**Tier 3 (Optional)** - ~60 sparse/conditional fields:
-- Transfer information (only for multi-leg trips)
-- Work/school locations (only for workers/students)
-- Household details (vehicles, income)
-- Mode presence flags
+**Complete Schema (SurveyResponse)** - ~200+ total fields:
+- All Core + Derived fields
+- Reserved for future validation/metadata fields
 
-### Key Field Groups
-
-**Survey Metadata**
-```python
-unique_id: str                    # Unique record identifier
-survey_name: str                  # "AC Transit", "BART", etc.
-survey_year: int                  # 2018, 2019, etc.
-survey_type: SurveyType          # brief_cati, tablet_pi, paper, etc.
-weight: float                     # Expansion weight
-```
-
-**Person Demographics**
-```python
-gender: Gender                    # Male, Female, Other
-approximate_age: Optional[int]    # Derived from year_born
-race: Race                        # White, Asian, Black, etc.
-hispanic: Hispanic                # Hispanic/Latino or not
-work_status: WorkStatus          # Full-time, part-time, non-worker
-interview_language: str          # English, Spanish, Chinese, etc.
-```
-
-**Trip Characteristics**
-```python
-orig_purp: TripPurpose           # home, work, school, shopping
-dest_purp: TripPurpose           # Destination purpose
-access_mode: AccessEgressMode    # walk, bike, pnr, knr, tnc
-egress_mode: AccessEgressMode    # How they leave transit
-route: str                        # Route number/name
-direction: Direction              # Northbound, Southbound, etc.
-```
-
-**Geographic Fields (Tier 2 - Optional)**
-```python
-orig_lat: Optional[float]
-orig_lon: Optional[float]
-orig_tract_GEOID: Optional[str]
-orig_taz: Optional[int]           # Travel Analysis Zone
-dest_lat: Optional[float]
-dest_lon: Optional[float]
-# ... similar for home, work, school, board/alight locations
-```
-
-**Household (Tier 3 - Optional)**
-```python
-persons: Optional[int]            # Household size
-vehicles: Optional[int]           # Number of vehicles
-workers: Optional[int]            # Number of workers
-household_income: Optional[str]   # Income bracket
-```
 
 ## Usage Examples
 

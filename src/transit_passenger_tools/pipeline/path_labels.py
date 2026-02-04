@@ -1,6 +1,7 @@
 """Path labels transformation module.
 
 Derives path-related summary fields from technology columns:
+- Route generation (operator + stations for rail surveys)
 - Technology short codes (LB, EB, LR, HR, CR, FR)
 - Technology usage flags (usedLB, usedEB, etc.)
 - BEST_MODE (highest in hierarchy)
@@ -14,6 +15,10 @@ from transit_passenger_tools.schemas.codebook import (
     DayPart,
     TechnologyType,
 )
+
+# Delimiters for route generation (matching legacy R code)
+OPERATOR_DELIMITER = "___"
+ROUTE_DELIMITER = "&&&"
 
 # Technology short codes derived from enum
 TECH_SHORT_CODES = {
@@ -33,10 +38,11 @@ DAY_PART_TO_PERIOD = {
 }
 
 
-def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:
+def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:  # noqa: C901
     """Transform path-related fields.
 
     Creates:
+    - route: Generated from operator + stations (if not already provided)
     - survey_mode: Short code for vehicle_tech
     - first_board_mode: Short code for first_board_tech
     - last_alight_mode: Short code for last_alight_tech
@@ -62,6 +68,28 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:
         raise ValueError(msg)
 
     result_df = df
+
+    # Generate route field if not already present or if NULL
+    # Pattern: {OPERATOR}___{enter_station}&&&{exit_station}
+    if "route" not in result_df.columns or result_df["route"].is_null().all():
+        route_cols_exist = all(
+            col in result_df.columns
+            for col in ["canonical_operator", "onoff_enter_station", "onoff_exit_station"]
+        )
+
+        if route_cols_exist:
+            result_df = result_df.with_columns(
+                pl.concat_str([
+                    pl.col("canonical_operator"),
+                    pl.lit(OPERATOR_DELIMITER),
+                    pl.col("onoff_enter_station"),
+                    pl.lit(ROUTE_DELIMITER),
+                    pl.col("onoff_exit_station")
+                ]).alias("route")
+            )
+        elif "route" not in result_df.columns:
+            # Add NULL route column if we can't generate it
+            result_df = result_df.with_columns(pl.lit(None).cast(pl.Utf8).alias("route"))
 
     # Map technology names to short codes using when/then chains for null safety
     def map_tech_to_short(col_name: str) -> pl.Expr:
