@@ -6,11 +6,29 @@ Implements R Build_Standard_Database.R Lines 864-970 logic.
 
 import polars as pl
 
+from transit_passenger_tools.schemas import FieldDependencies
 from transit_passenger_tools.schemas.codebook import (
     StudentStatus,
     TourPurpose,
     TripPurpose,
     WorkStatus,
+)
+
+# Field dependencies
+FIELD_DEPENDENCIES = FieldDependencies(
+    inputs=[
+        "orig_purp",
+        "dest_purp",
+        "trip_purp",
+        "work_status",
+        "student_status",
+        "approximate_age",
+        "at_work_prior_to_orig_purp",
+        "at_work_after_dest_purp",
+        "at_school_prior_to_orig_purp",
+        "at_school_after_dest_purp",
+    ],
+    outputs=["tour_purp", "tour_purp_case"],
 )
 
 # Age thresholds for school categorization

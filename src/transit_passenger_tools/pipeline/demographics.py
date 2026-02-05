@@ -8,7 +8,26 @@ This module standardizes demographic fields including:
 
 import polars as pl
 
+from transit_passenger_tools.schemas import FieldDependencies
 from transit_passenger_tools.schemas.codebook import Language, Race
+
+# Field dependencies
+FIELD_DEPENDENCIES = FieldDependencies(
+    inputs=[
+        "race_dmy_ind",
+        "race_dmy_asn",
+        "race_dmy_blk",
+        "race_dmy_hwi",
+        "race_dmy_wht",
+        "race_dmy_mdl_estn",
+        "race_dmy_oth",
+        "race_cat",
+        "language_at_home",
+        "fare_medium",
+        "fare_medium_detail",
+    ],
+    outputs=["race", "language_at_home", "fare_medium"],
+)
 
 # Minimum length for race text fields to be considered valid
 MIN_RACE_TEXT_LENGTH = 2

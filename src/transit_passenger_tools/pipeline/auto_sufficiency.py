@@ -6,7 +6,14 @@ to number of workers.
 
 import polars as pl
 
+from transit_passenger_tools.schemas import FieldDependencies
 from transit_passenger_tools.schemas.codebook import AutoRatioCategory
+
+# Field dependencies
+FIELD_DEPENDENCIES = FieldDependencies(
+    inputs=["vehicles", "workers"],
+    outputs=["vehicle_numeric", "worker_numeric", "auto_to_workers_ratio"],
+)
 
 # Mapping from text to numeric values
 VEHICLE_WORKER_MAPPING = {

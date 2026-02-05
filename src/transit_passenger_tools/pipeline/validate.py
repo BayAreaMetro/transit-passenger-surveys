@@ -18,15 +18,62 @@ For categorical fields, MISSING enum values distinguish "not asked" from process
 """
 
 import logging
+import types
 from enum import Enum
-from typing import get_args, get_origin
+from typing import Union, get_args, get_origin
 
 import polars as pl
 from pydantic.fields import FieldInfo
 
+from transit_passenger_tools.pipeline import (
+    auto_sufficiency,
+    date_time,
+    demographics,
+    geocoding,
+    path_labels,
+    tour_purpose,
+    transfers,
+)
 from transit_passenger_tools.schemas.models import CoreSurveyResponse
 
 logger = logging.getLogger(__name__)
+
+
+def get_field_dependencies() -> dict[str, list[str]]:
+    """Get field dependencies from all pipeline modules.
+
+    Returns:
+        Dictionary mapping each output field to its required input fields.
+        Example: {"tour_purp": ["orig_purp", "dest_purp", "work_status"], ...}
+    """
+    # Import pipeline modules dynamically to read their FIELD_DEPENDENCIES
+    modules = [
+        auto_sufficiency,
+        date_time,
+        demographics,
+        geocoding,
+        path_labels,
+        tour_purpose,
+        transfers,
+    ]
+
+    dependencies = {}
+
+    for module in modules:
+        if not hasattr(module, "FIELD_DEPENDENCIES"):
+            logger.warning("Module %s missing FIELD_DEPENDENCIES", module.__name__)
+            continue
+
+        if hasattr(module, "FIELD_DEPENDENCIES"):
+            field_deps = module.FIELD_DEPENDENCIES
+            input_fields = field_deps.inputs
+            output_fields = field_deps.outputs
+
+            # Map each output field to the module's input fields
+            for output_field in output_fields:
+                dependencies[output_field] = input_fields
+
+    return dependencies
 
 
 def extract_core_fields() -> list[str]:
@@ -53,10 +100,14 @@ def extract_enum_validators() -> dict[str, type[Enum]]:
         # Get the field's annotation (type hint)
         annotation = field_info.annotation
 
-        # Handle Optional[Enum] -> extract Enum from Union[Enum, None]
-        if get_origin(annotation) is type(None) | type:  # Union type
+        # Handle Optional[Enum] and Enum | None -> extract Enum from Union
+        # In Python 3.10+, X | Y creates a types.UnionType instance
+        origin = get_origin(annotation)
+        if origin is Union or isinstance(annotation, types.UnionType):
             args = get_args(annotation)
             for arg in args:
+                if arg is type(None):  # Skip None type
+                    continue
                 if isinstance(arg, type) and issubclass(arg, Enum):
                     validators[field_name] = arg
                     break
@@ -117,6 +168,44 @@ def validate_core_required(df: pl.DataFrame) -> list[str]:
             errors.append(f"CORE REQUIRED: Column '{field}' is all null")
 
     return errors
+
+
+def validate_pipeline_input_fields(df: pl.DataFrame) -> list[str]:
+    """Validate that commonly-used pipeline input fields exist with correct names.
+
+    Warns about suspicious field naming patterns that might indicate mistakes,
+    like having survey_time_estimate but not survey_time.
+
+    Args:
+        df: Input DataFrame to validate
+
+    Returns:
+        List of warning messages (empty if no suspicious patterns detected)
+    """
+    warnings = []
+    present_columns = set(df.columns)
+
+    # Check for common field naming issues (wrong name variants)
+    field_variants = {
+        "survey_time": ["survey_time_estimate", "survey_time_hour"],
+        "orig_purp": ["origin_purpose", "orig_purpose"],
+        "dest_purp": ["destination_purpose", "dest_purpose"],
+        "access_mode": ["first_access", "access"],
+        "egress_mode": ["final_egress", "egress"],
+    }
+
+    for expected_field, variants in field_variants.items():
+        # If expected field missing but a variant exists, warn
+        if expected_field not in present_columns:
+            found_variants = [v for v in variants if v in present_columns]
+            if found_variants:
+                warnings.append(
+                    f"PIPELINE INPUTS: Field '{expected_field}' "
+                    f"missing but found variant(s): {found_variants}. "
+                    f"Pipeline expects '{expected_field}'."
+                )
+
+    return warnings
 
 
 def validate_transform_requirements(  # noqa: C901
@@ -242,6 +331,10 @@ def validate_preprocessed_input(
     core_errors = validate_core_required(df)
     all_errors.extend(core_errors)
 
+    # Pipeline input fields: check for expected field names
+    pipeline_input_warnings = validate_pipeline_input_fields(df)
+    all_errors.extend(pipeline_input_warnings)
+
     # Transform-specific requirements
     transform_errors = validate_transform_requirements(df, skip_transforms=skip_transforms)
     all_errors.extend(transform_errors)
@@ -253,17 +346,17 @@ def validate_preprocessed_input(
     # Report errors
     if all_errors:
         error_msg = (
-            f"\n{'='*80}\n"
+            f"\n{'=' * 80}\n"
             f"VALIDATION FAILED: Preprocessed data does not meet pipeline requirements\n"
-            f"{'='*80}\n"
+            f"{'=' * 80}\n"
         )
         for i, error in enumerate(all_errors, 1):
             error_msg += f"\n{i}. {error}"
 
         error_msg += (
-            f"\n\n{'='*80}\n"
+            f"\n\n{'=' * 80}\n"
             f"FIX: Update preprocessing script to provide all required fields\n"
-            f"{'='*80}\n"
+            f"{'=' * 80}\n"
         )
 
         if strict:
@@ -274,7 +367,9 @@ def validate_preprocessed_input(
     return df
 
 
-def get_preprocessing_requirements() -> dict[str, list[str]]:
+def get_preprocessing_requirements() -> dict[
+    str, list[str] | dict[str, dict[str, list[list[str]]]]
+]:
     """Get comprehensive list of preprocessing requirements.
 
     Useful for documentation and preprocessing script development.

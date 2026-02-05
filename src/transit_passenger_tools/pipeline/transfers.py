@@ -10,7 +10,44 @@ This module:
 import polars as pl
 
 from transit_passenger_tools.geocoding.reference import ReferenceData
+from transit_passenger_tools.schemas import FieldDependencies
 from transit_passenger_tools.schemas.codebook import TechnologyType
+
+# Field dependencies
+FIELD_DEPENDENCIES = FieldDependencies(
+    inputs=[
+        "vehicle_tech",
+        "transfer_from",
+        "transfer_to",
+        "first_before_operator",
+        "second_before_operator",
+        "third_before_operator",
+        "first_after_operator",
+        "second_after_operator",
+        "third_after_operator",
+        "first_before_route_before_survey_board",
+        "second_before_route_before_survey_board",
+        "third_before_route_before_survey_board",
+        "first_after_route_after_survey_alight",
+        "second_after_route_after_survey_alight",
+        "third_after_route_after_survey_alight",
+    ],
+    outputs=[
+        "first_before_technology",
+        "second_before_technology",
+        "third_before_technology",
+        "first_after_technology",
+        "second_after_technology",
+        "third_after_technology",
+        "commuter_rail_present",
+        "heavy_rail_present",
+        "express_bus_present",
+        "ferry_present",
+        "light_rail_present",
+        "local_bus_present",
+        "boardings",
+    ],
+)
 
 # Transfer leg columns (before and after surveyed vehicle)
 TRANSFER_LEGS = [
@@ -26,9 +63,7 @@ TRANSFER_LEGS = [
 TECHNOLOGIES = [tech.value for tech in TechnologyType]
 
 
-def _assign_transfer_technologies(
-    df: pl.DataFrame, reference: ReferenceData
-) -> pl.DataFrame:
+def _assign_transfer_technologies(df: pl.DataFrame, reference: ReferenceData) -> pl.DataFrame:
     """Assign technology to each transfer leg via canonical route lookups.
 
     Args:
@@ -120,9 +155,7 @@ def _calculate_technology_presence_flags(df: pl.DataFrame) -> pl.DataFrame:
         tech_value = tech.value
 
         # Build OR condition across all technology columns
-        conditions = [
-            pl.col(col) == tech_value for col in tech_cols if col in df.columns
-        ]
+        conditions = [pl.col(col) == tech_value for col in tech_cols if col in df.columns]
 
         if conditions:
             tech_present_expr = conditions[0]
@@ -170,18 +203,18 @@ def _calculate_transfer_operators(df: pl.DataFrame) -> pl.DataFrame:
     # Transfer from: last before operator (coalesce from third -> second -> first)
     if "third_before_operator" in df.columns:
         result_df = result_df.with_columns(
-            pl.coalesce([
-                "third_before_operator",
-                "second_before_operator",
-                "first_before_operator",
-            ]).alias("transfer_from")
+            pl.coalesce(
+                [
+                    "third_before_operator",
+                    "second_before_operator",
+                    "first_before_operator",
+                ]
+            ).alias("transfer_from")
         )
 
     # Transfer to: first after operator
     if "first_after_operator" in df.columns:
-        result_df = result_df.with_columns(
-            pl.col("first_after_operator").alias("transfer_to")
-        )
+        result_df = result_df.with_columns(pl.col("first_after_operator").alias("transfer_to"))
 
     return result_df
 
@@ -206,7 +239,8 @@ def _calculate_first_last_technologies(df: pl.DataFrame) -> pl.DataFrame:
 
     # Last alight: latest technology (third/second/first after, then vehicle)
     last_alight_cols = [
-        col for col in [
+        col
+        for col in [
             "third_after_technology",
             "second_after_technology",
             "first_after_technology",

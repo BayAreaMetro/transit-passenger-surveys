@@ -11,9 +11,51 @@ Derives path-related summary fields from technology columns:
 
 import polars as pl
 
+from transit_passenger_tools.schemas import FieldDependencies
 from transit_passenger_tools.schemas.codebook import (
     DayPart,
     TechnologyType,
+)
+
+# Field dependencies
+FIELD_DEPENDENCIES = FieldDependencies(
+    inputs=[
+        "canonical_operator",
+        "onoff_enter_station",
+        "onoff_exit_station",
+        "route",
+        "vehicle_tech",
+        "first_board_tech",
+        "last_alight_tech",
+        "day_part",
+        "first_before_technology",
+        "second_before_technology",
+        "third_before_technology",
+        "first_after_technology",
+        "second_after_technology",
+        "third_after_technology",
+        "access_mode",
+        "egress_mode",
+    ],
+    outputs=[
+        "route",
+        "survey_mode",
+        "first_board_mode",
+        "last_alight_mode",
+        "usedLB",
+        "usedEB",
+        "usedLR",
+        "usedHR",
+        "usedCR",
+        "usedFR",
+        "BEST_MODE",
+        "TRANSFER_TYPE",
+        "period",
+        "path_access",
+        "path_egress",
+        "path_line_haul",
+        "path_label",
+    ],
 )
 
 # Delimiters for route generation (matching legacy R code)
@@ -79,13 +121,15 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:  # noqa: C901
 
         if route_cols_exist:
             result_df = result_df.with_columns(
-                pl.concat_str([
-                    pl.col("canonical_operator"),
-                    pl.lit(OPERATOR_DELIMITER),
-                    pl.col("onoff_enter_station"),
-                    pl.lit(ROUTE_DELIMITER),
-                    pl.col("onoff_exit_station")
-                ]).alias("route")
+                pl.concat_str(
+                    [
+                        pl.col("canonical_operator"),
+                        pl.lit(OPERATOR_DELIMITER),
+                        pl.col("onoff_enter_station"),
+                        pl.lit(ROUTE_DELIMITER),
+                        pl.col("onoff_exit_station"),
+                    ]
+                ).alias("route")
             )
         elif "route" not in result_df.columns:
             # Add NULL route column if we can't generate it

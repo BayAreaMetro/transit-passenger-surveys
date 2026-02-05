@@ -7,10 +7,17 @@ Derives temporal categorizations from Core fields:
 
 import polars as pl
 
+from transit_passenger_tools.schemas import FieldDependencies
 from transit_passenger_tools.schemas.codebook import (
     DayOfWeek,
     DayPart,
     Weekpart,
+)
+
+# Field dependencies
+FIELD_DEPENDENCIES = FieldDependencies(
+    inputs=["day_of_the_week", "survey_time"],
+    outputs=["weekpart", "day_part"],
 )
 
 # Weekend days
