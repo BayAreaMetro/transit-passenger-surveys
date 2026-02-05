@@ -95,6 +95,20 @@ TRAIN_TIME_OFFSET = {
     4: 3,  # ACE 10
 }
 
+# Station code to name mapping (from ACE schedule/report)
+STATION_MAPPING = {
+    1: "SAN JOSE",
+    2: "SANTA CLARA",
+    3: "GREAT AMERICA",
+    4: "FREMONT",
+    5: "PLEASANTON",
+    6: "LIVERMORE",
+    7: "VASCO ROAD",
+    8: "TRACY",
+    9: "LATHROP / MANTECA",
+    10: "STOCKTON",
+}
+
 
 def load_zcta_centroids() -> pl.DataFrame:
     """Load ZCTA shapefile and compute centroids.
@@ -201,6 +215,9 @@ def preprocess(  # noqa: PLR0915
 
     # 5. Direction (all trains surveyed were eastbound) - use codebook Direction enum value
     df = df.with_columns([pl.lit("Eastbound").alias("direction")])
+
+    # 5b. Boardings (ACE is single-leg survey, no transfers)
+    df = df.with_columns([pl.lit(1).alias("boardings")])
 
     # 6. Survey date and day of week from train_number
     # Validate train_number is expected value
@@ -322,6 +339,27 @@ def preprocess(  # noqa: PLR0915
 
     # ========== FIELD MAPPING TO SCHEMA ==========
 
+    # Map station codes to station names for route generation
+    df = df.with_columns(
+        [
+            pl.col("board")
+            .replace_strict(STATION_MAPPING, default=None)
+            .alias("onoff_enter_station"),
+            pl.col("alight")
+            .replace_strict(STATION_MAPPING, default=None)
+            .alias("onoff_exit_station"),
+        ]
+    )
+
+    # Convert vehicles and workers from 1-indexed (Excel) to 0-indexed (database)
+    # Excel has 1=0 vehicles, 2=1 vehicle, etc.
+    df = df.with_columns(
+        [
+            (pl.col("veh") - 1).alias("veh"),
+            (pl.col("hh_emp") - 1).alias("hh_emp"),
+        ]
+    )
+
     # Rename fields to match CoreSurveyResponse schema
     df = df.rename(
         {
@@ -355,25 +393,32 @@ def preprocess(  # noqa: PLR0915
         ]
     )
 
-    # Add race fields - convert race_1 through race_6 to dummy variables
-    # race_1=Asian,
-    # race_2=Black,
-    # race_3=Hispanic/Pacific Islander,
-    # race_4=White,
-    # race_5=Other,
-    # race_6=multiracial
+    # Map race checkboxes to race_dmy_* fields for demographics module
+    # ACE 2023 codebook mapping:
+    # race_1=Black, race_2=Indigenous, race_3=Asian, race_4=White,
+    # race_5=Pacific Islander, race_6/race_other=Other
     df = df.with_columns(
         [
-            pl.when(pl.col("race_4") == 1).then(1).otherwise(0).alias("race_dmy_wht"),  # White
-            pl.when(pl.col("race_2") == 1).then(1).otherwise(0).alias("race_dmy_blk"),  # Black
-            pl.when(pl.col("race_1") == 1).then(1).otherwise(0).alias("race_dmy_asn"),  # Asian
-            pl.when((pl.col("race_3") == 1) | (pl.col("hispanic") == 1))
-            .then(1)
-            .otherwise(0)
-            .alias("race_dmy_ind"),  # Hispanic/Pacific Islander
-            pl.lit(0).alias("race_dmy_hwi"),  # Hawaiian/Pacific Islander (separate if needed)
+            pl.col("race_1").cast(pl.Int32).fill_null(0).alias("race_dmy_blk"),  # Black
+            pl.col("race_2").cast(pl.Int32).fill_null(0).alias("race_dmy_ind"),  # Indigenous
+            pl.col("race_3").cast(pl.Int32).fill_null(0).alias("race_dmy_asn"),  # Asian
+            pl.col("race_4").cast(pl.Int32).fill_null(0).alias("race_dmy_wht"),  # White
+            pl.col("race_5")
+            .cast(pl.Int32)
+            .fill_null(0)
+            .alias("race_dmy_hwi"),  # Hawaiian/Pacific Islander
+            # ACE 2023 doesn't collect Middle Eastern separately
+            pl.lit(0).alias("race_dmy_mdl_estn"),  # Middle Eastern (not collected)
+            # Map race_6 checkbox or race_other text to race_other_string
+            pl.when((pl.col("race_6") == 1) | (pl.col("race_other").is_not_null()))
+            .then(pl.col("race_other").cast(pl.Utf8))
+            .otherwise(pl.lit(None).cast(pl.Utf8))
+            .alias("race_other_string"),
         ]
     )
+
+    # Keep race_1 through race_5 and race_other as-is for debugging/reference
+    # The canonical pipeline's demographics module will derive the race field from race_dmy_* fields
 
     # ========== ENUM VALIDATION AND CLEANUP ==========
 

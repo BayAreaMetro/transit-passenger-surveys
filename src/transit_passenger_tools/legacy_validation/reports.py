@@ -10,7 +10,37 @@ logger = logging.getLogger(__name__)
 MATCH_RATE = 100.0
 
 
-def compare_field_by_field(matched_df: pl.DataFrame, output_dir: Path) -> pl.DataFrame:
+def compare_weight_totals(legacy_df: pl.DataFrame, new_df: pl.DataFrame) -> None:
+    """Compare total weights between legacy and new pipeline.
+
+    Args:
+        legacy_df: Legacy database records
+        new_df: New pipeline records
+    """
+    logger.info("%s", "\n" + "=" * 80)
+    logger.info("WEIGHT TOTALS COMPARISON")
+    logger.info("%s", "=" * 80)
+
+    if "weight" in legacy_df.columns and "weight" in new_df.columns:
+        legacy_weight = legacy_df.select(pl.col("weight").sum()).item()
+        new_weight = new_df.select(pl.col("weight").sum()).item()
+        diff = new_weight - legacy_weight
+        diff_pct = 100 * diff / legacy_weight if legacy_weight != 0 else 0
+
+        logger.info("\nWeight Summary:")
+        logger.info("  Legacy:     %s", f"{legacy_weight:,.2f}")
+        logger.info("  New:        %s", f"{new_weight:,.2f}")
+        logger.info("  Difference: %s (%s%%)", f"{diff:+,.2f}", f"{diff_pct:+.4f}")
+
+        if abs(diff_pct) < 0.01:  # noqa: PLR2004
+            logger.info("  [PASS] Weight totals match within 0.01%% tolerance")
+        else:
+            logger.warning("  [FAIL] Weight difference exceeds 0.01%% tolerance")
+    else:
+        logger.warning("  [N/A] Weight column not found in one or both datasets")
+
+
+def compare_field_by_field(matched_df: pl.DataFrame, output_dir: Path) -> pl.DataFrame:  # noqa: C901, PLR0912, PLR0915
     """Compare all common fields on matched records, requiring 100% exact match.
 
     Args:
@@ -43,6 +73,11 @@ def compare_field_by_field(matched_df: pl.DataFrame, output_dir: Path) -> pl.Dat
         if legacy_col not in matched_df.columns or new_col not in matched_df.columns:
             continue
 
+        # Skip if legacy column is all null (new field not in legacy)
+        if matched_df[legacy_col].null_count() == len(matched_df):
+            logger.info("  [SKIP] %s: Not present in legacy data", field)
+            continue
+
         # Get dtypes for type checking
         legacy_dtype = matched_df[legacy_col].dtype
         new_dtype = matched_df[new_col].dtype
@@ -64,9 +99,19 @@ def compare_field_by_field(matched_df: pl.DataFrame, output_dir: Path) -> pl.Dat
             pl.Float32,
             pl.Float64,
         ]
+        is_legacy_bool = legacy_dtype == pl.Boolean
+        is_new_bool = new_dtype == pl.Boolean
 
+        # Convert booleans to int for comparison with int columns
+        if (is_legacy_bool and is_new_numeric) or (is_new_bool and is_legacy_numeric):
+            if is_legacy_bool:
+                matched_df = matched_df.with_columns(
+                    pl.col(legacy_col).cast(pl.Int8).alias(legacy_col)
+                )
+            if is_new_bool:
+                matched_df = matched_df.with_columns(pl.col(new_col).cast(pl.Int8).alias(new_col))
         # If one is numeric and one is string, cast both to string for comparison
-        if is_legacy_numeric != is_new_numeric:
+        elif is_legacy_numeric != is_new_numeric:
             # Apply casting to the DataFrame columns
             matched_df = matched_df.with_columns(
                 [
@@ -76,13 +121,31 @@ def compare_field_by_field(matched_df: pl.DataFrame, output_dir: Path) -> pl.Dat
             )
 
         # Count exact matches (null == null is a match)
-        match_expr = (
-            pl.when(pl.col(legacy_col).is_null() & pl.col(new_col).is_null())
-            .then(pl.lit(value=True))
-            .when(pl.col(legacy_col) == pl.col(new_col))
-            .then(pl.lit(value=True))
-            .otherwise(pl.lit(value=False))
+        # For floats, use tolerance to handle precision differences
+        is_float_comparison = (legacy_dtype in [pl.Float32, pl.Float64]) and (
+            new_dtype in [pl.Float32, pl.Float64]
         )
+
+        if is_float_comparison:
+            # Use absolute tolerance of 1e-5 for float comparison (handles lat/lon precision
+            # and shapefile processing differences)
+            match_expr = (
+                pl.when(pl.col(legacy_col).is_null() & pl.col(new_col).is_null())
+                .then(pl.lit(value=True))
+                .when(pl.col(legacy_col).is_null() | pl.col(new_col).is_null())
+                .then(pl.lit(value=False))
+                .when((pl.col(legacy_col) - pl.col(new_col)).abs() <= 1e-5)  # noqa: PLR2004
+                .then(pl.lit(value=True))
+                .otherwise(pl.lit(value=False))
+            )
+        else:
+            match_expr = (
+                pl.when(pl.col(legacy_col).is_null() & pl.col(new_col).is_null())
+                .then(pl.lit(value=True))
+                .when(pl.col(legacy_col) == pl.col(new_col))
+                .then(pl.lit(value=True))
+                .otherwise(pl.lit(value=False))
+            )
 
         matches_df = matched_df.with_columns([match_expr.alias("_match")])
         match_count = matches_df.filter(pl.col("_match")).height
@@ -145,6 +208,19 @@ def compare_field_by_field(matched_df: pl.DataFrame, output_dir: Path) -> pl.Dat
             mismatches_path,
             f"{len(mismatches_df):,}",
         )
+
+    # Summary statistics
+    perfect_match = field_summary_df.filter(pl.col("match_rate") == MATCH_RATE)
+    imperfect_match = field_summary_df.filter(pl.col("match_rate") < MATCH_RATE)
+
+    logger.info("\nField Match Summary:")
+    logger.info("  Perfect matches (100%%): %s fields", len(perfect_match))
+    logger.info("  Imperfect matches:       %s fields", len(imperfect_match))
+
+    if len(imperfect_match) == 0:
+        logger.info("  [SUCCESS] All fields match perfectly!")
+    else:
+        logger.warning("  [FAIL] Some fields have mismatches - review field_mismatches.csv")
 
     return field_summary_df
 

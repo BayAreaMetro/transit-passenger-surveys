@@ -194,6 +194,9 @@ def compare_outputs(
     # Compare record counts and find missing records
     matched_df = compare_record_counts(legacy_df, new_df, output_dir)
 
+    # Weight comparison
+    reports.compare_weight_totals(legacy_df, new_df)
+
     # Field-by-field comparison
     field_summary_df = None
     if matched_df is not None and len(matched_df) > 0:
@@ -202,20 +205,8 @@ def compare_outputs(
         # Derived field analysis
         analysis.analyze_derived_fields(matched_df, field_summary_df, output_dir)
 
-    # Generate summary report
-    reports.generate_validation_summary(
-        legacy_df,
-        new_df,
-        matched_df,
-        field_summary_df,
-        output_dir,
-        operator,
-        year,
-    )
-
     # Final message
     logger.info("%s", "\n" + "=" * 80)
     logger.info("COMPARISON COMPLETE")
     logger.info("%s", "=" * 80)
     logger.info("\nAll reports saved to: %s", output_dir)
-    logger.info("Review validation_summary.txt for actionable next steps.")
