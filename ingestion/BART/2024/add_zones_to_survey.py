@@ -18,9 +18,7 @@ SHP_PATH = r"M:/Data/Requests/Louisa Leung/BART Survey Data/VTATAZ_CCAG/VTATAZ.s
 BG_PATH = r"M:/Data/GIS layers/Census/2020/tl_2020_06_bg2020/tl_2020_06_bg2020.shp"
 OUTPUT_DIR = r"M:/Data/Requests/Louisa Leung/BART Survey Data/"
 
-net_paths = {
-    "M:": r"\\models.ad.mtc.ca.gov\data\models"
-}
+net_paths = {"M:": r"\\models.ad.mtc.ca.gov\data\models"}
 
 # Replace letter drives with UNC paths for compatibility
 for drive, unc_path in net_paths.items():
@@ -32,6 +30,7 @@ for drive, unc_path in net_paths.items():
 # ============================================================================
 # MAIN PROCESSING
 # ============================================================================
+
 
 def main() -> None:
     """Main processing function for BART spatial aggregation."""
@@ -56,7 +55,7 @@ def main() -> None:
             shapefile_path=SHP_PATH,
             shapefile_id_col="TAZ",
             output_id_col=output_col,
-            id_col="UNIQUE_IDENTIFIER"
+            id_col="UNIQUE_IDENTIFIER",
         )
         # Also do block groups
         survey_final = spatial_join_coordinates_to_shapefile(
@@ -66,7 +65,7 @@ def main() -> None:
             shapefile_path=BG_PATH,
             shapefile_id_col="GEOID",
             output_id_col=output_col.replace("TAZ", "BG"),
-            id_col="UNIQUE_IDENTIFIER"
+            id_col="UNIQUE_IDENTIFIER",
         )
         # Drop the LAT/LONG columns to sanitize
         survey_final = survey_final.drop([lat_col, lon_col])
@@ -77,8 +76,7 @@ def main() -> None:
     # Also remove any other columns containing "address"
     address_cols = [col for col in survey_final.columns if "address_addr" in col.lower()]
     columns_to_drop = [
-        col for col in list(set(pii_columns + address_cols))
-        if col in survey_final.columns
+        col for col in list(set(pii_columns + address_cols)) if col in survey_final.columns
     ]
 
     if columns_to_drop:
@@ -99,4 +97,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
