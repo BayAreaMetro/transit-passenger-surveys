@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, Field, ValidationInfo, field_validator
+from pydantic import BaseModel, Field
 
 
 class GeocodingZone(BaseModel):
@@ -31,6 +31,9 @@ class PipelineConfig(BaseModel):
 
     # Shapefile paths
     shapefiles: dict[str, str] = Field(description="Paths to shapefiles for geocoding")
+
+    # Remote UNC path (fallback when M: drive not mapped)
+    remote_name: str | None = Field(default=None, description="UNC path to replace M: drive")
 
     # Geocoding zone configurations
     geocoding_zones: list[GeocodingZone] = Field(
@@ -63,61 +66,41 @@ class PipelineConfig(BaseModel):
 
     model_config = {"extra": "forbid", "populate_by_name": True}
 
-    @field_validator("shapefiles")
-    @classmethod
-    def validate_shapefile_paths(cls, v: dict[str, str], info: ValidationInfo) -> dict[str, str]:
-        """Validate that all shapefile paths exist, with M: to UNC fallback."""
-        remote_name = info.data.get("remote_name")
-        missing_files = []
+    def resolve_shapefile_path(self, shapefile_key: str) -> Path:
+        """Resolve shapefile path with M: to UNC fallback if needed.
 
-        for name, path in v.items():
-            # Handle .shp files, .zip files, and directories (for PUMA)
-            path_obj = Path(path)
-            shp_path = Path(f"{path}.shp")
-            zip_path = Path(f"{path}.zip") if not path.endswith(".zip") else path_obj
+        Args:
+            shapefile_key: Key in shapefiles dict
 
-            # Check if path exists as-is
-            if path_obj.exists() or shp_path.exists() or zip_path.exists():
-                continue
+        Returns:
+            Resolved path that exists
 
-            # If M: path not found and remote_name provided, try UNC substitution
-            if remote_name and path.startswith("M:"):
-                unc_path = path.replace("M:", remote_name, 1)
-                unc_path_obj = Path(unc_path)
-                unc_shp_path = Path(f"{unc_path}.shp")
-                unc_zip_path = (
-                    Path(f"{unc_path}.zip") if not unc_path.endswith(".zip") else unc_path_obj
-                )
+        Raises:
+            FileNotFoundError: If path doesn't exist
+        """
+        path = self.shapefiles[shapefile_key]
+        path_obj = Path(path)
+        shp_path = Path(f"{path}.shp")
+        zip_path = Path(f"{path}.zip") if not path.endswith(".zip") else path_obj
 
-                if unc_path_obj.exists() or unc_shp_path.exists() or unc_zip_path.exists():
-                    # Update the dict with working UNC path
-                    v[name] = unc_path
-                    continue
+        # Check if path exists as-is
+        if path_obj.exists() or shp_path.exists() or zip_path.exists():
+            return path_obj
 
-            missing_files.append(f"{name}: {path}")
+        # Try UNC fallback if M: drive
+        if self.remote_name and path.startswith("M:"):
+            unc_path = path.replace("M:", self.remote_name, 1)
+            unc_path_obj = Path(unc_path)
+            unc_shp_path = Path(f"{unc_path}.shp")
+            unc_zip_path = (
+                Path(f"{unc_path}.zip") if not unc_path.endswith(".zip") else unc_path_obj
+            )
 
-        if missing_files:
-            msg = "Shapefile paths not found:\n" + "\n".join(missing_files)
-            raise FileNotFoundError(msg)
-        return v
+            if unc_path_obj.exists() or unc_shp_path.exists() or unc_zip_path.exists():
+                return unc_path_obj
 
-    @field_validator("canonical_route_crosswalk_path")
-    @classmethod
-    def validate_crosswalk_path(cls, v: str) -> str:
-        """Validate that canonical route crosswalk exists."""
-        if not Path(v).exists():
-            msg = f"Canonical route crosswalk not found: {v}"
-            raise FileNotFoundError(msg)
-        return v
-
-    @field_validator("hive_root")
-    @classmethod
-    def validate_hive_path(cls, v: str) -> str:
-        """Validate that Hive warehouse root exists."""
-        if not Path(v).exists():
-            msg = f"Hive warehouse root not found: {v}"
-            raise FileNotFoundError(msg)
-        return v
+        msg = f"Shapefile not found: {path}"
+        raise FileNotFoundError(msg)
 
     @classmethod
     def from_yaml(cls, config_path: Path | str = "config/pipeline.yaml") -> "PipelineConfig":
@@ -145,7 +128,12 @@ class PipelineConfig(BaseModel):
 
 
 def get_config() -> PipelineConfig:
-    """Get singleton configuration instance."""
+    """Get singleton configuration instance.
+
+    Checks PIPELINE_CONFIG environment variable for custom config path.
+    Defaults to config/pipeline.yaml if not set.
+    """
     if not hasattr(get_config, "instance"):
-        get_config.instance = PipelineConfig.from_yaml()
+        config_path = os.environ.get("PIPELINE_CONFIG", "config/pipeline.yaml")
+        get_config.instance = PipelineConfig.from_yaml(config_path)
     return get_config.instance

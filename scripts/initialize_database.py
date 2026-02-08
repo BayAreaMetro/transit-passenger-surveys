@@ -16,8 +16,8 @@ from initialize_helpers.backfill_ingestion import (
 )
 from initialize_helpers.backfill_loader import load_survey_data, reorder_columns_to_match_schema
 from initialize_helpers.backfill_validation import validate_schema
-from initialize_helpers.fix_ace_commuter_rail import fix_ace_commuter_rail
 
+from scripts.initialize_helpers.fix_ace_2023 import fix_ace_commuter_rail
 from transit_passenger_tools import database
 from transit_passenger_tools.pipeline import auto_sufficiency
 
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 STANDARDIZED_DIR = Path(
     r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\
         _data_Standardized\standardized_2025-10-13"
-    )
+)
 CSV_FILENAME = "survey_combined.csv"
 
 
@@ -44,6 +44,7 @@ def create_folder_structure() -> None:
     for name in ["survey_responses", "survey_metadata", "survey_weights"]:
         (database.HIVE_ROOT / name).mkdir(parents=True, exist_ok=True)
 
+
 def backfill_legacy_data(csv_path: Path) -> None:
     """Run the backfill process from standardized CSV files."""
     if not csv_path.exists():
@@ -53,9 +54,13 @@ def backfill_legacy_data(csv_path: Path) -> None:
     logger.info("Using data: %s", csv_path)
 
     df = load_survey_data(csv_path)
-    logger.info("Loaded %s records from %s operators (%s-%s)",
-                f"{len(df):,}", df["canonical_operator"].n_unique(),
-                df["survey_year"].min(), df["survey_year"].max())
+    logger.info(
+        "Loaded %s records from %s operators (%s-%s)",
+        f"{len(df):,}",
+        df["canonical_operator"].n_unique(),
+        df["survey_year"].min(),
+        df["survey_year"].max(),
+    )
 
     df = auto_sufficiency.derive_auto_sufficiency(df)
     validate_schema(df)
@@ -72,8 +77,13 @@ def backfill_legacy_data(csv_path: Path) -> None:
     num_metadata = extract_and_ingest_metadata(df, version_info, collect_errors=False)
     num_weights = extract_and_ingest_weights(df, collect_errors=False)
 
-    logger.info("Backfill complete: %s batches, %s records, %s metadata, %s weights",
-                num_batches, f"{total_records:,}", num_metadata, f"{num_weights:,}")
+    logger.info(
+        "Backfill complete: %s batches, %s records, %s metadata, %s weights",
+        num_batches,
+        f"{total_records:,}",
+        num_metadata,
+        f"{num_weights:,}",
+    )
 
 
 def main(standardized_dir: Path = STANDARDIZED_DIR) -> None:
@@ -100,7 +110,7 @@ def main(standardized_dir: Path = STANDARDIZED_DIR) -> None:
 
     # Step 3: Backfill
     log_step("STEP 3: BACKFILL LEGACY DATA")
-    backfill_legacy_data(csv_path = standardized_dir / CSV_FILENAME)
+    backfill_legacy_data(csv_path=standardized_dir / CSV_FILENAME)
 
     # Step 4: Corrections
     log_step("STEP 4: APPLY DATA CORRECTIONS")
@@ -124,7 +134,7 @@ if __name__ == "__main__":
         "--standardized-dir",
         type=Path,
         default=None,
-        help="Path to specific standardized data directory (default: find latest)"
+        help="Path to specific standardized data directory (default: find latest)",
     )
 
     args = parser.parse_args()

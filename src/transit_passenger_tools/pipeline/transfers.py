@@ -7,11 +7,15 @@ This module:
 - Raises ValueError for unmapped routes
 """
 
+import logging
+
 import polars as pl
 
 from transit_passenger_tools.geocoding.reference import ReferenceData
 from transit_passenger_tools.schemas import FieldDependencies
 from transit_passenger_tools.schemas.codebook import TechnologyType
+
+logger = logging.getLogger(__name__)
 
 # Field dependencies
 FIELD_DEPENDENCIES = FieldDependencies(
@@ -66,6 +70,8 @@ TECHNOLOGIES = [tech.value for tech in TechnologyType]
 def _assign_transfer_technologies(df: pl.DataFrame, reference: ReferenceData) -> pl.DataFrame:
     """Assign technology to each transfer leg via canonical route lookups.
 
+    Skips legs where technology columns already exist (from preprocessing).
+
     Args:
         df: DataFrame with transfer route columns
         reference: Reference data for route technology lookups
@@ -86,6 +92,10 @@ def _assign_transfer_technologies(df: pl.DataFrame, reference: ReferenceData) ->
         )
         operator_col = f"{leg}_operator"
         tech_col = f"{leg}_technology"
+
+        # Skip if technology already assigned (from preprocessing)
+        if tech_col in df.columns:
+            continue
 
         # Skip if route column doesn't exist
         if route_col not in df.columns:
@@ -118,15 +128,36 @@ def _assign_transfer_technologies(df: pl.DataFrame, reference: ReferenceData) ->
             except ValueError:
                 unmapped_routes.append(f"{operator}/{route}")
 
-        # Raise error if critical routes unmapped
+        # Raise error if routes unmapped
         if unmapped_routes:
-            msg = f"Cannot map routes to technology for {leg}: {unmapped_routes}"
+            msg = (
+                f"Could not map {len(unmapped_routes)} routes to technology "
+                f"for {leg}: {unmapped_routes[:10]}"
+            )
             raise ValueError(msg)
 
         # Apply mapping
         result_df = result_df.with_columns(
             pl.col(route_col).replace_strict(tech_lookup, default=None).alias(tech_col)
         )
+
+    return result_df
+
+
+def _create_null_transfer_technologies(df: pl.DataFrame) -> pl.DataFrame:
+    """Create null technology columns for all transfer legs when skipping lookups.
+
+    Args:
+        df: DataFrame with transfer route columns
+
+    Returns:
+        DataFrame with null technology columns added for each transfer leg
+    """
+    result_df = df
+
+    for leg in TRANSFER_LEGS:
+        tech_col = f"{leg}_technology"
+        result_df = result_df.with_columns(pl.lit(None).cast(pl.Utf8).alias(tech_col))
 
     return result_df
 
@@ -162,11 +193,12 @@ def _calculate_technology_presence_flags(df: pl.DataFrame) -> pl.DataFrame:
             for condition in conditions[1:]:
                 tech_present_expr = tech_present_expr | condition
             # fill_null(False) because NULL == "tech" returns NULL, not False
+            # Cast to Int8 to match legacy database (0/1 instead of False/True)
             result_df = result_df.with_columns(
-                tech_present_expr.fill_null(false_value).alias(flag_col)
+                tech_present_expr.fill_null(false_value).cast(pl.Int8).alias(flag_col)
             )
         else:
-            result_df = result_df.with_columns(false_value.alias(flag_col))
+            result_df = result_df.with_columns(pl.lit(0).cast(pl.Int8).alias(flag_col))
 
     return result_df
 
@@ -174,17 +206,26 @@ def _calculate_technology_presence_flags(df: pl.DataFrame) -> pl.DataFrame:
 def _calculate_boardings(df: pl.DataFrame) -> pl.DataFrame:
     """Calculate total boardings: 1 (surveyed vehicle) + transfer count.
 
+    Uses technology columns if available, otherwise falls back to operator columns.
+
     Args:
-        df: DataFrame with transfer technology columns
+        df: DataFrame with transfer technology or operator columns
 
     Returns:
         DataFrame with boardings column added
     """
     boardings_expr = pl.lit(1)
+
     for leg in TRANSFER_LEGS:
         tech_col = f"{leg}_technology"
+        operator_col = f"{leg}_operator"
+
+        # Prefer technology column if it exists and has non-null values
         if tech_col in df.columns:
             boardings_expr = boardings_expr + pl.col(tech_col).is_not_null().cast(pl.Int64)
+        elif operator_col in df.columns:
+            # Fall back to operator column when technology unavailable
+            boardings_expr = boardings_expr + pl.col(operator_col).is_not_null().cast(pl.Int64)
 
     return df.with_columns(boardings_expr.alias("boardings"))
 
@@ -255,11 +296,11 @@ def _calculate_first_last_technologies(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-def derive_transfer_fields(df: pl.DataFrame) -> pl.DataFrame:
+def derive_transfer_fields(df: pl.DataFrame, skip_technology_lookup: bool = False) -> pl.DataFrame:
     """Transform transfer-related fields.
 
     Implements R Lines 1200-1478 logic:
-    1. Assigns technology to 6 transfer legs via canonical route lookups
+    1. Assigns technology to 6 transfer legs via canonical route lookups (unless skipped)
     2. Calculates 6 technology presence flags
     3. Calculates total boardings (1 + transfer count)
     4. Calculates transfer_from and transfer_to operators
@@ -267,6 +308,8 @@ def derive_transfer_fields(df: pl.DataFrame) -> pl.DataFrame:
 
     Args:
         df: Input DataFrame with vehicle_tech and transfer route/operator columns
+        skip_technology_lookup: If True, skip technology lookups and create null columns
+            (useful for validation against legacy databases without technology fields)
 
     Returns:
         DataFrame with technology columns, presence flags, and boardings
@@ -281,11 +324,17 @@ def derive_transfer_fields(df: pl.DataFrame) -> pl.DataFrame:
         msg = f"transfers transform requires columns: {missing}"
         raise ValueError(msg)
 
-    reference = ReferenceData()
-
     # Process in logical steps
     result_df = df
-    result_df = _assign_transfer_technologies(result_df, reference)
+
+    if skip_technology_lookup:
+        # Create null technology columns without lookups
+        result_df = _create_null_transfer_technologies(result_df)
+    else:
+        # Perform full technology lookups (strict - will raise on unmapped routes)
+        reference = ReferenceData()
+        result_df = _assign_transfer_technologies(result_df, reference)
+
     result_df = _calculate_technology_presence_flags(result_df)
     result_df = _calculate_boardings(result_df)
     result_df = _calculate_transfer_operators(result_df)

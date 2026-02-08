@@ -6,6 +6,7 @@ to incorrectly have commuter_rail_present=0 instead of 1.
 
 This script updates the ACE 2023 Parquet files directly.
 """
+
 import logging
 
 import polars as pl
@@ -39,16 +40,14 @@ def fix_ace_commuter_rail() -> None:
 
         logger.info("  Records: %d", len(df))
         logger.info(
-            "  Current commuter_rail_present: %s",
-            df["commuter_rail_present"].unique().to_list()
+            "  Current commuter_rail_present: %s", df["commuter_rail_present"].unique().to_list()
         )
 
         # Update commuter_rail_present to 1
         df = df.with_columns(pl.lit(1).cast(pl.Int64).alias("commuter_rail_present"))
 
         logger.info(
-            "  Updated commuter_rail_present: %s",
-            df["commuter_rail_present"].unique().to_list()
+            "  Updated commuter_rail_present: %s", df["commuter_rail_present"].unique().to_list()
         )
 
         # Write back to the same file
@@ -56,4 +55,3 @@ def fix_ace_commuter_rail() -> None:
         logger.info("  Updated %s", parquet_file.name)
 
     logger.info("ACE 2023 commuter_rail_present fixed successfully")
-

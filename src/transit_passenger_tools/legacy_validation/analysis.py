@@ -84,7 +84,11 @@ def _analyze_single_derived_field(
         input_legacy = input_field
         input_new = f"{input_field}_new"
         if input_legacy in sample_records.columns and input_new in sample_records.columns:
-            select_cols.extend([input_legacy, input_new])
+            # Avoid duplicates (e.g., when derived field is also an input field)
+            if input_legacy not in select_cols:
+                select_cols.append(input_legacy)
+            if input_new not in select_cols:
+                select_cols.append(input_new)
 
     sample_df = sample_records.select(select_cols)
     sample_path = output_dir / f"derived_{derived_field}_analysis.csv"

@@ -255,9 +255,13 @@ def check_cache_freshness() -> dict[str, bool | str]:
             # Compare timestamps (convert mtime to datetime for comparison)
             newest_file_time = datetime.fromtimestamp(newest_mtime, tz=UTC)
 
-            # Parse last_sync if it's a string
+            # Parse last_sync if it's a string and ensure it's timezone-aware
             if isinstance(last_sync, str):
                 last_sync = datetime.fromisoformat(last_sync)
+
+            # Ensure last_sync is timezone-aware for comparison
+            if last_sync.tzinfo is None:
+                last_sync = last_sync.replace(tzinfo=UTC)
 
             if newest_file_time > last_sync:
                 relative_path = newest_file.relative_to(HIVE_ROOT)
@@ -378,4 +382,3 @@ def query_parquet(sql: str) -> pl.DataFrame:
 
     finally:
         conn.close()
-
