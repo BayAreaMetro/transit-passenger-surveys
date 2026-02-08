@@ -15,6 +15,9 @@ Example usage:
 
 import polars as pl
 
+# Re-export public export functions
+from .export import export_cache
+
 # Re-export public helpers
 from .helpers import (
     DUCKDB_PATH,
@@ -75,6 +78,7 @@ __all__ = [
     "connect",
     "create_views",
     "enforce_dataframe_types",
+    "export_cache",
     "get_git_commit",
     "get_latest_metadata",
     "get_next_version",

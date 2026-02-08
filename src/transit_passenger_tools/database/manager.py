@@ -15,6 +15,7 @@ from transit_passenger_tools.schemas.models import (
     SurveyWeight,
 )
 
+from .export import export_cache
 from .helpers import (
     DUCKDB_PATH,
     HIVE_ROOT,
@@ -95,10 +96,7 @@ def ingest_survey_batch(
 
     # Write data
     partition_dir = (
-        HIVE_ROOT
-        / "survey_responses"
-        / f"operator={canonical_operator}"
-        / f"year={survey_year}"
+        HIVE_ROOT / "survey_responses" / f"operator={canonical_operator}" / f"year={survey_year}"
     )
     partition_dir.mkdir(parents=True, exist_ok=True)
 
@@ -283,7 +281,7 @@ def run_migrations() -> None:
             logger.info("  Applied: %s", migration_name)
 
 
-def sync_to_duckdb_cache() -> None:
+def sync_to_duckdb_cache(export_formats: list[str] | None = None) -> None:  # noqa: PLR0915
     """Sync Hive-partitioned Parquet data into DuckDB tables for fast BI tool access.
 
     Drops and recreates tables from Parquet files. Tables are stored in the
@@ -291,6 +289,11 @@ def sync_to_duckdb_cache() -> None:
     remain source of truth.
 
     This should be called after ingesting new data or metadata.
+
+    Args:
+        export_formats: Optional list of export formats to generate after cache sync.
+                       Options: ["hyper", "parquet"]. Defaults to both if None.
+                       Set to empty list [] to skip exports.
     """
     logger.info("Syncing Hive-partitioned Parquet data to DuckDB cache...")
 
@@ -419,6 +422,21 @@ def sync_to_duckdb_cache() -> None:
             logger.info("  DuckDB file size: %.2f MB", size_mb)
 
     logger.info("DuckDB cache sync complete")
+
+    # Export to Tableau-friendly formats (if requested)
+    if export_formats is None:
+        export_formats = ["hyper", "parquet"]
+
+    if export_formats:
+        logger.info("")
+        logger.info("Exporting cache to Tableau-friendly formats...")
+        try:
+            output_paths = export_cache(export_formats=export_formats)
+            for fmt, path in output_paths.items():
+                logger.info("  Created %s export: %s", fmt.upper(), path.name)
+        except Exception:
+            logger.exception("Failed to export cache - DuckDB sync succeeded but exports failed")
+            raise
 
 
 def create_views() -> None:
