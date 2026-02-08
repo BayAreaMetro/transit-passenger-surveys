@@ -358,7 +358,7 @@ def preprocess(
     df = df.with_columns(
         [
             pl.col("ACCESS_MODE")
-            .replace_strict(access_mode_mapping, default=None)
+            .replace_strict(access_mode_mapping, default="Other")
             .alias("access_mode"),
         ]
     )
@@ -374,9 +374,9 @@ def preprocess(
         # Pick-up variants (Kiss-and-Ride)
         "Get picked up": "KNR",
         "Will be picked up by someone going someplace else": "KNR",
-        # Taxi/TNC variants - following ACE convention, Taxi → KNR, Rideshare → TNC
-        "A Taxi": "KNR",
-        "Taxi": "KNR",
+        # Taxi/TNC variants - In BART 2015, Taxi treated as TNC (paid ride)
+        "A Taxi": "TNC",
+        "Taxi": "TNC",
         "Rideshare (Uber, Lyft)": "TNC",
         "Ridesharing (Uber, Lyft, etc.)": "TNC",
         # Drive variants (Park-and-Ride)
@@ -449,6 +449,38 @@ def preprocess(
             pl.col("EGRESSTRNSFR_LIST3_AGENCY").str.to_uppercase().alias("third_after_operator"),
         ]
     )
+
+    # Standardize operator names to match legacy database conventions
+    # Legacy R script normalized operator names to standard abbreviations
+    operator_standardization = {
+        "SHUTTLE": "Bay Area Shuttles",  # Generic shuttle operator
+        "TRI DELTA TRANSIT": "TRI-DELTA",
+        "SANTA CLARA VTA": "VTA",
+        "WHEELS (LAVTA)": "LAVTA",
+        "GOLDEN GATE TRANSIT BUS": "GOLDEN GATE TRANSIT",
+        "FAIRFIELD AND SUISUN TRANSIT (FAST)": "FAST",
+        "CAPITOL CORRIDOR": "AMTRAK",
+        "SAN JOAQUIN (AMTRAK)": "AMTRAK",
+        "DUMBARTON EXPRESS": "DUMBARTON",
+        "UNION CITY TRANSIT": "UNION CITY",
+        "VINE": "NAPA VINE",
+        "EMERY GO-ROUND": "EMERYVILLE MTA",
+    }
+
+    # Apply standardization to all operator fields
+    for op_field in [
+        "first_before_operator",
+        "second_before_operator",
+        "first_after_operator",
+        "second_after_operator",
+        "third_after_operator",
+    ]:
+        if op_field in df.columns:
+            df = df.with_columns(
+                pl.col(op_field)
+                .replace(operator_standardization, default=pl.col(op_field))
+                .alias(op_field)
+            )
 
     # Assign transfer technologies based on operator names and route descriptions
     # BART 2015 routes not in canonical crosswalk, so infer from operator

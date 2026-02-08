@@ -73,9 +73,32 @@ def compare_field_by_field(matched_df: pl.DataFrame, output_dir: Path) -> pl.Dat
         if legacy_col not in matched_df.columns or new_col not in matched_df.columns:
             continue
 
-        # Skip if legacy column is all null (new field not in legacy)
-        if matched_df[legacy_col].null_count() == len(matched_df):
-            logger.info("  [SKIP] %s: Not present in legacy data", field)
+        # Skip if legacy column has no meaningful data (new field not in legacy)
+        # Check for: all nulls, all 'Missing', or predominantly 'Missing' values (>90%)
+        legacy_null_count = matched_df[legacy_col].null_count()
+        legacy_missing_count = (
+            matched_df.filter(pl.col(legacy_col) == "Missing").height
+            if matched_df[legacy_col].dtype == pl.Utf8
+            else 0
+        )
+        legacy_has_data = (legacy_null_count + legacy_missing_count) < (len(matched_df) * 0.90)
+        new_has_data = matched_df[new_col].null_count() < len(matched_df)
+
+        if not legacy_has_data:
+            # Legacy has no significant data (all/mostly null or 'Missing')
+            if new_has_data:
+                pct_legacy_populated = 100 * (
+                    1 - (legacy_null_count + legacy_missing_count) / len(matched_df)
+                )
+                logger.info(
+                    "  [SKIP] %s: New field with improved coverage "
+                    "(legacy %.1f%% populated, new %.1f%% populated)",
+                    field,
+                    pct_legacy_populated,
+                    100 * (len(matched_df) - matched_df[new_col].null_count()) / len(matched_df),
+                )
+            else:
+                logger.info("  [SKIP] %s: Not meaningfully present in either dataset", field)
             continue
 
         # Get dtypes for type checking

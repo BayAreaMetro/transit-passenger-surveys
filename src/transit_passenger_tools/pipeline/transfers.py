@@ -230,6 +230,47 @@ def _calculate_boardings(df: pl.DataFrame) -> pl.DataFrame:
     return df.with_columns(boardings_expr.alias("boardings"))
 
 
+def _titlecase_operator(operator_name: str | None) -> str | None:
+    """Convert uppercase operator name to legacy title case format.
+
+    Matches legacy R script's operator display formatting:
+    - "AC TRANSIT" → "AC Transit"
+    - "MUNI" → "Muni"
+    - "SAMTRANS" → "SamTrans"
+    - "WESTCAT" → "WestCat"
+    - "AIRTRAIN" → "AirTrain"
+
+    Args:
+        operator_name: Uppercase operator name
+
+    Returns:
+        Title cased operator name matching legacy format
+    """
+    if operator_name is None:
+        return None
+
+    # Special case mappings extracted from legacy BART 2015 database
+    # - Compound words: SAMTRANS→SamTrans, WESTCAT→WestCat
+    # - Acronyms: VTA, LAVTA (identity mappings needed because .capitalize() would break them)
+    # - Multi-word: AC TRANSIT→AC Transit
+    special_cases = {
+        "AC TRANSIT": "AC Transit",
+        "EMERYVILLE MTA": "Emeryville MTA",
+        "LAVTA": "LAVTA",  # Needed: would become "Lavta" otherwise
+        "SAMTRANS": "SamTrans",
+        "SOLTRANS": "SolTrans",
+        "TRI-DELTA": "Tri-Delta",
+        "VTA": "VTA",  # Needed: would become "Vta" otherwise
+        "WESTCAT": "WestCat",
+    }
+
+    if operator_name in special_cases:
+        return special_cases[operator_name]
+
+    # Default: title case each word and strip any whitespace
+    return " ".join(word.capitalize() for word in operator_name.split()).strip()
+
+
 def _calculate_transfer_operators(df: pl.DataFrame) -> pl.DataFrame:
     """Calculate transfer_from (last before) and transfer_to (first after) operators.
 
@@ -242,6 +283,7 @@ def _calculate_transfer_operators(df: pl.DataFrame) -> pl.DataFrame:
     result_df = df
 
     # Transfer from: last before operator (coalesce from third -> second -> first)
+    # Apply title case to match legacy display format
     if "third_before_operator" in df.columns:
         result_df = result_df.with_columns(
             pl.coalesce(
@@ -250,12 +292,19 @@ def _calculate_transfer_operators(df: pl.DataFrame) -> pl.DataFrame:
                     "second_before_operator",
                     "first_before_operator",
                 ]
-            ).alias("transfer_from")
+            )
+            .map_elements(_titlecase_operator, return_dtype=pl.Utf8)
+            .alias("transfer_from")
         )
 
     # Transfer to: first after operator
+    # Apply title case to match legacy display format
     if "first_after_operator" in df.columns:
-        result_df = result_df.with_columns(pl.col("first_after_operator").alias("transfer_to"))
+        result_df = result_df.with_columns(
+            pl.col("first_after_operator")
+            .map_elements(_titlecase_operator, return_dtype=pl.Utf8)
+            .alias("transfer_to")
+        )
 
     return result_df
 
