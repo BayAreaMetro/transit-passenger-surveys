@@ -16,7 +16,7 @@ Example usage:
 import polars as pl
 
 # Re-export public export functions
-from .export import export_cache
+from .export import export_cache, export_df_to_hyper
 
 # Re-export public helpers
 from .helpers import (
@@ -77,6 +77,7 @@ __all__ = [
     "create_views",
     "enforce_dataframe_types",
     "export_cache",
+    "export_df_to_hyper",
     "get_git_commit",
     "get_latest_metadata",
     "get_next_version",

@@ -9,9 +9,18 @@ by worker vs air passenger
 Search for BART, AC Transit, SamTrans trips to/from SFO, OAK, SJC airports
 """
 
+from datetime import UTC, datetime
+from pathlib import Path
+
 import polars as pl
 
 from transit_passenger_tools.database import connect
+from transit_passenger_tools.database.export import export_df_to_hyper
+from transit_passenger_tools.schemas.codebook import TripPurpose
+
+# Output DIR
+OUTPUT_DIR = Path(r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\Airport Data")
+
 
 # Target operators
 OPERATORS = ["BART", "AC TRANSIT", "SAMTRANS"]
@@ -31,53 +40,85 @@ conn = connect(read_only=True)
 # Build SQL query with lat/lon filters
 # Approximate: 1 degree latitude ≈ 111km, 1 degree longitude ≈ 85km at Bay Area latitude
 lat_buffer = PROXIMITY_KM / 111  # ~0.018 degrees
-lon_buffer = PROXIMITY_KM / 85   # ~0.024 degrees
+lon_buffer = PROXIMITY_KM / 85  # ~0.024 degrees
 
-airport_conditions = []
-for (lat, lon) in AIRPORTS.values():
-    condition = f"""(
-        (orig_lat BETWEEN {lat - lat_buffer} AND {lat + lat_buffer}
-         AND orig_lon BETWEEN {lon - lon_buffer} AND {lon + lon_buffer})
-        OR
-        (dest_lat BETWEEN {lat - lat_buffer} AND {lat + lat_buffer}
-         AND dest_lon BETWEEN {lon - lon_buffer} AND {lon + lon_buffer})
-    )"""
-    airport_conditions.append(condition)
+# Build SQL query with spatial filter and airport classification in a single pass
+case_conditions = []
 
+for airport, (lat, lon) in AIRPORTS.items():
+    # Airport classification conditions (also serves as spatial filter)
+    case_conditions.append(f"""
+        WHEN (dest_lat BETWEEN {lat - lat_buffer} AND {lat + lat_buffer}
+              AND dest_lon BETWEEN {lon - lon_buffer} AND {lon + lon_buffer})
+        THEN 'to_{airport}'
+        WHEN (orig_lat BETWEEN {lat - lat_buffer} AND {lat + lat_buffer}
+              AND orig_lon BETWEEN {lon - lon_buffer} AND {lon + lon_buffer})
+        THEN 'from_{airport}'""")
+
+# Query with airport classification
 query = f"""
-    SELECT *
+    SELECT
+        *,
+        CASE
+            {" ".join(case_conditions)}
+            ELSE 'non_airport_trip'
+        END as airport_trip_type
     FROM survey_responses
-    WHERE operator IN ({','.join(f"'{op}'" for op in OPERATORS)})
-    AND ({' OR '.join(airport_conditions)})
+    WHERE operator IN ({",".join(f"'{op}'" for op in OPERATORS)})
 """  # noqa: S608
 
-# We execute the query over duckdb and convert to polars dataframe
+# Separate query for weights
+weights_query = f"""
+    SELECT response_id, boarding_weight, trip_weight
+    FROM survey_weights
+    WHERE weight_scheme = 'baseline'
+    AND response_id IN (
+        SELECT DISTINCT response_id FROM survey_responses
+        WHERE operator IN ({",".join(f"'{op}'" for op in OPERATORS)})
+    )
+"""  # noqa: S608
+
+
+# Execute queries and close connection
 df = conn.execute(query).pl()
+weights_df = conn.execute(weights_query).pl()
 conn.close()
 
-# Assign airport trip type based on origin/destination proximity using Polars expressions
-# Create conditions for each airport
-conditions = []
-for airport, (lat, lon) in AIRPORTS.items():
-    # Destination is near airport
-    dest_near = (
-        (pl.col("dest_lat") - lat).abs() <= lat_buffer
-    ) & (
-        (pl.col("dest_lon") - lon).abs() <= lon_buffer
+# Filter to only airport trips (remove 'non_airport_trip' rows)
+df = df.filter(pl.col("airport_trip_type") != "non_airport_trip")
+
+# Drop fields that are entirely NULL to clean up the dataset
+# (e.g., if some fields are missing from older surveys)
+df = df.select([col for col in df.columns if not df[col].is_null().all()])
+
+# Distribution of airport trips by purpose
+print(df.group_by("trip_purp", "year").agg(pl.count()).sort("count", descending=True))
+
+
+# Drop work trips to focus on air passenger trips
+df_nonwork = df.filter(
+    ~pl.col("trip_purp").is_in(
+        [
+            TripPurpose.WORK.value,
+            TripPurpose.WORK_RELATED.value,
+            TripPurpose.AT_WORK.value,
+            TripPurpose.BUSINESS_APT.value,
+        ],
+        nulls_equal=True,
     )
-    # Origin is near airport
-    orig_near = (
-        (pl.col("orig_lat") - lat).abs() <= lat_buffer
-    ) & (
-        (pl.col("orig_lon") - lon).abs() <= lon_buffer
-    )
-    conditions.append((dest_near, f"to_{airport}"))
-    conditions.append((orig_near, f"from_{airport}"))
+)
 
-# Build when-then chain
-airport_type = pl.lit("non_airport_trip")
-for condition, value in reversed(conditions):
-    airport_type = pl.when(condition).then(pl.lit(value)).otherwise(airport_type)
+# Save the resulting DataFrame to Parquet for further analysis
+# Get month/year of today
+month_year = datetime.now(tz=UTC).strftime("%Y-%m")
+df_nonwork.write_parquet(OUTPUT_DIR / f"airport_trips - {month_year}.parquet")
 
-df = df.with_columns(airport_type.alias("airport_trip_type"))
+# Export as .hyper file for Tableau with separate tables for trips and weights
+hyper_path = OUTPUT_DIR / f"airport_trips - {month_year}.hyper"
 
+# Filter weights to only those with airport non-work trips
+airport_weights = weights_df.filter(
+    pl.col("response_id").is_in(df_nonwork["response_id"].implode())
+)
+
+export_df_to_hyper({"trips": df_nonwork, "weights": airport_weights}, hyper_path)

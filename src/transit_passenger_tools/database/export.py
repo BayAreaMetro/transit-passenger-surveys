@@ -378,3 +378,44 @@ def export_cache(
 
     logger.info("Cache export completed successfully")
     return output_paths
+
+
+def export_df_to_hyper(
+    df: pl.DataFrame | dict[str, pl.DataFrame],
+    output_path: Path,
+    table_name: str | None = None,
+) -> None:
+    """Export one or more Polars DataFrames to Tableau Hyper format.
+
+    Args:
+        df: Either a single Polars DataFrame or a dict mapping table names to DataFrames
+        output_path: Path where the .hyper file should be saved
+        table_name: Name of the table (required if df is a single DataFrame, ignored if dict)
+
+    Examples:
+        # Single table
+        export_df_to_hyper(df, Path("output.hyper"), "my_table")
+
+        # Multiple tables
+        export_df_to_hyper({"table1": df1, "table2": df2}, Path("output.hyper"))
+    """
+    # Convert single DataFrame to dict format
+    if isinstance(df, pl.DataFrame):
+        if table_name is None:
+            msg = "table_name is required when df is a single DataFrame"
+            raise ValueError(msg)
+        tables = {table_name: df}
+    else:
+        tables = df
+
+    with (
+        HyperProcess(telemetry=Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper,
+        Connection(hyper.endpoint, output_path, CreateMode.CREATE_AND_REPLACE) as connection,
+    ):
+        for tbl_name, dataframe in tables.items():
+            # Create table definition and table
+            table_def = _create_hyper_table_definition(tbl_name, dataframe)
+            connection.catalog.create_table(table_def)
+
+            # Insert data
+            _insert_polars_to_hyper(connection, table_def.table_name, dataframe)
