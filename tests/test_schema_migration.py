@@ -4,6 +4,7 @@ import polars as pl
 import pytest
 
 from transit_passenger_tools import database
+from transit_passenger_tools.database import helpers, manager, validation
 
 
 @pytest.fixture
@@ -12,8 +13,17 @@ def temp_hive(monkeypatch, tmp_path):
     test_hive = tmp_path / "test_hive"
     test_hive.mkdir()
 
-    # Patch HIVE_ROOT to use temp directory
-    monkeypatch.setattr(database, "HIVE_ROOT", test_hive)
+    # Create temp DuckDB file
+    temp_duckdb = tmp_path / "test_surveys.duckdb"
+
+    # Patch HIVE_ROOT and DUCKDB_PATH in all modules that use them
+    for module in [database, manager, helpers, validation]:
+        monkeypatch.setattr(module, "HIVE_ROOT", test_hive)
+    for module in [manager, helpers]:
+        monkeypatch.setattr(module, "DUCKDB_PATH", temp_duckdb)
+
+    # Patch check_git_clean in manager module to bypass git check for tests
+    monkeypatch.setattr(manager, "check_git_clean", lambda strict=True: True)  # noqa: ARG005
 
     return test_hive
 
@@ -23,7 +33,7 @@ def old_schema_data():
     """Create DataFrame with old schema (hispanic: str)."""
     return pl.DataFrame(
         {
-            "response_id": [1, 2, 3],
+            "response_id": pl.Series(["1", "2", "3"], dtype=pl.Utf8),
             "survey_id": ["TEST_2020", "TEST_2020", "TEST_2020"],
             "original_id": ["R001", "R002", "R003"],
             "survey_name": ["Test Survey", "Test Survey", "Test Survey"],
@@ -47,7 +57,7 @@ def new_schema_data():
     """Create DataFrame with new schema (is_hispanic: bool)."""
     return pl.DataFrame(
         {
-            "response_id": [4, 5, 6],
+            "response_id": pl.Series(["4", "5", "6"], dtype=pl.Utf8),
             "survey_id": ["TEST_2020", "TEST_2020", "TEST_2020"],
             "original_id": ["R004", "R005", "R006"],
             "survey_name": ["Test Survey", "Test Survey", "Test Survey"],
@@ -77,6 +87,7 @@ def test_schema_mismatch_column_rename_detected(temp_hive, old_schema_data, new_
             survey_year=2020,
             canonical_operator="TEST",
             validate=False,  # Skip pydantic validation for this test
+            refresh_cache=False,  # Skip cache refresh for tests
         )
 
 
@@ -91,7 +102,11 @@ def test_schema_mismatch_error_message_content(temp_hive, old_schema_data, new_s
     # Capture error
     with pytest.raises(ValueError, match="SCHEMA VERSION MISMATCH") as exc_info:
         database.ingest_survey_batch(
-            df=new_schema_data, survey_year=2020, canonical_operator="TEST", validate=False
+            df=new_schema_data,
+            survey_year=2020,
+            canonical_operator="TEST",
+            validate=False,
+            refresh_cache=False,
         )
 
     error_msg = str(exc_info.value)
@@ -111,7 +126,7 @@ def test_schema_mismatch_type_change_detected(temp_hive):
     # Create data with different types for same column
     old_data = pl.DataFrame(
         {
-            "response_id": [1, 2],
+            "response_id": ["1", "2"],
             "survey_year": [2020, 2020],
             "canonical_operator": ["TEST", "TEST"],
             "gender": ["Male", "Female"],  # String type
@@ -120,7 +135,7 @@ def test_schema_mismatch_type_change_detected(temp_hive):
 
     new_data = pl.DataFrame(
         {
-            "response_id": [3, 4],
+            "response_id": ["3", "4"],
             "survey_year": [2020, 2020],
             "canonical_operator": ["TEST", "TEST"],
             "gender": pl.Series([1, 2], dtype=pl.Int32),  # Int type
@@ -135,7 +150,11 @@ def test_schema_mismatch_type_change_detected(temp_hive):
     # Attempt to ingest different type
     with pytest.raises(ValueError, match=r"Type mismatch.*gender"):
         database.ingest_survey_batch(
-            df=new_data, survey_year=2020, canonical_operator="TEST", validate=False
+            df=new_data,
+            survey_year=2020,
+            canonical_operator="TEST",
+            validate=False,
+            refresh_cache=False,  # Skip cache refresh for tests
         )
 
 
@@ -144,7 +163,7 @@ def test_schema_compatible_ingestion_succeeds(temp_hive):
     # Create compatible data (same schema)
     first_batch = pl.DataFrame(
         {
-            "response_id": [1, 2],
+            "response_id": ["1", "2"],
             "survey_id": ["TEST_2020", "TEST_2020"],
             "original_id": ["R001", "R002"],
             "survey_name": ["Test Survey", "Test Survey"],
@@ -160,7 +179,7 @@ def test_schema_compatible_ingestion_succeeds(temp_hive):
 
     second_batch = pl.DataFrame(
         {
-            "response_id": [3, 4],
+            "response_id": ["3", "4"],
             "survey_id": ["TEST_2020", "TEST_2020"],
             "original_id": ["R003", "R004"],
             "survey_name": ["Test Survey", "Test Survey"],
@@ -182,7 +201,11 @@ def test_schema_compatible_ingestion_succeeds(temp_hive):
     # Ingest second batch - should succeed (same schema)
     try:
         database.ingest_survey_batch(
-            df=second_batch, survey_year=2020, canonical_operator="TEST", validate=False
+            df=second_batch,
+            survey_year=2020,
+            canonical_operator="TEST",
+            validate=False,
+            refresh_cache=False,
         )
         # If we get here without exception, test passes
     except ValueError as e:
@@ -201,6 +224,7 @@ def test_new_partition_no_schema_check(new_schema_data):
             survey_year=2025,  # New year
             canonical_operator="NEWOP",  # New operator
             validate=False,
+            refresh_cache=False,  # Skip cache refresh for tests
         )
         # Should succeed without schema checks
     except ValueError as e:
@@ -214,7 +238,7 @@ def test_schema_check_multiple_issues(temp_hive):
     # Old schema with multiple columns
     old_data = pl.DataFrame(
         {
-            "response_id": [1],
+            "response_id": ["1"],
             "survey_year": [2020],
             "canonical_operator": ["TEST"],
             "hispanic": ["HISPANIC/LATINO OR OF SPANISH ORIGIN"],
@@ -226,7 +250,7 @@ def test_schema_check_multiple_issues(temp_hive):
     # New schema with renamed column and type change
     new_data = pl.DataFrame(
         {
-            "response_id": [2],
+            "response_id": ["2"],
             "survey_year": [2020],
             "canonical_operator": ["TEST"],
             "is_hispanic": [True],  # Renamed
@@ -243,7 +267,11 @@ def test_schema_check_multiple_issues(temp_hive):
     # Attempt ingestion
     with pytest.raises(ValueError, match="SCHEMA VERSION MISMATCH") as exc_info:
         database.ingest_survey_batch(
-            df=new_data, survey_year=2020, canonical_operator="TEST", validate=False
+            df=new_data,
+            survey_year=2020,
+            canonical_operator="TEST",
+            validate=False,
+            refresh_cache=False,  # Skip cache refresh for tests
         )
 
     error_msg = str(exc_info.value)
@@ -262,7 +290,7 @@ def test_schema_check_with_additional_columns(temp_hive):
     # Old schema
     old_data = pl.DataFrame(
         {
-            "response_id": [1],
+            "response_id": ["1"],
             "survey_year": [2020],
             "canonical_operator": ["TEST"],
             "is_hispanic": [True],
@@ -272,7 +300,7 @@ def test_schema_check_with_additional_columns(temp_hive):
     # New schema with additional column
     new_data = pl.DataFrame(
         {
-            "response_id": [2],
+            "response_id": ["2"],
             "survey_year": [2020],
             "canonical_operator": ["TEST"],
             "is_hispanic": [False],
@@ -288,7 +316,11 @@ def test_schema_check_with_additional_columns(temp_hive):
     # Should succeed - adding columns is non-breaking
     try:
         database.ingest_survey_batch(
-            df=new_data, survey_year=2020, canonical_operator="TEST", validate=False
+            df=new_data,
+            survey_year=2020,
+            canonical_operator="TEST",
+            validate=False,
+            refresh_cache=False,
         )
     except ValueError as e:
         if "SCHEMA VERSION MISMATCH" in str(e):

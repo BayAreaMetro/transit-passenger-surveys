@@ -38,8 +38,6 @@ from .helpers import (
 # Re-export public manager functions
 from .manager import (
     create_views,
-    get_row_count,
-    get_table_info,
     ingest_survey_batch,
     ingest_survey_metadata,
     ingest_survey_weights,
@@ -82,8 +80,6 @@ __all__ = [
     "get_git_commit",
     "get_latest_metadata",
     "get_next_version",
-    "get_row_count",
-    "get_table_info",
     "ingest_survey_batch",
     "ingest_survey_metadata",
     "ingest_survey_weights",

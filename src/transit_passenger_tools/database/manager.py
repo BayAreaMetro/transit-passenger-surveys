@@ -202,17 +202,6 @@ def ingest_survey_weights(
     return output_path
 
 
-def get_table_info(view_name: str) -> pl.DataFrame:
-    """Get schema information for view or table."""
-    # Note: view_name should be validated/trusted input only
-    return query(f"DESCRIBE {view_name}")
-
-
-def get_row_count(view_name: str) -> int:
-    """Get row count for view or table."""
-    return query(f"SELECT COUNT(*) as count FROM {view_name}")["count"][0]
-
-
 def inspect_database() -> None:
     """Print summary of Hive warehouse views/tables."""
     conn = connect(read_only=True)
@@ -221,7 +210,7 @@ def inspect_database() -> None:
         logger.info("Available views/tables: %d", len(tables))
 
         for table_name in tables["name"]:
-            count = get_row_count(table_name)
+            count = query(f"SELECT COUNT(*) as count FROM {table_name}")["count"][0]
             logger.info("%s: %s rows", table_name, f"{count:,}")
     finally:
         conn.close()

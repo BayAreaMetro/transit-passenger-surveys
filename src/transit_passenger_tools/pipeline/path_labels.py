@@ -143,14 +143,10 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:  # noqa: C901
             expr = pl.when(pl.col(col_name) == long_name).then(pl.lit(short_code)).otherwise(expr)
         return expr
 
-    result_df = result_df.with_columns(map_tech_to_short("vehicle_tech").alias("survey_mode"))
-
     result_df = result_df.with_columns(
-        map_tech_to_short("first_board_tech").alias("first_board_mode")
-    )
-
-    result_df = result_df.with_columns(
-        map_tech_to_short("last_alight_tech").alias("last_alight_mode")
+        map_tech_to_short("vehicle_tech").alias("survey_mode"),
+        map_tech_to_short("first_board_tech").alias("first_board_mode"),
+        map_tech_to_short("last_alight_tech").alias("last_alight_mode"),
     )
 
     # Map transfer_from/to operators to tech (if transfer_from_tech doesn't exist)

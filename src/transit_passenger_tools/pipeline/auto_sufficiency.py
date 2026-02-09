@@ -26,6 +26,49 @@ VEHICLE_WORKER_MAPPING = {
 }
 
 
+def _map_to_numeric(df: pl.DataFrame, col: str, output_col: str) -> pl.DataFrame:
+    """Map vehicle/worker text to numeric, handling both string and numeric input.
+
+    Args:
+        df: Input DataFrame
+        col: Source column name
+        output_col: Output column name
+
+    Returns:
+        DataFrame with mapped numeric column added
+    """
+    if df.schema.get(col) == pl.Utf8:
+        return df.with_columns(
+            pl.col(col)
+            .str.to_lowercase()
+            .replace_strict(VEHICLE_WORKER_MAPPING, default=None)
+            .alias(output_col)
+        )
+    return df.with_columns(pl.col(col).cast(pl.Int32, strict=False).alias(output_col))
+
+
+def _check_unmapped_values(df: pl.DataFrame, source_col: str, mapped_col: str, label: str) -> None:
+    """Check for unmapped values and raise error with samples if found.
+
+    Args:
+        df: DataFrame to check
+        source_col: Original column name
+        mapped_col: Mapped numeric column name
+        label: Label for error message (e.g., 'vehicle', 'worker')
+
+    Raises:
+        ValueError: If unmapped values found
+    """
+    unmapped = df.filter(pl.col(source_col).is_not_null() & pl.col(mapped_col).is_null())
+    if unmapped.height > 0:
+        sample_values = unmapped.select(source_col).head(5)[source_col].to_list()
+        msg = (
+            f"Unrecognized {label} values found ({unmapped.height} records). "
+            f"Sample values: {sample_values}"
+        )
+        raise ValueError(msg)
+
+
 def derive_auto_sufficiency(df: pl.DataFrame) -> pl.DataFrame:
     """Transform vehicles and workers to calculate vehicle-to-worker ratio category.
 
@@ -51,52 +94,13 @@ def derive_auto_sufficiency(df: pl.DataFrame) -> pl.DataFrame:
         msg = f"auto_sufficiency transform requires columns: {missing}"
         raise ValueError(msg)
 
-    # Map vehicles - handle both string and numeric input
-    if df.schema.get("vehicles") == pl.Utf8:
-        df = df.with_columns(
-            pl.col("vehicles")
-            .str.to_lowercase()
-            .replace_strict(VEHICLE_WORKER_MAPPING, default=None)
-            .alias("vehicle_numeric")
-        )
-    else:
-        df = df.with_columns(
-            pl.col("vehicles").cast(pl.Int32, strict=False).alias("vehicle_numeric")
-        )
-
-    # Map workers - handle both string and numeric input
-    if df.schema.get("workers") == pl.Utf8:
-        df = df.with_columns(
-            pl.col("workers")
-            .str.to_lowercase()
-            .replace_strict(VEHICLE_WORKER_MAPPING, default=None)
-            .alias("worker_numeric")
-        )
-    else:
-        df = df.with_columns(pl.col("workers").cast(pl.Int32, strict=False).alias("worker_numeric"))
+    # Map vehicles and workers to numeric
+    df = _map_to_numeric(df, "vehicles", "vehicle_numeric")
+    df = _map_to_numeric(df, "workers", "worker_numeric")
 
     # Check for unmapped values
-    unmapped_vehicles = df.filter(
-        pl.col("vehicles").is_not_null() & pl.col("vehicle_numeric").is_null()
-    )
-    if unmapped_vehicles.height > 0:
-        sample_values = unmapped_vehicles.select("vehicles").head(5)["vehicles"].to_list()
-        msg = (
-            f"Unrecognized vehicle values found ({unmapped_vehicles.height} records). "
-            f"Sample values: {sample_values}"
-        )
-        raise ValueError(msg)
-
-    unmapped_workers = df.filter(
-        pl.col("workers").is_not_null() & pl.col("worker_numeric").is_null()
-    )
-    if unmapped_workers.height > 0:
-        sample_values = unmapped_workers.select("workers").head(5)["workers"].to_list()
-        msg = (
-            f"Unrecognized worker values found ({unmapped_workers.height} records). "
-            f"Sample values: {sample_values}"
-        )
-        raise ValueError(msg)
+    _check_unmapped_values(df, "vehicles", "vehicle_numeric", "vehicle")
+    _check_unmapped_values(df, "workers", "worker_numeric", "worker")
 
     # Calculate auto_to_workers_ratio category
     df = df.with_columns(

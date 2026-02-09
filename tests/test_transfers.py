@@ -48,8 +48,8 @@ class TestTechnologyFlags:
             }
         )
         result = derive_transfer_fields(df)
-        assert result["heavy_rail_present"][0] is True
-        assert result["local_bus_present"][0] is False
+        assert result["heavy_rail_present"][0] == 1
+        assert result["local_bus_present"][0] == 0
 
     def test_multiple_technologies_present(self):
         """Test multiple technology flags when transfers use different modes."""
@@ -67,10 +67,10 @@ class TestTechnologyFlags:
             }
         )
         result = derive_transfer_fields(df)
-        assert result["heavy_rail_present"][0] is True
-        assert result["local_bus_present"][0] is True
-        assert result["light_rail_present"][0] is True
-        assert result["ferry_present"][0] is False
+        assert result["heavy_rail_present"][0] == 1
+        assert result["local_bus_present"][0] == 1
+        assert result["light_rail_present"][0] == 1
+        assert result["ferry_present"][0] == 0
 
 
 class TestBoardingsCalculation:
@@ -299,7 +299,10 @@ class TestRouteToTechnologyMapping:
             }
         )
 
-        with pytest.raises(ValueError, match="Cannot map routes to technology for first_before"):
+        with pytest.raises(
+            ValueError,
+            match="Could not map .* routes to technology for first_before",  # noqa: RUF043
+        ):
             derive_transfer_fields(df)
 
     def test_valid_route_mapping(self):
@@ -345,8 +348,8 @@ class TestRouteToTechnologyMapping:
         assert result["first_before_technology"][0] == TechnologyType.LOCAL_BUS.value
         assert result["first_after_technology"][0] == TechnologyType.LOCAL_BUS.value
         assert result["boardings"][0] == 3
-        assert result["local_bus_present"][0] is True
-        assert result["heavy_rail_present"][0] is True
+        assert result["local_bus_present"][0] == 1
+        assert result["heavy_rail_present"][0] == 1
 
     def test_null_operator_skips_lookup(self):
         """Test that null operator/route values don't trigger lookups."""
