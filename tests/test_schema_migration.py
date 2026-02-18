@@ -214,8 +214,7 @@ def test_schema_compatible_ingestion_succeeds(temp_hive):
         raise
 
 
-@pytest.mark.usefixtures("temp_hive")
-def test_new_partition_no_schema_check(new_schema_data):
+def test_new_partition_no_schema_check(temp_hive, new_schema_data):  # noqa: ARG001
     """Test that new partitions (no existing data) don't trigger schema checks."""
     # Ingest into fresh partition (no existing files)
     try:
