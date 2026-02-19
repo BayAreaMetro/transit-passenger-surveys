@@ -440,10 +440,10 @@ def process_trip_characteristics(  # noqa: PLR0915
     logger.info("Adding workplace and school location fields")
     bart_df = bart_df.with_columns(
         [
-            pl.col("WORK_ADDRESS_LAT").alias("workplace_lat"),
-            pl.col("WORK_ADDRESS_LONG").alias("workplace_lon"),
-            pl.col("SCHOOL_ADDRESS_LAT").alias("school_lat"),
-            pl.col("SCHOOL_ADDRESS_LONG").alias("school_lon"),
+            pl.col("WORK_ADDRESS_LAT").replace("-", None).cast(pl.Float64).alias("workplace_lat"),
+            pl.col("WORK_ADDRESS_LONG").replace("-", None).cast(pl.Float64).alias("workplace_lon"),
+            pl.col("SCHOOL_ADDRESS_LAT").replace("-", None).cast(pl.Float64).alias("school_lat"),
+            pl.col("SCHOOL_ADDRESS_LONG").replace("-", None).cast(pl.Float64).alias("school_lon"),
         ]
     )
 
@@ -538,19 +538,19 @@ def process_trip_characteristics(  # noqa: PLR0915
         [
             pl.lit(None).cast(pl.Utf8).alias("depart_time"),
             pl.lit(None).cast(pl.Utf8).alias("return_time"),
-            pl.lit(None).cast(pl.Utf8).alias("depart_hour"),
-            pl.lit(None).cast(pl.Utf8).alias("return_hour"),
+            pl.lit(None).cast(pl.Int64).alias("depart_hour"),
+            pl.lit(None).cast(pl.Int64).alias("return_hour"),
         ]
     )
 
-    # Add origin/destination coordinates (BART 2024 doesn't collect trip O/D, only home/work/school)
+    # Add origin/destination coordinates
     logger.info("Adding orig_lat, orig_lon, dest_lat, dest_lon as null")
     bart_df = bart_df.with_columns(
         [
-            pl.lit(None).cast(pl.Float64).alias("orig_lat"),
-            pl.lit(None).cast(pl.Float64).alias("orig_lon"),
-            pl.lit(None).cast(pl.Float64).alias("dest_lat"),
-            pl.lit(None).cast(pl.Float64).alias("dest_lon"),
+            pl.col("ORIGIN_ADDRESS_LAT").cast(pl.Float64).alias("orig_lat"),
+            pl.col("ORIGIN_ADDRESS_LONG").cast(pl.Float64).alias("orig_lon"),
+            pl.col("DESTIN_ADDRESS_LAT").cast(pl.Float64).alias("dest_lat"),
+            pl.col("DESTIN_ADDRESS_LONG").cast(pl.Float64).alias("dest_lon"),
         ]
     )
 
@@ -847,6 +847,14 @@ def preprocess(
             HOME_ADDRESS_LONG: "home_lon",
         }
     )
+    # Cast home coordinates to Float64 to match schema
+    survey_df = survey_df.with_columns(
+        [
+            pl.col("home_lat").replace("-", None).cast(pl.Float64),
+            pl.col("home_lon").replace("-", None).cast(pl.Float64),
+        ]
+    )
+
     # Add geo_level for home locations
     survey_df = survey_df.with_columns(
         [
@@ -930,23 +938,23 @@ def preprocess(
             # Transfer operator/technology fields (before survey)
             pl.lit(None).cast(pl.Utf8).alias("first_before_operator"),
             pl.lit(None).cast(pl.Utf8).alias("first_before_operator_detail"),
-            pl.lit(None).alias("first_before_technology"),
+            pl.lit(None).cast(pl.Utf8).alias("first_before_technology"),
             pl.lit(None).cast(pl.Utf8).alias("second_before_operator"),
             pl.lit(None).cast(pl.Utf8).alias("second_before_operator_detail"),
-            pl.lit(None).alias("second_before_technology"),
+            pl.lit(None).cast(pl.Utf8).alias("second_before_technology"),
             pl.lit(None).cast(pl.Utf8).alias("third_before_operator"),
             pl.lit(None).cast(pl.Utf8).alias("third_before_operator_detail"),
-            pl.lit(None).alias("third_before_technology"),
+            pl.lit(None).cast(pl.Utf8).alias("third_before_technology"),
             # Transfer operator/technology fields (after survey)
             pl.lit(None).cast(pl.Utf8).alias("first_after_operator"),
             pl.lit(None).cast(pl.Utf8).alias("first_after_operator_detail"),
-            pl.lit(None).alias("first_after_technology"),
+            pl.lit(None).cast(pl.Utf8).alias("first_after_technology"),
             pl.lit(None).cast(pl.Utf8).alias("second_after_operator"),
             pl.lit(None).cast(pl.Utf8).alias("second_after_operator_detail"),
-            pl.lit(None).alias("second_after_technology"),
+            pl.lit(None).cast(pl.Utf8).alias("second_after_technology"),
             pl.lit(None).cast(pl.Utf8).alias("third_after_operator"),
             pl.lit(None).cast(pl.Utf8).alias("third_after_operator_detail"),
-            pl.lit(None).alias("third_after_technology"),
+            pl.lit(None).cast(pl.Utf8).alias("third_after_technology"),
             pl.lit("Heavy Rail").alias("last_alight_tech"),
             # Path labels (not yet derived)
             pl.lit(None).cast(pl.Utf8).alias("path_access"),

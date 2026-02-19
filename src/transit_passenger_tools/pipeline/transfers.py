@@ -193,12 +193,12 @@ def _calculate_technology_presence_flags(df: pl.DataFrame) -> pl.DataFrame:
             for condition in conditions[1:]:
                 tech_present_expr = tech_present_expr | condition
             # fill_null(False) because NULL == "tech" returns NULL, not False
-            # Cast to Int8 to match legacy database (0/1 instead of False/True)
+            # Cast to Int64 to match database schema (0/1 instead of False/True)
             result_df = result_df.with_columns(
-                tech_present_expr.fill_null(false_value).cast(pl.Int8).alias(flag_col)
+                tech_present_expr.fill_null(false_value).cast(pl.Int64).alias(flag_col)
             )
         else:
-            result_df = result_df.with_columns(pl.lit(0).cast(pl.Int8).alias(flag_col))
+            result_df = result_df.with_columns(pl.lit(0).cast(pl.Int64).alias(flag_col))
 
     return result_df
 
