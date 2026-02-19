@@ -75,25 +75,23 @@ hyper_path = OUTPUT_DIR / f"airport_trips - {month_year}.hyper"
 # since those are not air passengers
 df_nonwork = trips.filter(
     ~(
-        ((pl.col("orig_purp") == TripPurpose.WORK.value) | pl.col("orig_purp").is_null())
-        & (
-            pl.col("onoff_exit_station").is_in(
-                ["San Francisco International Airport", "Oakland International Airport"]
-            )
+        # Exclude: work trip TO airport (exit station is airport)
+        (pl.col("orig_purp") == TripPurpose.WORK.value)
+        & pl.col("orig_purp").is_not_null()  # Only filter if purpose is known
+        & pl.col("onoff_exit_station").is_in(
+            ["San Francisco International Airport", "Oakland International Airport"]
         )
     )
     & ~(
-        ((pl.col("dest_purp") == TripPurpose.WORK.value) | pl.col("dest_purp").is_null())
-        & (
-            pl.col("onoff_enter_station").is_in(
-                ["San Francisco International Airport", "Oakland International Airport"]
-            )
+        # Exclude: work trip FROM airport (enter station is airport)
+        (pl.col("dest_purp") == TripPurpose.WORK.value)
+        & pl.col("dest_purp").is_not_null()  # Only filter if purpose is known
+        & pl.col("onoff_enter_station").is_in(
+            ["San Francisco International Airport", "Oakland International Airport"]
         )
     )
 )
 
-# add to_airport and from_airport filtered categories as for easier analysis in Tableau
-df_nonwork = df_nonwork.with_columns()
 
 # Join with superdistricts to get superdistrict of origin and destination
 df_trips = df_nonwork.select(
@@ -152,5 +150,44 @@ print(
     .agg(pl.sum("boarding_weight"), pl.sum("trip_weight"), pl.count())
     .sort("orig_superd", descending=True)
 )
+
+
+# Create a combined weight
+
+# Calculate scaling factor by year to account for scale differences
+# factor_year_i = sum(trip_weight_year_i) / (sum(trip_weight_year_i) + sum(boarding_weight_year_i))
+# Do this for both boarding and trip weight to get a combined weight that accounts for both
+
+# Calculate year-level totals
+year_totals = df_nonwork.group_by("year").agg(
+    pl.sum("trip_weight").alias("total_trip_weight"),
+    pl.sum("boarding_weight").alias("total_boarding_weight"),
+)
+
+# Calculate scaling factors for each year
+year_totals = year_totals.with_columns(
+    (
+        pl.col("total_trip_weight")
+        / (pl.col("total_trip_weight") + pl.col("total_boarding_weight"))
+    ).alias("trip_scale_factor"),
+    (
+        pl.col("total_boarding_weight")
+        / (pl.col("total_trip_weight") + pl.col("total_boarding_weight"))
+    ).alias("boarding_scale_factor"),
+)
+
+# Join scaling factors back to main dataframe and calculate combined weights
+df_nonwork = df_nonwork.join(
+    year_totals.select("year", "trip_scale_factor", "boarding_scale_factor"), on="year", how="left"
+)
+
+df_nonwork = df_nonwork.with_columns(
+    (pl.col("trip_weight") * pl.col("trip_scale_factor")).alias("trip_weight_combined"),
+    (pl.col("boarding_weight") * pl.col("boarding_scale_factor")).alias("boarding_weight_combined"),
+)
+
+# Drop intermediate calculation columns if desired
+df_nonwork = df_nonwork.drop("trip_scale_factor", "boarding_scale_factor")
+
 
 export_df_to_hyper({"trips": df_nonwork}, hyper_path)
