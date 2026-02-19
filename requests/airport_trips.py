@@ -12,6 +12,7 @@ Search for BART, AC Transit, SamTrans trips to/from SFO, OAK, SJC airports
 from datetime import UTC, datetime
 from pathlib import Path
 
+import geopandas as gpd
 import polars as pl
 
 from transit_passenger_tools.database import connect
@@ -22,103 +23,134 @@ from transit_passenger_tools.schemas.codebook import TripPurpose
 OUTPUT_DIR = Path(r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\Airport Data")
 
 
-# Target operators
-OPERATORS = ["BART", "AC TRANSIT", "SAMTRANS"]
+# Load super district shapefile
+SHP_DIR = Path(
+    r"\\model3-a\Model3A-Share\travel-model-one-master\utilities"
+    r"\geographies\taz1454_SUPERD_dissolve.shp"
+)
 
-# Airport coordinates (lat, lon) and proximity threshold
-AIRPORTS = {
-    "SFO": (37.6213, -122.3790),  # San Francisco International
-    "OAK": (37.7126, -122.2197),  # Oakland International
-    "SJC": (37.3639, -121.9289),  # San Jose International
-}
-PROXIMITY_KM = 2  # Consider trips within 2km of airport as airport trips
+# Load shapefile with geopandas
+superdistricts = gpd.read_file(SHP_DIR)
+
+# Project to WGS84 for spatial joins with lat/lon points
+superdistricts = superdistricts.to_crs(epsg=4326)
 
 # Load data from database using Polars with DuckDB connection
 # Filter in SQL for efficiency using bounding boxes for each airport
 conn = connect(read_only=True)
 
-# Build SQL query with lat/lon filters
-# Approximate: 1 degree latitude ≈ 111km, 1 degree longitude ≈ 85km at Bay Area latitude
-lat_buffer = PROXIMITY_KM / 111  # ~0.018 degrees
-lon_buffer = PROXIMITY_KM / 85  # ~0.024 degrees
-
-# Build SQL query with spatial filter and airport classification in a single pass
-case_conditions = []
-
-for airport, (lat, lon) in AIRPORTS.items():
-    # Airport classification conditions (also serves as spatial filter)
-    case_conditions.append(f"""
-        WHEN (dest_lat BETWEEN {lat - lat_buffer} AND {lat + lat_buffer}
-              AND dest_lon BETWEEN {lon - lon_buffer} AND {lon + lon_buffer})
-        THEN 'to_{airport}'
-        WHEN (orig_lat BETWEEN {lat - lat_buffer} AND {lat + lat_buffer}
-              AND orig_lon BETWEEN {lon - lon_buffer} AND {lon + lon_buffer})
-        THEN 'from_{airport}'""")
-
-# Query with airport classification
-query = f"""
+# Get all trips for target operators and years with lat/lon fields for spatial filtering
+trips = conn.execute(
+    """
     SELECT
-        *,
-        CASE
-            {" ".join(case_conditions)}
-            ELSE 'non_airport_trip'
-        END as airport_trip_type
-    FROM survey_responses
-    WHERE operator IN ({",".join(f"'{op}'" for op in OPERATORS)})
-"""  # noqa: S608
-
-# Separate query for weights
-weights_query = f"""
-    SELECT response_id, boarding_weight, trip_weight
-    FROM survey_weights
-    WHERE weight_scheme = 'baseline'
-    AND response_id IN (
-        SELECT DISTINCT response_id FROM survey_responses
-        WHERE operator IN ({",".join(f"'{op}'" for op in OPERATORS)})
+        sr.* EXCLUDE (sr.trip_weight),
+        sw.boarding_weight,
+        sw.trip_weight
+    FROM survey_responses sr
+    LEFT JOIN survey_weights sw
+        ON sr.response_id = sw.response_id
+        AND sw.weight_scheme = 'baseline'
+    WHERE sr.operator IN ('BART', 'AC TRANSIT', 'SAMTRANS')
+    AND (
+        sr.onoff_enter_station IN (
+            'San Francisco International Airport',
+            'Oakland International Airport'
+        )
+        OR
+        sr.onoff_exit_station IN (
+            'San Francisco International Airport',
+            'Oakland International Airport'
+        )
     )
-"""  # noqa: S608
-
-
-# Execute queries and close connection
-df = conn.execute(query).pl()
-weights_df = conn.execute(weights_query).pl()
-conn.close()
-
-# Filter to only airport trips (remove 'non_airport_trip' rows)
-df = df.filter(pl.col("airport_trip_type") != "non_airport_trip")
-
-# Drop fields that are entirely NULL to clean up the dataset
-# (e.g., if some fields are missing from older surveys)
-df = df.select([col for col in df.columns if not df[col].is_null().all()])
-
-# Distribution of airport trips by purpose
-print(df.group_by("trip_purp", "year").agg(pl.count()).sort("count", descending=True))
-
-
-# Drop work trips to focus on air passenger trips
-df_nonwork = df.filter(
-    ~pl.col("trip_purp").is_in(
-        [
-            TripPurpose.WORK.value,
-            TripPurpose.WORK_RELATED.value,
-            TripPurpose.AT_WORK.value,
-            TripPurpose.BUSINESS_APT.value,
-        ],
-        nulls_equal=True,
-    )
-)
+    """,
+).pl()
 
 # Save the resulting DataFrame to Parquet for further analysis
 # Get month/year of today
 month_year = datetime.now(tz=UTC).strftime("%Y-%m")
-df_nonwork.write_parquet(OUTPUT_DIR / f"airport_trips - {month_year}.parquet")
 
 # Export as .hyper file for Tableau with separate tables for trips and weights
 hyper_path = OUTPUT_DIR / f"airport_trips - {month_year}.hyper"
 
-# Filter weights to only those with airport non-work trips
-airport_weights = weights_df.filter(
-    pl.col("response_id").is_in(df_nonwork["response_id"].implode())
+# since those are not air passengers
+df_nonwork = trips.filter(
+    ~(
+        ((pl.col("orig_purp") == TripPurpose.WORK.value) | pl.col("orig_purp").is_null())
+        & (
+            pl.col("onoff_exit_station").is_in(
+                ["San Francisco International Airport", "Oakland International Airport"]
+            )
+        )
+    )
+    & ~(
+        ((pl.col("dest_purp") == TripPurpose.WORK.value) | pl.col("dest_purp").is_null())
+        & (
+            pl.col("onoff_enter_station").is_in(
+                ["San Francisco International Airport", "Oakland International Airport"]
+            )
+        )
+    )
 )
 
-export_df_to_hyper({"trips": df_nonwork, "weights": airport_weights}, hyper_path)
+# add to_airport and from_airport filtered categories as for easier analysis in Tableau
+df_nonwork = df_nonwork.with_columns()
+
+# Join with superdistricts to get superdistrict of origin and destination
+df_trips = df_nonwork.select(
+    "response_id", "orig_lat", "orig_lon", "dest_lat", "dest_lon"
+).to_pandas()
+
+gdf_origins = gpd.GeoDataFrame(
+    df_trips[["response_id"]],
+    geometry=gpd.points_from_xy(df_trips["orig_lon"], df_trips["orig_lat"]),
+    crs="EPSG:4326",
+)
+gdf_dests = gpd.GeoDataFrame(
+    df_trips[["response_id"]],
+    geometry=gpd.points_from_xy(df_trips["dest_lon"], df_trips["dest_lat"]),
+    crs="EPSG:4326",
+)
+
+# Perform spatial join, convert to polars and join back to original DataFrame
+for gdf, prefix in [(gdf_origins, "orig"), (gdf_dests, "dest")]:
+    joined = gpd.sjoin(gdf, superdistricts[["SUPERD", "geometry"]], how="left", predicate="within")
+    joined_polars = pl.from_pandas(
+        joined[["response_id", "SUPERD"]].rename(columns={"SUPERD": f"{prefix}_superd"})
+    ).with_columns(pl.col(f"{prefix}_superd").cast(pl.Int64))
+    df_nonwork = df_nonwork.join(joined_polars, on="response_id", how="left")
+
+
+# Check that we have >2015 bart data
+if (
+    df_nonwork.filter(
+        (pl.col("operator") == "BART") & (pl.col("year") > 2015)  # noqa: PLR2004
+    ).shape[0]
+    == 0
+):
+    msg = "No BART data found for years > 2015"
+    raise ValueError(msg)
+
+# Print a table of counts of trips by trips FROM airports
+print(
+    df_nonwork.filter(
+        pl.col("onoff_enter_station").is_in(
+            ["San Francisco International Airport", "Oakland International Airport"]
+        )
+    )
+    .group_by("dest_superd")
+    .agg(pl.sum("boarding_weight"), pl.sum("trip_weight"), pl.count())
+    .sort("dest_superd", descending=True)
+)
+# Print a table of counts of trips by trips TO airports
+print(
+    df_nonwork.filter(
+        pl.col("onoff_exit_station").is_in(
+            ["San Francisco International Airport", "Oakland International Airport"]
+        )
+    )
+    .group_by("orig_superd")
+    .agg(pl.sum("boarding_weight"), pl.sum("trip_weight"), pl.count())
+    .sort("orig_superd", descending=True)
+)
+
+export_df_to_hyper({"trips": df_nonwork}, hyper_path)

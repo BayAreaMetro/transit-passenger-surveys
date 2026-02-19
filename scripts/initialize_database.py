@@ -16,8 +16,13 @@ from initialize_helpers.backfill_ingestion import (
 )
 from initialize_helpers.backfill_loader import load_survey_data, reorder_columns_to_match_schema
 from initialize_helpers.backfill_validation import validate_schema
+from initialize_helpers.fix_ace_2023 import fix_ace_commuter_rail
+from initialize_helpers.fix_bart_2015 import (
+    fix_bart_2015_airport_station_names,
+    fix_bart_heavy_rail,
+    fix_bart_route_field,
+)
 
-from scripts.initialize_helpers.fix_ace_2023 import fix_ace_commuter_rail
 from transit_passenger_tools import database
 from transit_passenger_tools.pipeline import auto_sufficiency
 
@@ -26,8 +31,8 @@ logger = logging.getLogger(__name__)
 
 # Standardized data directory to use for backfill
 STANDARDIZED_DIR = Path(
-    r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\
-        _data_Standardized\standardized_2025-10-13"
+    r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports"
+    r"\_data_Standardized\standardized_2025-10-13"
 )
 CSV_FILENAME = "survey_combined.csv"
 
@@ -95,6 +100,9 @@ def main(standardized_dir: Path = STANDARDIZED_DIR) -> None:
     """
     log_step("TRANSIT SURVEY DATABASE INITIALIZATION")
 
+    if standardized_dir is None:
+        standardized_dir = STANDARDIZED_DIR
+
     if not database.HIVE_ROOT.parent.exists():
         logger.error("Network share not accessible: %s", database.HIVE_ROOT.parent)
         sys.exit(1)
@@ -115,6 +123,9 @@ def main(standardized_dir: Path = STANDARDIZED_DIR) -> None:
     # Step 4: Corrections
     log_step("STEP 4: APPLY DATA CORRECTIONS")
     fix_ace_commuter_rail()
+    fix_bart_heavy_rail()
+    fix_bart_2015_airport_station_names()
+    fix_bart_route_field()
 
     # Step 5: Cache
     log_step("STEP 5: REFRESH DUCKDB CACHE")
@@ -134,7 +145,7 @@ if __name__ == "__main__":
         "--standardized-dir",
         type=Path,
         default=None,
-        help="Path to specific standardized data directory (default: find latest)",
+        help=f"Path to standardized data directory (default: {STANDARDIZED_DIR})",
     )
 
     args = parser.parse_args()

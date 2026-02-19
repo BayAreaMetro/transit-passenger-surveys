@@ -1000,6 +1000,18 @@ def preprocess(
         ]
     )
 
+    # Correct onoff station names
+    station_name_fixes = {
+        "San Francisco Intl Airport": "San Francisco International Airport",
+        "Oakland International Airport Station": "Oakland International Airport",
+    }
+    survey_df = survey_df.with_columns(
+        [
+            pl.col("onoff_enter_station").replace(station_name_fixes).alias("onoff_enter_station"),
+            pl.col("onoff_exit_station").replace(station_name_fixes).alias("onoff_exit_station"),
+        ]
+    )
+
     # Convert eng_proficient from int to string enum
     survey_df = survey_df.with_columns(
         [

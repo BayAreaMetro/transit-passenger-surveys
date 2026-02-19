@@ -3,6 +3,7 @@
 This script fixes known bugs in the legacy R code for BART surveys:
 1. heavy_rail_present incorrectly set to 0 (should be 1 for BART Heavy Rail)
 2. route field inconsistently normalized (periods and slashes)
+3. 2015 airport station names using abbreviated forms (should match 2024 naming)
 
 Applies canonical normalization consistently across all BART survey years.
 """
@@ -68,6 +69,72 @@ def fix_bart_heavy_rail() -> int:
 
     if total_fixed == 0:
         logger.info("  No heavy_rail_present fixes needed")
+    logger.info("")
+    return total_fixed
+
+
+def fix_bart_2015_airport_station_names() -> int:
+    """Fix 2015 BART airport station names to match 2024 naming convention.
+
+    Updates:
+    - 'San Francisco Intl Airport' → 'San Francisco International Airport'
+    - 'Oakland International Airport Station' → 'Oakland International Airport'
+
+    Returns:
+        Number of records fixed
+    """
+    bart_2015_path = database.HIVE_ROOT / "survey_responses" / "operator=BART" / "year=2015"
+
+    if not bart_2015_path.exists():
+        logger.info("BART 2015 data not found, skipping airport station name fixes")
+        return 0
+
+    logger.info("Fixing 2015 BART airport station names...")
+    total_fixed = 0
+
+    parquet_files = list(bart_2015_path.glob("data-*.parquet"))
+    if not parquet_files:
+        logger.info("  No parquet files found in BART 2015")
+        return 0
+
+    station_name_fixes = {
+        "San Francisco Intl Airport": "San Francisco International Airport",
+        "Oakland International Airport Station": "Oakland International Airport",
+    }
+
+    for parquet_file in parquet_files:
+        df = pl.read_parquet(parquet_file)
+
+        if "onoff_enter_station" in df.columns and "onoff_exit_station" in df.columns:
+            # Count how many records will be affected
+            affected_enter = df.filter(
+                pl.col("onoff_enter_station").is_in(list(station_name_fixes.keys()))
+            ).height
+            affected_exit = df.filter(
+                pl.col("onoff_exit_station").is_in(list(station_name_fixes.keys()))
+            ).height
+
+            if affected_enter > 0 or affected_exit > 0:
+                # Apply station name fixes
+                # (route regeneration will be handled by fix_bart_route_field)
+                df = df.with_columns(
+                    [
+                        pl.col("onoff_enter_station")
+                        .replace(station_name_fixes, default=pl.col("onoff_enter_station"))
+                        .alias("onoff_enter_station"),
+                        pl.col("onoff_exit_station")
+                        .replace(station_name_fixes, default=pl.col("onoff_exit_station"))
+                        .alias("onoff_exit_station"),
+                    ]
+                )
+
+                df.write_parquet(parquet_file)
+                fixed_count = affected_enter + affected_exit
+                logger.info("  BART 2015: Fixed %d airport station name records", fixed_count)
+                total_fixed += fixed_count
+
+    if total_fixed == 0:
+        logger.info("  No airport station name fixes needed")
     logger.info("")
     return total_fixed
 
@@ -149,12 +216,15 @@ if __name__ == "__main__":
     logger.info("")
 
     heavy_rail_fixes = fix_bart_heavy_rail()
+    airport_station_fixes = fix_bart_2015_airport_station_names()
     route_fixes = fix_bart_route_field()
 
     logger.info("=" * 80)
     logger.info("SUMMARY")
     logger.info("=" * 80)
-    logger.info("  heavy_rail_present fixes: %d", heavy_rail_fixes)
-    logger.info("  route field fixes:        %d", route_fixes)
-    logger.info("  Total fixes:              %d", heavy_rail_fixes + route_fixes)
+    logger.info("  heavy_rail_present fixes:   %d", heavy_rail_fixes)
+    logger.info("  airport station name fixes: %d", airport_station_fixes)
+    logger.info("  route field fixes:          %d", route_fixes)
+    total_all_fixes = heavy_rail_fixes + airport_station_fixes + route_fixes
+    logger.info("  Total fixes:                %d", total_all_fixes)
     logger.info("=" * 80)
