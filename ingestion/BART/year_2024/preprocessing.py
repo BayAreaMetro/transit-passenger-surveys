@@ -178,12 +178,12 @@ def process_access_egress(bart_df: pl.DataFrame, codebook_df: pl.DataFrame) -> p
         if codebook_lookup:
             logger.info("Using codebook for %s", col)
             bart_df = bart_df.with_columns(
-                [pl.col(col).replace(codebook_lookup, default=None).alias(f"{col}_mode")]
+                [pl.col(col).replace_strict(codebook_lookup, default=None).alias(f"{col}_mode")]
             )
         else:
             logger.info("Using standard recode for %s", col)
             bart_df = bart_df.with_columns(
-                [pl.col(col).replace(standard_recode, default=None).alias(f"{col}_mode")]
+                [pl.col(col).replace_strict(standard_recode, default=None).alias(f"{col}_mode")]
             )
 
     # Process egress columns
@@ -193,12 +193,12 @@ def process_access_egress(bart_df: pl.DataFrame, codebook_df: pl.DataFrame) -> p
         if codebook_lookup:
             logger.info("Using codebook for %s", col)
             bart_df = bart_df.with_columns(
-                [pl.col(col).replace(codebook_lookup, default=None).alias(f"{col}_mode")]
+                [pl.col(col).replace_strict(codebook_lookup, default=None).alias(f"{col}_mode")]
             )
         else:
             logger.info("Using standard recode for %s", col)
             bart_df = bart_df.with_columns(
-                [pl.col(col).replace(standard_recode, default=None).alias(f"{col}_mode")]
+                [pl.col(col).replace_strict(standard_recode, default=None).alias(f"{col}_mode")]
             )
 
     # Add standard access_mode and egress_mode fields expected by R script
@@ -406,7 +406,9 @@ def process_demographics(  # noqa: PLR0912, PLR0915
             pl.col("RACE_98_Other").fill_null(0).cast(pl.Int8).alias("race_dmy_othr"),
             pl.lit(0).cast(pl.Int8).alias("race_dmy_hwi"),  # Hawaiian not in BART 2024
             pl.lit(0).cast(pl.Int8).alias("race_dmy_mdl_estn"),  # Middle Eastern not in BART 2024
-            pl.col("SingleRaceCode").replace(race_cat_mapping, default=None).alias("race_cat"),
+            pl.col("SingleRaceCode")
+            .replace_strict(race_cat_mapping, default=None)
+            .alias("race_cat"),
             pl.col("RACE_OTHER").cast(pl.Utf8).alias("race_other_string"),
         ]
     )
@@ -456,10 +458,10 @@ def process_trip_characteristics(  # noqa: PLR0915
     bart_df = bart_df.with_columns(
         [
             pl.col("ORIGIN_PLACE_TYPE_FINAL")
-            .replace(place_purpose_mapping, default=None)
+            .replace_strict(place_purpose_mapping, default=None)
             .alias("orig_purp"),
             pl.col("DESTIN_PLACE_FINAL")
-            .replace(place_purpose_mapping, default=None)
+            .replace_strict(place_purpose_mapping, default=None)
             .alias("dest_purp"),
             pl.lit(None).cast(pl.Utf8).alias("trip_purp"),  # Not collected as a separate field
             # at_work/at_school flags: True if the place is Work/School respectively,
@@ -619,7 +621,7 @@ def process_trip_characteristics(  # noqa: PLR0915
     bart_df = bart_df.with_columns(
         [
             pl.col("SURVEY_LANGUAGE_FINAL")
-            .replace(survey_lang_lookup, default=None)
+            .replace_strict(survey_lang_lookup, default=None)
             .alias("interview_language"),
             pl.when(pl.col("DATE_COMPLETED").is_not_null())
             .then(pl.lit("online - modeling platform"))
