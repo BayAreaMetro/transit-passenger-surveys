@@ -76,7 +76,10 @@ hyper_path = OUTPUT_DIR / f"airport_trips - {month_year}.hyper"
 df_nonwork = trips.filter(
     ~(
         # Exclude: work trip TO airport (exit station is airport)
-        (pl.col("orig_purp") == TripPurpose.WORK.value)
+        (
+            (pl.col("orig_purp") == TripPurpose.WORK.value)
+            | (pl.col("orig_purp") == TripPurpose.WORK_RELATED.value)
+        )
         & pl.col("orig_purp").is_not_null()  # Only filter if purpose is known
         & pl.col("onoff_exit_station").is_in(
             ["San Francisco International Airport", "Oakland International Airport"]
@@ -84,7 +87,10 @@ df_nonwork = trips.filter(
     )
     & ~(
         # Exclude: work trip FROM airport (enter station is airport)
-        (pl.col("dest_purp") == TripPurpose.WORK.value)
+        (
+            (pl.col("dest_purp") == TripPurpose.WORK.value)
+            | (pl.col("dest_purp") == TripPurpose.WORK_RELATED.value)
+        )
         & pl.col("dest_purp").is_not_null()  # Only filter if purpose is known
         & pl.col("onoff_enter_station").is_in(
             ["San Francisco International Airport", "Oakland International Airport"]
@@ -136,7 +142,7 @@ print(
         )
     )
     .group_by("dest_superd")
-    .agg(pl.sum("boarding_weight"), pl.sum("trip_weight"), pl.count())
+    .agg(pl.sum("boarding_weight"), pl.sum("trip_weight"), pl.len())
     .sort("dest_superd", descending=True)
 )
 # Print a table of counts of trips by trips TO airports
@@ -147,7 +153,7 @@ print(
         )
     )
     .group_by("orig_superd")
-    .agg(pl.sum("boarding_weight"), pl.sum("trip_weight"), pl.count())
+    .agg(pl.sum("boarding_weight"), pl.sum("trip_weight"), pl.len())
     .sort("orig_superd", descending=True)
 )
 
