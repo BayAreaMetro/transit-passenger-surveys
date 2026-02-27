@@ -94,12 +94,15 @@ user_list <- data.frame(
            "ftsang",
            "ywang",
            "SIsrael",
-           "lzorn"),
+           "lzorn",
+           "nfournier"
+           ),
   path = c("~/GitHub/onboard-surveys/Data and Reports",
            "M:/Data/OnBoard/Data and Reports",
            "M:/Data/OnBoard/Data and Reports",
            "M:/Data/OnBoard/Data and Reports", 
-           "M:/Data/OnBoard/Data and Reports"
+           "M:/Data/OnBoard/Data and Reports",
+            "M:/Data/OnBoard/Data and Reports"
   )
 )
 
@@ -514,6 +517,17 @@ survey_input_df <- survey_input_df %>% add_row(
     TPS_SURVEY_PATH,
     "SamTrans","2019_2022",
     "SamTrans_2022_preprocessed.csv"
+  )
+)
+survey_input_df <- survey_input_df %>% add_row(
+  survey_name     = 'BART',
+  survey_year     = 2024,
+  operator        = 'BART',
+  default_tech    = 'heavy rail',
+  raw_data_path   = file.path(
+    TPS_SURVEY_PATH,
+    "BART",
+    "BART_2024_preprocessed.csv"
   )
 )
 
