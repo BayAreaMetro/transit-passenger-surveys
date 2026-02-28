@@ -2,13 +2,12 @@
 
 import polars as pl
 
-from transit_passenger_tools.pipeline.tour_purpose import derive_tour_purpose
-from transit_passenger_tools.schemas.codebook import (
+from transit_passenger_tools.codebook import (
+    Purpose,
     StudentStatus,
-    TourPurpose,
-    TripPurpose,
     WorkStatus,
 )
+from transit_passenger_tools.pipeline.tour_purpose import derive_tour_purpose
 
 
 class TestWorkTours:
@@ -18,8 +17,8 @@ class TestWorkTours:
         """Test home to work maps to work tour."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.HOME.value],
-                "dest_purp": [TripPurpose.WORK.value],
+                "orig_purp": [Purpose.HOME.value],
+                "dest_purp": [Purpose.WORK.value],
                 "work_status": [WorkStatus.FULL_OR_PART_TIME.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -30,15 +29,15 @@ class TestWorkTours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.WORK.value
+        assert result["tour_purp"][0] == Purpose.WORK.value
         assert result["tour_purp_case"][0] == "home to work"
 
     def test_work_to_home(self):
         """Test work to home maps to work tour."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.WORK.value],
-                "dest_purp": [TripPurpose.HOME.value],
+                "orig_purp": [Purpose.WORK.value],
+                "dest_purp": [Purpose.HOME.value],
                 "work_status": [WorkStatus.FULL_OR_PART_TIME.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -49,15 +48,15 @@ class TestWorkTours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.WORK.value
+        assert result["tour_purp"][0] == Purpose.WORK.value
         assert result["tour_purp_case"][0] == "work to home"
 
     def test_work_before_home_destination(self):
         """Test at work before trip, home destination."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.SHOPPING.value],
-                "dest_purp": [TripPurpose.HOME.value],
+                "orig_purp": [Purpose.SHOPPING.value],
+                "dest_purp": [Purpose.HOME.value],
                 "work_status": [WorkStatus.FULL_OR_PART_TIME.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [True],
@@ -68,15 +67,15 @@ class TestWorkTours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.WORK.value
+        assert result["tour_purp"][0] == Purpose.WORK.value
         assert result["tour_purp_case"][0] == "work before, home destination"
 
     def test_home_origin_work_after(self):
         """Test home origin, at work after trip."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.HOME.value],
-                "dest_purp": [TripPurpose.SHOPPING.value],
+                "orig_purp": [Purpose.HOME.value],
+                "dest_purp": [Purpose.SHOPPING.value],
                 "work_status": [WorkStatus.FULL_OR_PART_TIME.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -87,7 +86,7 @@ class TestWorkTours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.WORK.value
+        assert result["tour_purp"][0] == Purpose.WORK.value
         assert result["tour_purp_case"][0] == "home origin, work after"
 
 
@@ -98,8 +97,8 @@ class TestSchoolTours:
         """Test grade school at origin."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.GRADE_SCHOOL.value],
-                "dest_purp": [TripPurpose.HOME.value],
+                "orig_purp": [Purpose.GRADE_SCHOOL.value],
+                "dest_purp": [Purpose.HOME.value],
                 "work_status": [WorkStatus.NON_WORKER.value],
                 "student_status": [StudentStatus.FULL_OR_PART_TIME.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -110,15 +109,15 @@ class TestSchoolTours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.GRADE_SCHOOL.value
+        assert result["tour_purp"][0] == Purpose.GRADE_SCHOOL.value
         assert result["tour_purp_case"][0] == "grade school o or d"
 
     def test_high_school_destination(self):
         """Test high school at destination."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.HOME.value],
-                "dest_purp": [TripPurpose.HIGH_SCHOOL.value],
+                "orig_purp": [Purpose.HOME.value],
+                "dest_purp": [Purpose.HIGH_SCHOOL.value],
                 "work_status": [WorkStatus.NON_WORKER.value],
                 "student_status": [StudentStatus.FULL_OR_PART_TIME.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -129,15 +128,15 @@ class TestSchoolTours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.HIGH_SCHOOL.value
+        assert result["tour_purp"][0] == Purpose.HIGH_SCHOOL.value
         assert result["tour_purp_case"][0] == "high school o or d"
 
     def test_university_non_worker(self):
         """Test university tour for non-worker."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.HOME.value],
-                "dest_purp": [TripPurpose.UNIVERSITY.value],
+                "orig_purp": [Purpose.HOME.value],
+                "dest_purp": [Purpose.UNIVERSITY.value],
                 "work_status": [WorkStatus.NON_WORKER.value],
                 "student_status": [StudentStatus.FULL_OR_PART_TIME.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -148,7 +147,7 @@ class TestSchoolTours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.UNIVERSITY.value
+        assert result["tour_purp"][0] == Purpose.UNIVERSITY.value
         assert result["tour_purp_case"][0] == "non-worker university o or d"
 
 
@@ -159,8 +158,8 @@ class TestNonWorkerTours:
         """Test non-worker non-student home to destination."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.HOME.value],
-                "dest_purp": [TripPurpose.SHOPPING.value],
+                "orig_purp": [Purpose.HOME.value],
+                "dest_purp": [Purpose.SHOPPING.value],
                 "work_status": [WorkStatus.NON_WORKER.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -171,15 +170,15 @@ class TestNonWorkerTours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.SHOPPING.value
+        assert result["tour_purp"][0] == Purpose.SHOPPING.value
         assert result["tour_purp_case"][0] == "home to destination nw"
 
     def test_non_worker_medical_to_home(self):
         """Test non-worker non-student origin to home."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.OTHER_MAINTENANCE.value],
-                "dest_purp": [TripPurpose.HOME.value],
+                "orig_purp": [Purpose.OTHER_MAINTENANCE.value],
+                "dest_purp": [Purpose.HOME.value],
                 "work_status": [WorkStatus.NON_WORKER.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -191,15 +190,15 @@ class TestNonWorkerTours:
         )
         result = derive_tour_purpose(df)
         # work-related gets recoded to Other maintenance
-        assert result["tour_purp"][0] == TourPurpose.OTHER_MAINTENANCE.value
+        assert result["tour_purp"][0] == Purpose.OTHER_MAINTENANCE.value
         assert result["tour_purp_case"][0] == "origin to home nw"
 
     def test_non_worker_escorting(self):
         """Test non-worker non-student escorting tour."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.SHOPPING.value],
-                "dest_purp": [TripPurpose.ESCORTING.value],
+                "orig_purp": [Purpose.SHOPPING.value],
+                "dest_purp": [Purpose.ESCORTING.value],
                 "work_status": [WorkStatus.NON_WORKER.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -210,7 +209,7 @@ class TestNonWorkerTours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.ESCORTING.value
+        assert result["tour_purp"][0] == Purpose.ESCORTING.value
         assert result["tour_purp_case"][0] == "non-home escorting o or d"
 
 
@@ -221,8 +220,8 @@ class TestAtWorkSubtours:
         """Test at work before AND after surveyed trip."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.WORK_RELATED.value],
-                "dest_purp": [TripPurpose.EAT_OUT.value],
+                "orig_purp": [Purpose.WORK_RELATED.value],
+                "dest_purp": [Purpose.EAT_OUT.value],
                 "work_status": [WorkStatus.FULL_OR_PART_TIME.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [True],
@@ -233,7 +232,7 @@ class TestAtWorkSubtours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.WORK.value
+        assert result["tour_purp"][0] == Purpose.WORK.value
         assert result["tour_purp_case"][0] == "at work subtour work a, work b"
 
 
@@ -244,8 +243,8 @@ class TestWorkerDefaultTours:
         """Test worker home to destination (not work)."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.HOME.value],
-                "dest_purp": [TripPurpose.SHOPPING.value],
+                "orig_purp": [Purpose.HOME.value],
+                "dest_purp": [Purpose.SHOPPING.value],
                 "work_status": [WorkStatus.FULL_OR_PART_TIME.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -256,15 +255,15 @@ class TestWorkerDefaultTours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.SHOPPING.value
+        assert result["tour_purp"][0] == Purpose.SHOPPING.value
         assert result["tour_purp_case"][0] == "home to destination w"
 
     def test_worker_eat_out_to_home(self):
         """Test worker origin to home."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.EAT_OUT.value],
-                "dest_purp": [TripPurpose.HOME.value],
+                "orig_purp": [Purpose.EAT_OUT.value],
+                "dest_purp": [Purpose.HOME.value],
                 "work_status": [WorkStatus.FULL_OR_PART_TIME.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -275,7 +274,7 @@ class TestWorkerDefaultTours:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TripPurpose.EAT_OUT.value
+        assert result["tour_purp"][0] == Purpose.EAT_OUT.value
         assert result["tour_purp_case"][0] == "origin to home w"
 
 
@@ -286,8 +285,8 @@ class TestSpecialCases:
         """Test work-related recoded to other maintenance."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.WORK_RELATED.value],
-                "dest_purp": [TripPurpose.SHOPPING.value],
+                "orig_purp": [Purpose.WORK_RELATED.value],
+                "dest_purp": [Purpose.SHOPPING.value],
                 "work_status": [WorkStatus.FULL_OR_PART_TIME.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -298,14 +297,14 @@ class TestSpecialCases:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TourPurpose.OTHER_MAINTENANCE.value
+        assert result["tour_purp"][0] == Purpose.OTHER_MAINTENANCE.value
 
     def test_default_to_origin(self):
         """Test fallback to origin purpose."""
         df = pl.DataFrame(
             {
-                "orig_purp": [TripPurpose.SOCIAL_RECREATION.value],
-                "dest_purp": [TripPurpose.SHOPPING.value],
+                "orig_purp": [Purpose.SOCIAL_RECREATION.value],
+                "dest_purp": [Purpose.SHOPPING.value],
                 "work_status": [WorkStatus.FULL_OR_PART_TIME.value],
                 "student_status": [StudentStatus.NON_STUDENT.value],
                 "at_work_prior_to_orig_purp": [False],
@@ -316,5 +315,5 @@ class TestSpecialCases:
             }
         )
         result = derive_tour_purpose(df)
-        assert result["tour_purp"][0] == TripPurpose.SOCIAL_RECREATION.value
+        assert result["tour_purp"][0] == Purpose.SOCIAL_RECREATION.value
         assert result["tour_purp_case"][0] == "default origin"

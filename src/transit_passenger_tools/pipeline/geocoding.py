@@ -1,17 +1,22 @@
 """Geocoding module for survey standardization.
 
-Assigns geographic zones to all location types using spatial joins
-and calculates Haversine distances between key location pairs.
+Assigns geographic zones to all location types using spatial joins,
+calculates Haversine distances between key location pairs,
+fuzzy-matches station names to GTFS stops, and provides reference
+data loading (canonical route crosswalk + shapefiles).
 """
 
+import logging
 import math
 from pathlib import Path
+from typing import ClassVar, Optional
 
+import geopandas as gpd
 import polars as pl
+from rapidfuzz import fuzz
 
-from transit_passenger_tools.config.settings import get_config
-from transit_passenger_tools.geocoding.zones import spatial_join_coordinates_to_shapefile
-from transit_passenger_tools.schemas import FieldDependencies
+from transit_passenger_tools.config import get_config
+from transit_passenger_tools.models import FieldDependencies
 
 # Field dependencies
 FIELD_DEPENDENCIES = FieldDependencies(
@@ -251,3 +256,464 @@ def assign_zones_and_distances(
             )
 
     return result_df
+
+
+# ========== Spatial join helpers (formerly geocoding/zones.py) ==========
+
+logger = logging.getLogger(__name__)
+
+
+def spatial_join_coordinates_to_shapefile(
+    df: pl.DataFrame,
+    lat_col: str,
+    lon_col: str,
+    shapefile_path: str,
+    shapefile_id_col: str,
+    output_id_col: str | None = None,
+    id_col: str = "id",
+    source_crs: str = "EPSG:4326",
+) -> pl.DataFrame:
+    """Perform spatial join between dataframe with lat/lon coordinates and a shapefile.
+
+    Parameters:
+    -----------
+    df : pl.DataFrame
+        Input dataframe with coordinate columns
+    lat_col : str
+        Name of the latitude column in the input dataframe
+    lon_col : str
+        Name of the longitude column in the input dataframe
+    shapefile_path : str
+        Path to the shapefile
+    shapefile_id_col : str
+        Name of the ID column in the shapefile (e.g., 'TAZ')
+    output_id_col : str | None
+        Name of the output column for the joined ID (e.g., 'Origin_TAZ'),
+        defaults to id_col if None
+    id_col : str
+        Name of the ID column in the input dataframe (default: 'id')
+    source_crs : str
+        Source coordinate reference system (default: 'EPSG:4326' for WGS84)
+
+    Returns:
+    --------
+    pl.DataFrame
+        DataFrame with id_col and output_id_col columns
+    """
+    # Read shapefile and get target CRS
+    shapefile_gdf = gpd.read_file(shapefile_path)[[shapefile_id_col, "geometry"]]
+    target_crs = shapefile_gdf.crs
+
+    if output_id_col is None:
+        output_id_col = id_col
+
+    # Convert coordinate columns to numeric and filter out nulls
+    subset = df.select(
+        [
+            id_col,
+            pl.col(lat_col).cast(pl.Float64, strict=False).alias(lat_col),
+            pl.col(lon_col).cast(pl.Float64, strict=False).alias(lon_col),
+        ]
+    ).drop_nulls(subset=[lat_col, lon_col])
+
+    # Convert to GeoDataFrame
+    subset_pandas = subset.to_pandas()
+    points_gdf = gpd.GeoDataFrame(
+        subset_pandas,
+        geometry=gpd.points_from_xy(subset_pandas[lon_col], subset_pandas[lat_col]),
+        crs=source_crs,
+    )
+
+    # Reproject to match shapefile CRS
+    if target_crs:
+        points_gdf = points_gdf.to_crs(target_crs)
+
+    # Perform spatial join
+    joined = gpd.sjoin(points_gdf, shapefile_gdf, how="left", predicate="within")
+
+    # Clean up result
+    result_pandas = joined.drop(columns="geometry")
+
+    # Handle the case where the shapefile ID column might have been renamed by sjoin
+    if shapefile_id_col in result_pandas.columns:
+        result_pandas = result_pandas.rename(columns={shapefile_id_col: output_id_col})
+    elif f"{shapefile_id_col}_right" in result_pandas.columns:
+        result_pandas = result_pandas.rename(columns={f"{shapefile_id_col}_right": output_id_col})
+
+    # Drop index_right if it exists
+    if "index_right" in result_pandas.columns:
+        result_pandas = result_pandas.drop(columns="index_right")
+
+    # Convert back to polars and select only ID columns
+    result = pl.from_pandas(result_pandas)
+    result_slim = result.select([id_col, output_id_col])
+
+    # Join back to original dataframe to preserve all rows data type
+    return df.join(result_slim, on=id_col, how="left")
+
+
+def parse_latlons_from_columns(
+    df: pl.DataFrame,
+    latlon_suffixes: tuple[str, str] = ("lat", "lon"),
+    id_suffix: str = "TAZ",
+) -> list[tuple[str, str, str]]:
+    """Parse latitude and longitude column pairs from dataframe columns.
+
+    Parameters:
+    -----------
+    df : pl.DataFrame
+        Input dataframe with coordinate columns
+
+    Returns:
+    --------
+    list[tuple[str, str, str]]
+        List of (latitude_column, longitude_column, output_column) tuples
+    """
+    lat_cols = [col for col in df.columns if latlon_suffixes[0] in col]
+    lon_cols = [col for col in df.columns if latlon_suffixes[1] in col]
+
+    lat_lon_pairs = []
+    for lat_col in lat_cols:
+        # Drop lat/lon suffix to find matching prefix, but keep origin case
+        prefix = lat_col.replace(latlon_suffixes[0], "")
+        output_col = lat_col.replace(latlon_suffixes[0], id_suffix)
+        matching_col = next(
+            (lon for lon in lon_cols if prefix == lon.replace(latlon_suffixes[1], "")), None
+        )
+        if matching_col:
+            lat_lon_pairs.append((lat_col, matching_col, output_col))
+
+    return lat_lon_pairs
+
+
+# ========== Station geocoding (formerly geocoding/stations.py) ==========
+
+# Common station name aliases for fuzzy matching
+COMMON_STATION_ALIASES = {
+    "SFO": "San Francisco International Airport",
+    "OAK": "Oakland International Airport",
+    "Millbrae": "Millbrae (Caltrain Transfer Platform)",
+}
+
+
+def geocode_stops_from_names(  # noqa: PLR0912, PLR0915, C901
+    survey_df: pl.DataFrame,
+    stops_gdf: gpd.GeoDataFrame,
+    station_columns: dict[str, dict[str, str]],
+    operator_names: list[str],
+    stop_name_field: str,
+    agency_field: str,
+    fuzzy_threshold: int = 90,
+    station_aliases: dict[str, str] | None = None,
+) -> pl.DataFrame:
+    """Geocode decoded station names to coordinates using fuzzy matching.
+
+    Args:
+        survey_df: Survey DataFrame with decoded station name columns
+        stops_gdf: GeoDataFrame with stop locations (must have geometry)
+        station_columns: Maps input column -> output column names dict
+            e.g., {
+                "entry_station_name": {
+                    "station": "survey_board_station",
+                    "lat": "survey_board_lat",
+                    "lon": "survey_board_lon",
+                    "geo_level": "survey_board_geo_level"
+                }
+            }
+        operator_names: List of operator names to filter stops by
+            (e.g., ["BART", "Bay Area Rapid Transit"])
+        stop_name_field: Column name in stops_gdf containing stop names
+        agency_field: Column name in stops_gdf containing agency/operator names
+        fuzzy_threshold: Minimum fuzzy match score (0-100)
+        station_aliases: Optional dict of station name aliases for matching
+
+    Returns:
+        Survey DataFrame with added columns as specified in station_columns
+
+    Raises:
+        ValueError: If no stops found for operator, or if unmatched stations exist
+    """
+    if station_aliases is None:
+        station_aliases = COMMON_STATION_ALIASES.copy()
+    else:
+        # Merge with common aliases
+        station_aliases = {**COMMON_STATION_ALIASES, **station_aliases}
+
+    # Filter to operator's stops
+    search_pattern = "|".join(operator_names)
+    mask = stops_gdf[agency_field].str.contains(search_pattern, case=False, na=False, regex=True)
+    operator_stops = stops_gdf[mask].copy()
+
+    if len(operator_stops) == 0:
+        msg = f"No stops found for operator(s): {operator_names}"
+        raise ValueError(msg)
+
+    logger.info(
+        "Found %s stops for operator(s): %s", len(operator_stops), ", ".join(operator_names)
+    )
+
+    # Convert to WGS84 and extract coordinates
+    operator_stops = operator_stops.to_crs(epsg=4326)
+    operator_stops["_stop_lon"] = operator_stops.geometry.x
+    operator_stops["_stop_lat"] = operator_stops.geometry.y
+
+    # Validate required fields
+    if stop_name_field not in operator_stops.columns:
+        msg = f"stop_name_field '{stop_name_field}' not found in stops GeoDataFrame"
+        raise ValueError(msg)
+
+    logger.info("Using stop name field: %s", stop_name_field)
+
+    # Process each station column
+    all_unmatched = []
+
+    for station_col, output_cols in station_columns.items():
+        logger.info("Processing station column: %s", station_col)
+
+        # Get unique station names from survey
+        unique_stations = survey_df.select(pl.col(station_col)).unique().drop_nulls()
+
+        # Build lookup from survey name -> canonical name/coords
+        name_to_canonical = {}
+        name_to_lat = {}
+        name_to_lon = {}
+        unmatched_stations = []
+
+        for row in unique_stations.iter_rows(named=True):
+            survey_name = row[station_col]
+            if survey_name is None:
+                continue
+
+            # Check aliases first
+            survey_name_clean = str(survey_name).strip()
+            if survey_name_clean in station_aliases:
+                survey_name = station_aliases[survey_name_clean]
+                logger.debug("Using alias: %s -> %s", survey_name_clean, survey_name)
+
+            # Try exact match (case-insensitive)
+            survey_name_upper = survey_name.upper()
+            exact_match = operator_stops[
+                operator_stops[stop_name_field].str.upper() == survey_name_upper
+            ]
+
+            if len(exact_match) > 0:
+                canonical = exact_match.iloc[0][stop_name_field]
+                lat = exact_match.iloc[0]["_stop_lat"]
+                lon = exact_match.iloc[0]["_stop_lon"]
+            else:
+                # Fuzzy match
+                best_match = None
+                best_score = 0
+                best_lat = None
+                best_lon = None
+                for _, stop_row in operator_stops.iterrows():
+                    canonical_name = stop_row[stop_name_field]
+                    score = fuzz.ratio(survey_name_upper, canonical_name.upper())
+                    if score > best_score:
+                        best_score = score
+                        best_match = canonical_name
+                        best_lat = stop_row["_stop_lat"]
+                        best_lon = stop_row["_stop_lon"]
+
+                if best_score >= fuzzy_threshold:
+                    canonical = best_match
+                    lat = best_lat
+                    lon = best_lon
+                    logger.debug(
+                        "Fuzzy matched '%s' -> '%s' (%.1f%%)",
+                        survey_name,
+                        canonical,
+                        best_score,
+                    )
+                else:
+                    logger.warning(
+                        "No match for '%s' (best: %s at %.1f%%)",
+                        survey_name,
+                        best_match,
+                        best_score,
+                    )
+                    unmatched_stations.append(survey_name)
+                    continue
+
+            name_to_canonical[survey_name_clean] = canonical
+            name_to_lat[survey_name_clean] = lat
+            name_to_lon[survey_name_clean] = lon
+
+        match_rate = (
+            len(name_to_canonical) / unique_stations.height * 100
+            if unique_stations.height > 0
+            else 0
+        )
+        logger.info(
+            "  Matched %s/%s unique stations (%.1f%%)",
+            len(name_to_canonical),
+            unique_stations.height,
+            match_rate,
+        )
+
+        if unmatched_stations:
+            all_unmatched.extend([f"{station_col}: {name}" for name in unmatched_stations])
+
+        # Add columns to dataframe
+        survey_df = survey_df.with_columns(
+            [
+                pl.col(station_col)
+                .replace_strict(name_to_canonical, default=None, return_dtype=pl.Utf8)
+                .alias(output_cols["station"]),
+                pl.col(station_col)
+                .replace_strict(name_to_lat, default=None, return_dtype=pl.Float64)
+                .alias(output_cols["lat"]),
+                pl.col(station_col)
+                .replace_strict(name_to_lon, default=None, return_dtype=pl.Float64)
+                .alias(output_cols["lon"]),
+                pl.when(pl.col(station_col).is_not_null())
+                .then(pl.lit("station"))
+                .otherwise(None)
+                .alias(output_cols["geo_level"]),
+            ]
+        )
+
+    # Raise error if any stations were unmatched
+    if all_unmatched:
+        msg = f"Unmatched stations ({len(all_unmatched)}): {', '.join(all_unmatched)}"
+        raise ValueError(msg)
+
+    return survey_df
+
+
+# ========== Reference data (formerly geocoding/reference.py) ==========
+
+
+class ReferenceData:
+    """Singleton class for loading and caching reference data.
+
+    Provides lazy-loaded access to:
+    - Canonical route crosswalk (route names -> technology/operator)
+    - Shapefiles for geocoding (TAZ, MAZ, counties, tracts, PUMA, stations)
+    """
+
+    _instance: Optional["ReferenceData"] = None
+    _canonical_routes: pl.DataFrame | None = None
+    _shapefiles: ClassVar[dict[str, gpd.GeoDataFrame]] = {}
+
+    def __new__(cls) -> "ReferenceData":
+        """Ensure only one instance exists (singleton pattern)."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    @property
+    def canonical_routes(self) -> pl.DataFrame:
+        """Get canonical route crosswalk as Polars DataFrame.
+
+        Loads from fixtures/canonical_route_crosswalk.csv on first access.
+        Contains mappings from survey_route_name to:
+        - canonical_route
+        - canonical_operator
+        - operator_detail
+        - technology
+        - technology_detail
+
+        Returns:
+            Polars DataFrame with ~10,137 rows of route mappings.
+        """
+        if self._canonical_routes is None:
+            config = get_config()
+            self._canonical_routes = pl.read_csv(
+                config.canonical_route_crosswalk_path,
+                encoding="utf8-lossy",
+            )
+        return self._canonical_routes
+
+    def get_route_technology(self, operator: str, route: str) -> dict[str, str]:
+        """Get technology and operator details for a route.
+
+        Args:
+            operator: Canonical operator name (e.g., "BART", "AC TRANSIT")
+            route: Route name from survey
+
+        Returns:
+            Dictionary with keys: canonical_operator, technology, operator_detail
+            Technology value is normalized to match TechnologyType enum values
+
+        Raises:
+            ValueError: If route not found in canonical crosswalk
+        """
+        result = self.canonical_routes.filter(
+            (pl.col("canonical_operator") == operator) & (pl.col("survey_route_name") == route)
+        )
+
+        if result.height == 0:
+            msg = (
+                f"Route not found in canonical crosswalk: "
+                f"operator='{operator}', route='{route}'"
+            )
+            raise ValueError(msg)
+
+        row = result.row(0, named=True)
+        technology_raw = row["technology"]
+
+        # Normalize technology value to match TechnologyType enum (title case)
+        technology_normalized = technology_raw.title() if technology_raw else technology_raw
+
+        return {
+            "canonical_operator": row["canonical_operator"],
+            "technology": technology_normalized,
+            "operator_detail": row.get("operator_detail", row["canonical_operator"]),
+        }
+
+    def get_zone_shapefile(self, zone_type: str) -> gpd.GeoDataFrame:
+        """Get shapefile for a specific zone type.
+
+        Loads and caches shapefiles on first access. Shapefiles are used for
+        spatial joins to assign geographic zones to survey locations.
+
+        Args:
+            zone_type: Type of zone to load. One of:
+                - 'tm1_taz': Travel Model 1 TAZ zones
+                - 'tm2_taz': Travel Model 2 TAZ zones
+                - 'tm2_maz': Travel Model 2 MAZ zones
+                - 'counties': County boundaries
+                - 'tracts': Census tracts
+                - 'puma': PUMA boundaries
+                - 'stations': Rail station points
+
+        Returns:
+            GeoDataFrame with zone geometry and attributes
+
+        Raises:
+            KeyError: If zone_type not recognized
+            FileNotFoundError: If shapefile path doesn't exist
+        """
+        if zone_type not in self._shapefiles:
+            config = get_config()
+            shapefile_path = config.shapefiles[zone_type]
+
+            # Load shapefile
+            gdf = gpd.read_file(shapefile_path)
+
+            # Transform to NAD83 California Zone 6 Feet for consistent CRS
+            if gdf.crs is None or gdf.crs.to_epsg() != config.crs["nad83_ca_zone6"]:
+                gdf = gdf.to_crs(epsg=config.crs["nad83_ca_zone6"])
+
+            self._shapefiles[zone_type] = gdf
+
+        return self._shapefiles[zone_type]
+
+    @property
+    def shapefiles(self) -> dict[str, gpd.GeoDataFrame]:
+        """Get all loaded shapefiles as dictionary.
+
+        Returns:
+            Dictionary mapping zone_type -> GeoDataFrame
+        """
+        return self._shapefiles
+
+
+def get_reference_data() -> ReferenceData:
+    """Get singleton ReferenceData instance.
+
+    Returns:
+        Shared ReferenceData instance
+    """
+    return ReferenceData()

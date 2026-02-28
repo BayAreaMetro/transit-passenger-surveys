@@ -6,24 +6,14 @@ to number of workers.
 
 import polars as pl
 
-from transit_passenger_tools.schemas import FieldDependencies
-from transit_passenger_tools.schemas.codebook import AutoRatioCategory
+from transit_passenger_tools.codebook import COUNT_WORD_MAPPING, AutoRatioCategory
+from transit_passenger_tools.models import FieldDependencies
 
 # Field dependencies
 FIELD_DEPENDENCIES = FieldDependencies(
     inputs=["vehicles", "workers"],
     outputs=["vehicle_numeric", "worker_numeric", "auto_to_workers_ratio"],
 )
-
-# Mapping from text to numeric values
-VEHICLE_WORKER_MAPPING = {
-    "zero": 0,
-    "one": 1,
-    "two": 2,
-    "three": 3,
-    "four": 4,
-    "four or more": 4,
-}
 
 
 def _map_to_numeric(df: pl.DataFrame, col: str, output_col: str) -> pl.DataFrame:
@@ -41,7 +31,7 @@ def _map_to_numeric(df: pl.DataFrame, col: str, output_col: str) -> pl.DataFrame
         return df.with_columns(
             pl.col(col)
             .str.to_lowercase()
-            .replace_strict(VEHICLE_WORKER_MAPPING, default=None)
+            .replace_strict(COUNT_WORD_MAPPING, default=None)
             .alias(output_col)
         )
     return df.with_columns(pl.col(col).cast(pl.Int32, strict=False).alias(output_col))

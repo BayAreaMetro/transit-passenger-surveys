@@ -11,9 +11,9 @@ import logging
 
 import polars as pl
 
-from transit_passenger_tools.geocoding.reference import ReferenceData
-from transit_passenger_tools.schemas import FieldDependencies
-from transit_passenger_tools.schemas.codebook import TechnologyType
+from transit_passenger_tools.codebook import TechnologyType
+from transit_passenger_tools.models import FieldDependencies
+from transit_passenger_tools.pipeline.geocoding import ReferenceData
 
 logger = logging.getLogger(__name__)
 

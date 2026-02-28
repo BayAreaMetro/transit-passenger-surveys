@@ -2,7 +2,7 @@
 
 import polars as pl
 
-from transit_passenger_tools.config.settings import get_config
+from transit_passenger_tools.config import get_config
 from transit_passenger_tools.pipeline.geocoding import (
     assign_zones_and_distances,
     haversine_km,

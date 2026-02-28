@@ -11,11 +11,11 @@ Derives path-related summary fields from technology columns:
 
 import polars as pl
 
-from transit_passenger_tools.schemas import FieldDependencies
-from transit_passenger_tools.schemas.codebook import (
+from transit_passenger_tools.codebook import (
     DayPart,
     TechnologyType,
 )
+from transit_passenger_tools.models import FieldDependencies
 
 # Field dependencies
 FIELD_DEPENDENCIES = FieldDependencies(

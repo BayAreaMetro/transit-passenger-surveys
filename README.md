@@ -21,10 +21,10 @@ Transit agencies conduct passenger surveys with varying formats, variable names,
 ## Workplan (Last updated: 02/03/2026)
 - [x] Create placeholder installable `transit_passenger_surveys` Python package in repo
 - [x] Standardized canonical onboard survey schema from `instrument-and-dictionary`
-- [x] Create Hive-partitioned database with Pydantic models and version control
+- [x] Create flat Parquet data warehouse with Pydantic models and archive versioning
 - [x] Implement 3-tier field validation (Required/Optional-Enriched/Optional)
 - [x] Backfill existing survey data into database (186,792 records from 27 operators, 2012-2023)
-- [x] Refactor initialization scripts into modular structure (`initialize_helpers/`)
+- [x] Refactor initialization scripts into modular structure (`ingestion/backfill/`)
 - [ ] Create Python `requests` scripts to replace R code in `requests` folder
 - [ ] Create new survey ingestion workflow
 - [ ] Migrate `summaries` code into `transit_passenger_surveys` package
@@ -45,12 +45,17 @@ All of this has been moved into `archive` folder and will be maintained there fo
     * [On-off Explore](https://github.com/BayAreaMetro/onboard-surveys/tree/master/on-off-explore): Explore the value of performing an on/off pre-survey for small operators. *[Last changed 2015]*
     * [Travel Model Priors](https://github.com/BayAreaMetro/onboard-surveys/tree/master/travel-model-priors): Process boarding and alighting data from SF Muni automated passenger counters, boarding and alighting flows from the SFCTA SF-CHAMP travel model, on-to-off surveys on SF Muni, etc. *[Last changed 2016]*
 
-## Database Viewing
+## Querying Data
 
-You can query the DuckDB cache or Parquet files directly using any tool of your choice. Some options:
-- **DBeaver** (GUI): [https://dbeaver.io/](https://dbeaver.io/) - Works with DuckDB, Parquet, and many other formats
-- **DuckDB CLI**: Native command-line interface for DuckDB files
-- **Python (Polars/DuckDB)**: Read Parquet files or DuckDB tables programmatically
+Read the flat Parquet files directly with Polars:
+```python
+import polars as pl
+from transit_passenger_tools.database import DATA_ROOT
+
+df = pl.read_parquet(DATA_ROOT / "survey_responses.parquet")
+```
+
+See [docs/database_access.md](docs/database_access.md) for full details.
 
 
 
@@ -63,66 +68,63 @@ uv sync
 
 ## Database Setup
 
-### Initialize Database (Single Command)
+### Build / Update (default)
 
-To create the database, backfill legacy data, and apply corrections:
+Appends only operator/year pairs not yet in the warehouse:
 
 ```bash
-uv run python scripts/initialize_database.py
+uv run python scripts/rebuild_database.py
 ```
 
-This single script will:
-1. Create Hive warehouse folder structure (`survey_responses/`, `survey_metadata/`, `survey_weights/`)
-2. Run database migrations
-3. Backfill all legacy survey data from `standardized_2025-10-13/survey_combined.csv`
-   - **186,792 survey responses** from 27 operators (2012-2023)
-   - 74 batches (operator/year combinations)
-   - Validates all records against Pydantic schema during ingestion
-4. Apply data corrections (e.g., fix ACE 2023 commuter_rail_present field)
-5. Refresh DuckDB cache for fast querying
+### Force Rebuild
 
-**Configuration**: The standardized data directory and CSV filename are set as constants at the top of `scripts/initialize_database.py`:
+Wipes existing data and re-ingests everything from scratch:
+
+```bash
+uv run python scripts/rebuild_database.py --force-rebuild
+```
+
+The script:
+1. Runs the **legacy backfill** (`ingestion/backfill/`) — 186,792 responses, 27 operators, 2012-2023
+2. **Discovers** per-operator ingestion scripts via convention (`ingestion/{operator}/{year}/ingest.py`)
+3. Skips operator/years already present (unless `--force-rebuild`)
+4. Applies data corrections and exports Tableau Hyper file
+
+**Configuration**: The standardized data directory and CSV filename are set as constants at the top of `scripts/rebuild_database.py`:
 ```python
 STANDARDIZED_DIR = Path(r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_data_Standardized\standardized_2025-10-13")
 CSV_FILENAME = "survey_combined.csv"
 ```
 
-**Note**: The script uses version control - if data hasn't changed, it will skip writing and log "Data unchanged, reusing version X". To force a clean re-initialization, delete the Hive warehouse directory first.
+### Adding a New Survey
+
+1. Create `ingestion/{Operator}/{year}/preprocessing.py` — clean raw data
+2. Create `ingestion/{Operator}/{year}/ingest.py` with a `main()` function that calls `ingest_survey_responses()`
+3. Run `uv run python scripts/rebuild_database.py` — only the new survey will be ingested
 
 ### Data Processing Pipeline
 
-The backfill process (`initialize_helpers/` modules) includes:
+The backfill process (`ingestion/backfill/` modules) includes:
 - **Data loading** (`backfill_loader.py`): CSV reading with schema inference
 - **Transformations** (`backfill_transformations.py`): Type conversions, boolean fields, word-to-number conversion
 - **Normalization** (`backfill_normalization.py`): Text standardization, sentence case, acronym handling
 - **Typo fixes** (`backfill_typo_fixes.py`): 15+ field-specific value mappings and corrections
 - **Validation** (`backfill_validation.py`): Pydantic schema validation with detailed error reporting
-- **Ingestion** (`backfill_ingestion.py`): Write to Hive-partitioned Parquet files with versioning
+- **Ingestion** (`backfill_ingestion.py`): Write to flat Parquet files with archive versioning
 
-### Manual Steps (Advanced)
+## Data Warehouse Layout
 
-If you need to run corrections separately:
+Three flat Parquet files stored at `DATA_ROOT` (configured in `config/pipeline.yaml`):
 
-```bash
-# Fix ACE 2023 commuter rail data
-uv run python -c "from initialize_helpers.fix_ace_commuter_rail import fix_ace_commuter_rail; fix_ace_commuter_rail()"
-
-# Refresh DuckDB cache only
-uv run python scripts/refresh_cache.py
 ```
-
-## Database Configuration
-
-The database uses a Hive-partitioned Parquet file structure stored at:
+_transit_data/
+├── survey_responses.parquet
+├── survey_metadata.parquet
+├── survey_weights.parquet
+├── surveys_export.hyper
+└── archive/
+    └── survey_responses_2026-02-27.parquet
 ```
-\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_transit_data_hive
-(accessible via M: drive mapping)
-```
-
-**Structure**:
-- `survey_responses/` - Partitioned by `operator=<name>/year=<yyyy>/data-<version>-<commit>.parquet`
-- `survey_metadata/` - Survey-level information (dates, source, version tracking)
-- `survey_weights/` - Response weights (boarding_weight, trip_weight)
 
 **DuckDB Cache**: A DuckDB file at `_transit_data_hive/transit_surveys.duckdb` provides fast querying over the Parquet files.
 
@@ -336,7 +338,7 @@ avg_age_by_operator = df.group_by("canonical_operator").agg([
 The package defines enums for categorical variables to ensure consistency:
 
 - **AccessEgressMode**: Walk, Bike, PNR, KNR, TNC, Transit, Other, Missing
-- **TripPurpose**: Home, Work, School, Shopping, Social recreation, Medical/dental, etc.
+- **Purpose**: Home, Work, School, Shopping, Social recreation, Medical/dental, etc.
 - **Gender**: Male, Female, Other, Missing
 - **Race**: White, Asian, Black/African American, Hispanic/Latino, etc.
 - **WorkStatus**: Full- or part-time, Non-worker, Missing
@@ -401,11 +403,5 @@ The database contains two main tables:
 ```powershell
 # Install dependencies
 uv sync
-
-# Create database
-uv run alembic upgrade head
-
-# Inspect database structure
-uv run python -c "from transit_passenger_tools import db; db.inspect_database()"
 ```
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import polars as pl
 
-from transit_passenger_tools.database import connect
+from transit_passenger_tools.database import DATA_ROOT
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,13 +19,10 @@ OUTPUT_DIR = Path("scripts/field_analysis")
 
 
 def load_data(source: str | Path) -> pl.DataFrame:
-    """Load data from CSV file or DuckDB database."""
+    """Load data from CSV file or Parquet database."""
     if str(source).endswith(".csv"):
         return pl.read_csv(source, null_values=["NA", "N/A", "", "Inf"], infer_schema_length=10000)
-    conn = connect(read_only=True)
-    df = conn.execute("SELECT * FROM survey_responses").pl()
-    conn.close()
-    return df
+    return pl.read_parquet(DATA_ROOT / "survey_responses.parquet")
 
 
 def analyze_fields(df: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:

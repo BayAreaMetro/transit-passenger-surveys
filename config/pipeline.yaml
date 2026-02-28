@@ -1,5 +1,8 @@
 # Transit Passenger Survey Pipeline Configuration
 
+# Data warehouse root
+data_root: "\\\\models.ad.mtc.ca.gov\\data\\models\\Data\\OnBoard\\Data and Reports\\_transit_data"
+
 # Shapefile paths for geocoding (use M: mapped drive, falls back to remote_name if unmapped)
 shapefiles:
   tm1_taz: "M:\\Data\\OnBoard\\Geography Files\\bayarea_rtaz1454_rev1_WGS84.shp"
@@ -60,9 +63,6 @@ geocoding_distances:
 crs:
   nad83_ca_zone6: 2230  # EPSG:2230 - NAD83 California Zone 6 Feet
   wgs84: 4326           # EPSG:4326 - WGS84
-
-# Hive warehouse configuration
-hive_root: "\\\\models.ad.mtc.ca.gov\\data\\models\\Data\\OnBoard\\Data and Reports\\_transit_data_hive"
 
 # Reference data paths
 canonical_route_crosswalk_path: "fixtures/canonical_route_crosswalk.csv"

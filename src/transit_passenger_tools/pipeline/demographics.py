@@ -8,8 +8,8 @@ This module standardizes demographic fields including:
 
 import polars as pl
 
-from transit_passenger_tools.schemas import FieldDependencies
-from transit_passenger_tools.schemas.codebook import Language, Race
+from transit_passenger_tools.codebook import Language, Race
+from transit_passenger_tools.models import FieldDependencies
 
 # Field dependencies
 FIELD_DEPENDENCIES = FieldDependencies(

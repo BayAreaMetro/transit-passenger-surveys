@@ -6,6 +6,15 @@ from pathlib import Path
 import polars as pl
 import pytest
 
+from transit_passenger_tools.codebook import (
+    AutoRatioCategory,
+    DayPart,
+    HouseholdIncome,
+    Purpose,
+    TechnologyType,
+    Weekpart,
+    WorkStatus,
+)
 from transit_passenger_tools.pipeline.process_survey import (
     PIPELINE_MODULES,
     process_survey,
@@ -14,15 +23,6 @@ from transit_passenger_tools.pipeline.process_survey import (
 from transit_passenger_tools.pipeline.validate import (
     validate_core_required,
     validate_preprocessed_input,
-)
-from transit_passenger_tools.schemas.codebook import (
-    AutoRatioCategory,
-    DayPart,
-    HouseholdIncome,
-    TechnologyType,
-    TripPurpose,
-    Weekpart,
-    WorkStatus,
 )
 
 
@@ -113,8 +113,8 @@ class TestProcessSurvey:
             survey_time=["08:15:00"],
             vehicles=[1],
             workers=[1],
-            orig_purp=[TripPurpose.HOME.value],
-            dest_purp=[TripPurpose.WORK.value],
+            orig_purp=[Purpose.HOME.value],
+            dest_purp=[Purpose.WORK.value],
             work_status=[WorkStatus.FULL_OR_PART_TIME.value],
             worker=[1],
         )

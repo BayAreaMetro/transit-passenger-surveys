@@ -25,6 +25,7 @@ from typing import Union, get_args, get_origin
 import polars as pl
 from pydantic.fields import FieldInfo
 
+from transit_passenger_tools.models import CoreSurveyResponse
 from transit_passenger_tools.pipeline import (
     auto_sufficiency,
     date_time,
@@ -34,7 +35,6 @@ from transit_passenger_tools.pipeline import (
     tour_purpose,
     transfers,
 )
-from transit_passenger_tools.schemas.models import CoreSurveyResponse
 
 logger = logging.getLogger(__name__)
 

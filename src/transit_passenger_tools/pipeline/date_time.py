@@ -7,12 +7,12 @@ Derives temporal categorizations from Core fields:
 
 import polars as pl
 
-from transit_passenger_tools.schemas import FieldDependencies
-from transit_passenger_tools.schemas.codebook import (
+from transit_passenger_tools.codebook import (
     DayOfWeek,
     DayPart,
     Weekpart,
 )
+from transit_passenger_tools.models import FieldDependencies
 
 # Field dependencies
 FIELD_DEPENDENCIES = FieldDependencies(
@@ -59,38 +59,46 @@ def derive_temporal_fields(df: pl.DataFrame) -> pl.DataFrame:
 
     # Parse survey_time to extract hour for day_part calculation
     if "survey_time" in df.columns:
-        # Try to parse time string to extract hour
-        df = df.with_columns(
-            [
-                pl.when(pl.col("survey_time").is_not_null())
-                .then(
-                    pl.coalesce(
-                        [
-                            # Try HH:MM:SS format
-                            pl.col("survey_time").str.strptime(pl.Time, "%H:%M:%S", strict=False),
-                            # Try HH:MM format
-                            pl.col("survey_time").str.strptime(pl.Time, "%H:%M", strict=False),
-                            # Try h:MM:SS AM/PM format
-                            pl.col("survey_time").str.strptime(
-                                pl.Time, "%I:%M:%S %p", strict=False
-                            ),
-                            # Try h:MM AM/PM format
-                            pl.col("survey_time").str.strptime(pl.Time, "%I:%M %p", strict=False),
-                        ]
-                    )
-                )
-                .alias("_parsed_time")
-            ]
-        )
+        dtype = df.schema["survey_time"]
 
-        # Extract hour from parsed time
-        df = df.with_columns(
-            [
-                pl.when(pl.col("_parsed_time").is_not_null())
-                .then(pl.col("_parsed_time").dt.hour())
-                .alias("_survey_hour")
-            ]
-        )
+        if isinstance(dtype, pl.Datetime):
+            # Already a proper Datetime — extract hour directly
+            df = df.with_columns(
+                pl.col("survey_time").dt.hour().alias("_survey_hour")
+            )
+        elif dtype == pl.Time:
+            df = df.with_columns(
+                pl.col("survey_time").dt.hour().alias("_survey_hour")
+            )
+        else:
+            # String — try common time formats
+            df = df.with_columns(
+                [
+                    pl.when(pl.col("survey_time").is_not_null())
+                    .then(
+                        pl.coalesce(
+                            [
+                                pl.col("survey_time").str.strptime(
+                                    pl.Time, "%H:%M:%S", strict=False
+                                ),
+                                pl.col("survey_time").str.strptime(
+                                    pl.Time, "%H:%M", strict=False
+                                ),
+                                pl.col("survey_time").str.strptime(
+                                    pl.Time, "%I:%M:%S %p", strict=False
+                                ),
+                                pl.col("survey_time").str.strptime(
+                                    pl.Time, "%I:%M %p", strict=False
+                                ),
+                            ]
+                        )
+                    )
+                    .alias("_parsed_time")
+                ]
+            )
+            df = df.with_columns(
+                pl.col("_parsed_time").dt.hour().alias("_survey_hour")
+            )
     else:
         # No survey_time column - day_part will be null
         df = df.with_columns([pl.lit(None).cast(pl.Int32).alias("_survey_hour")])

@@ -15,9 +15,8 @@ from pathlib import Path
 import geopandas as gpd
 import polars as pl
 
-from transit_passenger_tools.database import connect
-from transit_passenger_tools.database.export import export_df_to_hyper
-from transit_passenger_tools.schemas.codebook import TripPurpose
+from transit_passenger_tools.codebook import Purpose
+from transit_passenger_tools.database import DATA_ROOT, export_to_hyper
 
 # Output DIR
 OUTPUT_DIR = Path(r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\Airport Data")
@@ -35,35 +34,31 @@ superdistricts = gpd.read_file(SHP_DIR)
 # Project to WGS84 for spatial joins with lat/lon points
 superdistricts = superdistricts.to_crs(epsg=4326)
 
-# Load data from database using Polars with DuckDB connection
-# Filter in SQL for efficiency using bounding boxes for each airport
-conn = connect(read_only=True)
+# Load data from Parquet files using Polars
+responses = pl.read_parquet(DATA_ROOT / "survey_responses.parquet")
+weights = pl.read_parquet(DATA_ROOT / "survey_weights.parquet")
 
-# Get all trips for target operators and years with lat/lon fields for spatial filtering
-trips = conn.execute(
-    """
-    SELECT
-        sr.* EXCLUDE (sr.trip_weight),
-        sw.boarding_weight,
-        sw.trip_weight
-    FROM survey_responses sr
-    LEFT JOIN survey_weights sw
-        ON sr.response_id = sw.response_id
-        AND sw.weight_scheme = 'baseline'
-    WHERE sr.operator IN ('BART', 'AC TRANSIT', 'SAMTRANS')
-    AND (
-        sr.onoff_enter_station IN (
-            'San Francisco International Airport',
-            'Oakland International Airport'
-        )
-        OR
-        sr.onoff_exit_station IN (
-            'San Francisco International Airport',
-            'Oakland International Airport'
+# Filter and join
+trips = (
+    responses.filter(
+        pl.col("operator").is_in(["BART", "AC TRANSIT", "SAMTRANS"])
+        & (
+            pl.col("onoff_enter_station").is_in(
+                ["San Francisco International Airport", "Oakland International Airport"]
+            )
+            | pl.col("onoff_exit_station").is_in(
+                ["San Francisco International Airport", "Oakland International Airport"]
+            )
         )
     )
-    """,
-).pl()
+    .join(
+        weights.filter(pl.col("weight_scheme") == "baseline").select(
+            "response_id", "boarding_weight", "trip_weight"
+        ),
+        on="response_id",
+        how="left",
+    )
+)
 
 # Save the resulting DataFrame to Parquet for further analysis
 # Get month/year of today
@@ -77,8 +72,8 @@ df_nonwork = trips.filter(
     ~(
         # Exclude: work trip TO airport (exit station is airport)
         (
-            (pl.col("orig_purp") == TripPurpose.WORK.value)
-            | (pl.col("orig_purp") == TripPurpose.WORK_RELATED.value)
+            (pl.col("orig_purp") == Purpose.WORK.value)
+            | (pl.col("orig_purp") == Purpose.WORK_RELATED.value)
         )
         & pl.col("orig_purp").is_not_null()  # Only filter if purpose is known
         & pl.col("onoff_exit_station").is_in(
@@ -88,8 +83,8 @@ df_nonwork = trips.filter(
     & ~(
         # Exclude: work trip FROM airport (enter station is airport)
         (
-            (pl.col("dest_purp") == TripPurpose.WORK.value)
-            | (pl.col("dest_purp") == TripPurpose.WORK_RELATED.value)
+            (pl.col("dest_purp") == Purpose.WORK.value)
+            | (pl.col("dest_purp") == Purpose.WORK_RELATED.value)
         )
         & pl.col("dest_purp").is_not_null()  # Only filter if purpose is known
         & pl.col("onoff_enter_station").is_in(
@@ -196,4 +191,4 @@ df_nonwork = df_nonwork.with_columns(
 df_nonwork = df_nonwork.drop("trip_scale_factor", "boarding_scale_factor")
 
 
-export_df_to_hyper({"trips": df_nonwork}, hyper_path)
+export_to_hyper(hyper_path, {"trips": df_nonwork})
