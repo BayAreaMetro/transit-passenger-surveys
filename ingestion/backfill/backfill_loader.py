@@ -245,13 +245,29 @@ def reorder_columns_to_match_schema(df: pl.DataFrame) -> pl.DataFrame:
     # Select only fields that exist in both schema and DataFrame
     existing_cols = [col for col in schema_order if col in df.columns]
 
-    # Preserve extra columns (geography, derived fields) at the end
+    # Keep columns needed downstream by ingest_survey_batches() (grouping)
+    # and extract_and_ingest_metadata/weights (metadata & weight extraction).
+    # They'll be trimmed per-batch later by ingest_survey_responses().
+    preserve_cols = {
+        "survey_year", "canonical_operator",          # routing / grouping
+        "survey_name", "field_start", "field_end",    # metadata extraction
+        "weight", "trip_weight",                       # weight extraction
+    }
     extra_cols = [col for col in df.columns if col not in schema_order]
+    kept = [col for col in extra_cols if col in preserve_cols]
+    dropped = [col for col in extra_cols if col not in preserve_cols]
 
-    logger.info(
-        "Reordering %s columns to match schema (%s extra columns preserved)",
-        len(existing_cols),
-        len(extra_cols)
-    )
+    if dropped:
+        logger.info(
+            "Dropping %s extra columns not in SurveyResponse schema: %s",
+            len(dropped),
+            ", ".join(sorted(dropped)),
+        )
+    if kept:
+        logger.info(
+            "Preserving %s extra columns for downstream extraction: %s",
+            len(kept),
+            ", ".join(sorted(kept)),
+        )
 
-    return df.select(existing_cols + extra_cols)
+    return df.select(existing_cols + kept)

@@ -104,7 +104,10 @@ def process_survey(
             continue
 
         # Call the transform function with appropriate arguments
-        kwargs = {"shapefiles_dir": shapefiles_dir} if needs_shapefiles else {}
+        if needs_shapefiles:
+            kwargs = {"shapefiles_dir": shapefiles_dir, "id_col": "response_id"}
+        else:
+            kwargs = {}
         result_df = transform_func(result_df, **kwargs)
 
     return result_df

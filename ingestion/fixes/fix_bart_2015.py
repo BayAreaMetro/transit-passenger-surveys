@@ -49,7 +49,7 @@ def fix_bart_heavy_rail() -> int:
     df = _read_responses()
 
     is_bart_heavy = (
-        (pl.col("canonical_operator") == "BART")
+        pl.col("survey_id").str.starts_with("BART_")
         & (pl.col("vehicle_tech") == "Heavy Rail")
         & (pl.col("heavy_rail_present") == 0)
     )
@@ -61,7 +61,7 @@ def fix_bart_heavy_rail() -> int:
 
     df = df.with_columns(
         pl.when(
-            (pl.col("canonical_operator") == "BART")
+            pl.col("survey_id").str.starts_with("BART_")
             & (pl.col("vehicle_tech") == "Heavy Rail")
         )
         .then(pl.lit(1))
@@ -92,7 +92,7 @@ def fix_bart_2015_airport_station_names() -> int:
 
     df = _read_responses()
 
-    is_bart_2015 = (pl.col("canonical_operator") == "BART") & (pl.col("survey_year") == 2015)  # noqa: PLR2004
+    is_bart_2015 = pl.col("survey_id") == "BART_2015"
 
     enter_needs_fix = is_bart_2015 & pl.col("onoff_enter_station").is_in(
         list(station_name_fixes.keys())
@@ -138,7 +138,7 @@ def fix_bart_route_field() -> int:
     """
     df = _read_responses()
 
-    is_bart = pl.col("canonical_operator") == "BART"
+    is_bart = pl.col("survey_id").str.starts_with("BART_")
     has_stations = (
         pl.col("onoff_enter_station").is_not_null()
         & pl.col("onoff_exit_station").is_not_null()

@@ -2,6 +2,7 @@
 
 import logging
 from datetime import UTC, date, datetime
+from pathlib import Path
 
 import polars as pl
 
@@ -66,15 +67,8 @@ def main() -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     logger.info("Loaded %s records", f"{len(survey_df):,}")
 
     # ==========================
-    # CANONICAL PIPELINE
+    # IDENTIFIERS (before pipeline validation)
     # ==========================
-    # Apply pipeline and create response_id
-    logger.info("Applying canonical pipeline...")
-    survey_df = process_survey.process_survey(
-        survey_df, survey_name="BART 2024", skip_geocoding=True, skip_validation=True
-    )
-
-    # Add response_id and fix survey_id placeholder from preprocessing
     survey_id = f"{CANONICAL_OPERATOR}_{SURVEY_YEAR}"
     survey_df = survey_df.with_columns(
         [
@@ -90,21 +84,26 @@ def main() -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     )
 
     # ==========================
+    # CANONICAL PIPELINE
+    # ==========================
+    logger.info("Applying canonical pipeline...")
+    survey_df = process_survey.process_survey(
+        survey_df,
+        survey_name="BART 2024",
+        skip_geocoding=False,
+        skip_validation=False,
+        shapefiles_dir=Path("."),  # Enable spatial joins (paths come from config)
+    )
+
+    # ==========================
     # VALIDATION
     # ==========================
     logger.info("Validating sample...")
     _validate_rows(survey_df, SurveyResponse, sample_size=10)
 
-    # Filter to standard schema columns
-    logger.info("Filtering to standard schema columns...")
-    standard_columns = list(SurveyResponse.model_fields.keys())
-    keep_columns = [col for col in standard_columns if col in survey_df.columns]
-    logger.info(
-        "Keeping %d standard columns (dropped %d vendor-specific)",
-        len(keep_columns),
-        len(survey_df.columns) - len(keep_columns),
-    )
-    responses_df = survey_df.select(keep_columns)
+    # Filter to standard schema columns is handled centrally by
+    # database.ingest_survey_responses(), so just pass the full DataFrame.
+    responses_df = survey_df
 
     # ==========================
     # WEIGHTS TABLE

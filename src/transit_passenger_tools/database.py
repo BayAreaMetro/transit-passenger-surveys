@@ -139,7 +139,7 @@ def enforce_dataframe_types(
     cast_exprs = []
     for col in df.columns:
         if col in type_map and df[col].dtype != type_map[col]:
-            logger.info("Casting %s from %s to %s", col, df[col].dtype, type_map[col])
+            logger.debug("Casting %s from %s to %s", col, df[col].dtype, type_map[col])
             cast_exprs.append(pl.col(col).cast(type_map[col], strict=False).alias(col))
         else:
             cast_exprs.append(pl.col(col))
@@ -332,8 +332,12 @@ def ingest_survey_responses(
     Raises:
         ValueError: If schema version mismatch detected (migration required)
     """
-    # Schema-compatibility check against existing data
+    # Schema-compatibility check against existing data.
+    # Only compare columns that are in the SurveyResponse model — extra
+    # legacy columns in the existing parquet will be ignored (they'll be
+    # trimmed from new data below anyway).
     responses_path = DATA_ROOT / "survey_responses.parquet"
+    model_columns = set(SurveyResponse.model_fields.keys())
     if responses_path.exists():
         existing_schema = pl.read_parquet_schema(responses_path)
         schema_issues: list[str] = []
@@ -342,10 +346,12 @@ def ingest_survey_responses(
                 "Column rename detected: 'hispanic' -> 'is_hispanic'. "
                 "Run migration script: scripts/migrate_schema_v1_to_v2.py"
             )
+        # Only check columns that are in the model schema
+        comparable_cols = set(existing_schema) & set(df.schema) & model_columns
         schema_issues.extend(
             f"Type mismatch for '{col}': "
             f"existing={existing_schema[col]}, new={df.schema[col]}"
-            for col in set(existing_schema) & set(df.schema)
+            for col in comparable_cols
             if existing_schema[col] != df.schema[col]
             and df.schema[col] != pl.Null  # all-null columns are compatible
         )
@@ -360,6 +366,19 @@ def ingest_survey_responses(
     # ``Null`` dtype) and enum-backed fields are cast to their declared types
     # before writing to parquet.
     df = enforce_dataframe_types(df)
+
+    # Trim to only the columns defined in SurveyResponse.
+    # Extra vendor-specific or legacy columns (e.g. weight, survey_batch,
+    # metadata fields) must not leak into the responses table.
+    schema_columns = set(SurveyResponse.model_fields.keys())
+    extra_cols = sorted(set(df.columns) - schema_columns)
+    if extra_cols:
+        logger.debug(
+            "Trimming %d extra column(s) from %s/%s responses: %s",
+            len(extra_cols), canonical_operator, survey_year,
+            ", ".join(extra_cols),
+        )
+        df = df.select([c for c in df.columns if c in schema_columns])
 
     if validate:
         _validate_rows(df, SurveyResponse, sample_size=100)

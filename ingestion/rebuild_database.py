@@ -7,10 +7,16 @@ backfill (``ingestion/backfill/``) is always run first.
 Usage::
 
     # Append only — skip operator/years already in the warehouse
-    uv run python scripts/rebuild_database.py
+    uv run python -m ingestion.rebuild_database
 
-    # Full rebuild — wipe DATA_ROOT and re-ingest everything
-    uv run python scripts/rebuild_database.py --force-rebuild
+    # Re-ingest specific operator/year combos
+    uv run python -m ingestion.rebuild_database --rebuild BART/2024 ACE/2023
+
+    # Full rebuild — wipe DATA_ROOT and re-ingest everything (requires confirmation)
+    uv run python -m ingestion.rebuild_database --rebuild ALL
+
+    # List discovered ingestion sources and their status
+    uv run python -m ingestion.rebuild_database --list
 """
 
 import argparse
@@ -92,6 +98,45 @@ def discover_ingestion_sources() -> list[dict]:
     return sources
 
 
+def parse_rebuild_target(target: str) -> tuple[str, int]:
+    """Validate and parse an ``OPERATOR/YEAR`` string.
+
+    Returns ``(operator, year)`` or raises :class:`argparse.ArgumentTypeError`.
+    """
+    parts = target.strip().split("/")
+    if len(parts) != 2:  # noqa: PLR2004
+        msg = f"Expected OPERATOR/YEAR (e.g. BART/2024), got '{target}'"
+        raise argparse.ArgumentTypeError(msg)
+    operator, year_str = parts
+    try:
+        year = int(year_str)
+    except ValueError as exc:
+        msg = f"Year must be an integer, got '{year_str}'"
+        raise argparse.ArgumentTypeError(msg) from exc
+    return (operator, year)
+
+
+def list_sources() -> None:
+    """Print discovered ingestion sources and whether they are already ingested."""
+    sources = discover_ingestion_sources()
+    already = get_ingested_operator_years()
+
+    print(f"\nDiscovered {len(sources)} ingestion source(s):\n")
+    for src in sources:
+        key = (src["operator"], src["year"])
+        status = "ingested" if key in already else "not ingested"
+        print(f"  {src['operator']}/{src['year']}  [{status}]")
+
+    # Also show legacy backfill status
+    if already:
+        legacy = {k for k in already if k not in {(s["operator"], s["year"]) for s in sources}}
+        if legacy:
+            print(f"\nLegacy backfill operators ({len(legacy)}):")
+            for op, yr in sorted(legacy):
+                print(f"  {op}/{yr}  [ingested]")
+    print()
+
+
 # ========== Backfill ==========
 
 
@@ -164,25 +209,44 @@ def run_data_corrections() -> None:
 # ========== Per-operator ingestion ==========
 
 
-def run_operator_ingestion(*, force_rebuild: bool = False) -> None:
+def run_operator_ingestion(
+    *,
+    force_rebuild: bool = False,
+    rebuild_targets: set[tuple[str, int]] | None = None,
+) -> None:
     """Discover and run ``ingestion/operators/{Operator}/{year}/ingest.py`` scripts.
 
     Each script's ``main()`` returns ``(responses, weights, metadata)``.
     All three tables are written and referential integrity is validated
     via :func:`database.ingest`.
 
-    Skips any (operator, year) pair already present in the metadata
-    parquet, unless *force_rebuild* is ``True``.
+    Parameters
+    ----------
+    force_rebuild:
+        Re-run every discovered source regardless of ingestion status.
+    rebuild_targets:
+        If provided, **only** run sources whose ``(operator, year)`` is in
+        this set — and always run them (ignore "already ingested" check).
     """
     already = get_ingested_operator_years()
     sources = discover_ingestion_sources()
     logger.info("Discovered %d ingestion source(s)", len(sources))
 
+    # When rebuild targets are given, filter to just those
+    if rebuild_targets is not None:
+        sources = [s for s in sources if (s["operator"], s["year"]) in rebuild_targets]
+        matched = {(s["operator"], s["year"]) for s in sources}
+        missing = rebuild_targets - matched
+        if missing:
+            for op, yr in sorted(missing):
+                logger.error("  %s/%s — no ingest.py found", op, yr)
+            sys.exit(1)
+
     ran = 0
     for src in sources:
         key = (src["operator"], src["year"])
 
-        if key in already and not force_rebuild:
+        if rebuild_targets is None and key in already and not force_rebuild:
             logger.info("  %s/%s — already ingested, skipping", *key)
             continue
 
@@ -206,6 +270,7 @@ def main(
     *,
     force_rebuild: bool = False,
     standardized_dir: Path | None = None,
+    rebuild_targets: set[tuple[str, int]] | None = None,
 ) -> None:
     """Run the database build pipeline.
 
@@ -213,15 +278,16 @@ def main(
         Checks what's already in the warehouse and only runs
         ingestion sources whose (operator, year) pair is missing.
 
-    --force-rebuild:
+    --rebuild OPERATOR/YEAR ...:
+        Re-ingest only the specified operator/year combos (skips
+        backfill, corrections, and integrity checks).
+
+    --rebuild ALL:
         Archives the current parquet files, wipes the warehouse,
         and re-ingests everything from scratch.
     """
     sep = "=" * 80
     standardized_dir = standardized_dir or STANDARDIZED_DIR
-
-    mode = "REBUILD (force)" if force_rebuild else "UPDATE"
-    logger.info("\n%s\n%s\n%s", sep, f"TRANSIT SURVEY DATABASE — {mode}", sep)
 
     # -------------------------------------------------------------------
     # Pre-flight: make sure the network share is reachable
@@ -232,6 +298,29 @@ def main(
 
     DATA_ROOT.mkdir(parents=True, exist_ok=True)
     (DATA_ROOT / "archive").mkdir(parents=True, exist_ok=True)
+
+    # -------------------------------------------------------------------
+    # Targeted rebuild: --rebuild BART/2024 ACE/2023
+    # -------------------------------------------------------------------
+    if rebuild_targets:
+        targets_label = ", ".join(f"{op}/{yr}" for op, yr in sorted(rebuild_targets))
+        logger.info("\n%s\nTRANSIT SURVEY DATABASE — REBUILD: %s\n%s", sep, targets_label, sep)
+
+        run_operator_ingestion(rebuild_targets=rebuild_targets)
+
+        logger.info("\n%s\nEXPORT TABLEAU HYPER\n%s", sep, sep)
+        export_to_hyper(DATA_ROOT / "surveys_export.hyper")
+        logger.info("Hyper export complete")
+
+        logger.info("\n%s\nREBUILD COMPLETE\n%s", sep, sep)
+        logger.info("Data directory: %s", DATA_ROOT)
+        return
+
+    # -------------------------------------------------------------------
+    # Full pipeline: backfill → corrections → operators → integrity → hyper
+    # -------------------------------------------------------------------
+    mode = "REBUILD ALL" if force_rebuild else "UPDATE"
+    logger.info("\n%s\nTRANSIT SURVEY DATABASE — %s\n%s", sep, mode, sep)
 
     # -------------------------------------------------------------------
     # Force rebuild: archive the three parquet files, then start clean
@@ -280,7 +369,7 @@ def main(
     logger.info("Hyper export complete")
 
     # -------------------------------------------------------------------
-    label = "REBUILD" if force_rebuild else "UPDATE"
+    label = "REBUILD ALL" if force_rebuild else "UPDATE"
     logger.info("\n%s\nDATABASE %s COMPLETE\n%s", sep, label, sep)
     logger.info("Data directory: %s", DATA_ROOT)
 
@@ -289,11 +378,24 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Build or rebuild transit survey database",
     )
-    parser.add_argument(
-        "--force-rebuild",
-        action="store_true",
-        help="Wipe existing data and re-ingest everything from scratch",
+
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        "--rebuild",
+        nargs="+",
+        metavar="TARGET",
+        help=(
+            "Re-ingest specific operator/year combos (e.g. BART/2024 ACE/2023) "
+            "or pass ALL to wipe and rebuild the entire warehouse"
+        ),
     )
+    mode_group.add_argument(
+        "--list",
+        action="store_true",
+        dest="list_sources",
+        help="List discovered ingestion sources and their status, then exit",
+    )
+
     parser.add_argument(
         "--standardized-dir",
         type=Path,
@@ -301,4 +403,31 @@ if __name__ == "__main__":
         help=f"Path to standardized data directory (default: {STANDARDIZED_DIR})",
     )
     args = parser.parse_args()
-    main(force_rebuild=args.force_rebuild, standardized_dir=args.standardized_dir)
+
+    if args.list_sources:
+        list_sources()
+        sys.exit(0)
+
+    force_rebuild = False
+    rebuild_targets = None
+
+    if args.rebuild:
+        if args.rebuild == ["ALL"]:
+            # Confirmation prompt for the destructive full rebuild
+            print(
+                "\n  WARNING: --rebuild ALL will archive and wipe all parquet files\n"
+                f"  in {DATA_ROOT} and re-ingest everything from scratch.\n"
+            )
+            answer = input("  Continue? [y/N] ").strip().lower()
+            if answer != "y":
+                print("Aborted.")
+                sys.exit(0)
+            force_rebuild = True
+        else:
+            rebuild_targets = {parse_rebuild_target(t) for t in args.rebuild}
+
+    main(
+        force_rebuild=force_rebuild,
+        standardized_dir=args.standardized_dir,
+        rebuild_targets=rebuild_targets,
+    )

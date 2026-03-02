@@ -26,7 +26,7 @@ def fix_ace_commuter_rail() -> None:
 
     df = pl.read_parquet(responses_path)
 
-    is_ace_2023 = (pl.col("canonical_operator") == "ACE") & (pl.col("survey_year") == 2023)  # noqa: PLR2004
+    is_ace_2023 = pl.col("survey_id") == "ACE_2023"
     needs_fix = is_ace_2023 & (pl.col("commuter_rail_present") != 1)
     fix_count = df.filter(needs_fix).height
 
@@ -36,8 +36,9 @@ def fix_ace_commuter_rail() -> None:
 
     df = df.with_columns(
         pl.when(is_ace_2023)
-        .then(pl.lit(1).cast(pl.Int64))
+        .then(pl.lit(1))
         .otherwise(pl.col("commuter_rail_present"))
+        .cast(pl.Int64)
         .alias("commuter_rail_present")
     )
 

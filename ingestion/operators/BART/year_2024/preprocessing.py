@@ -1001,9 +1001,6 @@ def preprocess(
             pl.col("ID").alias("survey_id"),  # Placeholder, will be overwritten
             pl.col("ID").alias("original_id"),
             # Direction already set as None earlier
-            # Access/egress modes already set earlier, immediate modes are None
-            pl.lit(None).alias("immediate_access_mode"),
-            pl.lit(None).alias("immediate_egress_mode"),
             # Transfer fields as None
             pl.lit(None).alias("transfer_from"),
             pl.lit(None).alias("transfer_to"),

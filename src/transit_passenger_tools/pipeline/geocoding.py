@@ -199,7 +199,9 @@ def calculate_distances(df: pl.DataFrame) -> pl.DataFrame:
 
 
 def assign_zones_and_distances(
-    df: pl.DataFrame, shapefiles_dir: Path | None = None
+    df: pl.DataFrame,
+    shapefiles_dir: Path | None = None,
+    id_col: str = "response_id",
 ) -> pl.DataFrame:
     """Transform geocoding fields - assign zones and calculate distances.
 
@@ -212,6 +214,8 @@ def assign_zones_and_distances(
         df: Input DataFrame with lat/lon columns for each location
         shapefiles_dir: Directory containing zone shapefiles (optional).
             If None, only distance calculations are performed.
+        id_col: Name of the unique row identifier column used for spatial
+            join lookups. Defaults to ``"response_id"``.
 
     Returns:
         DataFrame with added geographic zone and distance columns
@@ -244,7 +248,7 @@ def assign_zones_and_distances(
 
         # Geocode all zone types for this location
         for zone_config in config.geocoding_zones:
-            shapefile_path = Path(config.shapefiles[zone_config.shapefile_key])
+            shapefile_path = config.resolve_shapefile_path(zone_config.shapefile_key)
 
             result_df = spatial_join_coordinates_to_shapefile(
                 df=result_df,
@@ -253,6 +257,7 @@ def assign_zones_and_distances(
                 shapefile_path=str(shapefile_path),
                 shapefile_id_col=zone_config.field_name,
                 output_id_col=f"{location}_{zone_config.zone_type}",
+                id_col=id_col,
             )
 
     return result_df

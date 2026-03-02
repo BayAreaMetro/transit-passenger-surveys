@@ -70,7 +70,6 @@ def add_optional_fields(df: pl.DataFrame) -> pl.DataFrame:
     """Add missing Tier 3 (Optional) fields with NULL if they don't exist in CSV."""
     optional_fields_tier3 = [
         # Transfer routes
-        "immediate_access_mode", "immediate_egress_mode",
         "first_route_before_survey_board", "second_route_before_survey_board",
         "third_route_before_survey_board", "first_route_after_survey_alight",
         "second_route_after_survey_alight", "third_route_after_survey_alight",

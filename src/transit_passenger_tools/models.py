@@ -101,8 +101,6 @@ class CoreSurveyResponse(BaseModel):
     # ========== Access/Egress Modes ==========
     access_mode: AccessEgressMode | None = Field(description="Mode to access first transit encounter")
     egress_mode: AccessEgressMode | None = Field(description="Mode to egress from last transit encounter")
-    immediate_access_mode: AccessEgressMode | None = Field(description="Access mode to surveyed vehicle")
-    immediate_egress_mode: AccessEgressMode | None = Field(description="Egress mode from surveyed vehicle")
 
     # ========== Transfer Information  ==========
     transfer_from: TransferOperator | None = Field(description="Operator immediately transferred from")

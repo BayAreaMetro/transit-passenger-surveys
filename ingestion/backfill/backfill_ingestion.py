@@ -39,9 +39,13 @@ def _validate_batches_collect_errors(
     error_summary = defaultdict(lambda: defaultdict(list))
     batches_with_errors = []
 
-    for (survey_year, canonical_operator), group_df in groups:
+    group_list = list(groups)
+    num_groups = len(group_list)
+
+    for i, ((survey_year, canonical_operator), group_df) in enumerate(group_list, 1):
         logger.info(
-            "Processing: %s %s (%s records)", canonical_operator, survey_year, len(group_df)
+            "[%d/%d] Processing: %s %s (%s records)",
+            i, num_groups, canonical_operator, survey_year, len(group_df),
         )
 
         batch_errors = validate_batch_collect_errors(
@@ -127,9 +131,13 @@ def ingest_survey_batches(
     total_records = 0
     num_batches = 0
 
-    for (survey_year, canonical_operator), group_df in groups:
+    group_list = list(groups)
+    num_groups = len(group_list)
+
+    for i, ((survey_year, canonical_operator), group_df) in enumerate(group_list, 1):
         logger.info(
-            "Processing: %s %s (%s records)", canonical_operator, survey_year, len(group_df)
+            "[%d/%d] Processing: %s %s (%s records)",
+            i, num_groups, canonical_operator, survey_year, len(group_df),
         )
 
         group_df = enforce_dataframe_types(group_df)
