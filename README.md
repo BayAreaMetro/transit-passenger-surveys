@@ -1,404 +1,209 @@
-
 # Transit Passenger Surveys
 
-A comprehensive Python package for working with standardized transit passenger survey data. This package provides:
+Standardized data warehouse and processing pipeline for Bay Area transit on-board passenger surveys. Combines data from 27+ operators (2012–2024) into a single Parquet-based warehouse with Pydantic-validated schemas, a 7-module derivation pipeline, and geocoding to travel-model geographies.
 
-1. **Canonical Data Models**: Pydantic-based models defining a standardized schema for transit passenger surveys
-2. **Database Tools**: SQLite database with  survey responses from ~26 Bay Area operators
-3. **Type Safety**: Full type hints and validation using Pydantic
-4. **Codebook Utilities**: Tools to transform operator-specific data into the canonical format
+## Workplan (Last updated: 2026-03-02)
 
-## Overview
+- [x] Installable `transit_passenger_tools` Python package
+- [x] Canonical schema via Pydantic models (`CoreSurveyResponse` → `DerivedSurveyResponse` → `SurveyResponse`)
+- [x] Flat Parquet data warehouse with archive versioning
+- [x] Backfill 186,792 legacy records (27 operators, 2012–2023, 74 surveys) from standardized CSV
+- [x] 7-module derivation pipeline (date/time, demographics, transfers, path labels, tour purpose, auto sufficiency, geocoding)
+- [x] Convention-based operator ingestion (`ingestion/operators/{Operator}/{year_YYYY}/ingest.py`)
+- [x] BART 2024 ingestion with full geocoding (48 geography columns)
+- [x] `--rebuild` CLI for targeted and full rebuilds
+- [x] Tableau Hyper export
+- [x] Post-ingestion data corrections (ACE commuter rail, BART heavy rail / station names / routes)
+- [x] Unit tests for all 7 pipeline modules
+- [ ] **TODO**: PUMS demographic comparison generator — port legacy R function `create_PUMS_data_in_TPS_format()` to Python so new survey years automatically get PUMS population benchmarks (existing legacy PUMS rows are preserved via backfill)
+- [ ] Migrate `summaries` R code into Python / Tableau
+- [ ] Additional operator ingestion scripts (beyond BART 2024)
+- [ ] Canonical route database -- matching could be done with GTFS but how to track-changes over time? Could maintain a canonical route table with effective date ranges, updated by operator ingestion scripts when route changes are detected. I don't know yet, this is complicated...
 
-Transit agencies conduct passenger surveys with varying formats, variable names, and response categories. This package standardizes these surveys into a common format, making it easier to:
+### Legacy Code
 
-- Combine data from multiple operators
-- Perform cross-agency analyses
-- Build consistent reporting tools
-- Ensure data quality through validation
+Archived in `archive/` for reference. Key legacy components:
 
-
-## Workplan (Last updated: 02/03/2026)
-- [x] Create placeholder installable `transit_passenger_surveys` Python package in repo
-- [x] Standardized canonical onboard survey schema from `instrument-and-dictionary`
-- [x] Create flat Parquet data warehouse with Pydantic models and archive versioning
-- [x] Implement 3-tier field validation (Required/Optional-Enriched/Optional)
-- [x] Backfill existing survey data into database (186,792 records from 27 operators, 2012-2023)
-- [x] Refactor initialization scripts into modular structure (`ingestion/backfill/`)
-- [ ] Create Python `requests` scripts to replace R code in `requests` folder
-- [ ] Create new survey ingestion workflow
-- [ ] Migrate `summaries` code into `transit_passenger_surveys` package
-
-### Legacy code
-All of this has been moved into `archive` folder and will be maintained there for reference as they get gradually replaced by python code in the `transit_passenger_surveys` package.
-
-- Survey data collection and processing
-    * [Instrument and Dictionary](https://github.com/BayAreaMetro/onboard-surveys/tree/master/instrument-and-dictionary): Survey questions and data collected. *[Last changed 2025]*
-    * [Make Uniform](https://github.com/BayAreaMetro/onboard-surveys/tree/master/make-uniform): Process raw data from different surveys and transit agencies into the uniform format. *[Last changed 2025]*
-    * [Mode Choice Targets](https://github.com/BayAreaMetro/onboard-surveys/tree/master/mode-choice-targets): Process OBS and generate inputs for mode choice targets. *[Last changed 2016]*
-- Survey data analytics
-    * [Summaries](https://github.com/BayAreaMetro/onboard-surveys/tree/master/summaries): High-level statistical analysis on survey data in R and Tableau. *[Last changed 2025]*
-    * [Decomposition](https://github.com/BayAreaMetro/onboard-surveys/tree/master/decomposition): Route-level statistical analysis on survey data in R and Tableau. *[Last changed 2018]*
-    * [Requests](https://github.com/BayAreaMetro/onboard-surveys/tree/master/requests): Analyze survey data to respond data requests from stakeholders. *[Last changed 2025]*
-- Exploratory data analytics
-    * [Multi-criteria Expansion](https://github.com/BayAreaMetro/onboard-surveys/tree/master/multi-criteria-expansion): Explore ways to ind an optimal set of expansion weights that best satisfy any number of criteria. *[Last changed 2015]*
-    * [On-off Explore](https://github.com/BayAreaMetro/onboard-surveys/tree/master/on-off-explore): Explore the value of performing an on/off pre-survey for small operators. *[Last changed 2015]*
-    * [Travel Model Priors](https://github.com/BayAreaMetro/onboard-surveys/tree/master/travel-model-priors): Process boarding and alighting data from SF Muni automated passenger counters, boarding and alighting flows from the SFCTA SF-CHAMP travel model, on-to-off surveys on SF Muni, etc. *[Last changed 2016]*
-
-## Querying Data
-
-Read the flat Parquet files directly with Polars:
-```python
-import polars as pl
-from transit_passenger_tools.database import DATA_ROOT
-
-df = pl.read_parquet(DATA_ROOT / "survey_responses.parquet")
-```
-
-See [docs/database_access.md](docs/database_access.md) for full details.
-
-
+| Folder | Description | Status |
+|--------|-------------|--------|
+| `make-uniform/` | R scripts to standardize raw survey data | Replaced by `ingestion/` |
+| `summaries/` | R + Tableau statistical summaries | Not yet migrated |
+| `decomposition/` | Route-level analysis in R + Tableau | Not yet migrated |
+| `requests/` | Ad-hoc data request scripts (R) | Being replaced by `scripts/` |
+| `multi-criteria-expansion/` | Expansion weight optimization (R) | Reference only |
 
 ## Installation
 
 ```bash
-# Install package in development mode
 uv sync
 ```
 
-## Database Setup
+## Data Warehouse
 
-### Build / Update (default)
+Three flat Parquet files at `DATA_ROOT` (configured in `config/pipeline.yaml`):
 
-Appends only operator/year pairs not yet in the warehouse:
-
-```bash
-uv run python scripts/rebuild_database.py
+```
+\\models.ad.mtc.ca.gov\..\_transit_data\
+├── survey_responses.parquet   # ~187K+ response records, ~160 columns
+├── survey_weights.parquet     # Boarding + trip weights per response
+├── survey_metadata.parquet    # Survey-level metadata (field dates, source)
+├── surveys_export.hyper       # Tableau Hyper with all 3 tables
+└── archive/                   # Date-stamped snapshots
 ```
 
-### Force Rebuild
+### Querying
 
-Wipes existing data and re-ingests everything from scratch:
-
-```bash
-uv run python scripts/rebuild_database.py --force-rebuild
-```
-
-The script:
-1. Runs the **legacy backfill** (`ingestion/backfill/`) — 186,792 responses, 27 operators, 2012-2023
-2. **Discovers** per-operator ingestion scripts via convention (`ingestion/{operator}/{year}/ingest.py`)
-3. Skips operator/years already present (unless `--force-rebuild`)
-4. Applies data corrections and exports Tableau Hyper file
-
-**Configuration**: The standardized data directory and CSV filename are set as constants at the top of `scripts/rebuild_database.py`:
+#### Python
 ```python
-STANDARDIZED_DIR = Path(r"\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_data_Standardized\standardized_2025-10-13")
-CSV_FILENAME = "survey_combined.csv"
+import polars as pl
+from transit_passenger_tools.database import DATA_ROOT
+
+# Read all responses
+df = pl.read_parquet(DATA_ROOT / "survey_responses.parquet")
+
+# Filter to one operator
+bart = df.filter(pl.col("survey_id").str.starts_with("BART_"))
 ```
+
+See [docs/database_access.md](docs/database_access.md) for more examples.
+
+#### Tableau
+Connect directly to the Parquet files or use the `surveys_export.hyper` for optimized Tableau access.
+
+#### SQL (DuckDB) / DBeaver
+
+DuckDB can query Parquet files directly:
+
+```sql
+SELECT *
+FROM read_parquet('\\\\models.ad.mtc.ca.gov\\..\\_transit_data\\survey_responses.parquet')
+WHERE survey_id LIKE 'BART_%';
+```
+
+## Rebuilding the Database
+
+The entry point is `ingestion/rebuild_database.py`:
+
+```bash
+# Append-only — skip operator/years already present
+uv run python -m ingestion.rebuild_database
+
+# Re-ingest specific operator/year combos (deletes then re-ingests)
+uv run python -m ingestion.rebuild_database --rebuild BART/2024
+
+# Full wipe + rebuild (requires interactive confirmation)
+uv run python -m ingestion.rebuild_database --rebuild ALL
+
+# List discovered ingestion sources and their status
+uv run python -m ingestion.rebuild_database --list
+```
+
+The rebuild process:
+
+1. **Legacy backfill** — loads `survey_combined.csv` (186,792 records), applies transformations / normalization / typo fixes, writes to Parquet in operator/year batches
+2. **Operator ingestion** — discovers `ingestion/operators/{Operator}/{year_YYYY}/ingest.py` modules via convention, runs each `main()` which calls the 7-module pipeline
+3. **Data corrections** — applies post-ingestion fixes (`ingestion/fixes/`)
+4. **Tableau export** — writes `surveys_export.hyper`
 
 ### Adding a New Survey
 
-1. Create `ingestion/{Operator}/{year}/preprocessing.py` — clean raw data
-2. Create `ingestion/{Operator}/{year}/ingest.py` with a `main()` function that calls `ingest_survey_responses()`
-3. Run `uv run python scripts/rebuild_database.py` — only the new survey will be ingested
+1. Create `ingestion/operators/{Operator}/{year_YYYY}/preprocessing.py` — vendor-specific data cleaning
+2. Create `ingestion/operators/{Operator}/{year_YYYY}/ingest.py` with a `main()` returning `(responses_df, weights_df, metadata_df)`
+3. Run `uv run python -m ingestion.rebuild_database` — only the new survey is appended
+4. Or `uv run python -m ingestion.rebuild_database --rebuild Operator/YYYY` to force re-ingest
 
-### Data Processing Pipeline
+## Pipeline Architecture
 
-The backfill process (`ingestion/backfill/` modules) includes:
-- **Data loading** (`backfill_loader.py`): CSV reading with schema inference
-- **Transformations** (`backfill_transformations.py`): Type conversions, boolean fields, word-to-number conversion
-- **Normalization** (`backfill_normalization.py`): Text standardization, sentence case, acronym handling
-- **Typo fixes** (`backfill_typo_fixes.py`): 15+ field-specific value mappings and corrections
-- **Validation** (`backfill_validation.py`): Pydantic schema validation with detailed error reporting
-- **Ingestion** (`backfill_ingestion.py`): Write to flat Parquet files with archive versioning
+### Schema (Pydantic Models)
 
-## Data Warehouse Layout
+Defined in `src/transit_passenger_tools/models.py`:
 
-Three flat Parquet files stored at `DATA_ROOT` (configured in `config/pipeline.yaml`):
+| Model | Fields | Role |
+|-------|--------|------|
+| `CoreSurveyResponse` | ~90 | Vendor-provided fields (preprocessing must produce these) |
+| `DerivedSurveyResponse` | ~70 | Pipeline-calculated fields added by the 7 modules |
+| `SurveyResponse` | ~160 | Complete schema = Core + Derived |
+| `SurveyMetadata` | 10 | Survey-level metadata (dates, source, operator) |
+| `SurveyWeight` | 5 | Per-response boarding and trip weights |
 
-```
-_transit_data/
-├── survey_responses.parquet
-├── survey_metadata.parquet
-├── survey_weights.parquet
-├── surveys_export.hyper
-└── archive/
-    └── survey_responses_2026-02-27.parquet
-```
+### Derivation Pipeline
 
-**DuckDB Cache**: A DuckDB file at `_transit_data_hive/transit_surveys.duckdb` provides fast querying over the Parquet files.
+`src/transit_passenger_tools/pipeline/process_survey.py` orchestrates 7 transform modules:
 
-## Quick Start
+| Module | Derives |
+|--------|---------|
+| `date_time.py` | `day_part`, `weekpart`, `day_of_the_week` from `survey_time` |
+| `auto_sufficiency.py` | `autos_vs_workers`, `vehicle_numeric_cat`, `worker_numeric_cat` |
+| `demographics.py` | `race` consolidation, `household_income_category` |
+| `transfers.py` | `boardings`, `transfers_surveyed`, technology presence flags |
+| `path_labels.py` | `path_access`, `path_egress`, `path_line_haul`, `path_label`, `transit_type` |
+| `tour_purpose.py` | `tour_purp`, `tour_purp_case` |
+| `geocoding.py` | 48 geography columns — MAZ/TAZ/TAP (TM1, TM2), tract/county/PUMA GEOIDs, distances |
 
-### Query Survey Data
+### Backfill Modules
 
-```python
-from transit_passenger_tools import db
+`ingestion/backfill/` handles loading the legacy standardized CSV:
 
-# Read all surveys into Polars DataFrame
-df = db.read_table("survey_responses")
+| Module | Role |
+|--------|------|
+| `backfill_loader.py` | CSV reading, column renaming, type conversion |
+| `backfill_transformations.py` | Boolean fields, PUMS placeholders, optional field defaults |
+| `backfill_normalization.py` | Sentence case, acronym/operator name standardization |
+| `backfill_typo_fixes.py` | 15+ field-specific value corrections |
+| `backfill_validation.py` | Pydantic schema validation with error collection |
+| `backfill_ingestion.py` | Batch writing to Parquet, metadata/weight extraction |
 
-# Filter by operator
-bart_surveys = db.read_query(
-    "SELECT * FROM survey_responses WHERE canonical_operator = 'BART'"
-)
+### Post-Ingestion Corrections
 
-# Filter by year and export
-bart_2024 = db.read_query(
-    "SELECT * FROM survey_responses WHERE survey_year = 2024"
-)
-bart_2024.write_csv("bart_2024.csv")
+`ingestion/fixes/` applies known data quality fixes after all records are written:
 
-# Get summary statistics
-summary = db.read_query("""
-    SELECT 
-        canonical_operator,
-        survey_year,
-        COUNT(*) as responses,
-        AVG(weight) as avg_weight
-    FROM survey_responses
-    GROUP BY canonical_operator, survey_year
-    ORDER BY survey_year DESC, canonical_operator
-""")
-print(summary)
-```
+- `fix_ace_2023.py` — sets `commuter_rail_present=1` for ACE (single-ride commuter rail)
+- `fix_bart_2015.py` — fixes `heavy_rail_present`, airport station names, route field normalization
 
-## Data Model Structure
+## Configuration
 
-The canonical data model uses a flat structure optimized for analysis:
+`config/pipeline.yaml` defines:
 
-### 3-Tier Field Classification
+- **`data_root`**: Network path to the Parquet warehouse
+- **`shapefiles`**: Paths to TM1/TM2 TAZ, MAZ, county, tract, PUMA, and station shapefiles
+- **`remote_name`**: UNC fallback when `M:` drive is not mapped
+- **`zone_types`**: Maps output field names → shapefile keys and column names for geocoding
 
-**Core Fields (CoreSurveyResponse)** - ~90 vendor-provided fields:
-- Survey identifiers (`response_id`, `survey_id`, `original_id`)
-- Trip basics (`route`, `direction`, `access_mode`, `egress_mode`, `trip_purp`, `orig_purp`, `dest_purp`)
-- Demographics (`gender`, `is_hispanic`, `race`, `work_status`, `student_status`)
-- Household (`persons`, `workers`, `vehicles`, `household_income`)
-- Coordinates (lat/lon for origin, destination, home, work, school, board/alight locations)
-- Transfer information (operator, routes, technology)
-- Time and fare (`depart_hour`, `return_hour`, `day_of_the_week`, `fare_medium`, `fare_category`)
+## Testing
 
-**Derived Fields (DerivedSurveyResponse)** - ~110 pipeline-calculated fields:
-- Time classifications (`day_part`, `weekpart`, `time_period`)
-- Tour logic (`tour_purp`, `tour_purp_case`, at_work/school flags)
-- Mode presence flags (commuter_rail, heavy_rail, express_bus, ferry, light_rail)
-- Distance calculations (origin-destination, board-alight, access/egress distances)
-- Travel model zones (MAZ, TAZ, TAP for TM1/TM2)
-- Census geographies (tract, county, PUMA GEOIDs)
-- Calculated fields (`boardings`, `auto_to_workers_ratio`, `year_born_four_digit`)
-
-**Complete Schema (SurveyResponse)** - ~200+ total fields:
-- All Core + Derived fields
-- Reserved for future validation/metadata fields
-
-
-## Usage Examples
-
-### Basic Queries
-
-```python
-from transit_passenger_tools import db
-import polars as pl
-
-# Get work trips by access mode
-work_trips = db.read_query("""
-    SELECT 
-        access_mode,
-        COUNT(*) as trips,
-        SUM(weight) as weighted_trips
-    FROM survey_responses
-    WHERE dest_purp = 'Work'
-    GROUP BY access_mode
-    ORDER BY weighted_trips DESC
-""")
-
-# Filter by operator and year
-caltrain_2023 = db.read_query("""
-    SELECT * FROM survey_responses
-    WHERE canonical_operator = 'Caltrain'
-    AND survey_year = 2023
-""")
-
-# Get transfer patterns
-transfers = db.read_query("""
-    SELECT 
-        transfer_from,
-        transfer_to,
-        COUNT(*) as count
-    FROM survey_responses
-    WHERE transfer_from IS NOT NULL
-    AND transfer_to IS NOT NULL
-    GROUP BY transfer_from, transfer_to
-    ORDER BY count DESC
-""")
+```bash
+uv run pytest tests/
 ```
 
-### Working with Pydantic Models
+Tests cover all 7 pipeline modules with fixture-based validation.
 
-```python
-from transit_passenger_tools.data_models import SurveyResponse
-import polars as pl
+## Project Structure
 
-# Read data
-df = db.read_table("survey_responses")
-
-# Validate single record
-record_dict = df.row(0, named=True)
-try:
-    response = SurveyResponse(**record_dict)
-    print(f"Valid record: {response.unique_id}")
-    print(f"Trip: {response.orig_purp} → {response.dest_purp}")
-    print(f"Access: {response.access_mode}, Egress: {response.egress_mode}")
-except ValidationError as e:
-    print(f"Validation errors: {e}")
-
-# Access optional fields safely
-if response.home_lat and response.home_lon:
-    print(f"Home location: ({response.home_lat}, {response.home_lon})")
-
-if response.vehicles is not None:
-    print(f"Household vehicles: {response.vehicles}")
 ```
-
-### Analysis Examples
-
-```python
-# Calculate mode share by operator
-mode_share = db.read_query("""
-    SELECT 
-        canonical_operator,
-        access_mode,
-        SUM(weight) as weighted_trips,
-        SUM(weight) * 100.0 / SUM(SUM(weight)) OVER (PARTITION BY canonical_operator) as pct
-    FROM survey_responses
-    GROUP BY canonical_operator, access_mode
-    ORDER BY canonical_operator, pct DESC
-""")
-
-# Income distribution for work trips
-work_income = db.read_query("""
-    SELECT 
-        household_income,
-        COUNT(*) as responses,
-        SUM(weight) as weighted
-    FROM survey_responses
-    WHERE dest_purp = 'Work'
-    AND household_income IS NOT NULL
-    GROUP BY household_income
-    ORDER BY 
-        CASE household_income
-            WHEN 'Under $10,000' THEN 1
-            WHEN '$10,000 to $25,000' THEN 2
-            WHEN '$25,000 to $35,000' THEN 3
-            -- ... etc
-        END
-""")
-
-# Transfer rates by operator
-transfer_rates = db.read_query("""
-    SELECT 
-        canonical_operator,
-        COUNT(*) as total_trips,
-        SUM(CASE WHEN transfer_from IS NOT NULL THEN 1 ELSE 0 END) as transfers,
-        SUM(CASE WHEN transfer_from IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as transfer_pct
-    FROM survey_responses
-    GROUP BY canonical_operator
-    ORDER BY transfer_pct DESC
-""")
+transit-passenger-surveys/
+├── src/transit_passenger_tools/     # Installable package
+│   ├── models.py                    # Pydantic schema (Core → Derived → SurveyResponse)
+│   ├── codebook.py                  # Enums (AccessEgressMode, Purpose, Race, etc.)
+│   ├── database.py                  # Parquet I/O, validation, Hyper export
+│   ├── config.py                    # YAML config loader, shapefile path resolution
+│   └── pipeline/                    # 7 derivation modules + orchestrator
+├── ingestion/
+│   ├── rebuild_database.py          # CLI entry point (--rebuild, --list)
+│   ├── backfill/                    # Legacy CSV → Parquet (7 modules)
+│   ├── fixes/                       # Post-ingestion corrections
+│   └── operators/                   # Convention-based operator ingest scripts
+│       └── BART/year_2024/          # Example: BART 2024 (preprocessing + ingest)
+├── config/
+│   ├── pipeline.yaml                # Paths, shapefiles, zone configs
+│   └── pipeline.test.yaml           # Test configuration
+├── tests/                           # pytest suite for pipeline modules
+├── scripts/                         # Utility and exploration scripts
+├── docs/                            # Additional documentation
+├── archive/                         # Legacy R code (reference only)
+└── pyproject.toml
 ```
-
-### Export and Integration
-
-```python
-# Export to CSV for Tableau/Excel
-df = db.read_table("survey_responses")
-df.write_csv("all_surveys.csv")
-
-# Export filtered subset
-bart_work = db.read_query("""
-    SELECT * FROM survey_responses
-    WHERE canonical_operator = 'BART'
-    AND dest_purp = 'Work'
-""")
-bart_work.write_parquet("bart_work_trips.parquet")
-
-# Convert to pandas for additional analysis
-import pandas as pd
-df_pandas = df.to_pandas()
-
-# Or work directly with polars
-avg_age_by_operator = df.group_by("canonical_operator").agg([
-    pl.col("approximate_age").mean().alias("avg_age"),
-    pl.col("weight").sum().alias("total_weight")
-])
-```
-
-## Enumerated Types
-
-The package defines enums for categorical variables to ensure consistency:
-
-- **AccessEgressMode**: Walk, Bike, PNR, KNR, TNC, Transit, Other, Missing
-- **Purpose**: Home, Work, School, Shopping, Social recreation, Medical/dental, etc.
-- **Gender**: Male, Female, Other, Missing
-- **Race**: White, Asian, Black/African American, Hispanic/Latino, etc.
-- **WorkStatus**: Full- or part-time, Non-worker, Missing
-- **StudentStatus**: Full- or part-time, Non-student, Missing
-- **FareCategory**: Adult, Youth, Senior, Disabled, Missing
-- **SurveyType**: Brief CATI, Tablet PI, Paper-collected, Online, etc.
-- **Weekpart**: Weekday, Weekend
-- **Direction**: Northbound, Southbound, Eastbound, Westbound, Inbound, Outbound
-
-## Database Management
-
-### Schema Management with Alembic
-
-#### What is Alembic?
-
-[Alembic](https://alembic.sqlalchemy.org/en/latest/) is a database migration tool that manages versioned changes to database schemas. It tracks which changes have been applied and allows you to upgrade or rollback the database structure.
-
-**How we use it:**
-- **Schema definition**: Pydantic models in [data_models.py](src/transit_passenger_tools/data_models.py) define the canonical schema with 203 fields using 3-tier validation (Required/Optional-Enriched/Optional)
-- **Database DDL**: Alembic migration scripts in `migrations/versions/` contain the actual SQL DDL (`CREATE TABLE`, indices, constraints)
-- **Manual migrations**: We write migrations manually (not auto-generated) because we use Pydantic models instead of SQLAlchemy ORM
-- **Single source of truth**: The Pydantic models are the authoritative schema definition; Alembic migrations must be kept in sync
-
-When the schema needs to change (new table, column, index), you:
-1. Update the Pydantic model in `data_models.py`
-2. Create a new Alembic migration with the corresponding DDL
-3. Apply the migration to update the database
-
-#### Common Alembic Commands
-
-```powershell
-# Apply migrations (create/update schema)
-uv run alembic upgrade head
-
-# View migration history
-uv run alembic history
-
-# Rollback one migration
-uv run alembic downgrade -1
-```
-
-### Database Schema
-
-The database contains two main tables:
-
-- **`survey_responses`**: Core survey data (203 fields with 3-tier validation)
-  - One row per on-board survey intercept
-  - 186,594 responses from 26 operators (2011-2024)
-  - Includes trip details, demographics, geography, fare info
-  - Primary key: `unique_id`
-  - NULL-friendly: 150+ optional fields support sparse data
-
-- **`survey_weights`**: Project-specific weight schemes (planned)
-  - Multiple weighting methodologies per survey response
-  - Links to `survey_responses` via `unique_id`
-  - Allows analysis with different weight adjustments
 
 ## Development
-
-### Initial Setup
 
 ```powershell
 # Install dependencies
