@@ -146,7 +146,7 @@ def list_sources() -> None:
 def run_backfill(csv_path: Path, *, force_rebuild: bool = False) -> None:
     """Run the legacy backfill from standardized CSV files.
 
-    Skipped when metadata already exists (meaning backfill ran before),
+    Skipped when responses already exist (meaning backfill ran before),
     unless *force_rebuild* is ``True``.
     """
     already = get_ingested_operator_years()
@@ -176,6 +176,10 @@ def run_backfill(csv_path: Path, *, force_rebuild: bool = False) -> None:
     validate_schema(df)
     df = reorder_columns_to_match_schema(df)
 
+    # Stamp metadata fields (source, inflation_year, ingestion_timestamp, etc.)
+    # onto every response row before writing to parquet.
+    df = extract_and_ingest_metadata(df, collect_errors=False)
+
     total_records, num_batches, error_summary = ingest_survey_batches(
         df,
         collect_errors=False,
@@ -184,14 +188,12 @@ def run_backfill(csv_path: Path, *, force_rebuild: bool = False) -> None:
         logger.error("Validation errors — no data written for failed batches")
         sys.exit(1)
 
-    num_metadata = extract_and_ingest_metadata(df, collect_errors=False)
     num_weights = extract_and_ingest_weights(df, collect_errors=False)
 
     logger.info(
-        "Backfill complete: %s batches, %s records, %s metadata, %s weights",
+        "Backfill complete: %s batches, %s records, %s weights",
         num_batches,
         f"{total_records:,}",
-        num_metadata,
         f"{num_weights:,}",
     )
 
@@ -223,8 +225,8 @@ def run_operator_ingestion(
 ) -> None:
     """Discover and run ``ingestion/operators/{Operator}/{year}/ingest.py`` scripts.
 
-    Each script's ``main()`` returns ``(responses, weights, metadata)``.
-    All three tables are written and referential integrity is validated
+    Each script's ``main()`` returns ``(responses, weights)``.
+    Both tables are written and referential integrity is validated
     via :func:`database.ingest`.
 
     Parameters
@@ -260,8 +262,8 @@ def run_operator_ingestion(
         logger.info("  %s/%s — running %s", *key, src["module_path"])
         try:
             mod = importlib.import_module(src["module_path"])
-            responses, weights, metadata = mod.main()
-            ingest(responses, weights, metadata)
+            responses, weights = mod.main()
+            ingest(responses, weights)
             ran += 1
         except Exception:
             logger.exception("  FAILED: %s/%s", *key)
@@ -363,9 +365,8 @@ def main(
     logger.info("\n%s\nSTEP 4: REFERENTIAL INTEGRITY\n%s", sep, sep)
     counts = validate_warehouse_integrity()
     logger.info(
-        "Integrity check passed (orphaned weights: %d, orphaned responses: %d)",
+        "Integrity check passed (orphaned weights: %d)",
         counts["orphaned_weights"],
-        counts["orphaned_responses"],
     )
 
     # -------------------------------------------------------------------

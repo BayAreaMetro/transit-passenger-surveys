@@ -40,11 +40,11 @@ FUZZY_MATCH_THRESHOLD = 80
 OPERATOR_NAMES = ["BART", "Bay Area Rapid Transit"]
 
 
-def main() -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
-    """Prepare BART 2024 data and return (responses, weights, metadata).
+def main() -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Prepare BART 2024 data and return (responses, weights).
 
     Returns:
-        A 3-tuple of ``(responses_df, weights_df, metadata_df)`` ready for
+        A 2-tuple of ``(responses_df, weights_df)`` ready for
         :func:`database.ingest`.
     """
     logger.info("=" * 80)
@@ -96,14 +96,23 @@ def main() -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     )
 
     # ==========================
+    # STAMP METADATA FIELDS
+    # ==========================
+    # Filter to standard schema columns is handled centrally by
+    # database.ingest_survey_responses(), so just pass the full DataFrame.
+    responses_df = survey_df.with_columns([
+        pl.lit("BART 2024 Station Profile Study").alias("survey_name"),
+        pl.lit("BART 2024 Station Profile Survey v1 (new weights)").alias("source"),
+        pl.lit(date(2024, 1, 1)).alias("field_start"),
+        pl.lit(date(2024, 12, 31)).alias("field_end"),
+        pl.lit(None).cast(pl.Utf8).alias("inflation_year"),
+    ])
+
+    # ==========================
     # VALIDATION
     # ==========================
     logger.info("Validating sample...")
-    _validate_rows(survey_df, SurveyResponse, sample_size=10)
-
-    # Filter to standard schema columns is handled centrally by
-    # database.ingest_survey_responses(), so just pass the full DataFrame.
-    responses_df = survey_df
+    _validate_rows(responses_df, SurveyResponse, sample_size=10)
 
     # ==========================
     # WEIGHTS TABLE
@@ -118,51 +127,33 @@ def main() -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
         ]
     )
 
-    # ==========================
-    # METADATA TABLE
-    # ==========================
-    survey_id = f"{CANONICAL_OPERATOR}_{SURVEY_YEAR}"
-    metadata_df = pl.DataFrame({
-        "survey_id": [survey_id],
-        "survey_year": [SURVEY_YEAR],
-        "canonical_operator": [CANONICAL_OPERATOR],
-        "survey_name": ["BART 2024 Station Profile Study"],
-        "source": ["BART 2024 Station Profile Survey v1 (new weights)"],
-        "field_start": [date(2024, 1, 1)],
-        "field_end": [date(2024, 12, 31)],
-        "inflation_year": [None],
-        "ingestion_timestamp": [datetime.now(UTC)],
-        "processing_notes": ["Preprocessed from Excel with fuzzy station matching"],
-    })
-
     logger.info(
-        "Prepared %s responses, %s weights, 1 metadata record",
+        "Prepared %s responses, %s weights",
         f"{len(responses_df):,}",
         f"{len(weights_df):,}",
     )
-    return responses_df, weights_df, metadata_df
+    return responses_df, weights_df
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
     from transit_passenger_tools.database import _validate_rows, enforce_dataframe_types
-    from transit_passenger_tools.models import SurveyMetadata, SurveyWeight
+    from transit_passenger_tools.models import SurveyWeight
 
-    responses, weights, metadata = main()
+    responses, weights = main()
     responses = enforce_dataframe_types(responses)
-    _validate_rows(metadata, SurveyMetadata)
     _validate_rows(weights, SurveyWeight)
     _validate_rows(responses, SurveyResponse)
 
-    # Validate relational integrity between the three tables
-    validate_referential_integrity(responses, weights, metadata)
+    # Validate relational integrity between the two tables
+    validate_referential_integrity(responses, weights)
 
     logger.info("All validation passed.")
 
 
     # from transit_passenger_tools.database import DATA_ROOT, ingest
-    # paths = ingest(responses, weights, metadata, archive=False)
+    # paths = ingest(responses, weights, archive=False)
     # logger.info("COMPLETE — Data: %s", DATA_ROOT)
     # for table, path in paths.items():
     #     logger.info("  %s: %s", table, path)

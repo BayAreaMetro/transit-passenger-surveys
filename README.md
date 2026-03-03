@@ -40,14 +40,13 @@ uv sync
 
 ## Data Warehouse
 
-Three flat Parquet files at `DATA_ROOT` (configured in `config/pipeline.yaml`):
+Two flat Parquet files at `DATA_ROOT` (configured in `config/pipeline.yaml`):
 
 ```
-\\models.ad.mtc.ca.gov\..\_transit_data\
-├── survey_responses.parquet   # ~187K+ response records, ~160 columns
+\\models.ad.mtc.ca.gov\..\\transit_data\\
+├── survey_responses.parquet   # ~187K+ response records, ~170 columns (includes survey metadata)
 ├── survey_weights.parquet     # Boarding + trip weights per response
-├── survey_metadata.parquet    # Survey-level metadata (field dates, source)
-├── surveys_export.hyper       # Tableau Hyper with all 3 tables
+├── surveys_export.hyper       # Tableau Hyper with both tables
 └── archive/                   # Date-stamped snapshots
 ```
 
@@ -108,7 +107,7 @@ The rebuild process:
 ### Adding a New Survey
 
 1. Create `ingestion/operators/{Operator}/{year_YYYY}/preprocessing.py` — vendor-specific data cleaning
-2. Create `ingestion/operators/{Operator}/{year_YYYY}/ingest.py` with a `main()` returning `(responses_df, weights_df, metadata_df)`
+2. Create `ingestion/operators/{Operator}/{year_YYYY}/ingest.py` with a `main()` returning `(responses_df, weights_df)`
 3. Run `uv run python -m ingestion.rebuild_database` — only the new survey is appended
 4. Or `uv run python -m ingestion.rebuild_database --rebuild Operator/YYYY` to force re-ingest
 
@@ -120,10 +119,9 @@ Defined in `src/transit_passenger_tools/models.py`:
 
 | Model | Fields | Role |
 |-------|--------|------|
-| `CoreSurveyResponse` | ~90 | Vendor-provided fields (preprocessing must produce these) |
+| `CoreSurveyResponse` | ~100 | Vendor-provided fields + survey metadata (preprocessing must produce these) |
 | `DerivedSurveyResponse` | ~70 | Pipeline-calculated fields added by the 7 modules |
-| `SurveyResponse` | ~160 | Complete schema = Core + Derived |
-| `SurveyMetadata` | 10 | Survey-level metadata (dates, source, operator) |
+| `SurveyResponse` | ~170 | Complete schema = Core + Derived |
 | `SurveyWeight` | 5 | Per-response boarding and trip weights |
 
 ### Derivation Pipeline

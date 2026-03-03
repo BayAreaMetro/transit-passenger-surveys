@@ -33,7 +33,6 @@ from tableauhyperapi import (
 from transit_passenger_tools.codebook import POLARS_TO_HYPER, PYTHON_TO_POLARS
 from transit_passenger_tools.config import get_config
 from transit_passenger_tools.models import (
-    SurveyMetadata,
     SurveyResponse,
     SurveyWeight,
 )
@@ -50,11 +49,11 @@ DATA_ROOT = Path(get_config().data_root)
 
 def get_ingested_operator_years() -> set[tuple[str, int]]:
     """Return ``{(canonical_operator, survey_year)}`` pairs already in the warehouse."""
-    metadata_path = DATA_ROOT / "survey_metadata.parquet"
-    if not metadata_path.exists():
+    responses_path = DATA_ROOT / "survey_responses.parquet"
+    if not responses_path.exists():
         return set()
-    md = pl.read_parquet(metadata_path, columns=["canonical_operator", "survey_year"])
-    return set(md.iter_rows())
+    df = pl.read_parquet(responses_path, columns=["canonical_operator", "survey_year"])
+    return set(df.unique().iter_rows())
 
 
 # ========== Archiving ==========
@@ -164,21 +163,18 @@ def enforce_dataframe_types(
 def validate_referential_integrity(
     responses: pl.DataFrame,
     weights: pl.DataFrame | None = None,
-    metadata: pl.DataFrame | None = None,
 ) -> dict[str, int]:
     """Validate foreign key relationships between DataFrames.
 
     Checks:
     1. All weight ``response_id`` values exist in responses
-    2. All response ``survey_id`` values exist in metadata
 
     Parameters:
         responses: Survey responses DataFrame (must have ``response_id``).
         weights: Survey weights DataFrame.  Skipped when ``None``.
-        metadata: Survey metadata DataFrame.  Skipped when ``None``.
 
     Returns:
-        Dict with counts: ``{'orphaned_weights': int, 'orphaned_responses': int}``
+        Dict with counts: ``{'orphaned_weights': int}``
 
     Raises:
         ValueError: If referential integrity violations are found.
@@ -200,23 +196,6 @@ def validate_referential_integrity(
     else:
         results["orphaned_weights"] = 0
 
-    # Check 2: Responses must have metadata (via survey_id foreign key)
-    if metadata is not None:
-        if "survey_id" in responses.columns and "survey_id" in metadata.columns:
-            orphaned = responses.join(metadata, on="survey_id", how="anti")
-            results["orphaned_responses"] = len(orphaned)
-
-            if len(orphaned) > 0:
-                sample_ids = orphaned["survey_id"].unique().head(5).to_list()
-                errors.append(
-                    f"{len(orphaned)} response records lack metadata. "
-                    f"Missing survey_id: {', '.join(str(x) for x in sample_ids)}"
-                )
-        else:
-            results["orphaned_responses"] = 0
-    else:
-        results["orphaned_responses"] = 0
-
     if errors:
         msg = "Referential integrity violations found:\n  - " + "\n  - ".join(errors)
         raise ValueError(msg)
@@ -229,8 +208,7 @@ def validate_warehouse_integrity() -> dict[str, int]:
     """Read the warehouse Parquet files and validate referential integrity.
 
     Convenience wrapper around :func:`validate_referential_integrity` that
-    loads ``survey_responses``, ``survey_weights``, and ``survey_metadata``
-    from ``DATA_ROOT``.
+    loads ``survey_responses`` and ``survey_weights`` from ``DATA_ROOT``.
 
     Returns:
         Dict with counts (see :func:`validate_referential_integrity`).
@@ -249,10 +227,7 @@ def validate_warehouse_integrity() -> dict[str, int]:
     weights_path = DATA_ROOT / "survey_weights.parquet"
     weights = pl.read_parquet(weights_path) if weights_path.exists() else None
 
-    metadata_path = DATA_ROOT / "survey_metadata.parquet"
-    metadata = pl.read_parquet(metadata_path) if metadata_path.exists() else None
-
-    return validate_referential_integrity(responses, weights, metadata)
+    return validate_referential_integrity(responses, weights)
 
 
 # ========== Ingestion ==========
@@ -390,21 +365,6 @@ def ingest_survey_responses(
     return output_path
 
 
-def ingest_survey_metadata(
-    df: pl.DataFrame, validate: bool = True, *, archive: bool = True,
-) -> Path:
-    """Write or append survey metadata. Deduplicates by (survey_year, canonical_operator)."""
-    if validate:
-        _validate_rows(df, SurveyMetadata)
-    return _upsert_parquet(
-        DATA_ROOT / "survey_metadata.parquet",
-        df,
-        ["survey_year", "canonical_operator"],
-        label="metadata records",
-        archive=archive,
-    )
-
-
 def ingest_survey_weights(
     df: pl.DataFrame, validate: bool = True, *, archive: bool = True,
 ) -> Path:
@@ -423,18 +383,17 @@ def ingest_survey_weights(
 def ingest(
     responses: pl.DataFrame,
     weights: pl.DataFrame,
-    metadata: pl.DataFrame,
     *,
     validate: bool = True,
     archive: bool = True,
 ) -> dict[str, Path]:
-    """Ingest all three tables for an operator/year and validate integrity.
+    """Ingest responses and weights for an operator/year and validate integrity.
 
-    When *validate* is ``True`` (default), **all three tables are validated
+    When *validate* is ``True`` (default), **both tables are validated
     before any data is written** so a validation failure never leaves the
     warehouse in a partially-ingested state.
 
-    Write order: metadata → responses → weights → referential integrity.
+    Write order: responses → weights → referential integrity.
 
     Returns:
         Mapping of table name to output path.
@@ -442,19 +401,17 @@ def ingest(
     Raises:
         ValueError: If validation or referential integrity checks fail.
     """
-    operator = metadata["canonical_operator"][0]
-    year = metadata["survey_year"][0]
+    operator = responses["canonical_operator"][0]
+    year = responses["survey_year"][0]
 
     # Validate everything up-front so a failure never partially writes.
     if validate:
         responses = enforce_dataframe_types(responses)
-        _validate_rows(metadata, SurveyMetadata)
         _validate_rows(weights, SurveyWeight)
         _validate_rows(responses, SurveyResponse)
-        validate_referential_integrity(responses, weights, metadata)
+        validate_referential_integrity(responses, weights)
 
     paths: dict[str, Path] = {}
-    paths["metadata"] = ingest_survey_metadata(metadata, validate=False, archive=archive)
     paths["responses"] = ingest_survey_responses(
         responses,
         survey_year=year,
@@ -476,8 +433,8 @@ def export_to_hyper(
 ) -> int:
     """Export DataFrames (or the standard warehouse parquets) to a Tableau .hyper file.
 
-    When *tables* is ``None`` the three well-known warehouse files
-    (``survey_responses``, ``survey_weights``, ``survey_metadata``) are read
+    When *tables* is ``None`` the two well-known warehouse files
+    (``survey_responses``, ``survey_weights``) are read
     from ``DATA_ROOT`` and exported.  When *tables* is a ``dict`` mapping
     table names to DataFrames those tables are exported instead.
 
@@ -501,10 +458,6 @@ def export_to_hyper(
         weights_path = DATA_ROOT / "survey_weights.parquet"
         if weights_path.exists():
             tables["survey_weights"] = pl.read_parquet(weights_path)
-
-        metadata_path = DATA_ROOT / "survey_metadata.parquet"
-        if metadata_path.exists():
-            tables["survey_metadata"] = pl.read_parquet(metadata_path)
 
     logger.info("Exporting %d table(s) to Tableau Hyper: %s", len(tables), output_path)
 

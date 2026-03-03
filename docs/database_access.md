@@ -6,10 +6,9 @@ All data lives as flat Parquet files at the root of the data directory:
 
 ```
 \\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_transit_data_hive\
-+-- survey_responses.parquet     # All survey response records
++-- survey_responses.parquet     # All survey response records (includes survey metadata columns)
 +-- survey_weights.parquet       # Expansion / weighting records
-+-- survey_metadata.parquet      # Survey-level metadata
-+-- surveys_export.hyper         # Tableau Hyper (relational, 3 tables)
++-- surveys_export.hyper         # Tableau Hyper (relational, 2 tables)
 +-- archive/                     # Date-stamped copies of previous files
     +-- survey_responses_2026-02-27.parquet
     +-- ...
@@ -26,7 +25,6 @@ import polars as pl
 # Read the full tables
 responses = pl.read_parquet(r"\\...\survey_responses.parquet")
 weights   = pl.read_parquet(r"\\...\survey_weights.parquet")
-metadata  = pl.read_parquet(r"\\...\survey_metadata.parquet")
 
 # Join responses with weights
 joined = responses.join(
@@ -72,13 +70,12 @@ responses.group_by("canonical_operator", "survey_year").len().sort("survey_year"
 **Path:**
 ``\\models.ad.mtc.ca.gov\data\models\Data\OnBoard\Data and Reports\_transit_data_hive\surveys_export.hyper``
 
-The ``.hyper`` file contains three relational tables:
+The ``.hyper`` file contains two relational tables:
 
 | Table | Description |
 |-------|------------|
-| **survey_responses** | All response fields (220K+ rows) |
+| **survey_responses** | All response fields including survey metadata (220K+ rows) |
 | **survey_weights** | ``response_id``, ``weight_scheme``, ``boarding_weight``, ``trip_weight`` |
-| **survey_metadata** | ``survey_id``, ``survey_name``, dates, processing notes |
 
 **Setting up in Tableau Desktop:**
 
@@ -86,7 +83,6 @@ The ``.hyper`` file contains three relational tables:
 2. Navigate to the ``.hyper`` file on the network share
 3. Create relationships between tables:
    - ``survey_responses.response_id`` = ``survey_weights.response_id``
-   - ``survey_responses.survey_id``   = ``survey_metadata.survey_id``
 4. Build visualisations using fields from any table
 
 ### Weight Columns in Tableau

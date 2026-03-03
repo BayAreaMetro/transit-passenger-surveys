@@ -1,7 +1,7 @@
 """Export survey data to Tableau Hyper format.
 
 Reads the flat Parquet files and produces a relational .hyper extract
-with three tables (survey_responses, survey_weights, survey_metadata).
+with two tables (survey_responses, survey_weights).
 
 Usage:
     python scripts/export_hyper.py

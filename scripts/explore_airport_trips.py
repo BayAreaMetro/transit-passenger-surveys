@@ -87,7 +87,7 @@ def _near_any_zone(
     return df.filter(expr)
 
 
-def main() -> None:
+def main() -> None:  # noqa: C901, PLR0912, PLR0915
     """Run the airport trip exploration."""
     df = pl.read_parquet(
         DATA_ROOT / "survey_responses.parquet",

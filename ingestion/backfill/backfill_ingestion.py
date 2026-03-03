@@ -1,6 +1,6 @@
 """Database ingestion functions for backfill operations.
 
-This module contains functions for writing survey data, metadata,
+This module contains functions for writing survey data
 and weights to the Parquet data warehouse.
 """
 
@@ -14,11 +14,10 @@ from pydantic import ValidationError
 
 from transit_passenger_tools.database import (
     enforce_dataframe_types,
-    ingest_survey_metadata,
     ingest_survey_responses,
     ingest_survey_weights,
 )
-from transit_passenger_tools.models import SurveyMetadata, SurveyWeight
+from transit_passenger_tools.models import SurveyWeight
 
 from .backfill_constants import MAX_SAMPLE_LOCATIONS
 from .backfill_validation import validate_batch_collect_errors
@@ -158,101 +157,39 @@ def ingest_survey_batches(
 
 def extract_and_ingest_metadata(
     df: pl.DataFrame, collect_errors: bool = False
-) -> int:
-    """Extract survey metadata and write to data warehouse.
+) -> pl.DataFrame:
+    """Stamp survey-level metadata fields onto every response row.
+
+    Adds ``source``, ``inflation_year``, ``ingestion_timestamp``, and
+    ``processing_notes`` columns to the DataFrame.  The per-row metadata
+    fields ``survey_year``, ``canonical_operator``, ``survey_name``,
+    ``field_start``, ``field_end`` are expected to already be present.
 
     Args:
         df: Survey data DataFrame
-        collect_errors: If True, collect and report validation errors instead of failing
+        collect_errors: Unused (kept for API compatibility); reserved for future use.
 
     Returns:
-        Number of unique survey metadata records written.
+        The DataFrame with metadata columns added/overwritten.
     """
-    logger.info("Extracting survey metadata...")
+    logger.info("Stamping metadata fields onto responses...")
 
-    # Get unique combinations of metadata fields
-    metadata_df = (
-        df.select([
-            "survey_year",
-            "canonical_operator",
-            "survey_name",
-            "field_start",
-            "field_end",
-        ])
-        .unique()
-        .with_columns([
-            pl.lit("standardized_csv").alias("source"),
-            pl.lit(None).alias("inflation_year"),
-        ])
-    )
-
-    # Add derived fields
-    metadata_df = metadata_df.with_columns([
-        (
-            pl.col("canonical_operator") + "_" + pl.col("survey_year").cast(pl.Utf8)
-        ).alias("survey_id"),
+    df = df.with_columns([
+        pl.lit("standardized_csv").alias("source"),
+        pl.lit(None).cast(pl.Utf8).alias("inflation_year"),
         pl.lit(datetime.now(tz=UTC)).alias("ingestion_timestamp"),
         pl.lit("Initial backfill from standardized_* CSV").alias("processing_notes"),
     ])
 
-    # Reorder columns to match SurveyMetadata model field order
-    metadata_df = metadata_df.select([
-        "survey_id",
-        "survey_year",
-        "canonical_operator",
-        "survey_name",
-        "source",
-        "field_start",
-        "field_end",
-        "inflation_year",
-        "ingestion_timestamp",
-        "processing_notes",
-    ])
+    # Build survey_id if not already present
+    if "survey_id" not in df.columns:
+        df = df.with_columns(
+            (pl.col("canonical_operator") + "_" + pl.col("survey_year").cast(pl.Utf8)).alias("survey_id")
+        )
 
-    logger.info("Found %d unique survey combinations", len(metadata_df))
-
-    if collect_errors:
-        # Validate and collect errors
-        errors = []
-        valid_rows = []
-
-        for i, row_dict in enumerate(metadata_df.iter_rows(named=True)):
-            try:
-                SurveyMetadata(**row_dict)
-                valid_rows.append(i)
-            except ValidationError as e:
-                operator = row_dict["canonical_operator"]
-                year = row_dict["survey_year"]
-                errors.append({
-                    "operator": operator,
-                    "year": year,
-                    "error": str(e)
-                })
-
-        if errors:
-            logger.warning("\n%s", "="*80)
-            logger.warning("METADATA VALIDATION ERRORS")
-            logger.warning("%s", "="*80)
-            logger.warning("\nFound %s metadata record(s) with validation errors:", len(errors))
-
-            for err in errors:
-                logger.warning("\n%s %s:", err["operator"], err["year"])
-                # Extract just the field names from the error
-                error_lines = err["error"].split("\n")
-                for line in error_lines:
-                    if "field_start" in line or "field_end" in line or "Input should be" in line:
-                        logger.warning("  %s", line)
-
-            logger.warning("\n%s", "="*80)
-            logger.warning("Validated %s metadata records successfully", len(valid_rows))
-            logger.warning("Skipped %s metadata records due to validation errors", len(errors))
-            logger.warning("%s", "="*80)
-            return len(valid_rows)
-        logger.info("All %s metadata records validated successfully", len(metadata_df))
-        return len(metadata_df)
-    # Write metadata to data warehouse (will fail on first error)
-    ingest_survey_metadata(metadata_df, validate=True, archive=False)
-    return len(metadata_df)
+    n_surveys = df.select(["survey_year", "canonical_operator"]).unique().height
+    logger.info("Stamped metadata for %d unique survey(s) onto %d responses", n_surveys, len(df))
+    return df
 
 
 def extract_and_ingest_weights(

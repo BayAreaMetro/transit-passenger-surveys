@@ -49,31 +49,6 @@ class FieldDependencies:
     optional_inputs: list[str] = field(default_factory=list)
 
 
-class SurveyMetadata(BaseModel):
-    """Survey-wide metadata and collection information.
-
-    This table stores metadata that applies to an entire survey effort,
-    separate from individual response records. One row per survey.
-    """
-
-    model_config = ConfigDict(
-        use_enum_values=True,
-        validate_assignment=True,
-        str_strip_whitespace=True,
-    )
-
-    survey_id: str = Field(max_length=100, description="Unique survey identifier (operator_year format)")
-    survey_year: int = Field(ge=1990, le=2100, description="Year survey conducted")
-    canonical_operator: str = Field(max_length=50, description="Standardized operator name")
-    survey_name: str = Field(max_length=100, description="Survey name")
-    source: str = Field(max_length=100, description="Data source/provenance")
-    field_start: date = Field(description="First day of data collection")
-    field_end: date = Field(description="Last day of data collection")
-    inflation_year: str | None = Field(None, max_length=10, description="Year for inflation adjustment (nullable)")
-    ingestion_timestamp: datetime = Field(description="When this data was ingested")
-    processing_notes: str | None = Field(None, max_length=500, description="Notes about data processing/changes")
-
-
 class CoreSurveyResponse(BaseModel):
     """Core survey data provided by vendors/operators.
 
@@ -91,8 +66,17 @@ class CoreSurveyResponse(BaseModel):
 
     # ========== Primary Key ==========
     response_id: str = Field(max_length=100, description="Unique response record identifier")
-    survey_id: str = Field(max_length=100, description="Foreign key to SurveyMetadata.survey_id")
+    survey_id: str = Field(max_length=100, description="Survey identifier (operator_year format)")
     original_id: str = Field(max_length=50, description="Original record ID from operator's survey")
+
+    # ========== Survey Metadata ==========
+    survey_year: int = Field(ge=1990, le=2100, description="Year survey conducted")
+    canonical_operator: str = Field(max_length=50, description="Standardized operator name")
+    survey_name: str = Field(max_length=100, description="Survey name")
+    source: str = Field(max_length=100, description="Data source/provenance")
+    field_start: date = Field(description="First day of data collection")
+    field_end: date = Field(description="Last day of data collection")
+    inflation_year: str | None = Field(None, max_length=10, description="Year for inflation adjustment (nullable)")
 
     # ========== Trip Information ==========
     route: str | None = Field(max_length=200, description="Transit route")
@@ -222,6 +206,10 @@ class DerivedSurveyResponse(CoreSurveyResponse):
 
     Inheritance chain: CoreSurveyResponse → DerivedSurveyResponse → SurveyResponse
     """
+
+    # ========== Ingestion Metadata ==========
+    ingestion_timestamp: datetime | None = Field(None, description="When this data was ingested")
+    processing_notes: str | None = Field(None, max_length=500, description="Notes about data processing/changes")
 
     # ========== Time Classification (Derived) ==========
     day_part: DayPart | None = Field(None, description="Part of day (EARLY AM, AM PEAK, MIDDAY, PM PEAK, EVENING)")

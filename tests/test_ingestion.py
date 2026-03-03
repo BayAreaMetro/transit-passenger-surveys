@@ -105,18 +105,17 @@ def test_schema_mismatch_error_message_content(temp_hive, old_schema_data, new_s
 
 
 def test_schema_mismatch_type_change_detected(temp_hive):
-    """Test that type changes for same column are detected.
+    """Test that type changes for a model column are detected.
 
-    Uses a non-model column (``extra_metric``) so that
-    ``enforce_dataframe_types`` does not normalise types before
-    the schema-compatibility check runs.
+    Uses ``survey_name`` (a model column, Utf8 in the schema) so the
+    type-mismatch check fires before ``enforce_dataframe_types`` is called.
     """
     old_data = pl.DataFrame(
         {
             "response_id": ["1", "2"],
             "survey_year": [2020, 2020],
             "canonical_operator": ["TEST", "TEST"],
-            "extra_metric": [1.0, 2.0],  # Float64
+            "survey_name": [1.0, 2.0],  # Float64 — wrong type for Utf8 column
         }
     )
 
@@ -125,7 +124,7 @@ def test_schema_mismatch_type_change_detected(temp_hive):
             "response_id": ["3", "4"],
             "survey_year": [2020, 2020],
             "canonical_operator": ["TEST", "TEST"],
-            "extra_metric": ["a", "b"],  # Utf8 - different from Float64
+            "survey_name": ["a", "b"],  # Utf8 — correct type, differs from old
         }
     )
 
@@ -133,7 +132,7 @@ def test_schema_mismatch_type_change_detected(temp_hive):
     old_data.write_parquet(temp_hive / "survey_responses.parquet")
 
     # Attempt to ingest different type
-    with pytest.raises(ValueError, match=r"Type mismatch.*extra_metric"):
+    with pytest.raises(ValueError, match=r"Type mismatch.*survey_name"):
         database.ingest_survey_responses(
             df=new_data,
             survey_year=2020,
