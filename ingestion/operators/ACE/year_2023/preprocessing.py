@@ -344,10 +344,10 @@ def preprocess(  # noqa: PLR0915
         [
             pl.col("board")
             .replace_strict(STATION_MAPPING, default=None)
-            .alias("onoff_enter_station"),
+            .alias("board_stop_name"),
             pl.col("alight")
             .replace_strict(STATION_MAPPING, default=None)
-            .alias("onoff_exit_station"),
+            .alias("alight_stop_name"),
         ]
     )
 

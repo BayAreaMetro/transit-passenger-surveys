@@ -167,9 +167,9 @@ class CoreSurveyResponse(BaseModel):
     survey_alight_lat: float | None = Field(ge=-90, le=90, description="Survey vehicle alighting location latitude")
     survey_alight_lon: float | None = Field(ge=-180, le=180, description="Survey vehicle alighting location longitude")
 
-    # ========== Geographic - Rail Stations ==========
-    onoff_enter_station: str | None = Field(max_length=100, description="Rail boarding station name")
-    onoff_exit_station: str | None = Field(max_length=100, description="Rail alighting station name")
+    # ========== Geographic - Stop/Station Names ==========
+    board_stop_name: str | None = Field(max_length=100, description="Boarding stop or station name")
+    alight_stop_name: str | None = Field(max_length=100, description="Alighting stop or station name")
 
     # ========== Fare Information ==========
     fare_medium: FareMedium | None = Field(description="Payment method for fare")

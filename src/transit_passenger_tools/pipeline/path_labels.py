@@ -21,8 +21,8 @@ from transit_passenger_tools.models import FieldDependencies
 FIELD_DEPENDENCIES = FieldDependencies(
     inputs=[
         "canonical_operator",
-        "onoff_enter_station",
-        "onoff_exit_station",
+        "board_stop_name",
+        "alight_stop_name",
         "route",
         "vehicle_tech",
         "first_board_tech",
@@ -116,7 +116,7 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:  # noqa: C901
     if "route" not in result_df.columns or result_df["route"].is_null().all():
         route_cols_exist = all(
             col in result_df.columns
-            for col in ["canonical_operator", "onoff_enter_station", "onoff_exit_station"]
+            for col in ["canonical_operator", "board_stop_name", "alight_stop_name"]
         )
 
         if route_cols_exist:
@@ -125,9 +125,9 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:  # noqa: C901
                     [
                         pl.col("canonical_operator"),
                         pl.lit(OPERATOR_DELIMITER),
-                        pl.col("onoff_enter_station"),
+                        pl.col("board_stop_name"),
                         pl.lit(ROUTE_DELIMITER),
-                        pl.col("onoff_exit_station"),
+                        pl.col("alight_stop_name"),
                     ]
                 ).alias("route")
             )

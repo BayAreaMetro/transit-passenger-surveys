@@ -1032,8 +1032,8 @@ def preprocess(
             pl.lit(None).cast(pl.Utf8).alias("path_label"),
             # Trip purposes already set as None earlier,
             # On/off station fields
-            pl.col("survey_board").alias("onoff_enter_station"),
-            pl.col("survey_alight").alias("onoff_exit_station"),
+            pl.col("survey_board").alias("board_stop_name"),
+            pl.col("survey_alight").alias("alight_stop_name"),
             # survey_time — parse into Datetime from source columns
             # DATE_COMPLETED contains "M/DD/YYYY H:MM:SS AM"; DATE_STARTED_SAS
             # is already a native Polars Datetime.
@@ -1083,8 +1083,8 @@ def preprocess(
     }
     survey_df = survey_df.with_columns(
         [
-            pl.col("onoff_enter_station").replace(station_name_fixes).alias("onoff_enter_station"),
-            pl.col("onoff_exit_station").replace(station_name_fixes).alias("onoff_exit_station"),
+            pl.col("board_stop_name").replace(station_name_fixes).alias("board_stop_name"),
+            pl.col("alight_stop_name").replace(station_name_fixes).alias("alight_stop_name"),
         ]
     )
 

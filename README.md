@@ -159,6 +159,7 @@ Defined in `src/transit_passenger_tools/models.py`:
 
 - `fix_ace_2023.py` — sets `commuter_rail_present=1` for ACE (single-ride commuter rail)
 - `fix_bart_2015.py` — fixes `heavy_rail_present`, airport station names, route field normalization
+- `fix_missing_stops.py` — snaps null `board_stop_name` / `alight_stop_name` to nearest GTFS stop (≤ 250 m, surveys ≥ 2017)
 
 ## Configuration
 

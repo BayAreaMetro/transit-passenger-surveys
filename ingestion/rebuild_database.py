@@ -41,6 +41,7 @@ from ingestion.fixes.fix_bart_2015 import (
     fix_bart_heavy_rail,
     fix_bart_route_field,
 )
+from ingestion.fixes.fix_missing_stops import fix_missing_stops
 from transit_passenger_tools.database import (
     DATA_ROOT,
     archive_file,
@@ -90,11 +91,13 @@ def discover_ingestion_sources() -> list[dict]:
             logger.warning("Skipping %s — cannot parse year from '%s'", ingest_py, year_dir)
             continue
         module_path = f"ingestion.operators.{operator_dir}.{year_dir}.ingest"
-        sources.append({
-            "operator": operator_dir,
-            "year": year,
-            "module_path": module_path,
-        })
+        sources.append(
+            {
+                "operator": operator_dir,
+                "year": year,
+                "module_path": module_path,
+            }
+        )
     return sources
 
 
@@ -174,7 +177,8 @@ def run_backfill(csv_path: Path, *, force_rebuild: bool = False) -> None:
     df = reorder_columns_to_match_schema(df)
 
     total_records, num_batches, error_summary = ingest_survey_batches(
-        df, collect_errors=False,
+        df,
+        collect_errors=False,
     )
     if error_summary:
         logger.error("Validation errors — no data written for failed batches")
@@ -185,9 +189,11 @@ def run_backfill(csv_path: Path, *, force_rebuild: bool = False) -> None:
 
     logger.info(
         "Backfill complete: %s batches, %s records, %s metadata, %s weights",
-        num_batches, f"{total_records:,}", num_metadata, f"{num_weights:,}",
+        num_batches,
+        f"{total_records:,}",
+        num_metadata,
+        f"{num_weights:,}",
     )
-
 
 
 # ========== Post-ingestion corrections ==========
@@ -204,6 +210,7 @@ def run_data_corrections() -> None:
     fix_bart_heavy_rail()
     fix_bart_2015_airport_station_names()
     fix_bart_route_field()
+    fix_missing_stops()
 
 
 # ========== Per-operator ingestion ==========

@@ -121,7 +121,7 @@ LOCATION_TYPES = [
 EARTH_RADIUS_KM = 6371.0
 
 
-def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float | None:
     """Calculate Haversine distance between two points in kilometers.
 
     Args:
@@ -584,6 +584,129 @@ def geocode_stops_from_names(  # noqa: PLR0912, PLR0915, C901
         raise ValueError(msg)
 
     return survey_df
+
+
+# ========== Nearest-stop snapping ==========
+
+
+def snap_to_nearest_stop(
+    df: pl.DataFrame,
+    stops_gdf: gpd.GeoDataFrame,
+    lat_col: str,
+    lon_col: str,
+    stop_name_col: str,
+    stop_name_field: str = "stop_name",
+    max_distance_m: float = 250.0,
+    agency_filter: list[str] | None = None,
+    agency_field: str = "agency",
+) -> pl.Series:
+    """Find the nearest GTFS stop for each row using spatial indexing.
+
+    For rows that already have a non-null value in *stop_name_col* or that
+    lack lat/lon coordinates, the original value is preserved.  Only null
+    stop-name rows with valid coordinates are candidates for snapping.
+
+    Args:
+        df: Survey DataFrame.
+        stops_gdf: GeoDataFrame of transit stops (must have geometry + stop
+            name column).  Loaded once and shared across calls.
+        lat_col: Column with boarding/alighting latitude.
+        lon_col: Column with boarding/alighting longitude.
+        stop_name_col: Column whose nulls we want to fill (e.g.
+            ``"board_stop_name"``).
+        stop_name_field: Name of the stop-name column in *stops_gdf*.
+        max_distance_m: Maximum snap distance in metres.  Rows whose nearest
+            stop exceeds this threshold are left null.
+        agency_filter: Optional list of agency names (case-insensitive
+            substring match) to restrict candidate stops.
+        agency_field: Column in *stops_gdf* that holds the agency name.
+
+    Returns:
+        A ``pl.Series`` of the same length as *df* containing the
+        (possibly back-filled) stop name strings.
+    """
+    # --- Filter stops to agency if requested ---
+    if agency_filter:
+        pattern = "|".join(agency_filter)
+        mask = stops_gdf[agency_field].str.contains(pattern, case=False, na=False, regex=True)
+        filtered = stops_gdf[mask].copy()
+    else:
+        filtered = stops_gdf.copy()
+
+    if len(filtered) == 0:
+        logger.warning("snap_to_nearest_stop: no stops matched agency filter %s", agency_filter)
+        return df[stop_name_col]
+
+    # Ensure WGS 84
+    filtered = filtered.to_crs(epsg=4326)
+
+    # --- Identify candidate rows (null stop name + valid coords) ---
+    candidates_mask = (
+        df[stop_name_col].is_null()
+        & df[lat_col].is_not_null()
+        & df[lon_col].is_not_null()
+    )
+    candidate_indices = candidates_mask.arg_true().to_list()
+
+    if not candidate_indices:
+        logger.info(
+            "snap_to_nearest_stop: no null %s rows with coordinates — nothing to do",
+            stop_name_col
+            )
+        return df[stop_name_col]
+
+    logger.info(
+        "snap_to_nearest_stop: %s candidates for %s (max %s m, %s stops)",
+        len(candidate_indices),
+        stop_name_col,
+        max_distance_m,
+        len(filtered),
+    )
+
+    # --- Build GeoDataFrame for candidates ---
+    lats = df[lat_col].gather(candidate_indices).to_numpy()
+    lons = df[lon_col].gather(candidate_indices).to_numpy()
+    candidate_gdf = gpd.GeoDataFrame(
+        {"snap_idx": candidate_indices},
+        geometry=gpd.points_from_xy(lons, lats, crs="EPSG:4326"),
+    )
+
+    # --- Project to a metre-based CRS for distance calculation ---
+    # UTM 10N covers the entire Bay Area
+    CRS_METRES = "EPSG:32610"  # noqa: N806
+    candidate_gdf = candidate_gdf.to_crs(CRS_METRES)
+    filtered = filtered.to_crs(CRS_METRES)
+
+    # --- sjoin_nearest ---
+    joined = gpd.sjoin_nearest(
+        candidate_gdf,
+        filtered[[stop_name_field, "geometry"]],
+        how="left",
+        max_distance=max_distance_m,
+        distance_col="dist_m",
+    )
+    # sjoin_nearest can produce duplicates when equidistant; keep closest
+    joined = joined.sort_values("dist_m").drop_duplicates(subset="snap_idx", keep="first")
+
+    # --- Build result Series ---
+    original = df[stop_name_col].to_list()
+    matched = 0
+    for _, row in joined.iterrows():
+        idx = row["snap_idx"]
+        name = row.get(stop_name_field)
+        dist = row.get("dist_m")
+        if name is not None and dist is not None and dist <= max_distance_m:
+            original[idx] = name
+            matched += 1
+
+    logger.info(
+        "snap_to_nearest_stop: matched %s / %s candidates within %s m",
+        matched,
+        len(candidate_indices),
+        max_distance_m,
+    )
+
+    return pl.Series(stop_name_col, original, dtype=pl.Utf8)
 
 
 # ========== Reference data (formerly geocoding/reference.py) ==========

@@ -533,8 +533,10 @@ def export_to_hyper(
             conn.catalog.create_table(table_def)
 
             # Insert in 50k-row chunks
-            for offset in range(0, len(dataframe), 50_000):
-                chunk = dataframe.slice(offset, min(50_000, len(dataframe) - offset))
+            n_rows = len(dataframe)
+            n_chunks = (n_rows + 49_999) // 50_000
+            for i, offset in enumerate(range(0, n_rows, 50_000), 1):
+                chunk = dataframe.slice(offset, min(50_000, n_rows - offset))
                 data = [
                     tuple(
                         None if (isinstance(v, float) and math.isnan(v)) else v
@@ -545,6 +547,10 @@ def export_to_hyper(
                 with Inserter(conn, table_def.table_name) as inserter:
                     inserter.add_rows(data)
                     inserter.execute()
+                logger.info(
+                    "  %s: chunk [%d/%d] (%s rows written)",
+                    tbl_name, i, n_chunks, f"{min(offset + 50_000, n_rows):,}",
+                )
 
             logger.info("  %s: %s rows", tbl_name, f"{len(dataframe):,}")
             total_rows += len(dataframe)

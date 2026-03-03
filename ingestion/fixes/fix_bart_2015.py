@@ -94,10 +94,10 @@ def fix_bart_2015_airport_station_names() -> int:
 
     is_bart_2015 = pl.col("survey_id") == "BART_2015"
 
-    enter_needs_fix = is_bart_2015 & pl.col("onoff_enter_station").is_in(
+    enter_needs_fix = is_bart_2015 & pl.col("board_stop_name").is_in(
         list(station_name_fixes.keys())
     )
-    exit_needs_fix = is_bart_2015 & pl.col("onoff_exit_station").is_in(
+    exit_needs_fix = is_bart_2015 & pl.col("alight_stop_name").is_in(
         list(station_name_fixes.keys())
     )
     fix_count = df.filter(enter_needs_fix | exit_needs_fix).height
@@ -109,20 +109,20 @@ def fix_bart_2015_airport_station_names() -> int:
     df = df.with_columns(
         pl.when(is_bart_2015)
         .then(
-            pl.col("onoff_enter_station").replace(
-                station_name_fixes, default=pl.col("onoff_enter_station")
+            pl.col("board_stop_name").replace(
+                station_name_fixes, default=pl.col("board_stop_name")
             )
         )
-        .otherwise(pl.col("onoff_enter_station"))
-        .alias("onoff_enter_station"),
+        .otherwise(pl.col("board_stop_name"))
+        .alias("board_stop_name"),
         pl.when(is_bart_2015)
         .then(
-            pl.col("onoff_exit_station").replace(
-                station_name_fixes, default=pl.col("onoff_exit_station")
+            pl.col("alight_stop_name").replace(
+                station_name_fixes, default=pl.col("alight_stop_name")
             )
         )
-        .otherwise(pl.col("onoff_exit_station"))
-        .alias("onoff_exit_station"),
+        .otherwise(pl.col("alight_stop_name"))
+        .alias("alight_stop_name"),
     )
 
     _write_responses(df)
@@ -140,17 +140,17 @@ def fix_bart_route_field() -> int:
 
     is_bart = pl.col("survey_id").str.starts_with("BART_")
     has_stations = (
-        pl.col("onoff_enter_station").is_not_null()
-        & pl.col("onoff_exit_station").is_not_null()
+        pl.col("board_stop_name").is_not_null()
+        & pl.col("alight_stop_name").is_not_null()
     )
 
     canonical_route = (
         pl.lit("BART___")
-        + pl.col("onoff_enter_station")
+        + pl.col("board_stop_name")
         .str.replace_all(r"\.", "", literal=False)
         .str.replace_all("/UN ", " UN ", literal=True)
         + pl.lit("&&&")
-        + pl.col("onoff_exit_station")
+        + pl.col("alight_stop_name")
         .str.replace_all(r"\.", "", literal=False)
         .str.replace_all("/UN ", " UN ", literal=True)
     )

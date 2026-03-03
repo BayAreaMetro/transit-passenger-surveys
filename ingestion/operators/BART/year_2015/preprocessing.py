@@ -402,8 +402,8 @@ def preprocess(
     # Keep original station names for onoff fields (match legacy database as-is)
     df = df.with_columns(
         [
-            pl.col("FIRST_ENTERED_BART").cast(pl.Utf8).alias("onoff_enter_station"),
-            pl.col("BART_EXIT_STATION").cast(pl.Utf8).alias("onoff_exit_station"),
+            pl.col("FIRST_ENTERED_BART").cast(pl.Utf8).alias("board_stop_name"),
+            pl.col("BART_EXIT_STATION").cast(pl.Utf8).alias("alight_stop_name"),
         ]
     )
 
@@ -415,11 +415,11 @@ def preprocess(
         [
             (
                 pl.lit("BART___")
-                + pl.col("onoff_enter_station")
+                + pl.col("board_stop_name")
                 .str.replace_all(r"\.", "", literal=False)  # Remove all periods
                 .str.replace_all("/UN ", " UN ", literal=True)  # Fix slash before UN
                 + pl.lit("&&&")
-                + pl.col("onoff_exit_station")
+                + pl.col("alight_stop_name")
                 .str.replace_all(r"\.", "", literal=False)  # Remove all periods
                 .str.replace_all("/UN ", " UN ", literal=True)  # Fix slash before UN
             ).alias("route"),
@@ -658,8 +658,8 @@ def preprocess(
         "egress_mode",
         "boardings",
         "route",
-        "onoff_enter_station",
-        "onoff_exit_station",
+        "board_stop_name",
+        "alight_stop_name",
         "orig_purp",
         "dest_purp",
         "at_school_prior_to_orig_purp",

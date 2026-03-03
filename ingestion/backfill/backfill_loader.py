@@ -89,7 +89,9 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         "ID": "original_id",
         "household_income": "household_income_category",
         "hh_income_nominal_continuous": "household_income",
-        "survey_tech": "vehicle_tech"
+        "survey_tech": "vehicle_tech",
+        "onoff_enter_station": "board_stop_name",
+        "onoff_exit_station": "alight_stop_name",
     })
 
     # Strip whitespace from all string columns
