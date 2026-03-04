@@ -42,6 +42,7 @@ from ingestion.fixes.fix_bart_2015 import (
     fix_bart_route_field,
 )
 from ingestion.fixes.fix_missing_stops import fix_missing_stops
+from ingestion.fixes.fix_samtrans_airport import fix_samtrans_airport
 from transit_passenger_tools.database import (
     DATA_ROOT,
     archive_file,
@@ -212,6 +213,7 @@ def run_data_corrections() -> None:
     fix_bart_heavy_rail()
     fix_bart_2015_airport_station_names()
     fix_bart_route_field()
+    fix_samtrans_airport()
     fix_missing_stops()
 
 
