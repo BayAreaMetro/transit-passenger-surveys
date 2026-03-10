@@ -7,7 +7,7 @@ import os
 
 # Set up input and output directories
 SURVEY_PATH = r"M:/Data/OnBoard/Data and Reports/BART/2024_StationProfileV1_NewWeights_ReducedVariables.xlsx"
-TAZ_PATH = r"M:/Data/Requests/Louisa Leung/Caltrain Survey Data/VTATAZ_CCAG/VTATAZ.shp"
+vtaTAZ_PATH = r"M:/Data/Requests/Louisa Leung/Caltrain Survey Data/VTATAZ_CCAG/VTATAZ.shp"
 BG_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_bg.zip"
 TRACT_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_tract.zip"
 OUTPUT_DIR = r"M:/Data/Requests/Louisa Leung/BART Survey Data/"
@@ -209,7 +209,7 @@ def main() -> None:
     # Load shapefiles into GeoDataFrames
     print("Loading shapefiles...")
     geo_cache = {
-        "TAZ": gpd.read_file(TAZ_PATH),
+        "vtaTAZ": gpd.read_file(vtaTAZ_PATH).rename(columns={"TAZ": "vtaTAZ"}),
         "BG": gpd.read_file(BG_PATH).rename(columns={"GEOID": "BG"}),
         "TRACT": gpd.read_file(TRACT_PATH).rename(columns={"GEOID": "TRACT"})
     }
