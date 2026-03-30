@@ -319,6 +319,12 @@ TYPO_FIXES = {
         ".": None,  # Period indicates missing data
         "Missing": None  # Explicit missing values
     },
+    "time_period": {
+        "NIGHT": "EVENING",  # Normalize NIGHT to EVENING for DayPart enum
+        "WEEKEND": None,  # WEEKEND not a valid time of day, map to None
+        ".": None,  # Period indicates missing data
+        "Missing": None  # Explicit missing values
+    },
 
     # ------------------------------------------------------------------------
     # TOUR PURPOSE
@@ -346,10 +352,10 @@ def global_enum_cleanup(df: pl.DataFrame) -> pl.DataFrame:
     """Replace any remaining 'Missing' strings with None for enum fields."""
     enum_fields = [
         "direction", "access_mode", "egress_mode", "first_board_tech", "last_alight_tech",
-        "orig_purp", "dest_purp", "fare_category", "day_of_the_week", "race",
+        "orig_purp", "dest_purp", "fare_category", "day_of_week", "race",
         "work_status", "student_status", "interview_language", "field_language",
         "transfer_1_operator", "transfer_2_operator", "transfer_3_operator",
-        "fare_medium", "household_income_category", "survey_type", "weekpart",
+        "fare_medium", "household_income_category", "survey_type", "time_period",
         "day_part", "eng_proficient", "tour_purp", "trip_purp", "gender"
     ]
     df = df.with_columns([

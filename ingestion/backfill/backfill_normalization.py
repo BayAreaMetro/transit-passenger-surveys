@@ -145,6 +145,18 @@ def normalize_to_sentence_case(text: str) -> str:
     return " ".join(result)
 
 
+def normalize_time_period(text: str) -> str:
+    """Canonicalize time period values to the enum casing.
+
+    This field is intentionally uppercased rather than title-cased because the
+    canonical schema expects values like ``AM PEAK`` and ``EARLY AM``.
+    """
+    if not text or text == ".":
+        return text
+
+    return " ".join(text.strip().replace("_", " ").upper().split())
+
+
 def apply_normalization(df: pl.DataFrame) -> pl.DataFrame:
     """Apply text normalization to all categorical fields.
 
@@ -169,9 +181,19 @@ def apply_normalization(df: pl.DataFrame) -> pl.DataFrame:
                 pl.col(field).replace_strict(mapping, default=pl.col(field)).alias(field)
             )
 
+    for field in ["time_period", "day_part"]:
+        if field not in df.columns:
+            continue
+        unique_vals = df[field].unique().drop_nulls().to_list()
+        if unique_vals:
+            mapping = {val: normalize_time_period(val) for val in unique_vals}
+            df = df.with_columns(
+                pl.col(field).replace_strict(mapping, default=pl.col(field)).alias(field)
+            )
+
     # Simple title case for fields without complex rules
     categorical_fields_simple = [
-        "weekpart", "day_of_the_week", "direction",
+        "day_of_week", "direction",
         "vehicle_tech", "first_board_tech", "last_alight_tech", "gender", "race"
     ]
     df = df.with_columns([

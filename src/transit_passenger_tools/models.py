@@ -29,7 +29,6 @@ from transit_passenger_tools.codebook import (
     SurveyType,
     TechnologyType,
     TransferOperator,
-    Weekpart,
     WorkStatus,
 )
 
@@ -163,7 +162,7 @@ class CoreSurveyResponse(BaseModel):
     depart_hour: int | None = Field(ge=0, le=23, description="Hour leaving home prior to transit trip")
     return_hour: int | None = Field(ge=0, le=23, description="Hour next expected home after transit trip")
     survey_time: datetime | None = Field(None, description="Datetime when survey was conducted")
-    day_of_the_week: DayOfWeek | None = Field(description="Day of week")
+    day_of_week: DayOfWeek | None = Field(description="Day of week")
 
     # ========== Person Demographics ==========
     approximate_age: int | None = Field(ge=0, le=120, description="Approximate age")
@@ -212,9 +211,10 @@ class DerivedSurveyResponse(CoreSurveyResponse):
     processing_notes: str | None = Field(None, max_length=500, description="Notes about data processing/changes")
 
     # ========== Time Classification (Derived) ==========
-    day_part: DayPart | None = Field(None, description="Part of day (EARLY AM, AM PEAK, MIDDAY, PM PEAK, EVENING)")
-    weekpart: Weekpart | None = Field(None, description="Weekday or weekend")
-    time_period: str | None = Field(None, max_length=20, description="Time period classification")
+    time_period: DayPart | None = Field(
+        None,
+        description="Canonical time period (EARLY AM, AM PEAK, MIDDAY, PM PEAK, EVENING)",
+    )
 
     # ========== Trip Calculations ==========
     boardings: int | None = Field(None, ge=1, le=10, description="Number of boardings in transit trip (calculated from transfers)")

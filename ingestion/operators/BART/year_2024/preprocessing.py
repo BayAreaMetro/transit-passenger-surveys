@@ -32,6 +32,18 @@ BOARDING_WEIGHT_FIELD = "combined_entry_weight_NEW"  # Boarding weight
 HOME_ADDRESS_LAT = "HOME_ADDRESS_LAT"
 HOME_ADDRESS_LONG = "HOME_ADDRESS_LONG"
 
+TIME_PERIOD_LOOKUP = {
+    "1": "EARLY AM",
+    "2": "AM PEAK",
+    "3": "AM PEAK",
+    "4": "MIDDAY",
+    "5": "PM PEAK",
+    "6": "PM PEAK",
+    "7": "EVENING",
+    "98": None,
+    "99": None,
+}
+
 
 # Setup logging
 def setup_logging(output_dir: str | None = None) -> None:
@@ -601,7 +613,14 @@ def process_trip_characteristics(  # noqa: PLR0915
 
     # Add time_period from TIME_ON_fnl (survey strata)
     logger.info("Mapping TIME_ON_fnl to time_period")
-    bart_df = bart_df.with_columns([pl.col("TIME_ON_fnl").cast(pl.Utf8).alias("time_period")])
+    bart_df = bart_df.with_columns(
+        [
+            pl.col("TIME_ON_fnl")
+            .cast(pl.Utf8)
+            .replace_strict(TIME_PERIOD_LOOKUP, default=None)
+            .alias("time_period")
+        ]
+    )
 
     # We don't have a depart_time field, so set as null
     logger.info("Adding depart_time, return_time, depart_hour, return_hour fields as null")
@@ -1043,7 +1062,7 @@ def preprocess(
                 .str.to_datetime("%m/%d/%Y %I:%M:%S %p", strict=False),
                 pl.col("DATE_STARTED_SAS").cast(pl.Datetime),
             ).alias("survey_time"),
-            # day_of_the_week (derive from date_string)
+            # day_of_week (derive from date_string)
             pl.when(pl.col("date_string").is_not_null())
             .then(
                 pl.col("date_string")
@@ -1064,7 +1083,7 @@ def preprocess(
                 )
             )
             .otherwise(None)
-            .alias("day_of_the_week"),
+            .alias("day_of_week"),
             # approximate_age (calculate from year_born_four_digit)
             (survey_year - pl.col("year_born_four_digit")).alias("approximate_age"),
             # field_language (use same as interview_language)

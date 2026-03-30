@@ -232,26 +232,26 @@ class TestPeriod:
     """Test period code mapping."""
 
     def test_all_periods(self):
-        """Test all day_part values map correctly."""
+        """Test all time_period values map correctly."""
         df = pl.DataFrame(
             {
                 "vehicle_tech": ["Local Bus"] * 5,
                 "first_board_tech": [None] * 5,
                 "last_alight_tech": [None] * 5,
-                "day_part": ["EARLY AM", "AM PEAK", "MIDDAY", "PM PEAK", "EVENING"],
+                "time_period": ["EARLY AM", "AM PEAK", "MIDDAY", "PM PEAK", "EVENING"],
             }
         )
         result = derive_path_labels(df)
         assert result["period"].to_list() == ["EA", "AM", "MD", "PM", "EV"]
 
-    def test_null_day_part(self):
-        """Test null day_part maps to null period."""
+    def test_null_time_period(self):
+        """Test null time_period maps to null period."""
         df = pl.DataFrame(
             {
                 "vehicle_tech": ["Local Bus"],
                 "first_board_tech": [None],
                 "last_alight_tech": [None],
-                "day_part": [None],
+                "time_period": [None],
             }
         )
         result = derive_path_labels(df)

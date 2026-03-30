@@ -168,6 +168,19 @@ def create_codebook_lookup(codebook_df: pl.DataFrame, field_name: str) -> dict:
     return lookup
 
 
+TIME_PERIOD_LOOKUP = {
+    "1": "EARLY AM",
+    "2": "AM PEAK",
+    "3": "AM PEAK",
+    "4": "MIDDAY",
+    "5": "PM PEAK",
+    "6": "PM PEAK",
+    "7": "EVENING",
+    "98": None,
+    "99": None,
+}
+
+
 def process_access_egress(bart_df: pl.DataFrame, codebook_df: pl.DataFrame) -> pl.DataFrame:
     """Process and recode access and egress modes using codebook."""
     logger.info("Processing access/egress modes")
@@ -552,7 +565,14 @@ def process_trip_characteristics(bart_df: pl.DataFrame, _codebook_df: pl.DataFra
 
     # Add time_period from TIME_ON_fnl (survey strata)
     logger.info("Mapping TIME_ON_fnl to time_period")
-    bart_df = bart_df.with_columns([pl.col("TIME_ON_fnl").cast(pl.Utf8).alias("time_period")])
+    bart_df = bart_df.with_columns(
+        [
+            pl.col("TIME_ON_fnl")
+            .cast(pl.Utf8)
+            .replace_strict(TIME_PERIOD_LOOKUP, default=None)
+            .alias("time_period")
+        ]
+    )
 
     # We don't have a depart_time field, so set as null
     logger.info("Adding depart_time, return_time, depart_hour, return_hour fields as null")

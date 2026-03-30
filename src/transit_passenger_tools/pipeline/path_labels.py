@@ -27,7 +27,7 @@ FIELD_DEPENDENCIES = FieldDependencies(
         "vehicle_tech",
         "first_board_tech",
         "last_alight_tech",
-        "day_part",
+        "time_period",
         "first_before_technology",
         "second_before_technology",
         "third_before_technology",
@@ -94,7 +94,7 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:  # noqa: C901
     - period: Time period code
 
     Args:
-        df: Input DataFrame with technology and day_part columns
+        df: Input DataFrame with technology and time_period columns
 
     Returns:
         DataFrame with added path label columns
@@ -193,12 +193,12 @@ def derive_path_labels(df: pl.DataFrame) -> pl.DataFrame:  # noqa: C901
     # Otherwise combination of technologies used (e.g., LB_HR, EB_CR)
     result_df = _calculate_transfer_type(result_df)
 
-    # Map day_part to period code using when/then for null safety
-    if "day_part" in result_df.columns:
+    # Map time_period to period code using when/then for null safety
+    if "time_period" in result_df.columns:
         period_expr = pl.lit(None).cast(pl.Utf8)
         for day_part, period in DAY_PART_TO_PERIOD.items():
             period_expr = (
-                pl.when(pl.col("day_part") == day_part).then(pl.lit(period)).otherwise(period_expr)
+                pl.when(pl.col("time_period") == day_part).then(pl.lit(period)).otherwise(period_expr)
             )
         result_df = result_df.with_columns(period_expr.alias("period"))
 

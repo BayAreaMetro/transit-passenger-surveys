@@ -12,7 +12,6 @@ from transit_passenger_tools.codebook import (
     HouseholdIncome,
     Purpose,
     TechnologyType,
-    Weekpart,
     WorkStatus,
 )
 from transit_passenger_tools.pipeline.process_survey import (
@@ -37,7 +36,7 @@ def make_minimal_preprocessed_df(**overrides) -> pl.DataFrame:
         "original_id": ["R001"],
         "survey_name": ["Test Survey"],
         "vehicle_tech": [TechnologyType.HEAVY_RAIL.value],
-        "day_of_the_week": ["Monday"],
+        "day_of_week": ["Monday"],
         "survey_time": ["09:30:00"],
         "vehicles": [2],
         "workers": [1],
@@ -62,8 +61,7 @@ class TestProcessSurvey:
         result = process_survey(df, skip_geocoding=True)
 
         # Check that modules added their columns
-        assert "day_part" in result.columns  # from date_time
-        assert "weekpart" in result.columns  # from date_time
+        assert "time_period" in result.columns  # from date_time
         assert "auto_to_workers_ratio" in result.columns  # from auto_sufficiency
         assert "survey_mode" in result.columns  # from path_labels
 
@@ -87,7 +85,7 @@ class TestProcessSurvey:
                 TechnologyType.LOCAL_BUS.value,
                 TechnologyType.COMMUTER_RAIL.value,
             ],
-            day_of_the_week=["Monday"] * 3,
+            day_of_week=["Monday"] * 3,
             survey_time=["09:30:00"] * 3,
             vehicles=[2, 1, 0],
             workers=[1, 2, 0],
@@ -109,7 +107,7 @@ class TestProcessSurvey:
         """Test realistic data through full pipeline."""
         df = make_minimal_preprocessed_df(
             vehicle_tech=[TechnologyType.HEAVY_RAIL.value],
-            day_of_the_week=["Monday"],
+            day_of_week=["Monday"],
             survey_time=["08:15:00"],
             vehicles=[1],
             workers=[1],
@@ -122,8 +120,7 @@ class TestProcessSurvey:
         result = process_survey(df, skip_geocoding=True)
 
         # date_time outputs
-        assert result["day_part"][0] == DayPart.AM_PEAK.value
-        assert result["weekpart"][0] == Weekpart.WEEKDAY.value
+        assert result["time_period"][0] == DayPart.AM_PEAK.value
 
         # auto_sufficiency outputs
         assert result["auto_to_workers_ratio"][0] == AutoRatioCategory.WORKERS_LE_AUTOS.value
@@ -147,7 +144,7 @@ class TestPipelineOrder:
         assert module_order.index("transfers") < module_order.index("path_labels")
 
     def test_date_time_first(self):
-        """date_time should be first (provides day_part for path_labels)."""
+        """date_time should be first (provides time_period for path_labels)."""
         module_order = [name for name, _, _ in PIPELINE_MODULES]
         assert module_order[0] == "date_time"
 

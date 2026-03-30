@@ -92,7 +92,16 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         "survey_tech": "vehicle_tech",
         "onoff_enter_station": "board_stop_name",
         "onoff_exit_station": "alight_stop_name",
+        "day_of_the_week": "day_of_week",
     })
+
+    if "day_part" in df.columns:
+        if "time_period" in df.columns:
+            df = df.with_columns(
+                pl.coalesce([pl.col("time_period"), pl.col("day_part")]).alias("time_period")
+            )
+        else:
+            df = df.rename({"day_part": "time_period"})
 
     # Strip whitespace from all string columns
     string_cols = [
@@ -140,7 +149,7 @@ def load_survey_data(csv_path: Path) -> pl.DataFrame:
         "transfer_from": "None",
         "transfer_to": "None",
         "survey_time": "None",
-        "day_part": "None",
+        "time_period": "None",
         "vehicle_numeric_cat": "None",
         "worker_numeric_cat": "None",
         "tour_purp_case": "None",

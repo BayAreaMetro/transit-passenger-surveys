@@ -54,7 +54,7 @@ def process_survey(
     transformation modules in the correct order to derive DerivedSurveyResponse fields.
 
     Pipeline order:
-    1. date_time: Derive weekpart (from day_of_the_week), day_part (from survey_time)
+    1. date_time: Standardize day_of_week and derive time_period from survey_time
     2. income: Derive income bounds from household_income enum
     3. demographics_derived: Derive year_born_four_digit from age + survey_year
     4. auto_sufficiency: Normalize vehicle/worker counts, derive autos_vs_workers

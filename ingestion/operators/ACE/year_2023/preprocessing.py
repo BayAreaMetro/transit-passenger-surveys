@@ -238,9 +238,9 @@ def preprocess(  # noqa: PLR0915
         ]
     )
 
-    # Derive day_of_the_week from survey_date - use codebook DayOfWeek enum values (title case)
+    # Derive day_of_week from survey_date - use codebook DayOfWeek enum values (title case)
     df = df.with_columns(
-        [pl.col("survey_date").str.to_date("%Y-%m-%d").dt.strftime("%A").alias("day_of_the_week")]
+        [pl.col("survey_date").str.to_date("%Y-%m-%d").dt.strftime("%A").alias("day_of_week")]
     )
 
     # 7. Calculate survey time estimate based on boarding location

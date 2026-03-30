@@ -2,7 +2,7 @@
 
 Transform modules:
 - auto_sufficiency: Derive autos_vs_workers from vehicles/workers
-- date_time: Derive weekpart from day_of_the_week, day_part from survey_time
+- date_time: Standardize day_of_week and derive time_period from survey_time
 - demographics: Process race categorization and derive year_born_four_digit
 - geocoding: Calculate distances, assign zones
 - path_labels: Derive technology modes and usage flags

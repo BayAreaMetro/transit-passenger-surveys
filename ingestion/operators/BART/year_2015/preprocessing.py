@@ -166,10 +166,10 @@ def preprocess(
         ]
     )
 
-    # Derive day_of_the_week from survey_date
+    # Derive day_of_week from survey_date
     df = df.with_columns(
         [
-            pl.col("survey_date").dt.strftime("%A").alias("day_of_the_week"),
+            pl.col("survey_date").dt.strftime("%A").alias("day_of_week"),
         ]
     )
 
@@ -632,7 +632,7 @@ def preprocess(
         "year",
         "vehicle_tech",
         "survey_date",
-        "day_of_the_week",
+        "day_of_week",
         "survey_time",
         "weight",
         "age",

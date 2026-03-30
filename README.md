@@ -130,7 +130,7 @@ Defined in `src/transit_passenger_tools/models.py`:
 
 | Module | Derives |
 |--------|---------|
-| `date_time.py` | `day_part`, `weekpart`, `day_of_the_week` from `survey_time` |
+| `date_time.py` | `time_period` from `survey_time`; standardizes `day_of_week` |
 | `auto_sufficiency.py` | `autos_vs_workers`, `vehicle_numeric_cat`, `worker_numeric_cat` |
 | `demographics.py` | `race` consolidation, `household_income_category` |
 | `transfers.py` | `boardings`, `transfers_surveyed`, technology presence flags |

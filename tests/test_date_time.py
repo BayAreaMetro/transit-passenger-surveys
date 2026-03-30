@@ -1,29 +1,29 @@
 """Unit tests for date_time transformation module.
 
 The date_time transform expects preprocessed data with:
-- day_of_the_week: String like "Monday", "Tuesday", etc.
+- day_of_week: String like "Monday", "Tuesday", etc.
 - survey_time: String time like "08:30:00" or "08:30"
 
-It derives:
-- weekpart: WEEKDAY or WEEKEND based on day_of_the_week
-- day_part: Time period (EARLY AM, AM PEAK, MIDDAY, PM PEAK, EVENING) based on survey_time
+It standardizes:
+- day_of_week: Canonical day field
+- time_period: Time period (EARLY AM, AM PEAK, MIDDAY, PM PEAK, EVENING)
 """
 
 import polars as pl
 import pytest
 
-from transit_passenger_tools.codebook import DayOfWeek, DayPart, Weekpart
+from transit_passenger_tools.codebook import DayOfWeek, DayPart
 from transit_passenger_tools.pipeline import date_time
 
 
-class TestWeekpartDerivation:
-    """Test weekpart derivation from day_of_the_week."""
+class TestDayFieldStandardization:
+    """Test day field standardization."""
 
-    def test_weekdays_map_to_weekday(self):
-        """Test that Monday-Friday map to WEEKDAY."""
+    def test_preserves_day_of_week(self):
+        """Test that canonical day_of_week is preserved."""
         df = pl.DataFrame(
             {
-                "day_of_the_week": [
+                "day_of_week": [
                     DayOfWeek.MONDAY.value,
                     DayOfWeek.TUESDAY.value,
                     DayOfWeek.WEDNESDAY.value,
@@ -36,10 +36,10 @@ class TestWeekpartDerivation:
 
         result = date_time.derive_temporal_fields(df)
 
-        assert all(wp == Weekpart.WEEKDAY.value for wp in result["weekpart"].to_list())
+        assert result["day_of_week"].to_list() == df["day_of_week"].to_list()
 
-    def test_weekends_map_to_weekend(self):
-        """Test that Saturday-Sunday map to WEEKEND."""
+    def test_legacy_day_of_the_week_renamed(self):
+        """Test that legacy day_of_the_week input is renamed."""
         df = pl.DataFrame(
             {
                 "day_of_the_week": [
@@ -52,83 +52,71 @@ class TestWeekpartDerivation:
 
         result = date_time.derive_temporal_fields(df)
 
-        assert all(wp == Weekpart.WEEKEND.value for wp in result["weekpart"].to_list())
-
-    def test_null_day_produces_null_weekpart(self):
-        """Test that null day_of_the_week produces null weekpart."""
-        df = pl.DataFrame(
-            {
-                "day_of_the_week": [DayOfWeek.MONDAY.value, None],
-                "survey_time": ["12:00", "12:00"],
-            }
-        )
-
-        result = date_time.derive_temporal_fields(df)
-
-        assert result["weekpart"][0] == Weekpart.WEEKDAY.value
-        assert result["weekpart"][1] is None
+        assert "day_of_week" in result.columns
+        assert "day_of_the_week" not in result.columns
+        assert result["day_of_week"].to_list() == [DayOfWeek.SATURDAY.value, DayOfWeek.SUNDAY.value]
 
 
-class TestDayPartDerivation:
-    """Test day_part derivation from survey_time."""
+class TestTimePeriodDerivation:
+    """Test time_period derivation from survey_time."""
 
     def test_early_am_hours(self):
         """Test that hours 3-5 map to EARLY_AM."""
         df = pl.DataFrame(
             {
-                "day_of_the_week": [DayOfWeek.MONDAY.value] * 3,
+                "day_of_week": [DayOfWeek.MONDAY.value] * 3,
                 "survey_time": ["03:00:00", "04:30:00", "05:59:00"],
             }
         )
 
         result = date_time.derive_temporal_fields(df)
 
-        assert all(dp == DayPart.EARLY_AM.value for dp in result["day_part"].to_list())
+        assert all(tp == DayPart.EARLY_AM.value for tp in result["time_period"].to_list())
 
     def test_am_peak_hours(self):
         """Test that hours 6-9 map to AM_PEAK."""
         df = pl.DataFrame(
             {
-                "day_of_the_week": [DayOfWeek.MONDAY.value] * 4,
+                "day_of_week": [DayOfWeek.MONDAY.value] * 4,
                 "survey_time": ["06:00:00", "07:15:00", "08:30:00", "09:59:00"],
             }
         )
 
         result = date_time.derive_temporal_fields(df)
 
-        assert all(dp == DayPart.AM_PEAK.value for dp in result["day_part"].to_list())
+        assert all(tp == DayPart.AM_PEAK.value for tp in result["time_period"].to_list())
 
     def test_midday_hours(self):
         """Test that hours 10-14 map to MIDDAY."""
         df = pl.DataFrame(
             {
-                "day_of_the_week": [DayOfWeek.MONDAY.value] * 5,
+                "day_of_week": [DayOfWeek.MONDAY.value] * 5,
                 "survey_time": ["10:00:00", "11:30:00", "12:00:00", "13:15:00", "14:59:00"],
             }
         )
 
         result = date_time.derive_temporal_fields(df)
 
-        assert all(dp == DayPart.MIDDAY.value for dp in result["day_part"].to_list())
+        assert all(tp == DayPart.MIDDAY.value for tp in result["time_period"].to_list())
 
     def test_pm_peak_hours(self):
         """Test that hours 15-18 map to PM_PEAK."""
         df = pl.DataFrame(
             {
-                "day_of_the_week": [DayOfWeek.MONDAY.value] * 4,
+                "day_of_week": [DayOfWeek.MONDAY.value] * 4,
                 "survey_time": ["15:00:00", "16:30:00", "17:45:00", "18:59:00"],
             }
         )
 
         result = date_time.derive_temporal_fields(df)
 
-        assert all(dp == DayPart.PM_PEAK.value for dp in result["day_part"].to_list())
+        assert all(tp == DayPart.PM_PEAK.value for tp in result["time_period"].to_list())
 
     def test_evening_hours(self):
         """Test that hours 19-23 and 0-2 map to EVENING."""
         df = pl.DataFrame(
             {
-                "day_of_the_week": [DayOfWeek.MONDAY.value] * 6,
+                "day_of_week": [DayOfWeek.MONDAY.value] * 6,
                 "survey_time": [
                     "19:00:00",
                     "20:30:00",
@@ -142,51 +130,75 @@ class TestDayPartDerivation:
 
         result = date_time.derive_temporal_fields(df)
 
-        assert all(dp == DayPart.EVENING.value for dp in result["day_part"].to_list())
+        assert all(tp == DayPart.EVENING.value for tp in result["time_period"].to_list())
 
-    def test_null_time_produces_null_day_part(self):
-        """Test that null survey_time produces null day_part."""
+    def test_null_time_produces_null_time_period(self):
+        """Test that null survey_time produces null time_period."""
         df = pl.DataFrame(
             {
-                "day_of_the_week": [DayOfWeek.MONDAY.value, DayOfWeek.TUESDAY.value],
+                "day_of_week": [DayOfWeek.MONDAY.value, DayOfWeek.TUESDAY.value],
                 "survey_time": ["12:00:00", None],
             }
         )
 
         result = date_time.derive_temporal_fields(df)
 
-        assert result["day_part"][0] == DayPart.MIDDAY.value
-        assert result["day_part"][1] is None
+        assert result["time_period"][0] == DayPart.MIDDAY.value
+        assert result["time_period"][1] is None
+
+    def test_existing_time_period_is_preserved(self):
+        """Test that source-provided time_period wins over derived time."""
+        df = pl.DataFrame(
+            {
+                "day_of_week": [DayOfWeek.MONDAY.value],
+                "survey_time": ["08:30:00"],
+                "time_period": [DayPart.PM_PEAK.value],
+            }
+        )
+
+        result = date_time.derive_temporal_fields(df)
+
+        assert result["time_period"][0] == DayPart.PM_PEAK.value
+
+    def test_legacy_day_part_backfills_time_period(self):
+        """Test that legacy day_part is promoted to time_period."""
+        df = pl.DataFrame(
+            {
+                "day_of_week": [DayOfWeek.MONDAY.value],
+                "day_part": [DayPart.AM_PEAK.value],
+            }
+        )
+
+        result = date_time.derive_temporal_fields(df)
+
+        assert result["time_period"][0] == DayPart.AM_PEAK.value
 
 
 class TestValidation:
     """Test input validation."""
 
-    def test_missing_day_of_the_week_raises_error(self):
-        """Test that missing day_of_the_week column raises ValueError."""
+    def test_missing_day_of_week_raises_error(self):
+        """Test that missing day_of_week column raises ValueError."""
         df = pl.DataFrame(
             {
                 "survey_time": ["12:00:00"],
             }
         )
 
-        with pytest.raises(ValueError, match="day_of_the_week"):
+        with pytest.raises(ValueError, match="day_of_week"):
             date_time.derive_temporal_fields(df)
 
     def test_missing_survey_time_handled_gracefully(self):
-        """Test that missing survey_time column is handled (day_part will be null)."""
+        """Test that missing survey_time column is handled (time_period will be null)."""
         df = pl.DataFrame(
             {
-                "day_of_the_week": [DayOfWeek.MONDAY.value],
+                "day_of_week": [DayOfWeek.MONDAY.value],
             }
         )
 
         result = date_time.derive_temporal_fields(df)
 
-        # weekpart should still be derived
-        assert result["weekpart"][0] == Weekpart.WEEKDAY.value
-        # day_part should be null since no survey_time
-        assert result["day_part"][0] is None
+        assert result["time_period"][0] is None
 
 
 class TestTimeFormatHandling:
@@ -196,24 +208,24 @@ class TestTimeFormatHandling:
         """Test HH:MM format without seconds."""
         df = pl.DataFrame(
             {
-                "day_of_the_week": [DayOfWeek.MONDAY.value],
+                "day_of_week": [DayOfWeek.MONDAY.value],
                 "survey_time": ["08:30"],
             }
         )
 
         result = date_time.derive_temporal_fields(df)
 
-        assert result["day_part"][0] == DayPart.AM_PEAK.value
+        assert result["time_period"][0] == DayPart.AM_PEAK.value
 
     def test_hhmmss_format(self):
         """Test HH:MM:SS format."""
         df = pl.DataFrame(
             {
-                "day_of_the_week": [DayOfWeek.MONDAY.value],
+                "day_of_week": [DayOfWeek.MONDAY.value],
                 "survey_time": ["08:30:45"],
             }
         )
 
         result = date_time.derive_temporal_fields(df)
 
-        assert result["day_part"][0] == DayPart.AM_PEAK.value
+        assert result["time_period"][0] == DayPart.AM_PEAK.value
