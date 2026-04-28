@@ -1,7 +1,5 @@
-"""Strip PII variables from Transit Passenger Survey Data.
-
-A generalized version of https://github.com/BayAreaMetro/transit-passenger-surveys/blob/master/requests/2024_BART.py
-
+"""
+Strip PII variables from Transit Passenger Survey data.
 """
 
 
@@ -10,27 +8,86 @@ import polars as pl
 import geopandas as gpd
 import os
 
-# Set up input and output directories
-SURVEY_PATH = r"E:/Box/Modeling and Surveys/Surveys/Transit Passenger Surveys/Ongoing TPS/Individual Operator Efforts/VTA 2024/ETC VTA MTC Shared Folder/Summary Data and Report/od_20250327_vta_ca_weighted_draftfinal.xlsx"
-# vtaTAZ_PATH = r"M:/Data/Requests/Louisa Leung/Caltrain Survey Data/VTATAZ_CCAG/VTATAZ.shp"
-# BG_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_bg.zip"
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Select survey to process
+# ----------------------------------------------------------------------------
+SURVEY_NAME = "Caltrain_2024"
+# SURVEY_NAME = "VTA_2024"
+
+# ----------------------------------------------------------------------------
+# Survey-specific file paths
+# ----------------------------------------------------------------------------
+SURVEY_CONFIG = {
+    "Caltrain_2024": {
+        "survey_path": (
+            r"E:/Box/Modeling and Surveys/Surveys/Transit Passenger Surveys/"
+            r"Ongoing TPS/Individual Operator Efforts/Caltrain 2024/"
+            r"Caltrain MTC RSG Project Folder/OD Data and Deliverables "
+            r"(Includes Data and Report)/2024 Caltrain OD Data (sent 11.7.2024).xlsx"
+        ),
+        "output_prefix": "Caltrain_2024",
+        "survey_sheet_name": "Data",
+        "codebook_sheet_name": "Data Dictionary",
+        "codebook_columns": [
+            "Position",
+            "Variable Type",
+            "Variable",
+            "Variable Label",
+            "Value Number",
+            "Value Label",
+        ],
+    },
+
+    "VTA_2024": {
+        "survey_path": (
+            r"E:/Box/Modeling and Surveys/Surveys/Transit Passenger Surveys/"
+            r"Ongoing TPS/Individual Operator Efforts/VTA 2024/"
+            r"ETC VTA MTC Shared Folder/Summary Data and Report/"
+            r"od_20250327_vta_ca_weighted_draftfinal.xlsx"
+        ),
+        "output_prefix": "VTA_2024",
+        "survey_sheet_name": "OD_RESULTS_WEEKDAY",
+        "codebook_sheet_name": "data dictionary",
+        "codebook_columns": [
+            "FIELD NAME",
+            "DESCRIPTION",
+            "CODE VALUES",
+        ],
+    },
+}
+
+# ----------------------------------------------------------------------------
+# Additional survey config
+# ----------------------------------------------------------------------------
+if SURVEY_NAME not in SURVEY_CONFIG:
+    raise ValueError(f"Unknown SURVEY_NAME: {SURVEY_NAME}")
+
+SURVEY_PATH = SURVEY_CONFIG[SURVEY_NAME]["survey_path"]
+OUTPUT_PREFIX = SURVEY_CONFIG[SURVEY_NAME]["output_prefix"]
+SURVEY_SHEET_NAME = SURVEY_CONFIG[SURVEY_NAME]["survey_sheet_name"]
+CODEBOOK_SHEET_NAME = SURVEY_CONFIG[SURVEY_NAME]["codebook_sheet_name"]
+CODEBOOK_COLUMNS = SURVEY_CONFIG[SURVEY_NAME]["codebook_columns"]
+
+# ----------------------------------------------------------------------------
+# Spatial inputs
+# ----------------------------------------------------------------------------
 TRACT_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_tract.zip"
-OUTPUT_DIR = r"E:/Box/Modeling and Surveys/Share Data/Protected Data/Kimley-Horn/SMCTD_Dumbarton_Busway"
-OUTPUT_PREFIX = "VTA_2024"
 
+# VTATAZ_PATH = r"M:/Data/Requests/Louisa Leung/Caltrain Survey Data/VTATAZ_CCAG/VTATAZ.shp"
+# BG_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_bg.zip"
 
-# ============================================================================
-# INPUT CONFIGURATION
-# ============================================================================
+# ----------------------------------------------------------------------------
+# Output settings
+# ----------------------------------------------------------------------------
+OUTPUT_DIR = (
+     r"E:/Box/Modeling and Surveys/Share Data/Protected Data/"
+     r"Kimley-Horn/SMCTD_Dumbarton_Busway"
+ )
 
-SURVEY_SHEET_NAME = "OD_RESULTS_WEEKDAY"
-CODEBOOK_SHEET_NAME = "data dictionary"
-
-CODEBOOK_COLUMNS = [
-    "FIELD NAME",
-    "DESCRIPTION",
-    "CODE VALUES"
-]
 
 # ============================================================================
 # FINALCOLUMNS | Optional: Specify final columns to keep in output
@@ -83,6 +140,17 @@ def spatial_join_coordinates_to_shapefile(
     pl.DataFrame
         DataFrame with id_col and output_id_col columns
     """
+    # Make sure ID column is not case sensitive
+    actual_id_col = next(
+        (c for c in df.columns if c.lower() == id_col.lower()),
+        None
+    )
+
+    if actual_id_col is None:
+        raise ValueError(f"Could not find ID column matching '{id_col}'")
+
+    id_col = actual_id_col
+
     # Read shapefile and get target CRS
     shapefile_gdf = shapefile_gdf[[shapefile_id_col, "geometry"]]
     target_crs = shapefile_gdf.crs
@@ -152,19 +220,23 @@ def parse_latlons_from_columns(
     list[tuple[str, str, str, str]]
         List of (latitude_column, longitude_column, output_column, id_suffix) tuples
     """
-    lat_cols = [col for col in df.columns if latlon_suffixes[0] in col]
-    lon_cols = [col for col in df.columns if latlon_suffixes[1] in col]
+    lat_suffix = latlon_suffixes[0].lower()
+    lon_suffix = latlon_suffixes[1].lower()
+
+    lat_cols = [col for col in df.columns if lat_suffix in col.lower()]
+    lon_cols = [col for col in df.columns if lon_suffix in col.lower()]
 
     lat_lon_pairs = []
     for lat_col in lat_cols:
         # Drop lat/lon suffix to find matching prefix, but keep origin case
-        prefix = lat_col.replace(latlon_suffixes[0], "")
+        prefix = lat_col.lower().replace(lat_suffix, "")
         for id_suffix in id_suffixes:
-            output_col = lat_col.replace(latlon_suffixes[0], id_suffix)
+            idx = lat_col.lower().find(lat_suffix)
+            output_col = lat_col[:idx] + id_suffix + lat_col[idx + len(lat_suffix):]
             matching_col = next(
                 (
                     lon for lon in lon_cols
-                    if prefix == lon.replace(latlon_suffixes[1], "")
+                    if prefix == lon.lower().replace(lon_suffix, "")
                 ),
                 None
             )
@@ -206,7 +278,11 @@ def main() -> None:
 
     # Process each location type
     print("Processing spatial joins...")
-    taz_configs = parse_latlons_from_columns(survey, ("LAT", "LONG"), zones)   
+    taz_configs = parse_latlons_from_columns(survey, ("_LAT", "_LON"), zones)   
+
+    print(f"Found {len(taz_configs)} lat/lon pairs:")
+    for config in taz_configs:
+        print(" ", config)
     
     # Process each location type and collect results
     _survey = survey.clone()
@@ -222,19 +298,26 @@ def main() -> None:
             id_col="ID"
         )
 
+    # Collect all zone output column names to protect
+    zone_output_cols = {output_col for _, _, output_col, _ in taz_configs}
+    
+
     # Remove PII columns
     print("Removing PII columns...")   
     danger_parts = (
         "lat", "lon", "latitude", "longitude",
-        "address_place", "address_addr", "address_searchkey",
+        "address",
         "_OLD"
     )
 
-    # Scan through for columns to remove
+    # Scan through for columns to remove    
     for col in _survey.columns:
-        if any(suffix in col.lower() for suffix in danger_parts):
+        if col in zone_output_cols:
+            continue
+        if any(part in col.lower() for part in danger_parts):
             print(f"Dropping PII column: {col}...")
             _survey = _survey.drop(col)
+
 
     # Final survey store    
     survey_final = _survey
