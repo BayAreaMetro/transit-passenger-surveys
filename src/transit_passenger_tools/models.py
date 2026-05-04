@@ -261,6 +261,8 @@ class DerivedSurveyResponse(CoreSurveyResponse):
     distance_orig_survey_board: float | None = Field(None, description="Distance from origin to survey board (miles)")
     distance_survey_alight_dest: float | None = Field(None, description="Distance from survey alight to destination (miles)")
     distance_last_alight_dest: float | None = Field(None, description="Distance from last alight to destination (miles)")
+    distance_orig_first_board_routed: float | None = Field(None, description="Routed network distance from origin to first board (miles)")
+    distance_last_alight_dest_routed: float | None = Field(None, description="Routed network distance from last alight to destination (miles)")
 
     # ========== Geographic - Travel Model Zones (MAZ) ==========
     orig_maz: int | None = Field(None, description="Origin MAZ (Travel Model geography)")

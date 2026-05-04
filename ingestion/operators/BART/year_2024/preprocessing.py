@@ -154,80 +154,54 @@ def create_codebook_lookup(codebook_df: pl.DataFrame, field_name: str) -> dict:
     return lookup
 
 
-def process_access_egress(bart_df: pl.DataFrame, codebook_df: pl.DataFrame) -> pl.DataFrame:
-    """Process and recode access and egress modes using codebook."""
+def process_access_egress(bart_df: pl.DataFrame) -> pl.DataFrame:
+    """Process and recode access and egress modes."""
     logger.info("Processing access/egress modes")
 
-    # Standard recoding for typical access/egress values
-    # This is a fallback - actual codes should come from codebook
-    standard_recode = {
-        1: "walk",
-        2: "bike",
-        3: "pnr",  # drive alone/park and ride
-        4: "knr",  # dropped off
-        5: "local bus",
-        6: "express bus",
-        7: "light rail",
-        8: "heavy rail",
-        9: "commuter rail",
-        10: "ferry",
-        11: "taxi",
-        12: "tnc",  # uber/lyft
-        13: "other",
+    # Map BART 2024 transport codes to AccessEgressMode enum values.
+    # These are the codes from ORIGIN_TRANSPORT_FINAL / DESTIN_TRANSPORT_FINAL.
+    transport_to_mode: dict[float, str | None] = {
+        1.0: "Walk",       # Walk all the way (including skateboard, wheelchair)
+        2.0: "Bike",       # Bicycle
+        3.0: "Bike",       # Electric scooter (standing)
+        4.0: "Transit",    # Bus, train, or other public transit
+        5.0: "Transit",    # Employer shuttle or other shuttle
+        6.0: "PNR",        # Drive alone (vehicle parked at/near BART)
+        7.0: "PNR",        # Drive with others/carpool (parked)
+        8.0: "KNR",        # Dropped off / picked up by someone
+        9.0: "TNC",        # Uber, Lyft, Waymo, taxi, or similar
+        11.0: "PNR",       # Car unspecified
+        98.0: "Other",     # Other
+        99.0: None,        # No Answer
     }
 
-    # Find access/egress columns
-    access_cols = [col for col in bart_df.columns if "access" in col.lower()]
-    egress_cols = [col for col in bart_df.columns if "egress" in col.lower()]
-
-    logger.info("Found access columns: %s", access_cols)
-    logger.info("Found egress columns: %s", egress_cols)
-
-    # Process access columns
-    for col in access_cols:
-        # Try to get codebook mapping
-        codebook_lookup = create_codebook_lookup(codebook_df, col)
-
-        if codebook_lookup:
-            logger.info("Using codebook for %s", col)
-            bart_df = bart_df.with_columns(
-                [pl.col(col).replace_strict(codebook_lookup, default=None).alias(f"{col}_mode")]
-            )
-        else:
-            logger.info("Using standard recode for %s", col)
-            bart_df = bart_df.with_columns(
-                [pl.col(col).replace_strict(standard_recode, default=None).alias(f"{col}_mode")]
-            )
-
-    # Process egress columns
-    for col in egress_cols:
-        codebook_lookup = create_codebook_lookup(codebook_df, col)
-
-        if codebook_lookup:
-            logger.info("Using codebook for %s", col)
-            bart_df = bart_df.with_columns(
-                [pl.col(col).replace_strict(codebook_lookup, default=None).alias(f"{col}_mode")]
-            )
-        else:
-            logger.info("Using standard recode for %s", col)
-            bart_df = bart_df.with_columns(
-                [pl.col(col).replace_strict(standard_recode, default=None).alias(f"{col}_mode")]
-            )
-
-    # Add standard access_mode and egress_mode fields expected by R script
-    # Use the first processed access/egress column if available, otherwise null
-    logger.info("Adding access_mode and egress_mode fields")
-    if access_cols:
-        primary_access_col = f"{access_cols[0]}_mode"
-        bart_df = bart_df.with_columns([pl.col(primary_access_col).alias("access_mode")])
+    # Map ORIGIN_TRANSPORT_FINAL → access_mode
+    if "ORIGIN_TRANSPORT_FINAL" in bart_df.columns:
+        logger.info("Mapping ORIGIN_TRANSPORT_FINAL -> access_mode")
+        bart_df = bart_df.with_columns(
+            pl.col("ORIGIN_TRANSPORT_FINAL")
+            .replace_strict(transport_to_mode, default=None, return_dtype=pl.Utf8)
+            .alias("access_mode")
+        )
     else:
-        bart_df = bart_df.with_columns([pl.lit(None).cast(pl.Utf8).alias("access_mode")])
+        logger.warning("ORIGIN_TRANSPORT_FINAL not found — access_mode will be null")
+        bart_df = bart_df.with_columns(
+            pl.lit(None).cast(pl.Utf8).alias("access_mode")
+        )
 
-    if egress_cols:
-        primary_egress_col = f"{egress_cols[0]}_mode"
-        bart_df = bart_df.with_columns([pl.col(primary_egress_col).alias("egress_mode")])
+    # Map DESTIN_TRANSPORT_FINAL → egress_mode
+    if "DESTIN_TRANSPORT_FINAL" in bart_df.columns:
+        logger.info("Mapping DESTIN_TRANSPORT_FINAL -> egress_mode")
+        bart_df = bart_df.with_columns(
+            pl.col("DESTIN_TRANSPORT_FINAL")
+            .replace_strict(transport_to_mode, default=None, return_dtype=pl.Utf8)
+            .alias("egress_mode")
+        )
     else:
-        bart_df = bart_df.with_columns([pl.lit(None).cast(pl.Utf8).alias("egress_mode")])
+        logger.warning("DESTIN_TRANSPORT_FINAL not found — egress_mode will be null")
+        bart_df = bart_df.with_columns(
+            pl.lit(None).cast(pl.Utf8).alias("egress_mode")
+        )
 
     return bart_df
 
@@ -957,7 +931,7 @@ def preprocess(
     )
 
     # Process access/egress
-    survey_df = process_access_egress(survey_df, codebook_df)
+    survey_df = process_access_egress(survey_df)
 
     # Process demographics
     survey_df = process_demographics(survey_df, codebook_df, survey_year)

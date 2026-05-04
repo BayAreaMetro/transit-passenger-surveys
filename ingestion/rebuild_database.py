@@ -25,6 +25,8 @@ import logging
 import sys
 from pathlib import Path
 
+import polars as pl
+
 # Ensure repo root is importable so ``ingestion.*`` resolves
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -43,6 +45,7 @@ from ingestion.fixes.fix_bart_2015 import (
 )
 from ingestion.fixes.fix_missing_stops import fix_missing_stops
 from ingestion.fixes.fix_samtrans_airport import fix_samtrans_airport
+from transit_passenger_tools.config import get_config
 from transit_passenger_tools.database import (
     DATA_ROOT,
     archive_file,
@@ -51,7 +54,7 @@ from transit_passenger_tools.database import (
     ingest,
     validate_warehouse_integrity,
 )
-from transit_passenger_tools.pipeline import auto_sufficiency
+from transit_passenger_tools.pipeline import auto_sufficiency, routed_distances
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -202,6 +205,70 @@ def run_backfill(csv_path: Path, *, force_rebuild: bool = False) -> None:
 # ========== Post-ingestion corrections ==========
 
 
+def run_routed_distances() -> None:
+    """Compute routed distances for all warehouse rows that don't yet have them.
+
+    Reads the responses parquet, identifies rows missing routed distances
+    (but with valid coordinates), routes them via OSRM, and writes the
+    updated parquet back.
+    """
+    config = get_config()
+    if config.osrm_server_url is None:
+        logger.info("OSRM server URL not configured — skipping routed distances")
+        return
+
+    responses_path = DATA_ROOT / "survey_responses.parquet"
+    if not responses_path.exists():
+        logger.warning("No responses parquet found — skipping routed distances")
+        return
+
+    df = pl.read_parquet(responses_path)
+
+    # Find rows that need routing (have coords but no routed distance)
+    access_col = "distance_orig_first_board_routed"
+    egress_col = "distance_last_alight_dest_routed"
+
+    # Add columns if they don't exist yet
+    if access_col not in df.columns:
+        df = df.with_columns(pl.lit(None).cast(pl.Float64).alias(access_col))
+    if egress_col not in df.columns:
+        df = df.with_columns(pl.lit(None).cast(pl.Float64).alias(egress_col))
+
+    needs_routing = df.filter(
+        pl.col(access_col).is_null()
+        & pl.col("orig_lat").is_not_null()
+        & pl.col("first_board_lat").is_not_null()
+    )
+
+    if len(needs_routing) == 0:
+        logger.info("All rows already have routed distances — nothing to do")
+        return
+
+    logger.info(
+        "Computing routed distances for %s rows (of %s total)",
+        f"{len(needs_routing):,}",
+        f"{len(df):,}",
+    )
+
+    # Route the subset
+    routed = routed_distances.compute_routed_distances(needs_routing)
+
+    # Update the main DataFrame with routed values
+    # Join on response_id to update only the rows that were routed
+    routed_cols = routed.select("response_id", access_col, egress_col).rename(
+        {access_col: f"_{access_col}", egress_col: f"_{egress_col}"}
+    )
+    df = df.join(routed_cols, on="response_id", how="left")
+    df = df.with_columns(
+        pl.coalesce(pl.col(f"_{access_col}"), pl.col(access_col)).alias(access_col),
+        pl.coalesce(pl.col(f"_{egress_col}"), pl.col(egress_col)).alias(egress_col),
+    ).drop(f"_{access_col}", f"_{egress_col}")
+
+    df.write_parquet(responses_path)
+    n_routed = df[access_col].is_not_null().sum()
+    logger.info("Routed distances written — %s rows have values", f"{n_routed:,}")
+
+
 def run_data_corrections() -> None:
     """Apply targeted corrections to ingested data.
 
@@ -318,6 +385,7 @@ def main(
         logger.info("\n%s\nTRANSIT SURVEY DATABASE — REBUILD: %s\n%s", sep, targets_label, sep)
 
         run_operator_ingestion(rebuild_targets=rebuild_targets)
+        run_routed_distances()
 
         logger.info("\n%s\nEXPORT TABLEAU HYPER\n%s", sep, sep)
         export_to_hyper(DATA_ROOT / "surveys_export.hyper")
@@ -362,9 +430,15 @@ def main(
     run_operator_ingestion(force_rebuild=force_rebuild)
 
     # -------------------------------------------------------------------
-    # Step 4 — Validate referential integrity across all tables
+    # Step 4 — Compute routed distances for any rows still missing them
     # -------------------------------------------------------------------
-    logger.info("\n%s\nSTEP 4: REFERENTIAL INTEGRITY\n%s", sep, sep)
+    logger.info("\n%s\nSTEP 4: ROUTED DISTANCES\n%s", sep, sep)
+    run_routed_distances()
+
+    # -------------------------------------------------------------------
+    # Step 5 — Validate referential integrity across all tables
+    # -------------------------------------------------------------------
+    logger.info("\n%s\nSTEP 5: REFERENTIAL INTEGRITY\n%s", sep, sep)
     counts = validate_warehouse_integrity()
     logger.info(
         "Integrity check passed (orphaned weights: %d)",
@@ -372,9 +446,9 @@ def main(
     )
 
     # -------------------------------------------------------------------
-    # Step 5 — Export everything to a single Tableau Hyper file
+    # Step 6 — Export everything to a single Tableau Hyper file
     # -------------------------------------------------------------------
-    logger.info("\n%s\nSTEP 5: EXPORT TABLEAU HYPER\n%s", sep, sep)
+    logger.info("\n%s\nSTEP 6: EXPORT TABLEAU HYPER\n%s", sep, sep)
     export_to_hyper(DATA_ROOT / "surveys_export.hyper")
     logger.info("Hyper export complete")
 

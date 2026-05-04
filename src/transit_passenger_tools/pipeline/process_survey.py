@@ -21,6 +21,7 @@ from transit_passenger_tools.pipeline import (
     demographics,
     geocoding,
     path_labels,
+    routed_distances,
     tour_purpose,
     transfers,
     validate,
@@ -38,6 +39,7 @@ PIPELINE_MODULES = [
     ("path_labels", path_labels.derive_path_labels, False),
     ("tour_purpose", tour_purpose.derive_tour_purpose, False),
     ("geocoding", geocoding.assign_zones_and_distances, True),
+    ("routed_distances", routed_distances.compute_routed_distances, False),
 ]
 
 
@@ -45,6 +47,7 @@ def process_survey(
     df: pl.DataFrame,
     survey_name: str | None = None,
     skip_geocoding: bool = False,
+    skip_routed_distances: bool = False,
     skip_validation: bool = False,
     shapefiles_dir: Path | None = None,
 ) -> pl.DataFrame:
@@ -90,6 +93,8 @@ def process_survey(
     skip_transforms = []
     if skip_geocoding:
         skip_transforms.append("geocoding")
+    if skip_routed_distances:
+        skip_transforms.append("routed_distances")
 
     # Validate input meets CoreSurveyResponse contract
     if not skip_validation:
@@ -99,8 +104,10 @@ def process_survey(
 
     # Execute pipeline modules in order
     for module_name, transform_func, needs_shapefiles in PIPELINE_MODULES:
-        # Skip geocoding if requested
+        # Skip modules if requested
         if module_name == "geocoding" and skip_geocoding:
+            continue
+        if module_name == "routed_distances" and skip_routed_distances:
             continue
 
         # Call the transform function with appropriate arguments

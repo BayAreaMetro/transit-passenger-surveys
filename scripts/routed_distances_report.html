@@ -1,0 +1,5280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Routed Distance Report</title>
+    <style>
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       max-width: 1200px; margin: 0 auto; padding: 20px; color: #333; }
+h1 { color: #1a5276; border-bottom: 2px solid #1a5276; padding-bottom: 8px; }
+h2 { color: #2c3e50; margin-top: 2em; }
+h3 { color: #34495e; }
+h4 { color: #555; margin: 1em 0 0.5em; }
+h5 { color: #777; margin: 0.8em 0 0.3em; font-size: 0.9em; }
+table { border-collapse: collapse; margin: 0.5em 0 1em; font-size: 0.9em; }
+th, td { padding: 4px 10px; text-align: left; border-bottom: 1px solid #eee; }
+th { background: #f8f9fa; font-weight: 600; border-bottom: 2px solid #dee2e6; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.stats-table td:first-child { font-weight: 500; color: #555; width: 80px; }
+.stats-table td:last-child { font-variant-numeric: tabular-nums; }
+.data-table { width: 100%; }
+.hist-table { width: 100%; }
+.hist-table .bin-label { width: 80px; }
+.hist-table .count { text-align: right; width: 70px; }
+.hist-table .pct { text-align: right; width: 50px; }
+.hist-table .bar-cell { width: 50%; }
+.bar-container { background: #f0f0f0; height: 16px; border-radius: 3px; }
+.bar { background: #3498db; height: 100%; border-radius: 3px; min-width: 1px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2em; }
+@media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+details { margin: 0.5em 0; }
+summary { cursor: pointer; padding: 8px; background: #f8f9fa; border-radius: 4px;
+           border: 1px solid #eee; }
+summary:hover { background: #e8f4fd; }
+.detail-content { padding: 1em; border: 1px solid #eee; border-top: none;
+                   border-radius: 0 0 4px 4px; }
+.operator-detail { margin: 4px 0; }
+.timestamp { color: #999; font-size: 0.85em; }
+</style>
+</head>
+<body>
+    <h1>Routed Distance Report</h1>
+    <p class="timestamp">Generated: 2026-05-04 15:47 &mdash; 218,682 total responses</p>
+
+    <h2>Overall Summary</h2>
+    <div class="two-col">
+        <div>
+            <h3>Access (origin → first boarding)</h3>
+            
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>169,879 / 218,682 (77.7%)</td></tr>
+        <tr><td>Mean</td><td>1.37 mi</td></tr>
+        <tr><td>Median</td><td>0.35 mi</td></tr>
+        <tr><td>Std Dev</td><td>4.17 mi</td></tr>
+        <tr><td>P25</td><td>0.14 mi</td></tr>
+        <tr><td>P75</td><td>1.02 mi</td></tr>
+        <tr><td>P90</td><td>2.88 mi</td></tr>
+        <tr><td>P95</td><td>5.45 mi</td></tr>
+        <tr><td>P99</td><td>17.67 mi</td></tr>
+        <tr><td>Max</td><td>431.7 mi</td></tr>
+    </table>
+    
+        </div>
+        <div>
+            <h3>Egress (last alighting → destination)</h3>
+            
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>168,547 / 218,682 (77.1%)</td></tr>
+        <tr><td>Mean</td><td>1.13 mi</td></tr>
+        <tr><td>Median</td><td>0.30 mi</td></tr>
+        <tr><td>Std Dev</td><td>4.75 mi</td></tr>
+        <tr><td>P25</td><td>0.12 mi</td></tr>
+        <tr><td>P75</td><td>0.78 mi</td></tr>
+        <tr><td>P90</td><td>2.17 mi</td></tr>
+        <tr><td>P95</td><td>4.14 mi</td></tr>
+        <tr><td>P99</td><td>15.37 mi</td></tr>
+        <tr><td>Max</td><td>567.8 mi</td></tr>
+    </table>
+    
+        </div>
+    </div>
+
+    <h3>Access distance distribution</h3>
+    
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">68,780</td>
+            <td class="pct">40.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">32,089</td>
+            <td class="pct">18.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:46.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">25,881</td>
+            <td class="pct">15.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:37.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">19,066</td>
+            <td class="pct">11.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:27.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">7,825</td>
+            <td class="pct">4.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:11.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">6,852</td>
+            <td class="pct">4.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:10.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">5,446</td>
+            <td class="pct">3.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:7.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">2,592</td>
+            <td class="pct">1.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:3.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">1,155</td>
+            <td class="pct">0.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">193</td>
+            <td class="pct">0.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.3%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+
+    <h3>Egress distance distribution</h3>
+    
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">74,500</td>
+            <td class="pct">44.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">35,409</td>
+            <td class="pct">21.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:47.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">25,485</td>
+            <td class="pct">15.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:34.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">15,024</td>
+            <td class="pct">8.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:20.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">6,010</td>
+            <td class="pct">3.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:8.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">5,370</td>
+            <td class="pct">3.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:7.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">3,916</td>
+            <td class="pct">2.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:5.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">1,681</td>
+            <td class="pct">1.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">978</td>
+            <td class="pct">0.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">174</td>
+            <td class="pct">0.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.2%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+
+    <h2>By Access/Egress Mode</h2>
+    <div class="two-col">
+        <div>
+            <h3>Access mode</h3>
+            
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">124,602</td>
+            <td class="num">0.36</td>
+            <td class="num">0.23</td>
+            <td class="num">0.45</td>
+            <td class="num">0.80</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">15,559</td>
+            <td class="num">5.87</td>
+            <td class="num">3.14</td>
+            <td class="num">6.61</td>
+            <td class="num">12.94</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">13,770</td>
+            <td class="num">4.00</td>
+            <td class="num">2.08</td>
+            <td class="num">4.08</td>
+            <td class="num">8.53</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">7,714</td>
+            <td class="num">1.32</td>
+            <td class="num">0.97</td>
+            <td class="num">1.66</td>
+            <td class="num">2.58</td>
+        </tr>
+        <tr>
+            <td>Transit</td>
+            <td class="num">5,249</td>
+            <td class="num">4.32</td>
+            <td class="num">2.22</td>
+            <td class="num">3.77</td>
+            <td class="num">7.85</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">1,833</td>
+            <td class="num">3.48</td>
+            <td class="num">2.12</td>
+            <td class="num">3.79</td>
+            <td class="num">6.90</td>
+        </tr>
+        <tr>
+            <td>(null)</td>
+            <td class="num">1,058</td>
+            <td class="num">0.84</td>
+            <td class="num">0.35</td>
+            <td class="num">0.73</td>
+            <td class="num">1.49</td>
+        </tr>
+        <tr>
+            <td>Other</td>
+            <td class="num">94</td>
+            <td class="num">4.36</td>
+            <td class="num">2.26</td>
+            <td class="num">3.54</td>
+            <td class="num">5.34</td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+        <div>
+            <h3>Egress mode</h3>
+            
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">134,353</td>
+            <td class="num">0.37</td>
+            <td class="num">0.22</td>
+            <td class="num">0.44</td>
+            <td class="num">0.80</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">9,152</td>
+            <td class="num">6.50</td>
+            <td class="num">3.26</td>
+            <td class="num">6.88</td>
+            <td class="num">14.36</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">9,087</td>
+            <td class="num">4.21</td>
+            <td class="num">2.07</td>
+            <td class="num">4.05</td>
+            <td class="num">8.29</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">7,365</td>
+            <td class="num">1.34</td>
+            <td class="num">0.89</td>
+            <td class="num">1.65</td>
+            <td class="num">2.63</td>
+        </tr>
+        <tr>
+            <td>Transit</td>
+            <td class="num">5,737</td>
+            <td class="num">4.29</td>
+            <td class="num">2.54</td>
+            <td class="num">4.10</td>
+            <td class="num">7.67</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">1,781</td>
+            <td class="num">3.85</td>
+            <td class="num">2.27</td>
+            <td class="num">4.09</td>
+            <td class="num">7.59</td>
+        </tr>
+        <tr>
+            <td>(null)</td>
+            <td class="num">1,025</td>
+            <td class="num">1.00</td>
+            <td class="num">0.35</td>
+            <td class="num">0.70</td>
+            <td class="num">1.40</td>
+        </tr>
+        <tr>
+            <td>Other</td>
+            <td class="num">47</td>
+            <td class="num">5.22</td>
+            <td class="num">2.39</td>
+            <td class="num">5.21</td>
+            <td class="num">6.68</td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </div>
+
+    <h2>By Operator</h2>
+    
+    <table class="data-table">
+        <thead><tr>
+            <th>Operator</th><th>Rows</th><th>Routed</th>
+            <th>Acc Mean</th><th>Acc Med</th><th>Acc P90</th>
+            <th>Egr Mean</th><th>Egr Med</th><th>Egr P90</th>
+        </tr></thead>
+        <tbody>
+        <tr>
+            <td>AC TRANSIT</td>
+            <td class="num">26,463</td>
+            <td class="num">14,535 (55%)</td>
+            <td class="num">0.39</td>
+            <td class="num">0.18</td>
+            <td class="num">0.78</td>
+            <td class="num">0.35</td>
+            <td class="num">0.19</td>
+            <td class="num">0.72</td>
+        </tr>
+        <tr>
+            <td>ACE</td>
+            <td class="num">1,465</td>
+            <td class="num">333 (23%)</td>
+            <td class="num">3.82</td>
+            <td class="num">2.25</td>
+            <td class="num">8.51</td>
+            <td class="num">5.33</td>
+            <td class="num">3.38</td>
+            <td class="num">11.35</td>
+        </tr>
+        <tr>
+            <td>BART</td>
+            <td class="num">81,275</td>
+            <td class="num">75,554 (93%)</td>
+            <td class="num">2.31</td>
+            <td class="num">0.82</td>
+            <td class="num">5.15</td>
+            <td class="num">1.86</td>
+            <td class="num">0.55</td>
+            <td class="num">3.83</td>
+        </tr>
+        <tr>
+            <td>CAPITOL CORRIDOR</td>
+            <td class="num">2,406</td>
+            <td class="num">0 (0%)</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+        </tr>
+        <tr>
+            <td>COUNTY CONNECTION</td>
+            <td class="num">2,615</td>
+            <td class="num">312 (12%)</td>
+            <td class="num">0.87</td>
+            <td class="num">0.36</td>
+            <td class="num">2.16</td>
+            <td class="num">0.34</td>
+            <td class="num">0.17</td>
+            <td class="num">0.75</td>
+        </tr>
+        <tr>
+            <td>Caltrain</td>
+            <td class="num">7,196</td>
+            <td class="num">5,700 (79%)</td>
+            <td class="num">1.89</td>
+            <td class="num">0.97</td>
+            <td class="num">4.21</td>
+            <td class="num">1.82</td>
+            <td class="num">0.89</td>
+            <td class="num">3.95</td>
+        </tr>
+        <tr>
+            <td>DUMBARTON</td>
+            <td class="num">448</td>
+            <td class="num">143 (32%)</td>
+            <td class="num">0.96</td>
+            <td class="num">0.30</td>
+            <td class="num">1.69</td>
+            <td class="num">2.21</td>
+            <td class="num">0.45</td>
+            <td class="num">3.30</td>
+        </tr>
+        <tr>
+            <td>FAST</td>
+            <td class="num">442</td>
+            <td class="num">252 (57%)</td>
+            <td class="num">1.82</td>
+            <td class="num">0.35</td>
+            <td class="num">5.37</td>
+            <td class="num">0.84</td>
+            <td class="num">0.29</td>
+            <td class="num">1.37</td>
+        </tr>
+        <tr>
+            <td>GOLDEN GATE TRANSIT</td>
+            <td class="num">8,550</td>
+            <td class="num">4,103 (48%)</td>
+            <td class="num">1.58</td>
+            <td class="num">0.48</td>
+            <td class="num">3.23</td>
+            <td class="num">1.97</td>
+            <td class="num">0.47</td>
+            <td class="num">3.44</td>
+        </tr>
+        <tr>
+            <td>LAVTA</td>
+            <td class="num">1,444</td>
+            <td class="num">553 (38%)</td>
+            <td class="num">1.34</td>
+            <td class="num">0.36</td>
+            <td class="num">1.77</td>
+            <td class="num">0.92</td>
+            <td class="num">0.31</td>
+            <td class="num">1.49</td>
+        </tr>
+        <tr>
+            <td>MARIN TRANSIT</td>
+            <td class="num">1,766</td>
+            <td class="num">225 (13%)</td>
+            <td class="num">0.84</td>
+            <td class="num">0.21</td>
+            <td class="num">1.26</td>
+            <td class="num">0.26</td>
+            <td class="num">0.25</td>
+            <td class="num">0.55</td>
+        </tr>
+        <tr>
+            <td>MUNI</td>
+            <td class="num">50,317</td>
+            <td class="num">48,306 (96%)</td>
+            <td class="num">0.34</td>
+            <td class="num">0.13</td>
+            <td class="num">0.50</td>
+            <td class="num">0.26</td>
+            <td class="num">0.14</td>
+            <td class="num">0.47</td>
+        </tr>
+        <tr>
+            <td>NAPA VINE</td>
+            <td class="num">1,099</td>
+            <td class="num">345 (31%)</td>
+            <td class="num">1.11</td>
+            <td class="num">0.30</td>
+            <td class="num">1.64</td>
+            <td class="num">0.76</td>
+            <td class="num">0.23</td>
+            <td class="num">1.17</td>
+        </tr>
+        <tr>
+            <td>PETALUMA TRANSIT</td>
+            <td class="num">594</td>
+            <td class="num">286 (48%)</td>
+            <td class="num">0.39</td>
+            <td class="num">0.16</td>
+            <td class="num">0.64</td>
+            <td class="num">0.25</td>
+            <td class="num">0.15</td>
+            <td class="num">0.58</td>
+        </tr>
+        <tr>
+            <td>REGIONAL - PUMS</td>
+            <td class="num">1</td>
+            <td class="num">0 (0%)</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+        </tr>
+        <tr>
+            <td>RIO-VISTA</td>
+            <td class="num">10</td>
+            <td class="num">8 (80%)</td>
+            <td class="num">0.29</td>
+            <td class="num">0.02</td>
+            <td class="num">1.11</td>
+            <td class="num">3.55</td>
+            <td class="num">0.21</td>
+            <td class="num">1.31</td>
+        </tr>
+        <tr>
+            <td>SAMTRANS</td>
+            <td class="num">5,100</td>
+            <td class="num">1,120 (22%)</td>
+            <td class="num">0.53</td>
+            <td class="num">0.30</td>
+            <td class="num">1.04</td>
+            <td class="num">0.72</td>
+            <td class="num">0.30</td>
+            <td class="num">1.02</td>
+        </tr>
+        <tr>
+            <td>SF BAY FERRY</td>
+            <td class="num">1,873</td>
+            <td class="num">55 (3%)</td>
+            <td class="num">0.50</td>
+            <td class="num">0.18</td>
+            <td class="num">1.05</td>
+            <td class="num">0.16</td>
+            <td class="num">0.12</td>
+            <td class="num">0.33</td>
+        </tr>
+        <tr>
+            <td>SMART</td>
+            <td class="num">867</td>
+            <td class="num">411 (47%)</td>
+            <td class="num">4.04</td>
+            <td class="num">1.23</td>
+            <td class="num">9.53</td>
+            <td class="num">4.06</td>
+            <td class="num">1.15</td>
+            <td class="num">9.30</td>
+        </tr>
+        <tr>
+            <td>SOLTRANS</td>
+            <td class="num">852</td>
+            <td class="num">398 (47%)</td>
+            <td class="num">0.75</td>
+            <td class="num">0.21</td>
+            <td class="num">1.84</td>
+            <td class="num">0.78</td>
+            <td class="num">0.17</td>
+            <td class="num">1.60</td>
+        </tr>
+        <tr>
+            <td>Santa Rosa CityBus</td>
+            <td class="num">1,822</td>
+            <td class="num">674 (37%)</td>
+            <td class="num">0.38</td>
+            <td class="num">0.19</td>
+            <td class="num">0.71</td>
+            <td class="num">0.27</td>
+            <td class="num">0.17</td>
+            <td class="num">0.57</td>
+        </tr>
+        <tr>
+            <td>Sonoma County Transit</td>
+            <td class="num">1,183</td>
+            <td class="num">0 (0%)</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+        </tr>
+        <tr>
+            <td>TRI-DELTA</td>
+            <td class="num">2,317</td>
+            <td class="num">742 (32%)</td>
+            <td class="num">0.54</td>
+            <td class="num">0.22</td>
+            <td class="num">0.96</td>
+            <td class="num">0.43</td>
+            <td class="num">0.21</td>
+            <td class="num">0.91</td>
+        </tr>
+        <tr>
+            <td>UNION CITY</td>
+            <td class="num">496</td>
+            <td class="num">0 (0%)</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+        </tr>
+        <tr>
+            <td>VACAVILLE CITY COACH</td>
+            <td class="num">206</td>
+            <td class="num">47 (23%)</td>
+            <td class="num">0.26</td>
+            <td class="num">0.21</td>
+            <td class="num">0.55</td>
+            <td class="num">0.20</td>
+            <td class="num">0.14</td>
+            <td class="num">0.31</td>
+        </tr>
+        <tr>
+            <td>VTA</td>
+            <td class="num">17,094</td>
+            <td class="num">15,394 (90%)</td>
+            <td class="num">0.70</td>
+            <td class="num">0.31</td>
+            <td class="num">1.24</td>
+            <td class="num">0.60</td>
+            <td class="num">0.30</td>
+            <td class="num">1.17</td>
+        </tr>
+        <tr>
+            <td>WESTCAT</td>
+            <td class="num">781</td>
+            <td class="num">383 (49%)</td>
+            <td class="num">0.82</td>
+            <td class="num">0.21</td>
+            <td class="num">1.64</td>
+            <td class="num">1.05</td>
+            <td class="num">0.23</td>
+            <td class="num">1.98</td>
+        </tr></tbody>
+    </table>
+    
+
+    <h2>Operator Details</h2>
+    <p><em>Click to expand</em></p>
+    
+    <details class="operator-detail">
+        <summary><strong>AC TRANSIT</strong> — 26,463 rows (2012, 2018, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>14,535 / 26,463 (54.9%)</td></tr>
+        <tr><td>Mean</td><td>0.39 mi</td></tr>
+        <tr><td>Median</td><td>0.18 mi</td></tr>
+        <tr><td>Std Dev</td><td>1.09 mi</td></tr>
+        <tr><td>P25</td><td>0.07 mi</td></tr>
+        <tr><td>P75</td><td>0.39 mi</td></tr>
+        <tr><td>P90</td><td>0.78 mi</td></tr>
+        <tr><td>P95</td><td>1.26 mi</td></tr>
+        <tr><td>P99</td><td>3.40 mi</td></tr>
+        <tr><td>Max</td><td>36.5 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">13,441</td>
+            <td class="num">0.27</td>
+            <td class="num">0.17</td>
+            <td class="num">0.35</td>
+            <td class="num">0.63</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">675</td>
+            <td class="num">0.66</td>
+            <td class="num">0.38</td>
+            <td class="num">0.75</td>
+            <td class="num">1.53</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">228</td>
+            <td class="num">3.39</td>
+            <td class="num">1.98</td>
+            <td class="num">3.84</td>
+            <td class="num">7.99</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">82</td>
+            <td class="num">5.68</td>
+            <td class="num">2.89</td>
+            <td class="num">5.44</td>
+            <td class="num">16.09</td>
+        </tr>
+        <tr>
+            <td>Other</td>
+            <td class="num">62</td>
+            <td class="num">2.81</td>
+            <td class="num">2.10</td>
+            <td class="num">3.18</td>
+            <td class="num">5.16</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">47</td>
+            <td class="num">3.94</td>
+            <td class="num">2.64</td>
+            <td class="num">4.80</td>
+            <td class="num">9.04</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>14,535 / 26,463 (54.9%)</td></tr>
+        <tr><td>Mean</td><td>0.35 mi</td></tr>
+        <tr><td>Median</td><td>0.19 mi</td></tr>
+        <tr><td>Std Dev</td><td>0.96 mi</td></tr>
+        <tr><td>P25</td><td>0.08 mi</td></tr>
+        <tr><td>P75</td><td>0.39 mi</td></tr>
+        <tr><td>P90</td><td>0.72 mi</td></tr>
+        <tr><td>P95</td><td>1.06 mi</td></tr>
+        <tr><td>P99</td><td>2.21 mi</td></tr>
+        <tr><td>Max</td><td>46.9 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">13,596</td>
+            <td class="num">0.28</td>
+            <td class="num">0.18</td>
+            <td class="num">0.37</td>
+            <td class="num">0.64</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">702</td>
+            <td class="num">0.58</td>
+            <td class="num">0.36</td>
+            <td class="num">0.69</td>
+            <td class="num">1.31</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">104</td>
+            <td class="num">3.06</td>
+            <td class="num">1.74</td>
+            <td class="num">3.26</td>
+            <td class="num">6.31</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">76</td>
+            <td class="num">4.86</td>
+            <td class="num">2.21</td>
+            <td class="num">5.06</td>
+            <td class="num">14.32</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">26</td>
+            <td class="num">5.20</td>
+            <td class="num">3.24</td>
+            <td class="num">4.92</td>
+            <td class="num">7.45</td>
+        </tr>
+        <tr>
+            <td>Other</td>
+            <td class="num">24</td>
+            <td class="num">2.94</td>
+            <td class="num">1.99</td>
+            <td class="num">2.84</td>
+            <td class="num">5.56</td>
+        </tr>
+        <tr>
+            <td>(null)</td>
+            <td class="num">7</td>
+            <td class="num">0.95</td>
+            <td class="num">0.63</td>
+            <td class="num">1.22</td>
+            <td class="num">1.22</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">8,847</td>
+            <td class="pct">60.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">2,994</td>
+            <td class="pct">20.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:33.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">1,647</td>
+            <td class="pct">11.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:18.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">738</td>
+            <td class="pct">5.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:8.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">132</td>
+            <td class="pct">0.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">91</td>
+            <td class="pct">0.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">50</td>
+            <td class="pct">0.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">27</td>
+            <td class="pct">0.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">9</td>
+            <td class="pct">0.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>ACE</strong> — 1,465 rows (2014, 2019, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>333 / 1,465 (22.7%)</td></tr>
+        <tr><td>Mean</td><td>3.82 mi</td></tr>
+        <tr><td>Median</td><td>2.25 mi</td></tr>
+        <tr><td>Std Dev</td><td>5.25 mi</td></tr>
+        <tr><td>P25</td><td>0.68 mi</td></tr>
+        <tr><td>P75</td><td>4.66 mi</td></tr>
+        <tr><td>P90</td><td>8.51 mi</td></tr>
+        <tr><td>P95</td><td>12.60 mi</td></tr>
+        <tr><td>P99</td><td>29.09 mi</td></tr>
+        <tr><td>Max</td><td>37.6 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">127</td>
+            <td class="num">1.34</td>
+            <td class="num">0.49</td>
+            <td class="num">1.10</td>
+            <td class="num">2.98</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">105</td>
+            <td class="num">6.84</td>
+            <td class="num">4.57</td>
+            <td class="num">8.15</td>
+            <td class="num">14.21</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">38</td>
+            <td class="num">4.98</td>
+            <td class="num">3.28</td>
+            <td class="num">6.15</td>
+            <td class="num">8.41</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">36</td>
+            <td class="num">2.78</td>
+            <td class="num">2.40</td>
+            <td class="num">3.34</td>
+            <td class="num">6.14</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">17</td>
+            <td class="num">3.61</td>
+            <td class="num">3.42</td>
+            <td class="num">4.52</td>
+            <td class="num">6.47</td>
+        </tr>
+        <tr>
+            <td>(null)</td>
+            <td class="num">7</td>
+            <td class="num">4.21</td>
+            <td class="num">5.18</td>
+            <td class="num">5.98</td>
+            <td class="num">5.98</td>
+        </tr>
+        <tr>
+            <td>Other</td>
+            <td class="num">3</td>
+            <td class="num">1.21</td>
+            <td class="num">1.06</td>
+            <td class="num">1.63</td>
+            <td class="num">1.63</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>289 / 1,465 (19.7%)</td></tr>
+        <tr><td>Mean</td><td>5.33 mi</td></tr>
+        <tr><td>Median</td><td>3.38 mi</td></tr>
+        <tr><td>Std Dev</td><td>6.37 mi</td></tr>
+        <tr><td>P25</td><td>1.82 mi</td></tr>
+        <tr><td>P75</td><td>5.85 mi</td></tr>
+        <tr><td>P90</td><td>11.35 mi</td></tr>
+        <tr><td>P95</td><td>20.51 mi</td></tr>
+        <tr><td>P99</td><td>27.45 mi</td></tr>
+        <tr><td>Max</td><td>42.8 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>PNR</td>
+            <td class="num">175</td>
+            <td class="num">6.28</td>
+            <td class="num">4.13</td>
+            <td class="num">6.74</td>
+            <td class="num">13.89</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">40</td>
+            <td class="num">6.78</td>
+            <td class="num">4.61</td>
+            <td class="num">6.08</td>
+            <td class="num">11.18</td>
+        </tr>
+        <tr>
+            <td>Walk</td>
+            <td class="num">36</td>
+            <td class="num">1.64</td>
+            <td class="num">0.73</td>
+            <td class="num">1.37</td>
+            <td class="num">4.80</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">26</td>
+            <td class="num">2.90</td>
+            <td class="num">2.57</td>
+            <td class="num">3.23</td>
+            <td class="num">4.58</td>
+        </tr>
+        <tr>
+            <td>(null)</td>
+            <td class="num">6</td>
+            <td class="num">3.21</td>
+            <td class="num">2.69</td>
+            <td class="num">5.15</td>
+            <td class="num">5.26</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">5</td>
+            <td class="num">2.90</td>
+            <td class="num">1.50</td>
+            <td class="num">5.13</td>
+            <td class="num">5.71</td>
+        </tr>
+        <tr>
+            <td>Other</td>
+            <td class="num">1</td>
+            <td class="num">0.75</td>
+            <td class="num">0.75</td>
+            <td class="num">0.75</td>
+            <td class="num">0.75</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">33</td>
+            <td class="pct">9.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:57.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">36</td>
+            <td class="pct">10.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:63.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">45</td>
+            <td class="pct">13.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:78.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">39</td>
+            <td class="pct">11.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:68.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">45</td>
+            <td class="pct">13.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:78.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">57</td>
+            <td class="pct">17.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">48</td>
+            <td class="pct">14.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:84.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">22</td>
+            <td class="pct">6.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:38.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">8</td>
+            <td class="pct">2.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:14.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>BART</strong> — 81,275 rows (2015, 2023, 2024)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>75,554 / 81,275 (93.0%)</td></tr>
+        <tr><td>Mean</td><td>2.31 mi</td></tr>
+        <tr><td>Median</td><td>0.82 mi</td></tr>
+        <tr><td>Std Dev</td><td>5.46 mi</td></tr>
+        <tr><td>P25</td><td>0.33 mi</td></tr>
+        <tr><td>P75</td><td>2.09 mi</td></tr>
+        <tr><td>P90</td><td>5.15 mi</td></tr>
+        <tr><td>P95</td><td>9.12 mi</td></tr>
+        <tr><td>P99</td><td>25.00 mi</td></tr>
+        <tr><td>Max</td><td>431.7 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">40,626</td>
+            <td class="num">0.51</td>
+            <td class="num">0.37</td>
+            <td class="num">0.65</td>
+            <td class="num">0.97</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">13,047</td>
+            <td class="num">5.84</td>
+            <td class="num">3.15</td>
+            <td class="num">6.62</td>
+            <td class="num">12.86</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">10,397</td>
+            <td class="num">4.11</td>
+            <td class="num">2.14</td>
+            <td class="num">4.26</td>
+            <td class="num">8.90</td>
+        </tr>
+        <tr>
+            <td>Transit</td>
+            <td class="num">5,249</td>
+            <td class="num">4.32</td>
+            <td class="num">2.22</td>
+            <td class="num">3.77</td>
+            <td class="num">7.85</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">4,597</td>
+            <td class="num">1.42</td>
+            <td class="num">1.07</td>
+            <td class="num">1.72</td>
+            <td class="num">2.62</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">1,503</td>
+            <td class="num">3.37</td>
+            <td class="num">2.15</td>
+            <td class="num">3.85</td>
+            <td class="num">6.80</td>
+        </tr>
+        <tr>
+            <td>(null)</td>
+            <td class="num">109</td>
+            <td class="num">2.52</td>
+            <td class="num">1.36</td>
+            <td class="num">2.26</td>
+            <td class="num">5.81</td>
+        </tr>
+        <tr>
+            <td>Other</td>
+            <td class="num">26</td>
+            <td class="num">8.53</td>
+            <td class="num">2.94</td>
+            <td class="num">3.74</td>
+            <td class="num">18.90</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>74,761 / 81,275 (92.0%)</td></tr>
+        <tr><td>Mean</td><td>1.86 mi</td></tr>
+        <tr><td>Median</td><td>0.55 mi</td></tr>
+        <tr><td>Std Dev</td><td>6.17 mi</td></tr>
+        <tr><td>P25</td><td>0.24 mi</td></tr>
+        <tr><td>P75</td><td>1.46 mi</td></tr>
+        <tr><td>P90</td><td>3.83 mi</td></tr>
+        <tr><td>P95</td><td>6.91 mi</td></tr>
+        <tr><td>P99</td><td>23.54 mi</td></tr>
+        <tr><td>Max</td><td>567.8 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">49,651</td>
+            <td class="num">0.52</td>
+            <td class="num">0.33</td>
+            <td class="num">0.59</td>
+            <td class="num">0.90</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">7,104</td>
+            <td class="num">6.58</td>
+            <td class="num">3.27</td>
+            <td class="num">6.99</td>
+            <td class="num">14.33</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">6,409</td>
+            <td class="num">4.49</td>
+            <td class="num">2.13</td>
+            <td class="num">4.33</td>
+            <td class="num">9.07</td>
+        </tr>
+        <tr>
+            <td>Transit</td>
+            <td class="num">5,737</td>
+            <td class="num">4.29</td>
+            <td class="num">2.54</td>
+            <td class="num">4.10</td>
+            <td class="num">7.67</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">4,286</td>
+            <td class="num">1.48</td>
+            <td class="num">0.99</td>
+            <td class="num">1.75</td>
+            <td class="num">2.81</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">1,483</td>
+            <td class="num">3.89</td>
+            <td class="num">2.29</td>
+            <td class="num">4.20</td>
+            <td class="num">7.69</td>
+        </tr>
+        <tr>
+            <td>(null)</td>
+            <td class="num">70</td>
+            <td class="num">3.47</td>
+            <td class="num">1.71</td>
+            <td class="num">2.86</td>
+            <td class="num">5.76</td>
+        </tr>
+        <tr>
+            <td>Other</td>
+            <td class="num">21</td>
+            <td class="num">8.12</td>
+            <td class="num">2.82</td>
+            <td class="num">6.35</td>
+            <td class="num">11.36</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">13,744</td>
+            <td class="pct">18.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:88.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">13,253</td>
+            <td class="pct">17.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:84.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">15,602</td>
+            <td class="pct">20.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">13,331</td>
+            <td class="pct">17.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:85.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">6,288</td>
+            <td class="pct">8.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:40.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">5,525</td>
+            <td class="pct">7.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:35.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">4,513</td>
+            <td class="pct">6.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:28.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">2,227</td>
+            <td class="pct">2.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:14.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">914</td>
+            <td class="pct">1.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:5.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">157</td>
+            <td class="pct">0.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>CAPITOL CORRIDOR</strong> — 2,406 rows (2019)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    <p>No data</p>
+                    <h5>By mode</h5>
+                    <p>No data</p>
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    <p>No data</p>
+                    <h5>By mode</h5>
+                    <p>No data</p>
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            <p>No data</p>
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>COUNTY CONNECTION</strong> — 2,615 rows (2012, 2019, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>312 / 2,615 (11.9%)</td></tr>
+        <tr><td>Mean</td><td>0.87 mi</td></tr>
+        <tr><td>Median</td><td>0.36 mi</td></tr>
+        <tr><td>Std Dev</td><td>1.53 mi</td></tr>
+        <tr><td>P25</td><td>0.15 mi</td></tr>
+        <tr><td>P75</td><td>0.82 mi</td></tr>
+        <tr><td>P90</td><td>2.16 mi</td></tr>
+        <tr><td>P95</td><td>3.43 mi</td></tr>
+        <tr><td>P99</td><td>7.08 mi</td></tr>
+        <tr><td>Max</td><td>13.8 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">264</td>
+            <td class="num">0.49</td>
+            <td class="num">0.28</td>
+            <td class="num">0.51</td>
+            <td class="num">1.20</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">25</td>
+            <td class="num">3.32</td>
+            <td class="num">1.89</td>
+            <td class="num">4.28</td>
+            <td class="num">6.44</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">14</td>
+            <td class="num">2.63</td>
+            <td class="num">2.39</td>
+            <td class="num">3.41</td>
+            <td class="num">4.45</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">6</td>
+            <td class="num">2.94</td>
+            <td class="num">1.29</td>
+            <td class="num">3.60</td>
+            <td class="num">9.87</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">3</td>
+            <td class="num">1.63</td>
+            <td class="num">1.41</td>
+            <td class="num">3.41</td>
+            <td class="num">3.41</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>312 / 2,615 (11.9%)</td></tr>
+        <tr><td>Mean</td><td>0.34 mi</td></tr>
+        <tr><td>Median</td><td>0.17 mi</td></tr>
+        <tr><td>Std Dev</td><td>0.56 mi</td></tr>
+        <tr><td>P25</td><td>0.08 mi</td></tr>
+        <tr><td>P75</td><td>0.35 mi</td></tr>
+        <tr><td>P90</td><td>0.75 mi</td></tr>
+        <tr><td>P95</td><td>1.10 mi</td></tr>
+        <tr><td>P99</td><td>3.16 mi</td></tr>
+        <tr><td>Max</td><td>4.9 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">301</td>
+            <td class="num">0.27</td>
+            <td class="num">0.17</td>
+            <td class="num">0.33</td>
+            <td class="num">0.69</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">4</td>
+            <td class="num">2.58</td>
+            <td class="num">2.20</td>
+            <td class="num">2.26</td>
+            <td class="num">4.59</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">3</td>
+            <td class="num">3.20</td>
+            <td class="num">3.56</td>
+            <td class="num">4.91</td>
+            <td class="num">4.91</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">3</td>
+            <td class="num">0.26</td>
+            <td class="num">0.19</td>
+            <td class="num">0.54</td>
+            <td class="num">0.54</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">1</td>
+            <td class="num">2.07</td>
+            <td class="num">2.07</td>
+            <td class="num">2.07</td>
+            <td class="num">2.07</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">125</td>
+            <td class="pct">40.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">67</td>
+            <td class="pct">21.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:53.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">51</td>
+            <td class="pct">16.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:40.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">35</td>
+            <td class="pct">11.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:28.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">9</td>
+            <td class="pct">2.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:7.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">16</td>
+            <td class="pct">5.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:12.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">8</td>
+            <td class="pct">2.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:6.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">1</td>
+            <td class="pct">0.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>Caltrain</strong> — 7,196 rows (2014, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>5,700 / 7,196 (79.2%)</td></tr>
+        <tr><td>Mean</td><td>1.89 mi</td></tr>
+        <tr><td>Median</td><td>0.97 mi</td></tr>
+        <tr><td>Std Dev</td><td>3.51 mi</td></tr>
+        <tr><td>P25</td><td>0.38 mi</td></tr>
+        <tr><td>P75</td><td>1.99 mi</td></tr>
+        <tr><td>P90</td><td>4.21 mi</td></tr>
+        <tr><td>P95</td><td>6.76 mi</td></tr>
+        <tr><td>P99</td><td>14.01 mi</td></tr>
+        <tr><td>Max</td><td>81.4 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">2,866</td>
+            <td class="num">0.76</td>
+            <td class="num">0.42</td>
+            <td class="num">0.82</td>
+            <td class="num">1.30</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">1,076</td>
+            <td class="num">3.36</td>
+            <td class="num">2.19</td>
+            <td class="num">3.82</td>
+            <td class="num">6.75</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">996</td>
+            <td class="num">1.60</td>
+            <td class="num">1.33</td>
+            <td class="num">2.05</td>
+            <td class="num">3.03</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">762</td>
+            <td class="num">4.42</td>
+            <td class="num">2.91</td>
+            <td class="num">5.81</td>
+            <td class="num">8.76</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>5,700 / 7,196 (79.2%)</td></tr>
+        <tr><td>Mean</td><td>1.82 mi</td></tr>
+        <tr><td>Median</td><td>0.89 mi</td></tr>
+        <tr><td>Std Dev</td><td>7.58 mi</td></tr>
+        <tr><td>P25</td><td>0.35 mi</td></tr>
+        <tr><td>P75</td><td>1.85 mi</td></tr>
+        <tr><td>P90</td><td>3.95 mi</td></tr>
+        <tr><td>P95</td><td>6.28 mi</td></tr>
+        <tr><td>P99</td><td>12.47 mi</td></tr>
+        <tr><td>Max</td><td>529.1 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">3,021</td>
+            <td class="num">0.88</td>
+            <td class="num">0.42</td>
+            <td class="num">0.80</td>
+            <td class="num">1.29</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">1,065</td>
+            <td class="num">3.19</td>
+            <td class="num">2.18</td>
+            <td class="num">3.77</td>
+            <td class="num">6.57</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">1,002</td>
+            <td class="num">1.51</td>
+            <td class="num">1.33</td>
+            <td class="num">1.89</td>
+            <td class="num">2.80</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">612</td>
+            <td class="num">4.57</td>
+            <td class="num">2.98</td>
+            <td class="num">6.15</td>
+            <td class="num">9.27</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">910</td>
+            <td class="pct">16.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:65.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">871</td>
+            <td class="pct">15.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:63.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">1,117</td>
+            <td class="pct">19.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:80.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">1,381</td>
+            <td class="pct">24.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">547</td>
+            <td class="pct">9.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:39.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">434</td>
+            <td class="pct">7.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:31.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">333</td>
+            <td class="pct">5.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:24.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">70</td>
+            <td class="pct">1.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:5.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">32</td>
+            <td class="pct">0.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">5</td>
+            <td class="pct">0.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.4%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>DUMBARTON</strong> — 448 rows (2012, 2018, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>143 / 448 (31.9%)</td></tr>
+        <tr><td>Mean</td><td>0.96 mi</td></tr>
+        <tr><td>Median</td><td>0.30 mi</td></tr>
+        <tr><td>Std Dev</td><td>2.71 mi</td></tr>
+        <tr><td>P25</td><td>0.14 mi</td></tr>
+        <tr><td>P75</td><td>0.59 mi</td></tr>
+        <tr><td>P90</td><td>1.69 mi</td></tr>
+        <tr><td>P95</td><td>3.27 mi</td></tr>
+        <tr><td>P99</td><td>18.86 mi</td></tr>
+        <tr><td>Max</td><td>20.7 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">128</td>
+            <td class="num">0.36</td>
+            <td class="num">0.25</td>
+            <td class="num">0.45</td>
+            <td class="num">0.66</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">6</td>
+            <td class="num">4.97</td>
+            <td class="num">4.59</td>
+            <td class="num">6.30</td>
+            <td class="num">12.94</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">4</td>
+            <td class="num">8.06</td>
+            <td class="num">4.88</td>
+            <td class="num">7.83</td>
+            <td class="num">20.72</td>
+        </tr>
+        <tr>
+            <td>Other</td>
+            <td class="num">3</td>
+            <td class="num">3.36</td>
+            <td class="num">3.27</td>
+            <td class="num">3.96</td>
+            <td class="num">3.96</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">1</td>
+            <td class="num">0.43</td>
+            <td class="num">0.43</td>
+            <td class="num">0.43</td>
+            <td class="num">0.43</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">1</td>
+            <td class="num">18.86</td>
+            <td class="num">18.86</td>
+            <td class="num">18.86</td>
+            <td class="num">18.86</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>143 / 448 (31.9%)</td></tr>
+        <tr><td>Mean</td><td>2.21 mi</td></tr>
+        <tr><td>Median</td><td>0.45 mi</td></tr>
+        <tr><td>Std Dev</td><td>6.04 mi</td></tr>
+        <tr><td>P25</td><td>0.20 mi</td></tr>
+        <tr><td>P75</td><td>1.02 mi</td></tr>
+        <tr><td>P90</td><td>3.30 mi</td></tr>
+        <tr><td>P95</td><td>13.26 mi</td></tr>
+        <tr><td>P99</td><td>27.41 mi</td></tr>
+        <tr><td>Max</td><td>46.0 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">110</td>
+            <td class="num">0.43</td>
+            <td class="num">0.35</td>
+            <td class="num">0.57</td>
+            <td class="num">0.96</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">22</td>
+            <td class="num">9.32</td>
+            <td class="num">4.77</td>
+            <td class="num">14.90</td>
+            <td class="num">24.14</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">6</td>
+            <td class="num">9.29</td>
+            <td class="num">2.54</td>
+            <td class="num">2.89</td>
+            <td class="num">46.03</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">4</td>
+            <td class="num">1.03</td>
+            <td class="num">0.93</td>
+            <td class="num">1.04</td>
+            <td class="num">2.15</td>
+        </tr>
+        <tr>
+            <td>Other</td>
+            <td class="num">1</td>
+            <td class="num">3.30</td>
+            <td class="num">3.30</td>
+            <td class="num">3.30</td>
+            <td class="num">3.30</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">64</td>
+            <td class="pct">44.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">40</td>
+            <td class="pct">28.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:62.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">20</td>
+            <td class="pct">14.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:31.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">8</td>
+            <td class="pct">5.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:12.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">2</td>
+            <td class="pct">1.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:3.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">3</td>
+            <td class="pct">2.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:4.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">3</td>
+            <td class="pct">2.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:4.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">2</td>
+            <td class="pct">1.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:3.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">1</td>
+            <td class="pct">0.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>FAST</strong> — 442 rows (2017, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>252 / 442 (57.0%)</td></tr>
+        <tr><td>Mean</td><td>1.82 mi</td></tr>
+        <tr><td>Median</td><td>0.35 mi</td></tr>
+        <tr><td>Std Dev</td><td>3.56 mi</td></tr>
+        <tr><td>P25</td><td>0.11 mi</td></tr>
+        <tr><td>P75</td><td>1.96 mi</td></tr>
+        <tr><td>P90</td><td>5.37 mi</td></tr>
+        <tr><td>P95</td><td>9.84 mi</td></tr>
+        <tr><td>P99</td><td>12.82 mi</td></tr>
+        <tr><td>Max</td><td>35.6 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">179</td>
+            <td class="num">0.43</td>
+            <td class="num">0.20</td>
+            <td class="num">0.44</td>
+            <td class="num">0.88</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">42</td>
+            <td class="num">5.41</td>
+            <td class="num">3.99</td>
+            <td class="num">6.60</td>
+            <td class="num">10.31</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">26</td>
+            <td class="num">5.45</td>
+            <td class="num">3.44</td>
+            <td class="num">9.84</td>
+            <td class="num">11.75</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">4</td>
+            <td class="num">2.11</td>
+            <td class="num">1.87</td>
+            <td class="num">2.13</td>
+            <td class="num">3.47</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">1</td>
+            <td class="num">4.12</td>
+            <td class="num">4.12</td>
+            <td class="num">4.12</td>
+            <td class="num">4.12</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>252 / 442 (57.0%)</td></tr>
+        <tr><td>Mean</td><td>0.84 mi</td></tr>
+        <tr><td>Median</td><td>0.29 mi</td></tr>
+        <tr><td>Std Dev</td><td>3.02 mi</td></tr>
+        <tr><td>P25</td><td>0.09 mi</td></tr>
+        <tr><td>P75</td><td>0.62 mi</td></tr>
+        <tr><td>P90</td><td>1.37 mi</td></tr>
+        <tr><td>P95</td><td>3.45 mi</td></tr>
+        <tr><td>P99</td><td>8.07 mi</td></tr>
+        <tr><td>Max</td><td>43.4 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">223</td>
+            <td class="num">0.36</td>
+            <td class="num">0.26</td>
+            <td class="num">0.50</td>
+            <td class="num">0.71</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">20</td>
+            <td class="num">4.32</td>
+            <td class="num">1.69</td>
+            <td class="num">3.54</td>
+            <td class="num">4.34</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">6</td>
+            <td class="num">6.19</td>
+            <td class="num">5.92</td>
+            <td class="num">8.07</td>
+            <td class="num">9.88</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">2</td>
+            <td class="num">2.63</td>
+            <td class="num">2.63</td>
+            <td class="num">3.32</td>
+            <td class="num">3.32</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">1</td>
+            <td class="num">1.76</td>
+            <td class="num">1.76</td>
+            <td class="num">1.76</td>
+            <td class="num">1.76</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">103</td>
+            <td class="pct">40.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">42</td>
+            <td class="pct">16.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:40.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">22</td>
+            <td class="pct">8.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:21.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">22</td>
+            <td class="pct">8.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:21.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">10</td>
+            <td class="pct">4.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:9.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">27</td>
+            <td class="pct">10.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:26.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">15</td>
+            <td class="pct">6.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:14.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">10</td>
+            <td class="pct">4.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:9.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">1</td>
+            <td class="pct">0.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>GOLDEN GATE TRANSIT</strong> — 8,550 rows (2013, 2018, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>4,103 / 8,550 (48.0%)</td></tr>
+        <tr><td>Mean</td><td>1.58 mi</td></tr>
+        <tr><td>Median</td><td>0.48 mi</td></tr>
+        <tr><td>Std Dev</td><td>4.46 mi</td></tr>
+        <tr><td>P25</td><td>0.22 mi</td></tr>
+        <tr><td>P75</td><td>1.19 mi</td></tr>
+        <tr><td>P90</td><td>3.23 mi</td></tr>
+        <tr><td>P95</td><td>5.66 mi</td></tr>
+        <tr><td>P99</td><td>23.99 mi</td></tr>
+        <tr><td>Max</td><td>94.3 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">2,832</td>
+            <td class="num">0.50</td>
+            <td class="num">0.32</td>
+            <td class="num">0.60</td>
+            <td class="num">1.04</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">455</td>
+            <td class="num">1.23</td>
+            <td class="num">0.72</td>
+            <td class="num">1.49</td>
+            <td class="num">2.45</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">439</td>
+            <td class="num">6.89</td>
+            <td class="num">3.50</td>
+            <td class="num">6.40</td>
+            <td class="num">14.79</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">288</td>
+            <td class="num">3.96</td>
+            <td class="num">2.37</td>
+            <td class="num">4.30</td>
+            <td class="num">7.63</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">75</td>
+            <td class="num">3.92</td>
+            <td class="num">2.36</td>
+            <td class="num">3.83</td>
+            <td class="num">6.47</td>
+        </tr>
+        <tr>
+            <td>(null)</td>
+            <td class="num">14</td>
+            <td class="num">4.28</td>
+            <td class="num">0.98</td>
+            <td class="num">1.94</td>
+            <td class="num">14.66</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>4,103 / 8,550 (48.0%)</td></tr>
+        <tr><td>Mean</td><td>1.97 mi</td></tr>
+        <tr><td>Median</td><td>0.47 mi</td></tr>
+        <tr><td>Std Dev</td><td>8.52 mi</td></tr>
+        <tr><td>P25</td><td>0.19 mi</td></tr>
+        <tr><td>P75</td><td>1.22 mi</td></tr>
+        <tr><td>P90</td><td>3.44 mi</td></tr>
+        <tr><td>P95</td><td>6.82 mi</td></tr>
+        <tr><td>P99</td><td>32.31 mi</td></tr>
+        <tr><td>Max</td><td>429.1 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">2,855</td>
+            <td class="num">0.50</td>
+            <td class="num">0.32</td>
+            <td class="num">0.58</td>
+            <td class="num">1.05</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">462</td>
+            <td class="num">9.32</td>
+            <td class="num">4.20</td>
+            <td class="num">10.50</td>
+            <td class="num">31.22</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">435</td>
+            <td class="num">1.27</td>
+            <td class="num">0.77</td>
+            <td class="num">1.65</td>
+            <td class="num">2.45</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">258</td>
+            <td class="num">5.82</td>
+            <td class="num">2.37</td>
+            <td class="num">4.46</td>
+            <td class="num">8.09</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">84</td>
+            <td class="num">3.64</td>
+            <td class="num">1.90</td>
+            <td class="num">3.50</td>
+            <td class="num">8.43</td>
+        </tr>
+        <tr>
+            <td>(null)</td>
+            <td class="num">9</td>
+            <td class="num">1.02</td>
+            <td class="num">0.54</td>
+            <td class="num">0.90</td>
+            <td class="num">1.18</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">1,167</td>
+            <td class="pct">28.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">939</td>
+            <td class="pct">22.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:80.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">827</td>
+            <td class="pct">20.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:70.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">499</td>
+            <td class="pct">12.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:42.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">220</td>
+            <td class="pct">5.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:18.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">208</td>
+            <td class="pct">5.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:17.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">148</td>
+            <td class="pct">3.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:12.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">42</td>
+            <td class="pct">1.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:3.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">51</td>
+            <td class="pct">1.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:4.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">2</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.2%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>LAVTA</strong> — 1,444 rows (2013, 2018, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>553 / 1,444 (38.3%)</td></tr>
+        <tr><td>Mean</td><td>1.34 mi</td></tr>
+        <tr><td>Median</td><td>0.36 mi</td></tr>
+        <tr><td>Std Dev</td><td>6.28 mi</td></tr>
+        <tr><td>P25</td><td>0.16 mi</td></tr>
+        <tr><td>P75</td><td>0.62 mi</td></tr>
+        <tr><td>P90</td><td>1.77 mi</td></tr>
+        <tr><td>P95</td><td>3.69 mi</td></tr>
+        <tr><td>P99</td><td>19.17 mi</td></tr>
+        <tr><td>Max</td><td>98.9 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">490</td>
+            <td class="num">0.50</td>
+            <td class="num">0.30</td>
+            <td class="num">0.49</td>
+            <td class="num">0.95</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">22</td>
+            <td class="num">11.44</td>
+            <td class="num">4.25</td>
+            <td class="num">12.69</td>
+            <td class="num">19.17</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">21</td>
+            <td class="num">9.84</td>
+            <td class="num">2.31</td>
+            <td class="num">4.46</td>
+            <td class="num">30.81</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">16</td>
+            <td class="num">1.91</td>
+            <td class="num">1.06</td>
+            <td class="num">1.97</td>
+            <td class="num">4.56</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">4</td>
+            <td class="num">2.24</td>
+            <td class="num">1.54</td>
+            <td class="num">2.03</td>
+            <td class="num">5.09</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>553 / 1,444 (38.3%)</td></tr>
+        <tr><td>Mean</td><td>0.92 mi</td></tr>
+        <tr><td>Median</td><td>0.31 mi</td></tr>
+        <tr><td>Std Dev</td><td>3.32 mi</td></tr>
+        <tr><td>P25</td><td>0.14 mi</td></tr>
+        <tr><td>P75</td><td>0.62 mi</td></tr>
+        <tr><td>P90</td><td>1.49 mi</td></tr>
+        <tr><td>P95</td><td>2.73 mi</td></tr>
+        <tr><td>P99</td><td>10.56 mi</td></tr>
+        <tr><td>Max</td><td>53.1 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">499</td>
+            <td class="num">0.45</td>
+            <td class="num">0.28</td>
+            <td class="num">0.50</td>
+            <td class="num">0.94</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">19</td>
+            <td class="num">0.76</td>
+            <td class="num">0.60</td>
+            <td class="num">1.04</td>
+            <td class="num">1.45</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">18</td>
+            <td class="num">10.56</td>
+            <td class="num">4.52</td>
+            <td class="num">10.56</td>
+            <td class="num">30.60</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">14</td>
+            <td class="num">4.93</td>
+            <td class="num">3.11</td>
+            <td class="num">4.42</td>
+            <td class="num">18.30</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">3</td>
+            <td class="num">3.22</td>
+            <td class="num">1.68</td>
+            <td class="num">7.26</td>
+            <td class="num">7.26</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">219</td>
+            <td class="pct">39.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">157</td>
+            <td class="pct">28.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:71.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">81</td>
+            <td class="pct">14.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:37.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">48</td>
+            <td class="pct">8.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:21.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">13</td>
+            <td class="pct">2.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:5.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">15</td>
+            <td class="pct">2.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:6.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">8</td>
+            <td class="pct">1.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:3.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">6</td>
+            <td class="pct">1.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">4</td>
+            <td class="pct">0.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">2</td>
+            <td class="pct">0.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.9%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>MARIN TRANSIT</strong> — 1,766 rows (2017, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>225 / 1,766 (12.7%)</td></tr>
+        <tr><td>Mean</td><td>0.84 mi</td></tr>
+        <tr><td>Median</td><td>0.21 mi</td></tr>
+        <tr><td>Std Dev</td><td>2.96 mi</td></tr>
+        <tr><td>P25</td><td>0.10 mi</td></tr>
+        <tr><td>P75</td><td>0.53 mi</td></tr>
+        <tr><td>P90</td><td>1.26 mi</td></tr>
+        <tr><td>P95</td><td>2.87 mi</td></tr>
+        <tr><td>P99</td><td>16.53 mi</td></tr>
+        <tr><td>Max</td><td>32.2 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">212</td>
+            <td class="num">0.58</td>
+            <td class="num">0.20</td>
+            <td class="num">0.45</td>
+            <td class="num">0.90</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">9</td>
+            <td class="num">5.92</td>
+            <td class="num">2.52</td>
+            <td class="num">4.76</td>
+            <td class="num">5.41</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">3</td>
+            <td class="num">1.85</td>
+            <td class="num">0.83</td>
+            <td class="num">4.31</td>
+            <td class="num">4.31</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">1</td>
+            <td class="num">6.09</td>
+            <td class="num">6.09</td>
+            <td class="num">6.09</td>
+            <td class="num">6.09</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>16 / 1,766 (0.9%)</td></tr>
+        <tr><td>Mean</td><td>0.26 mi</td></tr>
+        <tr><td>Median</td><td>0.25 mi</td></tr>
+        <tr><td>Std Dev</td><td>0.18 mi</td></tr>
+        <tr><td>P25</td><td>0.15 mi</td></tr>
+        <tr><td>P75</td><td>0.30 mi</td></tr>
+        <tr><td>P90</td><td>0.55 mi</td></tr>
+        <tr><td>P95</td><td>0.55 mi</td></tr>
+        <tr><td>P99</td><td>0.68 mi</td></tr>
+        <tr><td>Max</td><td>0.7 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">16</td>
+            <td class="num">0.26</td>
+            <td class="num">0.25</td>
+            <td class="num">0.30</td>
+            <td class="num">0.55</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">124</td>
+            <td class="pct">55.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">40</td>
+            <td class="pct">17.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:32.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">34</td>
+            <td class="pct">15.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:27.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">13</td>
+            <td class="pct">5.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:10.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">3</td>
+            <td class="pct">1.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">5</td>
+            <td class="pct">2.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:4.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">3</td>
+            <td class="pct">1.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">1</td>
+            <td class="pct">0.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">2</td>
+            <td class="pct">0.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>MUNI</strong> — 50,317 rows (2017, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>48,306 / 50,317 (96.0%)</td></tr>
+        <tr><td>Mean</td><td>0.34 mi</td></tr>
+        <tr><td>Median</td><td>0.13 mi</td></tr>
+        <tr><td>Std Dev</td><td>1.90 mi</td></tr>
+        <tr><td>P25</td><td>0.05 mi</td></tr>
+        <tr><td>P75</td><td>0.27 mi</td></tr>
+        <tr><td>P90</td><td>0.50 mi</td></tr>
+        <tr><td>P95</td><td>0.82 mi</td></tr>
+        <tr><td>P99</td><td>2.90 mi</td></tr>
+        <tr><td>Max</td><td>94.7 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">47,052</td>
+            <td class="num">0.21</td>
+            <td class="num">0.13</td>
+            <td class="num">0.26</td>
+            <td class="num">0.44</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">504</td>
+            <td class="num">4.28</td>
+            <td class="num">1.48</td>
+            <td class="num">3.48</td>
+            <td class="num">9.62</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">491</td>
+            <td class="num">7.99</td>
+            <td class="num">3.63</td>
+            <td class="num">9.58</td>
+            <td class="num">22.47</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">158</td>
+            <td class="num">0.88</td>
+            <td class="num">0.57</td>
+            <td class="num">1.15</td>
+            <td class="num">1.87</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">101</td>
+            <td class="num">4.96</td>
+            <td class="num">1.64</td>
+            <td class="num">2.51</td>
+            <td class="num">7.75</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>48,307 / 50,317 (96.0%)</td></tr>
+        <tr><td>Mean</td><td>0.26 mi</td></tr>
+        <tr><td>Median</td><td>0.14 mi</td></tr>
+        <tr><td>Std Dev</td><td>1.09 mi</td></tr>
+        <tr><td>P25</td><td>0.05 mi</td></tr>
+        <tr><td>P75</td><td>0.27 mi</td></tr>
+        <tr><td>P90</td><td>0.47 mi</td></tr>
+        <tr><td>P95</td><td>0.72 mi</td></tr>
+        <tr><td>P99</td><td>1.72 mi</td></tr>
+        <tr><td>Max</td><td>60.4 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">47,388</td>
+            <td class="num">0.20</td>
+            <td class="num">0.13</td>
+            <td class="num">0.26</td>
+            <td class="num">0.43</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">396</td>
+            <td class="num">2.88</td>
+            <td class="num">1.16</td>
+            <td class="num">2.57</td>
+            <td class="num">6.87</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">218</td>
+            <td class="num">6.30</td>
+            <td class="num">2.32</td>
+            <td class="num">5.76</td>
+            <td class="num">15.60</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">216</td>
+            <td class="num">0.72</td>
+            <td class="num">0.43</td>
+            <td class="num">0.93</td>
+            <td class="num">1.77</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">89</td>
+            <td class="num">3.29</td>
+            <td class="num">1.45</td>
+            <td class="num">2.99</td>
+            <td class="num">5.84</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">34,812</td>
+            <td class="pct">72.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">8,671</td>
+            <td class="pct">18.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:24.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">3,003</td>
+            <td class="pct">6.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:8.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">1,153</td>
+            <td class="pct">2.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:3.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">200</td>
+            <td class="pct">0.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">141</td>
+            <td class="pct">0.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">138</td>
+            <td class="pct">0.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">92</td>
+            <td class="pct">0.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">81</td>
+            <td class="pct">0.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">15</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>NAPA VINE</strong> — 1,099 rows (2014, 2019, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>345 / 1,099 (31.4%)</td></tr>
+        <tr><td>Mean</td><td>1.11 mi</td></tr>
+        <tr><td>Median</td><td>0.30 mi</td></tr>
+        <tr><td>Std Dev</td><td>3.82 mi</td></tr>
+        <tr><td>P25</td><td>0.13 mi</td></tr>
+        <tr><td>P75</td><td>0.61 mi</td></tr>
+        <tr><td>P90</td><td>1.64 mi</td></tr>
+        <tr><td>P95</td><td>3.33 mi</td></tr>
+        <tr><td>P99</td><td>23.30 mi</td></tr>
+        <tr><td>Max</td><td>38.1 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">291</td>
+            <td class="num">0.37</td>
+            <td class="num">0.24</td>
+            <td class="num">0.47</td>
+            <td class="num">0.70</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">31</td>
+            <td class="num">4.95</td>
+            <td class="num">2.28</td>
+            <td class="num">3.15</td>
+            <td class="num">12.38</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">18</td>
+            <td class="num">6.66</td>
+            <td class="num">2.92</td>
+            <td class="num">5.99</td>
+            <td class="num">18.49</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">5</td>
+            <td class="num">0.61</td>
+            <td class="num">0.56</td>
+            <td class="num">0.75</td>
+            <td class="num">0.88</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>259 / 1,099 (23.6%)</td></tr>
+        <tr><td>Mean</td><td>0.76 mi</td></tr>
+        <tr><td>Median</td><td>0.23 mi</td></tr>
+        <tr><td>Std Dev</td><td>2.63 mi</td></tr>
+        <tr><td>P25</td><td>0.10 mi</td></tr>
+        <tr><td>P75</td><td>0.56 mi</td></tr>
+        <tr><td>P90</td><td>1.17 mi</td></tr>
+        <tr><td>P95</td><td>2.06 mi</td></tr>
+        <tr><td>P99</td><td>10.10 mi</td></tr>
+        <tr><td>Max</td><td>33.5 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">234</td>
+            <td class="num">0.33</td>
+            <td class="num">0.19</td>
+            <td class="num">0.47</td>
+            <td class="num">0.78</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">13</td>
+            <td class="num">7.07</td>
+            <td class="num">2.95</td>
+            <td class="num">8.13</td>
+            <td class="num">15.82</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">9</td>
+            <td class="num">2.97</td>
+            <td class="num">1.43</td>
+            <td class="num">3.03</td>
+            <td class="num">4.75</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">3</td>
+            <td class="num">1.04</td>
+            <td class="num">0.83</td>
+            <td class="num">1.79</td>
+            <td class="num">1.79</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">155</td>
+            <td class="pct">44.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">75</td>
+            <td class="pct">21.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:48.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">66</td>
+            <td class="pct">19.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:42.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">19</td>
+            <td class="pct">5.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:12.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">11</td>
+            <td class="pct">3.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:7.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">7</td>
+            <td class="pct">2.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:4.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">4</td>
+            <td class="pct">1.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">4</td>
+            <td class="pct">1.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">4</td>
+            <td class="pct">1.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>PETALUMA TRANSIT</strong> — 594 rows (2012, 2018, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>286 / 594 (48.1%)</td></tr>
+        <tr><td>Mean</td><td>0.39 mi</td></tr>
+        <tr><td>Median</td><td>0.16 mi</td></tr>
+        <tr><td>Std Dev</td><td>1.28 mi</td></tr>
+        <tr><td>P25</td><td>0.09 mi</td></tr>
+        <tr><td>P75</td><td>0.31 mi</td></tr>
+        <tr><td>P90</td><td>0.64 mi</td></tr>
+        <tr><td>P95</td><td>0.94 mi</td></tr>
+        <tr><td>P99</td><td>2.66 mi</td></tr>
+        <tr><td>Max</td><td>16.5 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">275</td>
+            <td class="num">0.25</td>
+            <td class="num">0.15</td>
+            <td class="num">0.30</td>
+            <td class="num">0.56</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">6</td>
+            <td class="num">6.97</td>
+            <td class="num">5.77</td>
+            <td class="num">10.48</td>
+            <td class="num">16.46</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">4</td>
+            <td class="num">0.35</td>
+            <td class="num">0.29</td>
+            <td class="num">0.48</td>
+            <td class="num">0.72</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">1</td>
+            <td class="num">0.35</td>
+            <td class="num">0.35</td>
+            <td class="num">0.35</td>
+            <td class="num">0.35</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>286 / 594 (48.1%)</td></tr>
+        <tr><td>Mean</td><td>0.25 mi</td></tr>
+        <tr><td>Median</td><td>0.15 mi</td></tr>
+        <tr><td>Std Dev</td><td>0.24 mi</td></tr>
+        <tr><td>P25</td><td>0.11 mi</td></tr>
+        <tr><td>P75</td><td>0.34 mi</td></tr>
+        <tr><td>P90</td><td>0.58 mi</td></tr>
+        <tr><td>P95</td><td>0.79 mi</td></tr>
+        <tr><td>P99</td><td>1.12 mi</td></tr>
+        <tr><td>Max</td><td>1.4 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">282</td>
+            <td class="num">0.25</td>
+            <td class="num">0.15</td>
+            <td class="num">0.34</td>
+            <td class="num">0.58</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">4</td>
+            <td class="num">0.26</td>
+            <td class="num">0.08</td>
+            <td class="num">0.08</td>
+            <td class="num">0.82</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">196</td>
+            <td class="pct">68.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">47</td>
+            <td class="pct">16.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:24.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">33</td>
+            <td class="pct">11.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:16.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">4</td>
+            <td class="pct">1.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">3</td>
+            <td class="pct">1.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">1</td>
+            <td class="pct">0.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">2</td>
+            <td class="pct">0.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>REGIONAL - PUMS</strong> — 1 rows (2018)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    <p>No data</p>
+                    <h5>By mode</h5>
+                    <p>No data</p>
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    <p>No data</p>
+                    <h5>By mode</h5>
+                    <p>No data</p>
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            <p>No data</p>
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>RIO-VISTA</strong> — 10 rows (2017, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>8 / 10 (80.0%)</td></tr>
+        <tr><td>Mean</td><td>0.29 mi</td></tr>
+        <tr><td>Median</td><td>0.02 mi</td></tr>
+        <tr><td>Std Dev</td><td>0.51 mi</td></tr>
+        <tr><td>P25</td><td>0.01 mi</td></tr>
+        <tr><td>P75</td><td>0.04 mi</td></tr>
+        <tr><td>P90</td><td>1.11 mi</td></tr>
+        <tr><td>P95</td><td>1.11 mi</td></tr>
+        <tr><td>P99</td><td>1.11 mi</td></tr>
+        <tr><td>Max</td><td>1.1 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">8</td>
+            <td class="num">0.29</td>
+            <td class="num">0.02</td>
+            <td class="num">0.04</td>
+            <td class="num">1.11</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>8 / 10 (80.0%)</td></tr>
+        <tr><td>Mean</td><td>3.55 mi</td></tr>
+        <tr><td>Median</td><td>0.21 mi</td></tr>
+        <tr><td>Std Dev</td><td>9.21 mi</td></tr>
+        <tr><td>P25</td><td>0.00 mi</td></tr>
+        <tr><td>P75</td><td>0.32 mi</td></tr>
+        <tr><td>P90</td><td>1.31 mi</td></tr>
+        <tr><td>P95</td><td>26.32 mi</td></tr>
+        <tr><td>P99</td><td>26.32 mi</td></tr>
+        <tr><td>Max</td><td>26.3 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">5</td>
+            <td class="num">0.08</td>
+            <td class="num">0.00</td>
+            <td class="num">0.10</td>
+            <td class="num">0.31</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">2</td>
+            <td class="num">13.82</td>
+            <td class="num">13.82</td>
+            <td class="num">26.32</td>
+            <td class="num">26.32</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">1</td>
+            <td class="num">0.32</td>
+            <td class="num">0.32</td>
+            <td class="num">0.32</td>
+            <td class="num">0.32</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">6</td>
+            <td class="pct">75.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">2</td>
+            <td class="pct">25.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:33.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>SAMTRANS</strong> — 5,100 rows (2013, 2022, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>1,120 / 5,100 (22.0%)</td></tr>
+        <tr><td>Mean</td><td>0.53 mi</td></tr>
+        <tr><td>Median</td><td>0.30 mi</td></tr>
+        <tr><td>Std Dev</td><td>1.42 mi</td></tr>
+        <tr><td>P25</td><td>0.14 mi</td></tr>
+        <tr><td>P75</td><td>0.53 mi</td></tr>
+        <tr><td>P90</td><td>1.04 mi</td></tr>
+        <tr><td>P95</td><td>1.49 mi</td></tr>
+        <tr><td>P99</td><td>4.58 mi</td></tr>
+        <tr><td>Max</td><td>38.3 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>(null)</td>
+            <td class="num">928</td>
+            <td class="num">0.57</td>
+            <td class="num">0.31</td>
+            <td class="num">0.56</td>
+            <td class="num">1.09</td>
+        </tr>
+        <tr>
+            <td>Walk</td>
+            <td class="num">185</td>
+            <td class="num">0.29</td>
+            <td class="num">0.23</td>
+            <td class="num">0.39</td>
+            <td class="num">0.59</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">4</td>
+            <td class="num">2.07</td>
+            <td class="num">1.48</td>
+            <td class="num">1.69</td>
+            <td class="num">4.19</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">3</td>
+            <td class="num">2.26</td>
+            <td class="num">1.40</td>
+            <td class="num">4.02</td>
+            <td class="num">4.02</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>1,117 / 5,100 (21.9%)</td></tr>
+        <tr><td>Mean</td><td>0.72 mi</td></tr>
+        <tr><td>Median</td><td>0.30 mi</td></tr>
+        <tr><td>Std Dev</td><td>5.98 mi</td></tr>
+        <tr><td>P25</td><td>0.14 mi</td></tr>
+        <tr><td>P75</td><td>0.55 mi</td></tr>
+        <tr><td>P90</td><td>1.02 mi</td></tr>
+        <tr><td>P95</td><td>1.44 mi</td></tr>
+        <tr><td>P99</td><td>3.35 mi</td></tr>
+        <tr><td>Max</td><td>193.2 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>(null)</td>
+            <td class="num">933</td>
+            <td class="num">0.80</td>
+            <td class="num">0.31</td>
+            <td class="num">0.59</td>
+            <td class="num">1.11</td>
+        </tr>
+        <tr>
+            <td>Walk</td>
+            <td class="num">180</td>
+            <td class="num">0.29</td>
+            <td class="num">0.21</td>
+            <td class="num">0.37</td>
+            <td class="num">0.65</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">3</td>
+            <td class="num">1.52</td>
+            <td class="num">2.01</td>
+            <td class="num">2.30</td>
+            <td class="num">2.30</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">1</td>
+            <td class="num">0.36</td>
+            <td class="num">0.36</td>
+            <td class="num">0.36</td>
+            <td class="num">0.36</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">477</td>
+            <td class="pct">42.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">336</td>
+            <td class="pct">30.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:70.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">187</td>
+            <td class="pct">16.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:39.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">90</td>
+            <td class="pct">8.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:18.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">9</td>
+            <td class="pct">0.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">13</td>
+            <td class="pct">1.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">5</td>
+            <td class="pct">0.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">2</td>
+            <td class="pct">0.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">1</td>
+            <td class="pct">0.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>SF BAY FERRY</strong> — 1,873 rows (2013, 2019, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>55 / 1,873 (2.9%)</td></tr>
+        <tr><td>Mean</td><td>0.50 mi</td></tr>
+        <tr><td>Median</td><td>0.18 mi</td></tr>
+        <tr><td>Std Dev</td><td>1.31 mi</td></tr>
+        <tr><td>P25</td><td>0.07 mi</td></tr>
+        <tr><td>P75</td><td>0.31 mi</td></tr>
+        <tr><td>P90</td><td>1.05 mi</td></tr>
+        <tr><td>P95</td><td>1.26 mi</td></tr>
+        <tr><td>P99</td><td>4.66 mi</td></tr>
+        <tr><td>Max</td><td>8.7 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">53</td>
+            <td class="num">0.27</td>
+            <td class="num">0.18</td>
+            <td class="num">0.29</td>
+            <td class="num">0.66</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">2</td>
+            <td class="num">6.68</td>
+            <td class="num">6.68</td>
+            <td class="num">8.70</td>
+            <td class="num">8.70</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>8 / 1,873 (0.4%)</td></tr>
+        <tr><td>Mean</td><td>0.16 mi</td></tr>
+        <tr><td>Median</td><td>0.12 mi</td></tr>
+        <tr><td>Std Dev</td><td>0.12 mi</td></tr>
+        <tr><td>P25</td><td>0.07 mi</td></tr>
+        <tr><td>P75</td><td>0.16 mi</td></tr>
+        <tr><td>P90</td><td>0.33 mi</td></tr>
+        <tr><td>P95</td><td>0.35 mi</td></tr>
+        <tr><td>P99</td><td>0.35 mi</td></tr>
+        <tr><td>Max</td><td>0.3 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">8</td>
+            <td class="num">0.16</td>
+            <td class="num">0.12</td>
+            <td class="num">0.16</td>
+            <td class="num">0.33</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">36</td>
+            <td class="pct">65.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">9</td>
+            <td class="pct">16.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:25.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">4</td>
+            <td class="pct">7.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:11.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">4</td>
+            <td class="pct">7.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:11.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">1</td>
+            <td class="pct">1.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">1</td>
+            <td class="pct">1.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>SMART</strong> — 867 rows (2018, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>411 / 867 (47.4%)</td></tr>
+        <tr><td>Mean</td><td>4.04 mi</td></tr>
+        <tr><td>Median</td><td>1.23 mi</td></tr>
+        <tr><td>Std Dev</td><td>12.97 mi</td></tr>
+        <tr><td>P25</td><td>0.55 mi</td></tr>
+        <tr><td>P75</td><td>2.94 mi</td></tr>
+        <tr><td>P90</td><td>9.53 mi</td></tr>
+        <tr><td>P95</td><td>15.91 mi</td></tr>
+        <tr><td>P99</td><td>31.61 mi</td></tr>
+        <tr><td>Max</td><td>224.4 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">158</td>
+            <td class="num">0.61</td>
+            <td class="num">0.48</td>
+            <td class="num">0.75</td>
+            <td class="num">1.02</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">104</td>
+            <td class="num">7.01</td>
+            <td class="num">3.03</td>
+            <td class="num">9.34</td>
+            <td class="num">17.32</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">82</td>
+            <td class="num">7.88</td>
+            <td class="num">2.16</td>
+            <td class="num">4.24</td>
+            <td class="num">14.34</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">51</td>
+            <td class="num">2.39</td>
+            <td class="num">1.33</td>
+            <td class="num">1.91</td>
+            <td class="num">2.90</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">16</td>
+            <td class="num">4.29</td>
+            <td class="num">2.77</td>
+            <td class="num">3.16</td>
+            <td class="num">15.59</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>411 / 867 (47.4%)</td></tr>
+        <tr><td>Mean</td><td>4.06 mi</td></tr>
+        <tr><td>Median</td><td>1.15 mi</td></tr>
+        <tr><td>Std Dev</td><td>9.41 mi</td></tr>
+        <tr><td>P25</td><td>0.45 mi</td></tr>
+        <tr><td>P75</td><td>3.34 mi</td></tr>
+        <tr><td>P90</td><td>9.30 mi</td></tr>
+        <tr><td>P95</td><td>17.74 mi</td></tr>
+        <tr><td>P99</td><td>57.78 mi</td></tr>
+        <tr><td>Max</td><td>95.1 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">159</td>
+            <td class="num">0.60</td>
+            <td class="num">0.42</td>
+            <td class="num">0.64</td>
+            <td class="num">0.94</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">106</td>
+            <td class="num">7.52</td>
+            <td class="num">3.54</td>
+            <td class="num">7.77</td>
+            <td class="num">14.84</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">68</td>
+            <td class="num">7.62</td>
+            <td class="num">2.55</td>
+            <td class="num">7.12</td>
+            <td class="num">16.14</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">52</td>
+            <td class="num">3.09</td>
+            <td class="num">1.43</td>
+            <td class="num">2.27</td>
+            <td class="num">5.36</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">26</td>
+            <td class="num">3.66</td>
+            <td class="num">1.88</td>
+            <td class="num">3.32</td>
+            <td class="num">4.58</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">46</td>
+            <td class="pct">11.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:50.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">48</td>
+            <td class="pct">11.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:52.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">89</td>
+            <td class="pct">21.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:96.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">92</td>
+            <td class="pct">22.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">41</td>
+            <td class="pct">10.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:44.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">31</td>
+            <td class="pct">7.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:33.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">25</td>
+            <td class="pct">6.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:27.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">24</td>
+            <td class="pct">5.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:26.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">12</td>
+            <td class="pct">2.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:13.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">3</td>
+            <td class="pct">0.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:3.3%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>SOLTRANS</strong> — 852 rows (2017, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>398 / 852 (46.7%)</td></tr>
+        <tr><td>Mean</td><td>0.75 mi</td></tr>
+        <tr><td>Median</td><td>0.21 mi</td></tr>
+        <tr><td>Std Dev</td><td>1.79 mi</td></tr>
+        <tr><td>P25</td><td>0.07 mi</td></tr>
+        <tr><td>P75</td><td>0.59 mi</td></tr>
+        <tr><td>P90</td><td>1.84 mi</td></tr>
+        <tr><td>P95</td><td>3.18 mi</td></tr>
+        <tr><td>P99</td><td>9.97 mi</td></tr>
+        <tr><td>Max</td><td>16.0 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">330</td>
+            <td class="num">0.30</td>
+            <td class="num">0.17</td>
+            <td class="num">0.43</td>
+            <td class="num">0.73</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">37</td>
+            <td class="num">2.82</td>
+            <td class="num">2.21</td>
+            <td class="num">3.18</td>
+            <td class="num">3.90</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">19</td>
+            <td class="num">4.05</td>
+            <td class="num">1.49</td>
+            <td class="num">4.70</td>
+            <td class="num">11.09</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">8</td>
+            <td class="num">1.88</td>
+            <td class="num">1.59</td>
+            <td class="num">1.63</td>
+            <td class="num">3.38</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">4</td>
+            <td class="num">0.92</td>
+            <td class="num">0.29</td>
+            <td class="num">0.46</td>
+            <td class="num">3.08</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>398 / 852 (46.7%)</td></tr>
+        <tr><td>Mean</td><td>0.78 mi</td></tr>
+        <tr><td>Median</td><td>0.17 mi</td></tr>
+        <tr><td>Std Dev</td><td>2.44 mi</td></tr>
+        <tr><td>P25</td><td>0.05 mi</td></tr>
+        <tr><td>P75</td><td>0.45 mi</td></tr>
+        <tr><td>P90</td><td>1.60 mi</td></tr>
+        <tr><td>P95</td><td>2.85 mi</td></tr>
+        <tr><td>P99</td><td>17.48 mi</td></tr>
+        <tr><td>Max</td><td>20.7 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">332</td>
+            <td class="num">0.22</td>
+            <td class="num">0.11</td>
+            <td class="num">0.29</td>
+            <td class="num">0.51</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">46</td>
+            <td class="num">3.21</td>
+            <td class="num">1.62</td>
+            <td class="num">2.66</td>
+            <td class="num">6.24</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">12</td>
+            <td class="num">6.36</td>
+            <td class="num">2.99</td>
+            <td class="num">6.09</td>
+            <td class="num">18.08</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">5</td>
+            <td class="num">2.57</td>
+            <td class="num">2.85</td>
+            <td class="num">3.08</td>
+            <td class="num">4.09</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">3</td>
+            <td class="num">0.27</td>
+            <td class="num">0.09</td>
+            <td class="num">0.73</td>
+            <td class="num">0.73</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">214</td>
+            <td class="pct">53.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">73</td>
+            <td class="pct">18.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:34.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">47</td>
+            <td class="pct">11.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:22.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">29</td>
+            <td class="pct">7.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:13.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">12</td>
+            <td class="pct">3.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:5.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">15</td>
+            <td class="pct">3.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:7.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">4</td>
+            <td class="pct">1.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">4</td>
+            <td class="pct">1.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>Santa Rosa CityBus</strong> — 1,822 rows (2012, 2018, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>674 / 1,822 (37.0%)</td></tr>
+        <tr><td>Mean</td><td>0.38 mi</td></tr>
+        <tr><td>Median</td><td>0.19 mi</td></tr>
+        <tr><td>Std Dev</td><td>0.84 mi</td></tr>
+        <tr><td>P25</td><td>0.10 mi</td></tr>
+        <tr><td>P75</td><td>0.38 mi</td></tr>
+        <tr><td>P90</td><td>0.71 mi</td></tr>
+        <tr><td>P95</td><td>1.12 mi</td></tr>
+        <tr><td>P99</td><td>3.51 mi</td></tr>
+        <tr><td>Max</td><td>13.8 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">649</td>
+            <td class="num">0.29</td>
+            <td class="num">0.18</td>
+            <td class="num">0.35</td>
+            <td class="num">0.64</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">17</td>
+            <td class="num">1.10</td>
+            <td class="num">0.58</td>
+            <td class="num">1.17</td>
+            <td class="num">3.28</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">7</td>
+            <td class="num">6.27</td>
+            <td class="num">6.83</td>
+            <td class="num">8.57</td>
+            <td class="num">8.57</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">1</td>
+            <td class="num">0.73</td>
+            <td class="num">0.73</td>
+            <td class="num">0.73</td>
+            <td class="num">0.73</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>674 / 1,822 (37.0%)</td></tr>
+        <tr><td>Mean</td><td>0.27 mi</td></tr>
+        <tr><td>Median</td><td>0.17 mi</td></tr>
+        <tr><td>Std Dev</td><td>0.37 mi</td></tr>
+        <tr><td>P25</td><td>0.10 mi</td></tr>
+        <tr><td>P75</td><td>0.30 mi</td></tr>
+        <tr><td>P90</td><td>0.57 mi</td></tr>
+        <tr><td>P95</td><td>0.85 mi</td></tr>
+        <tr><td>P99</td><td>1.78 mi</td></tr>
+        <tr><td>Max</td><td>4.7 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">654</td>
+            <td class="num">0.26</td>
+            <td class="num">0.17</td>
+            <td class="num">0.29</td>
+            <td class="num">0.57</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">17</td>
+            <td class="num">0.52</td>
+            <td class="num">0.21</td>
+            <td class="num">0.98</td>
+            <td class="num">1.15</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">2</td>
+            <td class="num">2.51</td>
+            <td class="num">2.51</td>
+            <td class="num">3.31</td>
+            <td class="num">3.31</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">1</td>
+            <td class="num">0.10</td>
+            <td class="num">0.10</td>
+            <td class="num">0.10</td>
+            <td class="num">0.10</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">423</td>
+            <td class="pct">62.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">125</td>
+            <td class="pct">18.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:29.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">87</td>
+            <td class="pct">12.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:20.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">28</td>
+            <td class="pct">4.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:6.6%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">2</td>
+            <td class="pct">0.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">4</td>
+            <td class="pct">0.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">4</td>
+            <td class="pct">0.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">1</td>
+            <td class="pct">0.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>Sonoma County Transit</strong> — 1,183 rows (2012, 2018, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    <p>No data</p>
+                    <h5>By mode</h5>
+                    <p>No data</p>
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    <p>No data</p>
+                    <h5>By mode</h5>
+                    <p>No data</p>
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            <p>No data</p>
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>TRI-DELTA</strong> — 2,317 rows (2014, 2019, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>742 / 2,317 (32.0%)</td></tr>
+        <tr><td>Mean</td><td>0.54 mi</td></tr>
+        <tr><td>Median</td><td>0.22 mi</td></tr>
+        <tr><td>Std Dev</td><td>1.94 mi</td></tr>
+        <tr><td>P25</td><td>0.10 mi</td></tr>
+        <tr><td>P75</td><td>0.54 mi</td></tr>
+        <tr><td>P90</td><td>0.96 mi</td></tr>
+        <tr><td>P95</td><td>1.38 mi</td></tr>
+        <tr><td>P99</td><td>5.27 mi</td></tr>
+        <tr><td>Max</td><td>44.7 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">693</td>
+            <td class="num">0.35</td>
+            <td class="num">0.20</td>
+            <td class="num">0.46</td>
+            <td class="num">0.81</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">20</td>
+            <td class="num">6.06</td>
+            <td class="num">2.70</td>
+            <td class="num">4.91</td>
+            <td class="num">13.41</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">17</td>
+            <td class="num">0.95</td>
+            <td class="num">0.50</td>
+            <td class="num">0.95</td>
+            <td class="num">1.07</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">9</td>
+            <td class="num">1.80</td>
+            <td class="num">1.60</td>
+            <td class="num">2.14</td>
+            <td class="num">2.14</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">3</td>
+            <td class="num">3.45</td>
+            <td class="num">1.41</td>
+            <td class="num">8.72</td>
+            <td class="num">8.72</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>593 / 2,317 (25.6%)</td></tr>
+        <tr><td>Mean</td><td>0.43 mi</td></tr>
+        <tr><td>Median</td><td>0.21 mi</td></tr>
+        <tr><td>Std Dev</td><td>1.54 mi</td></tr>
+        <tr><td>P25</td><td>0.10 mi</td></tr>
+        <tr><td>P75</td><td>0.48 mi</td></tr>
+        <tr><td>P90</td><td>0.91 mi</td></tr>
+        <tr><td>P95</td><td>1.19 mi</td></tr>
+        <tr><td>P99</td><td>2.11 mi</td></tr>
+        <tr><td>Max</td><td>36.4 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">573</td>
+            <td class="num">0.34</td>
+            <td class="num">0.20</td>
+            <td class="num">0.45</td>
+            <td class="num">0.82</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">9</td>
+            <td class="num">5.25</td>
+            <td class="num">1.52</td>
+            <td class="num">1.79</td>
+            <td class="num">1.85</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">9</td>
+            <td class="num">1.12</td>
+            <td class="num">0.67</td>
+            <td class="num">2.03</td>
+            <td class="num">2.41</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">2</td>
+            <td class="num">2.23</td>
+            <td class="num">2.23</td>
+            <td class="num">2.35</td>
+            <td class="num">2.35</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">407</td>
+            <td class="pct">54.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">139</td>
+            <td class="pct">18.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:34.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">127</td>
+            <td class="pct">17.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:31.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">47</td>
+            <td class="pct">6.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:11.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">11</td>
+            <td class="pct">1.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">3</td>
+            <td class="pct">0.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">4</td>
+            <td class="pct">0.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">3</td>
+            <td class="pct">0.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">1</td>
+            <td class="pct">0.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.2%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>UNION CITY</strong> — 496 rows (2013, 2017, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    <p>No data</p>
+                    <h5>By mode</h5>
+                    <p>No data</p>
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    <p>No data</p>
+                    <h5>By mode</h5>
+                    <p>No data</p>
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            <p>No data</p>
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>VACAVILLE CITY COACH</strong> — 206 rows (2017, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>47 / 206 (22.8%)</td></tr>
+        <tr><td>Mean</td><td>0.26 mi</td></tr>
+        <tr><td>Median</td><td>0.21 mi</td></tr>
+        <tr><td>Std Dev</td><td>0.33 mi</td></tr>
+        <tr><td>P25</td><td>0.03 mi</td></tr>
+        <tr><td>P75</td><td>0.32 mi</td></tr>
+        <tr><td>P90</td><td>0.55 mi</td></tr>
+        <tr><td>P95</td><td>1.01 mi</td></tr>
+        <tr><td>P99</td><td>1.63 mi</td></tr>
+        <tr><td>Max</td><td>1.6 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">47</td>
+            <td class="num">0.26</td>
+            <td class="num">0.21</td>
+            <td class="num">0.32</td>
+            <td class="num">0.55</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>47 / 206 (22.8%)</td></tr>
+        <tr><td>Mean</td><td>0.20 mi</td></tr>
+        <tr><td>Median</td><td>0.14 mi</td></tr>
+        <tr><td>Std Dev</td><td>0.27 mi</td></tr>
+        <tr><td>P25</td><td>0.00 mi</td></tr>
+        <tr><td>P75</td><td>0.28 mi</td></tr>
+        <tr><td>P90</td><td>0.31 mi</td></tr>
+        <tr><td>P95</td><td>0.89 mi</td></tr>
+        <tr><td>P99</td><td>1.25 mi</td></tr>
+        <tr><td>Max</td><td>1.3 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">47</td>
+            <td class="num">0.20</td>
+            <td class="num">0.14</td>
+            <td class="num">0.28</td>
+            <td class="num">0.31</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">27</td>
+            <td class="pct">57.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">14</td>
+            <td class="pct">29.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:51.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">3</td>
+            <td class="pct">6.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:11.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">3</td>
+            <td class="pct">6.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:11.1%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>VTA</strong> — 17,094 rows (2017, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>15,394 / 17,094 (90.1%)</td></tr>
+        <tr><td>Mean</td><td>0.70 mi</td></tr>
+        <tr><td>Median</td><td>0.31 mi</td></tr>
+        <tr><td>Std Dev</td><td>2.49 mi</td></tr>
+        <tr><td>P25</td><td>0.15 mi</td></tr>
+        <tr><td>P75</td><td>0.64 mi</td></tr>
+        <tr><td>P90</td><td>1.24 mi</td></tr>
+        <tr><td>P95</td><td>1.91 mi</td></tr>
+        <tr><td>P99</td><td>6.30 mi</td></tr>
+        <tr><td>Max</td><td>103.9 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">13,366</td>
+            <td class="num">0.40</td>
+            <td class="num">0.27</td>
+            <td class="num">0.49</td>
+            <td class="num">0.85</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">927</td>
+            <td class="num">2.87</td>
+            <td class="num">1.40</td>
+            <td class="num">2.94</td>
+            <td class="num">5.12</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">668</td>
+            <td class="num">0.94</td>
+            <td class="num">0.65</td>
+            <td class="num">1.18</td>
+            <td class="num">1.93</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">390</td>
+            <td class="num">5.54</td>
+            <td class="num">2.49</td>
+            <td class="num">4.99</td>
+            <td class="num">12.07</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">43</td>
+            <td class="num">2.66</td>
+            <td class="num">1.97</td>
+            <td class="num">3.74</td>
+            <td class="num">4.81</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>15,394 / 17,094 (90.1%)</td></tr>
+        <tr><td>Mean</td><td>0.60 mi</td></tr>
+        <tr><td>Median</td><td>0.30 mi</td></tr>
+        <tr><td>Std Dev</td><td>1.56 mi</td></tr>
+        <tr><td>P25</td><td>0.13 mi</td></tr>
+        <tr><td>P75</td><td>0.60 mi</td></tr>
+        <tr><td>P90</td><td>1.17 mi</td></tr>
+        <tr><td>P95</td><td>1.75 mi</td></tr>
+        <tr><td>P99</td><td>5.54 mi</td></tr>
+        <tr><td>Max</td><td>49.0 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">13,862</td>
+            <td class="num">0.38</td>
+            <td class="num">0.27</td>
+            <td class="num">0.48</td>
+            <td class="num">0.84</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">607</td>
+            <td class="num">2.90</td>
+            <td class="num">1.61</td>
+            <td class="num">3.10</td>
+            <td class="num">5.96</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">578</td>
+            <td class="num">1.05</td>
+            <td class="num">0.65</td>
+            <td class="num">1.27</td>
+            <td class="num">2.16</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">295</td>
+            <td class="num">4.48</td>
+            <td class="num">2.62</td>
+            <td class="num">4.40</td>
+            <td class="num">10.76</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">52</td>
+            <td class="num">3.78</td>
+            <td class="num">2.92</td>
+            <td class="num">3.82</td>
+            <td class="num">6.31</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">6,444</td>
+            <td class="pct">41.9%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">4,046</td>
+            <td class="pct">26.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:62.8%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">2,739</td>
+            <td class="pct">17.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:42.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">1,442</td>
+            <td class="pct">9.4%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:22.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">258</td>
+            <td class="pct">1.7%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:4.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">251</td>
+            <td class="pct">1.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:3.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">125</td>
+            <td class="pct">0.8%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:1.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">47</td>
+            <td class="pct">0.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.7%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">33</td>
+            <td class="pct">0.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">9</td>
+            <td class="pct">0.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.1%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+
+    <details class="operator-detail">
+        <summary><strong>WESTCAT</strong> — 781 rows (2017, 2023)</summary>
+        <div class="detail-content">
+            <div class="two-col">
+                <div>
+                    <h4>Access (origin → first boarding)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>383 / 781 (49.0%)</td></tr>
+        <tr><td>Mean</td><td>0.82 mi</td></tr>
+        <tr><td>Median</td><td>0.21 mi</td></tr>
+        <tr><td>Std Dev</td><td>2.24 mi</td></tr>
+        <tr><td>P25</td><td>0.05 mi</td></tr>
+        <tr><td>P75</td><td>0.64 mi</td></tr>
+        <tr><td>P90</td><td>1.64 mi</td></tr>
+        <tr><td>P95</td><td>2.77 mi</td></tr>
+        <tr><td>P99</td><td>13.15 mi</td></tr>
+        <tr><td>Max</td><td>24.4 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">330</td>
+            <td class="num">0.53</td>
+            <td class="num">0.16</td>
+            <td class="num">0.43</td>
+            <td class="num">0.76</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">24</td>
+            <td class="num">2.41</td>
+            <td class="num">1.60</td>
+            <td class="num">1.99</td>
+            <td class="num">3.78</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">22</td>
+            <td class="num">3.11</td>
+            <td class="num">1.63</td>
+            <td class="num">2.37</td>
+            <td class="num">6.87</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">6</td>
+            <td class="num">1.24</td>
+            <td class="num">0.74</td>
+            <td class="num">1.58</td>
+            <td class="num">3.97</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">1</td>
+            <td class="num">2.57</td>
+            <td class="num">2.57</td>
+            <td class="num">2.57</td>
+            <td class="num">2.57</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+                <div>
+                    <h4>Egress (last alighting → destination)</h4>
+                    
+    <table class="stats-table">
+        <tr><td>Coverage</td><td>381 / 781 (48.8%)</td></tr>
+        <tr><td>Mean</td><td>1.05 mi</td></tr>
+        <tr><td>Median</td><td>0.23 mi</td></tr>
+        <tr><td>Std Dev</td><td>3.28 mi</td></tr>
+        <tr><td>P25</td><td>0.07 mi</td></tr>
+        <tr><td>P75</td><td>0.64 mi</td></tr>
+        <tr><td>P90</td><td>1.98 mi</td></tr>
+        <tr><td>P95</td><td>3.07 mi</td></tr>
+        <tr><td>P99</td><td>19.11 mi</td></tr>
+        <tr><td>Max</td><td>33.4 mi</td></tr>
+    </table>
+    
+                    <h5>By mode</h5>
+                    
+    <table class="data-table">
+        <thead><tr><th>Mode</th><th>N</th><th>Mean (mi)</th><th>Median (mi)</th><th>P75 (mi)</th><th>P90 (mi)</th></tr></thead>
+        <tbody>
+        <tr>
+            <td>Walk</td>
+            <td class="num">321</td>
+            <td class="num">0.57</td>
+            <td class="num">0.19</td>
+            <td class="num">0.42</td>
+            <td class="num">0.81</td>
+        </tr>
+        <tr>
+            <td>PNR</td>
+            <td class="num">29</td>
+            <td class="num">5.11</td>
+            <td class="num">2.70</td>
+            <td class="num">3.86</td>
+            <td class="num">17.55</td>
+        </tr>
+        <tr>
+            <td>KNR</td>
+            <td class="num">25</td>
+            <td class="num">2.65</td>
+            <td class="num">1.62</td>
+            <td class="num">2.38</td>
+            <td class="num">2.74</td>
+        </tr>
+        <tr>
+            <td>Bike</td>
+            <td class="num">5</td>
+            <td class="num">0.72</td>
+            <td class="num">0.75</td>
+            <td class="num">1.24</td>
+            <td class="num">1.24</td>
+        </tr>
+        <tr>
+            <td>TNC</td>
+            <td class="num">1</td>
+            <td class="num">0.65</td>
+            <td class="num">0.65</td>
+            <td class="num">0.65</td>
+            <td class="num">0.65</td>
+        </tr></tbody>
+    </table>
+    
+                </div>
+            </div>
+            <h4>Access distance distribution</h4>
+            
+    <table class="hist-table">
+        <thead><tr><th>Range (mi)</th><th>Count</th><th>%</th><th></th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="bin-label">0-0.25</td>
+            <td class="count">201</td>
+            <td class="pct">52.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:100.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.25-0.5</td>
+            <td class="count">67</td>
+            <td class="pct">17.5%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:33.3%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">0.5-1</td>
+            <td class="count">50</td>
+            <td class="pct">13.1%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:24.9%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">1-2</td>
+            <td class="count">39</td>
+            <td class="pct">10.2%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:19.4%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">2-3</td>
+            <td class="count">9</td>
+            <td class="pct">2.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:4.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">3-5</td>
+            <td class="count">5</td>
+            <td class="pct">1.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">5-10</td>
+            <td class="count">6</td>
+            <td class="pct">1.6%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:3.0%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">10-20</td>
+            <td class="count">5</td>
+            <td class="pct">1.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:2.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">20-50</td>
+            <td class="count">1</td>
+            <td class="pct">0.3%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.5%"></div></div></td>
+        </tr>
+        <tr>
+            <td class="bin-label">50+</td>
+            <td class="count">0</td>
+            <td class="pct">0.0%</td>
+            <td class="bar-cell"><div class="bar-container"><div class="bar" style="width:0.0%"></div></div></td>
+        </tr></tbody>
+    </table>
+    
+        </div>
+    </details>
+    
+</body>
+</html>

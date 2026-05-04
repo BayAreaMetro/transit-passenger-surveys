@@ -64,6 +64,12 @@ class PipelineConfig(BaseModel):
         description="Thresholds for pipeline validation"
     )
 
+    # OSRM routing server
+    osrm_server_url: str | None = Field(
+        default=None,
+        description="OSRM HTTP server URL for routed distance calculations",
+    )
+
     model_config = {"extra": "forbid", "populate_by_name": True}
 
     def resolve_shapefile_path(self, shapefile_key: str) -> Path:
