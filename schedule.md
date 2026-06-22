@@ -221,29 +221,13 @@ Also see the surveys [Completed to Date and Currently in the Field](#completed-t
  <tbody>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
-    <td rowspan="5" style="text-align:center; vertical-align:middle;">2026</td>
+    <td rowspan="1" style="text-align:center; vertical-align:middle;">2026</td>
     <td></td>
     <td>Wheels (LAVTA)</td>
   </tr>
-  <tr>
-    <td></td>
-    <td>FAST</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td>Rio Vista Delta Breeze</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td>SolTrans</td>
-      </tr>
-  <tr>
-    <td></td>
-    <td>Vacaville Transit</td>
-  </tr>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
-    <td rowspan="5" style="text-align:center; vertical-align:middle;">2027</td>
+    <td rowspan="9" style="text-align:center; vertical-align:middle;">2027</td>
     <td>SMART</td>
     <td>ACE</td>
   </tr>
@@ -262,6 +246,22 @@ Also see the surveys [Completed to Date and Currently in the Field](#completed-t
   <tr>
     <td>WETA Ferries</td>
     <td>Golden Gate Transit and Ferry</td>
+  </tr>
+  <tr>
+    <td>FAST</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Rio Vista Delta Breeze</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>SolTrans</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Vacaville Transit</td>
+    <td></td>
   </tr>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
