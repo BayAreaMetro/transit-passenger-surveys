@@ -261,6 +261,13 @@ technology_present <- function(survey_data_df,
 # Institutional GQ people were excluded from the function
 
 create_PUMS_data_in_TPS_format <- function(survey_year,inflation_year){
+  # Use fallback for years without PUMS data
+  original_year <- survey_year
+  if (survey_year >= 2025 && Sys.Date() < as.Date("2026-10-01")) {
+    survey_year <- 2024  # Fall back to 2024 for 2025+ (until Oct 2026)
+    message(paste("PUMS data for", original_year, "not available; using 2024 instead"))
+  }
+  
   suffix <- substr(survey_year, 3, 4)  # Extract last two digits from survey year
   
   pums_path <- file.path("M:/Data/Census/PUMS", 
@@ -378,25 +385,25 @@ create_PUMS_data_in_TPS_format <- function(survey_year,inflation_year){
     group_by(race,hispanic) %>% 
     summarize(weight=sum(PWGTP),.groups = "drop") %>% 
     mutate(
-      source=paste(survey_year,"pums1"),
-      survey_year=!!survey_year
+      source=paste(original_year,"pums1"),
+      survey_year=!!original_year
     )
   
   home_county <- combined %>% 
     group_by(home_county_GEOID) %>% 
     summarize(weight=sum(PWGTP),.groups = "drop") %>% 
     mutate(
-      source=paste(survey_year,"pums1"),
-      survey_year=!!survey_year
+      source=paste(original_year,"pums1"),
+      survey_year=!!original_year
     )
 
   income <- combined %>% 
     group_by(household_income) %>% 
     summarize(weight=sum(PWGTP),.groups = "drop") %>% 
     mutate(
-      source=paste(survey_year,"pums1"),
+      source=paste(original_year,"pums1"),
       inflation_year=!!inflation_year,
-      survey_year=!!survey_year
+      survey_year=!!original_year
     )
   
   # Combine datasets for export

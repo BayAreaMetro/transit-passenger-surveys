@@ -2,10 +2,10 @@ USAGE = "
  Impute_Continuous_Income_Value.R
  Use PUMS data to impute a continuous income value from categorical data
  Use the appropriate PUMS year for each survey (from the 'survey_year' field)
- An exception is that we don't yet have 2023 PUMS data for surveys performed in 2023 
- (the Regional Snapshot Survey and ACE/Golden Gate)
+ An exception is that we don't yet have 2025 PUMS data for surveys performed in 2025 
+ (until October 2026)
 
- Instead of 2023, use 2022 for those (but update once 2023 PUMS data is available)
+ Instead of 2025, use 2024 for those (but update once 2025 PUMS data is available)
 "
 
 library(tidyverse)
@@ -101,14 +101,25 @@ impute_continuous_income_f <- function(input_df) {
   
   combined_pums <<- data.frame() # make this global scope
   for (year in unique_pums_years) {
-    # TODO: Note that this should be updated after getting PUMS 2023 data
-    year <- if_else(year == "2023", "2022", as.character(year))  # Handle 2023 PUMS case
+    # Use fallback for years without PUMS data
+    original_year <- year
+    if (year >= 2025 && Sys.Date() < as.Date("2026-10-01")) {
+      year <- "2024"  # Fall back to 2024 for 2025+ (until Oct 2026)
+      message(paste("PUMS data for", original_year, "not available; using 2024 instead"))
+    } else {
+      year <- as.character(year)
+    }
     year2 <- str_sub(year, -2)
     file_name <- paste0("M:/Data/Census/PUMS/PUMS ", year, "/hbayarea", year2, ".Rdata")
     
     if (file.exists(file_name)) {
       load(file_name)
+      # Try year-suffixed name first (e.g., hbayarea24), then try simple name (hbayarea)
       df_name <- paste0("hbayarea", year2)
+      if (!exists(df_name)) {
+        df_name <- "hbayarea"  # Fallback to simple name for newer PUMS files
+      }
+      
       if (exists(df_name)) {
         temp_df <- get(df_name)
         temp_df <- temp_df %>%
@@ -156,8 +167,9 @@ impute_continuous_income_f <- function(input_df) {
     print(paste("Group:", paste(group_info, collapse = ", "),"has",nrow(group_data),"rows"))
     # print(group_data)
 
-    # TODO: Remove special 2023 handling
-    match_year <- ifelse(group_info$survey_year == 2023, 2022, group_info$survey_year) # Handle 2023 case
+    # Handle years without PUMS data - use fallback years
+    match_year <- ifelse(group_info$survey_year >= 2025 && Sys.Date() < as.Date("2026-10-01"), 2024,
+                         group_info$survey_year)
 
     # no bounds -- leave as NA
     if (is.na(group_info$income_lower_bound) & is.na(group_info$income_upper_bound)) { next }
