@@ -424,19 +424,72 @@ def ingest(
     return paths
 
 
+# ========== Filtered warehouse reads ==========
+
+
+def read_responses(
+    *,
+    operator: str | None = None,
+    year: int | None = None,
+    survey_id: str | None = None,
+) -> pl.DataFrame:
+    """Read ``survey_responses.parquet`` from the warehouse, optionally filtered.
+
+    Args:
+        operator: Keep only this ``canonical_operator`` (case-insensitive).
+        year: Keep only this ``survey_year``.
+        survey_id: Keep only this ``survey_id`` (the ``operator_year`` value).
+
+    Returns:
+        The (filtered) responses DataFrame.
+
+    Raises:
+        FileNotFoundError: If ``survey_responses.parquet`` does not exist.
+    """
+    responses_path = DATA_ROOT / "survey_responses.parquet"
+    if not responses_path.exists():
+        msg = f"survey_responses.parquet not found at {responses_path}"
+        raise FileNotFoundError(msg)
+
+    df = pl.read_parquet(responses_path)
+    logger.info("Loaded %s response rows", f"{len(df):,}")
+
+    if operator is not None:
+        df = df.filter(pl.col("canonical_operator").str.to_lowercase() == operator.lower())
+    if year is not None:
+        df = df.filter(pl.col("survey_year") == year)
+    if survey_id is not None:
+        df = df.filter(pl.col("survey_id") == survey_id)
+    if operator is not None or year is not None or survey_id is not None:
+        logger.info("Filtered to %s response rows", f"{len(df):,}")
+        if df.is_empty():
+            logger.warning("No responses match the requested filter")
+
+    return df
+
+
 # ========== Tableau Hyper export ==========
 
 
 def export_to_hyper(
     output_path: Path | str,
     tables: dict[str, pl.DataFrame] | None = None,
+    *,
+    operator: str | None = None,
+    year: int | None = None,
+    survey_id: str | None = None,
+    weight_scheme: str | None = None,
 ) -> int:
     """Export DataFrames (or the standard warehouse parquets) to a Tableau .hyper file.
 
     When *tables* is ``None`` the two well-known warehouse files
-    (``survey_responses``, ``survey_weights``) are read
-    from ``DATA_ROOT`` and exported.  When *tables* is a ``dict`` mapping
-    table names to DataFrames those tables are exported instead.
+    (``survey_responses``, ``survey_weights``) are read from ``DATA_ROOT`` and
+    exported as relational tables.  The ``operator``/``year``/``survey_id``
+    filters narrow the responses (and, for referential integrity, restrict the
+    weights to the surviving responses); ``weight_scheme`` keeps only that
+    scheme in the weights table.  When *tables* is a ``dict`` mapping table
+    names to DataFrames those tables are exported as-is and the filters are
+    ignored.
 
     Returns:
         Total number of rows exported across all tables.
@@ -448,16 +501,20 @@ def export_to_hyper(
     output_path = Path(output_path)
 
     if tables is None:
-        responses_path = DATA_ROOT / "survey_responses.parquet"
-        if not responses_path.exists():
-            msg = f"survey_responses.parquet not found at {responses_path}"
-            raise FileNotFoundError(msg)
-
-        tables = {"survey_responses": pl.read_parquet(responses_path)}
+        responses = read_responses(operator=operator, year=year, survey_id=survey_id)
+        tables = {"survey_responses": responses}
 
         weights_path = DATA_ROOT / "survey_weights.parquet"
         if weights_path.exists():
-            tables["survey_weights"] = pl.read_parquet(weights_path)
+            weights = pl.read_parquet(weights_path)
+            if weight_scheme is not None:
+                weights = weights.filter(pl.col("weight_scheme") == weight_scheme)
+            # Restrict weights to the exported responses for referential integrity.
+            if operator is not None or year is not None or survey_id is not None:
+                weights = weights.join(
+                    responses.select("response_id"), on="response_id", how="semi",
+                )
+            tables["survey_weights"] = weights
 
     logger.info("Exporting %d table(s) to Tableau Hyper: %s", len(tables), output_path)
 
@@ -512,3 +569,81 @@ def export_to_hyper(
     logger.info("  Exported %s rows total (%.2f MB)", f"{total_rows:,}", file_size_mb)
 
     return total_rows
+
+
+# ========== CSV export ==========
+
+
+def available_weight_schemes() -> list[str]:
+    """Return the distinct ``weight_scheme`` values in the warehouse weights table.
+
+    Returns an empty list when ``survey_weights.parquet`` does not exist.
+    """
+    weights_path = DATA_ROOT / "survey_weights.parquet"
+    if not weights_path.exists():
+        return []
+    schemes = pl.read_parquet(weights_path, columns=["weight_scheme"])
+    return sorted(schemes["weight_scheme"].unique().drop_nulls().to_list())
+
+
+def export_to_csv(
+    output_path: Path | str,
+    *,
+    operator: str | None = None,
+    year: int | None = None,
+    survey_id: str | None = None,
+    weight_scheme: str | None = None,
+    include_weights: bool = True,
+) -> int:
+    """Export the warehouse to a single combined CSV (responses + weights).
+
+    Reads ``survey_responses.parquet`` (required), optionally filters the
+    responses by operator/year/survey, and—when *include_weights* is ``True``
+    and ``survey_weights.parquet`` exists—left-joins the weights onto the
+    responses by ``response_id``.  When *weight_scheme* is given only that
+    scheme is joined; otherwise the latest weight per response is kept
+    (dedup by ``response_id``, ``keep="last"``).
+
+    Args:
+        output_path: Destination CSV path.
+        operator: Keep only this ``canonical_operator`` (case-insensitive).
+        year: Keep only this ``survey_year``.
+        survey_id: Keep only this ``survey_id`` (the ``operator_year`` value).
+        weight_scheme: Join only this weight scheme.  When ``None`` (default)
+            the latest weight per response is used.
+        include_weights: When ``False`` only the responses table is exported.
+
+    Returns:
+        The number of rows written.
+
+    Raises:
+        FileNotFoundError: If ``survey_responses.parquet`` does not exist.
+    """
+    output_path = Path(output_path)
+
+    combined = read_responses(operator=operator, year=year, survey_id=survey_id)
+
+    weights_path = DATA_ROOT / "survey_weights.parquet"
+    if include_weights and weights_path.exists():
+        weights = pl.read_parquet(weights_path)
+        if weight_scheme is not None:
+            weights = weights.filter(pl.col("weight_scheme") == weight_scheme)
+            logger.info(
+                "Joining weight scheme '%s' (%s rows)", weight_scheme, f"{len(weights):,}",
+            )
+        else:
+            weights = weights.unique(subset=["response_id"], keep="last")
+            logger.info("Joining latest weight per response (%s rows)", f"{len(weights):,}")
+        combined = combined.join(weights, on="response_id", how="left")
+    elif include_weights:
+        logger.info("No survey_weights.parquet found — exporting responses only")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    combined.write_csv(output_path)
+
+    file_size_mb = output_path.stat().st_size / (1024 * 1024)
+    logger.info(
+        "Exported %s rows to %s (%.2f MB)", f"{len(combined):,}", output_path, file_size_mb,
+    )
+
+    return len(combined)

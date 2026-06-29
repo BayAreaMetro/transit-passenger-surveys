@@ -101,7 +101,18 @@ Export files are **not** automatically regenerated during ingestion.
 To refresh the Hyper file after new data has been ingested:
 
 ```powershell
-uv run python scripts/export_hyper.py
+uv run python -m ingestion.export --format hyper
+```
+
+The same script also writes a flat combined CSV (responses + weights) for
+ad-hoc use, and can narrow either format to one operator/year/survey:
+
+```powershell
+# Combined CSV of one operator/year (defaults to the system temp dir)
+uv run python -m ingestion.export --operator BART --year 2024
+
+# Hyper extract of a single survey
+uv run python -m ingestion.export --format hyper --survey-id BART_2024
 ```
 
 ## Archive Folder
