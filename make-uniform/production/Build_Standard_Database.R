@@ -531,6 +531,16 @@ survey_input_df <- survey_input_df %>% add_row(
   )
 )
 
+survey_input_df <- survey_input_df %>% add_row(
+  survey_name     = 'AC Transit',
+  survey_year     = 2025,
+  operator        = 'AC TRANSIT',
+  default_tech    = 'local bus',
+  raw_data_path   = file.path(
+    "E:\\Box\\Modeling and Surveys\\Surveys\\Transit Passenger Surveys\\Ongoing TPS\\Individual Operator Efforts\\AC Transit 2025 (OD Survey)\\AC_Transit_MTC_ETC_Shared_Folder\\Survey Databases\\Final",
+    "AC_Transit_2025_preprocessed.csv"
+  )
+)
 # Inputs - legacy survey data
 f_legacy_rdata_path = file.path(TPS_SURVEY_PATH,"_data_Standardized","survey_legacy.RData")
 
