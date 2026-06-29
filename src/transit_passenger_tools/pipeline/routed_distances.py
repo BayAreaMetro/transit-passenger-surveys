@@ -12,6 +12,7 @@ When the server is unreachable an error is raised.
 
 import asyncio
 import logging
+from typing import NamedTuple
 
 import aiohttp
 import polars as pl
@@ -38,6 +39,10 @@ FIELD_DEPENDENCIES = FieldDependencies(
     outputs=[
         "distance_orig_first_board_routed",
         "distance_last_alight_dest_routed",
+        "geometry_orig_first_board_routed",
+        "geometry_last_alight_dest_routed",
+        "access_leg_implausible",
+        "egress_leg_implausible",
     ],
     optional_inputs=[
         "access_mode",
@@ -47,6 +52,13 @@ FIELD_DEPENDENCIES = FieldDependencies(
 
 # Meters → miles conversion factor
 _METERS_TO_MILES = 1.0 / 1609.344
+
+# Per-mode routed-distance ceilings (miles) beyond which an access/egress leg is
+# implausible for its reported mode — almost always a mis-geocoded endpoint or a
+# mis-coded mode (common in self-reported online surveys). Modes not listed here
+# (drive-like) are never flagged. Walk > 2 mi and Bike > 10 mi are conservative,
+# high-confidence cutoffs; tune here.
+IMPLAUSIBLE_MILES: dict[str, float] = {"Walk": 2.0, "Bike": 10.0}
 
 # Map AccessEgressMode values → OSRM profile names.
 # The OSRM server is behind an nginx reverse proxy that exposes
@@ -64,6 +76,20 @@ _MODE_TO_PROFILE: dict[str | None, str] = {
 
 _DEFAULT_PROFILE = "driving"
 _MAX_CONCURRENCY = 32
+
+# OSRM query params: request the full route geometry as an encoded polyline
+# (precision 5). Stored verbatim in the *_routed geometry columns.
+_GEOMETRY_QUERY = "overview=full&geometries=polyline"
+
+
+class RouteResult(NamedTuple):
+    """A single routed OD pair: distance in meters and encoded-polyline geometry."""
+
+    distance_m: float | None
+    geometry: str | None
+
+
+_EMPTY_RESULT = RouteResult(None, None)
 
 
 def _create_osrm_client(server_url: str, profile: str) -> OSRM_HTTP:
@@ -89,18 +115,20 @@ def _route_one(
     origin_lat: float,
     dest_lon: float,
     dest_lat: float,
-) -> float | None:
-    """Route a single OD pair and return distance in meters, or None."""
+) -> RouteResult:
+    """Route a single OD pair; return its distance (meters) and geometry."""
     try:
         resp = client.Route(
             coordinates=[[origin_lon, origin_lat], [dest_lon, dest_lat]],
+            overview="full",
+            geometries="polyline",
         )
     except (requests.RequestException, OSError, KeyError, RuntimeError):
-        return None
+        return _EMPTY_RESULT
     routes = resp.get("routes", [])
     if routes:
-        return routes[0].get("distance")
-    return None
+        return RouteResult(routes[0].get("distance"), routes[0].get("geometry"))
+    return _EMPTY_RESULT
 
 
 async def _route_async(
@@ -112,11 +140,11 @@ async def _route_async(
     origin_lat: float,
     dest_lon: float,
     dest_lat: float,
-) -> float | None:
-    """Route a single OD pair asynchronously, return distance in meters."""
+) -> RouteResult:
+    """Route a single OD pair asynchronously; return distance and geometry."""
     req_url = (
         f"{url}/route/v1/{profile}/"
-        f"{origin_lon},{origin_lat};{dest_lon},{dest_lat}?overview=false"
+        f"{origin_lon},{origin_lat};{dest_lon},{dest_lat}?{_GEOMETRY_QUERY}"
     )
     async with sem:
         try:
@@ -125,10 +153,13 @@ async def _route_async(
                     data = await resp.json()
                     routes = data.get("routes", [])
                     if routes:
-                        return routes[0].get("distance")
+                        return RouteResult(
+                            routes[0].get("distance"),
+                            routes[0].get("geometry"),
+                        )
         except (aiohttp.ClientError, TimeoutError, OSError):
             pass
-    return None
+    return _EMPTY_RESULT
 
 
 async def _route_profile_group_async(
@@ -140,7 +171,7 @@ async def _route_profile_group_async(
     lats_to: list[float],
     *,
     desc: str = "Routing",
-) -> list[float | None]:
+) -> list[RouteResult]:
     """Route all OD pairs for one profile using async I/O."""
     n = len(lons_from)
     sem = asyncio.Semaphore(_MAX_CONCURRENCY)
@@ -148,12 +179,12 @@ async def _route_profile_group_async(
         limit=_MAX_CONCURRENCY, limit_per_host=_MAX_CONCURRENCY,
     )
     timeout = aiohttp.ClientTimeout(total=60, sock_read=10)
-    results: list[float | None] = [None] * n
+    results: list[RouteResult] = [_EMPTY_RESULT] * n
 
     async def _indexed_route(
         session: aiohttp.ClientSession, idx: int,
         o_lon: float, o_lat: float, d_lon: float, d_lat: float,
-    ) -> tuple[int, float | None]:
+    ) -> tuple[int, RouteResult]:
         val = await _route_async(
             session, sem, server_url, profile, o_lon, o_lat, d_lon, d_lat,
         )
@@ -207,33 +238,37 @@ def _route_leg(
     to_lat: str,
     to_lon: str,
     mode_col: str | None,
-    output_col: str,
+    dist_col: str,
+    geom_col: str,
     server_url: str,
-) -> pl.Series:
-    """Route one leg (access or egress) and return a distance Series (miles).
+) -> tuple[pl.Series, pl.Series]:
+    """Route one leg (access or egress) and return (distance, geometry) Series.
 
+    Distance is in miles; geometry is the OSRM-encoded polyline string.
     Rows are grouped by OSRM profile to minimise client re-creation.
-    Rows with missing coordinates get null.
+    Rows with missing coordinates get null in both Series.
     """
     n = len(df)
-    result = pl.Series(output_col, [None] * n, dtype=pl.Float64)
+    dist_result = pl.Series(dist_col, [None] * n, dtype=pl.Float64)
+    geom_result = pl.Series(geom_col, [None] * n, dtype=pl.Utf8)
 
     coord_cols = [from_lat, from_lon, to_lat, to_lon]
     missing = [c for c in coord_cols if c not in df.columns]
     if missing:
-        logger.debug("Skipping %s — missing columns: %s", output_col, missing)
-        return result
+        logger.debug("Skipping %s — missing columns: %s", dist_col, missing)
+        return dist_result, geom_result
 
     has_coords = df.select(
         pl.all_horizontal([pl.col(c).is_not_null() for c in coord_cols]).alias("_valid")
     )["_valid"]
     valid_idx = [i for i, v in enumerate(has_coords) if v]
     if not valid_idx:
-        return result
+        return dist_result, geom_result
 
     valid_df = df[valid_idx]
     profile_groups = _resolve_profiles(valid_df, mode_col)
     distances: list[float | None] = [None] * len(valid_df)
+    geometries: list[str | None] = [None] * len(valid_df)
 
     for profile, row_indices in profile_groups.items():
         lons_from = [valid_df[from_lon][i] for i in row_indices]
@@ -241,22 +276,57 @@ def _route_leg(
         lons_to = [valid_df[to_lon][i] for i in row_indices]
         lats_to = [valid_df[to_lat][i] for i in row_indices]
 
-        group_dists = asyncio.run(
+        group_results = asyncio.run(
             _route_profile_group_async(
                 server_url, profile, lons_from, lats_from, lons_to, lats_to,
-                desc=f"{output_col} ({profile})",
+                desc=f"{dist_col} ({profile})",
             )
         )
 
-        for idx, dist_m in zip(row_indices, group_dists, strict=True):
-            if dist_m is not None:
-                distances[idx] = dist_m * _METERS_TO_MILES
+        for idx, res in zip(row_indices, group_results, strict=True):
+            if res.distance_m is not None:
+                distances[idx] = res.distance_m * _METERS_TO_MILES
+            geometries[idx] = res.geometry
 
-    result_list = result.to_list()
+    dist_list = dist_result.to_list()
+    geom_list = geom_result.to_list()
     for pos, orig_idx in enumerate(valid_idx):
-        result_list[orig_idx] = distances[pos]
+        dist_list[orig_idx] = distances[pos]
+        geom_list[orig_idx] = geometries[pos]
 
-    return pl.Series(output_col, result_list, dtype=pl.Float64)
+    return (
+        pl.Series(dist_col, dist_list, dtype=pl.Float64),
+        pl.Series(geom_col, geom_list, dtype=pl.Utf8),
+    )
+
+
+def add_implausible_flags(df: pl.DataFrame) -> pl.DataFrame:
+    """Add boolean access/egress implausibility flags from mode + routed distance.
+
+    A leg is flagged when its routed distance exceeds the per-mode ceiling in
+    :data:`IMPLAUSIBLE_MILES` (Walk > 2 mi, Bike > 10 mi). The flag is null-safe
+    (missing mode, distance, column, or an un-listed mode → ``False``) and pure:
+    it derives only from columns already present, so it can be (re)computed on
+    warehouse data without routing.
+    """
+
+    def flag(mode_col: str, dist_col: str) -> pl.Expr:
+        if mode_col in df.columns and dist_col in df.columns:
+            # Map each mode to its ceiling (un-listed modes -> null -> never flagged).
+            ceiling = pl.col(mode_col).replace_strict(
+                IMPLAUSIBLE_MILES, default=None, return_dtype=pl.Float64
+            )
+            return (pl.col(dist_col) > ceiling).fill_null(value=False)
+        return pl.lit(value=False)
+
+    return df.with_columns(
+        flag("access_mode", "distance_orig_first_board_routed").alias(
+            "access_leg_implausible"
+        ),
+        flag("egress_mode", "distance_last_alight_dest_routed").alias(
+            "egress_leg_implausible"
+        ),
+    )
 
 
 def compute_routed_distances(df: pl.DataFrame) -> pl.DataFrame:
@@ -283,35 +353,43 @@ def compute_routed_distances(df: pl.DataFrame) -> pl.DataFrame:
 
     if server_url is None:
         logger.info("OSRM server URL not configured — skipping routed distances")
-        return df.with_columns(
-            null_col.alias("distance_orig_first_board_routed"),
-            null_col.alias("distance_last_alight_dest_routed"),
+        return add_implausible_flags(
+            df.with_columns(
+                null_col.alias("distance_orig_first_board_routed"),
+                null_col.alias("distance_last_alight_dest_routed"),
+                pl.lit(None).cast(pl.Utf8).alias("geometry_orig_first_board_routed"),
+                pl.lit(None).cast(pl.Utf8).alias("geometry_last_alight_dest_routed"),
+            )
         )
 
     logger.info("Computing routed distances via OSRM at %s", server_url)
 
     # Access leg: origin → first boarding
-    access_dist = _route_leg(
+    access_dist, access_geom = _route_leg(
         df,
         from_lat="orig_lat",
         from_lon="orig_lon",
         to_lat="first_board_lat",
         to_lon="first_board_lon",
         mode_col="access_mode",
-        output_col="distance_orig_first_board_routed",
+        dist_col="distance_orig_first_board_routed",
+        geom_col="geometry_orig_first_board_routed",
         server_url=server_url,
     )
 
     # Egress leg: last alighting → destination
-    egress_dist = _route_leg(
+    egress_dist, egress_geom = _route_leg(
         df,
         from_lat="last_alight_lat",
         from_lon="last_alight_lon",
         to_lat="dest_lat",
         to_lon="dest_lon",
         mode_col="egress_mode",
-        output_col="distance_last_alight_dest_routed",
+        dist_col="distance_last_alight_dest_routed",
+        geom_col="geometry_last_alight_dest_routed",
         server_url=server_url,
     )
 
-    return df.with_columns(access_dist, egress_dist)
+    return add_implausible_flags(
+        df.with_columns(access_dist, access_geom, egress_dist, egress_geom)
+    )

@@ -263,6 +263,10 @@ class DerivedSurveyResponse(CoreSurveyResponse):
     distance_last_alight_dest: float | None = Field(None, description="Distance from last alight to destination (miles)")
     distance_orig_first_board_routed: float | None = Field(None, description="Routed network distance from origin to first board (miles)")
     distance_last_alight_dest_routed: float | None = Field(None, description="Routed network distance from last alight to destination (miles)")
+    geometry_orig_first_board_routed: str | None = Field(None, description="Routed path geometry (origin → first board) as an OSRM-encoded polyline, precision 5")
+    geometry_last_alight_dest_routed: str | None = Field(None, description="Routed path geometry (last alight → destination) as an OSRM-encoded polyline, precision 5")
+    access_leg_implausible: bool | None = Field(None, description="True if the access leg's routed distance is implausible for its reported mode (Walk > 2 mi, Bike > 10 mi) — likely a mis-geocoded origin or mis-coded mode")
+    egress_leg_implausible: bool | None = Field(None, description="True if the egress leg's routed distance is implausible for its reported mode (Walk > 2 mi, Bike > 10 mi) — likely a mis-geocoded destination or mis-coded mode")
 
     # ========== Geographic - Travel Model Zones (MAZ) ==========
     orig_maz: int | None = Field(None, description="Origin MAZ (Travel Model geography)")

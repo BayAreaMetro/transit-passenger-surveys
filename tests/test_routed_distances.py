@@ -9,8 +9,10 @@ from transit_passenger_tools.pipeline.routed_distances import (
     _METERS_TO_MILES,
     _MODE_TO_PROFILE,
     FIELD_DEPENDENCIES,
+    IMPLAUSIBLE_MILES,
     _create_osrm_client,
     _route_leg,
+    add_implausible_flags,
     compute_routed_distances,
 )
 
@@ -49,9 +51,49 @@ class TestFieldDependencies:
     """Verify field dependency declarations."""
 
     def test_output_fields(self):
-        """Output fields include both routed distance columns."""
+        """Output fields include routed distance, geometry, and flag columns."""
         assert "distance_orig_first_board_routed" in FIELD_DEPENDENCIES.outputs
         assert "distance_last_alight_dest_routed" in FIELD_DEPENDENCIES.outputs
+        assert "geometry_orig_first_board_routed" in FIELD_DEPENDENCIES.outputs
+        assert "geometry_last_alight_dest_routed" in FIELD_DEPENDENCIES.outputs
+        assert "access_leg_implausible" in FIELD_DEPENDENCIES.outputs
+        assert "egress_leg_implausible" in FIELD_DEPENDENCIES.outputs
+
+
+class TestImplausibleFlags:
+    """Verify the walk-implausibility flagging."""
+
+    def test_long_walk_and_bike_are_flagged(self):
+        """Walk/Bike legs over their ceilings flag; other modes never do."""
+        walk_max = IMPLAUSIBLE_MILES["Walk"]
+        bike_max = IMPLAUSIBLE_MILES["Bike"]
+        df = pl.DataFrame({
+            "access_mode": ["Walk", "Walk", "PNR", "Bike"],
+            "egress_mode": ["Bike", "Bike", "Walk", None],
+            "distance_orig_first_board_routed": [
+                walk_max + 1, 0.4, 30.0, bike_max + 1,  # walk hi, walk lo, PNR, bike hi
+            ],
+            "distance_last_alight_dest_routed": [
+                bike_max + 2, bike_max - 1, 0.2, 8.0,  # bike hi, bike ok, walk lo, null
+            ],
+        })
+
+        out = add_implausible_flags(df)
+
+        # access: long walk flagged; short walk no; long PNR no (drive); long bike yes.
+        assert out["access_leg_implausible"].to_list() == [True, False, False, True]
+        # egress: long bike yes; sub-ceiling bike no; short walk no; null mode no.
+        assert out["egress_leg_implausible"].to_list() == [True, False, False, False]
+
+    def test_missing_mode_column_is_safe(self):
+        """With no mode columns present, flags default to False (no error)."""
+        df = pl.DataFrame({
+            "distance_orig_first_board_routed": [50.0],
+            "distance_last_alight_dest_routed": [50.0],
+        })
+        out = add_implausible_flags(df)
+        assert out["access_leg_implausible"].to_list() == [False]
+        assert out["egress_leg_implausible"].to_list() == [False]
 
     def test_input_fields_include_coordinates(self):
         """Input fields include all eight coordinate columns."""
@@ -108,8 +150,12 @@ class TestComputeRoutedDistancesSkip:
 
         assert "distance_orig_first_board_routed" in result.columns
         assert "distance_last_alight_dest_routed" in result.columns
+        assert "geometry_orig_first_board_routed" in result.columns
+        assert "geometry_last_alight_dest_routed" in result.columns
         assert result["distance_orig_first_board_routed"].null_count() == 1
         assert result["distance_last_alight_dest_routed"].null_count() == 1
+        assert result["geometry_orig_first_board_routed"].null_count() == 1
+        assert result["geometry_last_alight_dest_routed"].null_count() == 1
 
 
 class TestRouteLegMissingColumns:
@@ -118,18 +164,21 @@ class TestRouteLegMissingColumns:
     def test_missing_columns_returns_nulls(self):
         """Missing coordinate columns produce all-null output."""
         df = pl.DataFrame({"response_id": ["A", "B"]})
-        result = _route_leg(
+        dist, geom = _route_leg(
             df,
             from_lat="orig_lat",
             from_lon="orig_lon",
             to_lat="dest_lat",
             to_lon="dest_lon",
             mode_col=None,
-            output_col="test_dist",
+            dist_col="test_dist",
+            geom_col="test_geom",
             server_url="http://unused",
         )
-        assert result.null_count() == 2
-        assert result.name == "test_dist"
+        assert dist.null_count() == 2
+        assert dist.name == "test_dist"
+        assert geom.null_count() == 2
+        assert geom.name == "test_geom"
 
 
 # ========== Integration tests (require OSRM server) ==========
@@ -183,18 +232,23 @@ class TestRouteLeg:
             "dest_lat": [OAK_LAT],
             "dest_lon": [OAK_LON],
         })
-        result = _route_leg(
+        dist, geom = _route_leg(
             df,
             from_lat="orig_lat",
             from_lon="orig_lon",
             to_lat="dest_lat",
             to_lon="dest_lon",
             mode_col=None,
-            output_col="test_dist",
+            dist_col="test_dist",
+            geom_col="test_geom",
             server_url=OSRM_URL,
         )
-        assert result.null_count() == 0
-        assert 8 < result[0] < 16  # miles
+        assert dist.null_count() == 0
+        assert 8 < dist[0] < 16  # miles
+        # Geometry is a non-empty encoded polyline string
+        assert geom.null_count() == 0
+        assert isinstance(geom[0], str)
+        assert len(geom[0]) > 0
 
     def test_multiple_rows(self):
         """Multiple rows all return plausible Bay Area distances."""
@@ -204,20 +258,23 @@ class TestRouteLeg:
             "dest_lat": [OAK_LAT, FREMONT_LAT],
             "dest_lon": [OAK_LON, FREMONT_LON],
         })
-        result = _route_leg(
+        dist, geom = _route_leg(
             df,
             from_lat="orig_lat",
             from_lon="orig_lon",
             to_lat="dest_lat",
             to_lon="dest_lon",
             mode_col=None,
-            output_col="test_dist",
+            dist_col="test_dist",
+            geom_col="test_geom",
             server_url=OSRM_URL,
         )
-        assert result.null_count() == 0
-        assert len(result) == 2
+        assert dist.null_count() == 0
+        assert len(dist) == 2
         # Both should be reasonable Bay Area distances
-        assert all(1 < d < 50 for d in result.to_list())
+        assert all(1 < d < 50 for d in dist.to_list())
+        # Both rows have geometry
+        assert geom.null_count() == 0
 
     def test_null_coordinates_produce_null(self):
         """Rows with null coordinates get null distance."""
@@ -227,18 +284,21 @@ class TestRouteLeg:
             "dest_lat": [OAK_LAT, OAK_LAT],
             "dest_lon": [OAK_LON, OAK_LON],
         })
-        result = _route_leg(
+        dist, geom = _route_leg(
             df,
             from_lat="orig_lat",
             from_lon="orig_lon",
             to_lat="dest_lat",
             to_lon="dest_lon",
             mode_col=None,
-            output_col="test_dist",
+            dist_col="test_dist",
+            geom_col="test_geom",
             server_url=OSRM_URL,
         )
-        assert result[0] is not None  # valid row
-        assert result[1] is None  # null coordinate row
+        assert dist[0] is not None  # valid row
+        assert dist[1] is None  # null coordinate row
+        assert geom[0] is not None  # valid row has geometry
+        assert geom[1] is None  # null coordinate row
 
     def test_mode_column_selects_profile(self):
         """Walk and drive should produce different routed distances."""
@@ -249,19 +309,20 @@ class TestRouteLeg:
             "dest_lon": [OAK_LON, OAK_LON],
             "access_mode": ["Walk", "PNR"],
         })
-        result = _route_leg(
+        dist, _geom = _route_leg(
             df,
             from_lat="orig_lat",
             from_lon="orig_lon",
             to_lat="dest_lat",
             to_lon="dest_lon",
             mode_col="access_mode",
-            output_col="test_dist",
+            dist_col="test_dist",
+            geom_col="test_geom",
             server_url=OSRM_URL,
         )
-        assert result.null_count() == 0
-        walk_dist = result[0]
-        drive_dist = result[1]
+        assert dist.null_count() == 0
+        walk_dist = dist[0]
+        drive_dist = dist[1]
         # Distances should differ (different networks/profiles)
         assert walk_dist != drive_dist
 
@@ -274,18 +335,19 @@ class TestRouteLeg:
             "dest_lon": [OAK_LON],
             "access_mode": [None],
         })
-        result = _route_leg(
+        dist, _geom = _route_leg(
             df,
             from_lat="orig_lat",
             from_lon="orig_lon",
             to_lat="dest_lat",
             to_lon="dest_lon",
             mode_col="access_mode",
-            output_col="test_dist",
+            dist_col="test_dist",
+            geom_col="test_geom",
             server_url=OSRM_URL,
         )
-        assert result.null_count() == 0
-        assert 8 < result[0] < 16
+        assert dist.null_count() == 0
+        assert 8 < dist[0] < 16
 
 
 @requires_osrm
@@ -323,6 +385,12 @@ class TestComputeRoutedDistances:
         # SF→Oakland access ~9-12 mi, Daly City→Fremont egress ~25-35 mi
         assert 5 < access_dist < 20
         assert 15 < egress_dist < 45
+
+        # Geometry columns are populated with encoded polyline strings
+        assert "geometry_orig_first_board_routed" in result.columns
+        assert "geometry_last_alight_dest_routed" in result.columns
+        assert isinstance(result["geometry_orig_first_board_routed"][0], str)
+        assert isinstance(result["geometry_last_alight_dest_routed"][0], str)
 
     def test_preserves_original_columns(self, monkeypatch):
         """Original DataFrame columns are preserved in output."""

@@ -227,46 +227,76 @@ def run_routed_distances() -> None:
     # Find rows that need routing (have coords but no routed distance)
     access_col = "distance_orig_first_board_routed"
     egress_col = "distance_last_alight_dest_routed"
+    access_geom_col = "geometry_orig_first_board_routed"
+    egress_geom_col = "geometry_last_alight_dest_routed"
 
     # Add columns if they don't exist yet
     if access_col not in df.columns:
         df = df.with_columns(pl.lit(None).cast(pl.Float64).alias(access_col))
     if egress_col not in df.columns:
         df = df.with_columns(pl.lit(None).cast(pl.Float64).alias(egress_col))
+    if access_geom_col not in df.columns:
+        df = df.with_columns(pl.lit(None).cast(pl.Utf8).alias(access_geom_col))
+    if egress_geom_col not in df.columns:
+        df = df.with_columns(pl.lit(None).cast(pl.Utf8).alias(egress_geom_col))
 
+    # Route rows that are missing either the distance or the geometry,
+    # so previously-routed rows get geometry backfilled on a later run.
     needs_routing = df.filter(
-        pl.col(access_col).is_null()
+        (pl.col(access_col).is_null() | pl.col(access_geom_col).is_null())
         & pl.col("orig_lat").is_not_null()
         & pl.col("first_board_lat").is_not_null()
     )
+    # The implausibility flags are pure functions of mode + routed distance, so
+    # they must be (re)derived whenever they are missing, even when nothing needs
+    # routing (e.g. the first run after introducing the flags).
+    need_flags = (
+        "access_leg_implausible" not in df.columns
+        or "egress_leg_implausible" not in df.columns
+    )
 
-    if len(needs_routing) == 0:
-        logger.info("All rows already have routed distances — nothing to do")
+    if len(needs_routing) == 0 and not need_flags:
+        logger.info(
+            "All rows already have routed distances, geometry, and flags — nothing to do"
+        )
         return
 
-    logger.info(
-        "Computing routed distances for %s rows (of %s total)",
-        f"{len(needs_routing):,}",
-        f"{len(df):,}",
-    )
+    if len(needs_routing) > 0:
+        logger.info(
+            "Computing routed distances for %s rows (of %s total)",
+            f"{len(needs_routing):,}",
+            f"{len(df):,}",
+        )
+        # Route the subset, then update the main DataFrame with routed values
+        # (join on response_id to update only the rows that were routed).
+        routed = routed_distances.compute_routed_distances(needs_routing)
+        update_cols = [access_col, egress_col, access_geom_col, egress_geom_col]
+        routed_cols = routed.select("response_id", *update_cols).rename(
+            {col: f"_{col}" for col in update_cols}
+        )
+        df = df.join(routed_cols, on="response_id", how="left")
+        df = df.with_columns(
+            [pl.coalesce(pl.col(f"_{col}"), pl.col(col)).alias(col) for col in update_cols]
+        ).drop([f"_{col}" for col in update_cols])
+    else:
+        logger.info(
+            "Routing up to date; deriving implausibility flags for %s rows",
+            f"{len(df):,}",
+        )
 
-    # Route the subset
-    routed = routed_distances.compute_routed_distances(needs_routing)
-
-    # Update the main DataFrame with routed values
-    # Join on response_id to update only the rows that were routed
-    routed_cols = routed.select("response_id", access_col, egress_col).rename(
-        {access_col: f"_{access_col}", egress_col: f"_{egress_col}"}
-    )
-    df = df.join(routed_cols, on="response_id", how="left")
-    df = df.with_columns(
-        pl.coalesce(pl.col(f"_{access_col}"), pl.col(access_col)).alias(access_col),
-        pl.coalesce(pl.col(f"_{egress_col}"), pl.col(egress_col)).alias(egress_col),
-    ).drop(f"_{access_col}", f"_{egress_col}")
+    # (Re)derive implausibility flags for every row from mode + routed distance.
+    df = routed_distances.add_implausible_flags(df)
 
     df.write_parquet(responses_path)
     n_routed = df[access_col].is_not_null().sum()
-    logger.info("Routed distances written — %s rows have values", f"{n_routed:,}")
+    n_flagged = (
+        df["access_leg_implausible"].sum() + df["egress_leg_implausible"].sum()
+    )
+    logger.info(
+        "Routed distances written — %s rows have values (%s implausible walk legs flagged)",
+        f"{n_routed:,}",
+        f"{n_flagged:,}",
+    )
 
 
 def run_data_corrections() -> None:
