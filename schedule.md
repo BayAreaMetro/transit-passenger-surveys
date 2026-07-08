@@ -221,11 +221,7 @@ Also see the surveys [Completed to Date and Currently in the Field](#completed-t
  <tbody>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
-    <td rowspan="2" style="text-align:center; vertical-align:middle;">2026</td>
-    <td></td>
-    <td>Wheels (LAVTA)</td>
-  </tr>
-  <tr>
+    <td style="text-align:center; vertical-align:middle;">2026</td>
     <td></td>
     <td>SMART</td>
   </tr>
