@@ -12,10 +12,11 @@ Outputs:
 import pandas as pd
 
 # File path
-file_path = r"E:\Box\Modeling and Surveys\Surveys\Transit Passenger Surveys\Ongoing TPS\Individual Operator Efforts\AC Transit 2025 (OD Survey)\AC_Transit_MTC_ETC_Shared_Folder\Survey Databases\Final\od_20260318_ac-transit_weighted-secondary-weekend 1.xlsx"
+file_path = r"E:\Box\Modeling and Surveys\Surveys\Transit Passenger Surveys\Ongoing TPS\Individual Operator Efforts\UCT WestCAT 2025 and Marin Transit 2026\MTC_CCG_shared\Task 8 - Survey Dataset\Deliverable 2_8_MTC Marin Transit 2026 Final Data-MTC.xlsx"
+
 
 # Sheet name
-sheet_name = "OD_RESULTS"
+sheet_name = "Standardized Data"
 
 # Read Excel file
 df = pd.read_excel(file_path, sheet_name=sheet_name)
