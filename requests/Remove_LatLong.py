@@ -15,13 +15,27 @@ import os
 # ----------------------------------------------------------------------------
 # Select survey to process
 # ----------------------------------------------------------------------------
-SURVEY_NAME = "Caltrain_2024"
+SURVEY_NAME = "BART_2024"
+# SURVEY_NAME = "Caltrain_2024"
 # SURVEY_NAME = "VTA_2024"
 
 # ----------------------------------------------------------------------------
 # Survey-specific file paths
 # ----------------------------------------------------------------------------
 SURVEY_CONFIG = {
+    "BART_2024": {
+        "survey_path": (
+            r"E:/Box/Modeling and Surveys/Surveys/Transit Passenger Surveys/"
+            r"Ongoing TPS/Individual Operator Efforts/BART 2024/"
+            r"BART MTC ETC RSG Project Folder/Final Data and Report/"
+            r"v1 Data File/StationProfileV1_NewWeights_ReducedVariables.xlsx"
+        ),
+        "output_prefix": "BART_2024",
+        "survey_sheet_name": "data",
+        "codebook_sheet_name": "codebook",
+        "codebook_columns": 4,
+    },
+
     "Caltrain_2024": {
         "survey_path": (
             r"E:/Box/Modeling and Surveys/Surveys/Transit Passenger Surveys/"
@@ -76,6 +90,7 @@ CODEBOOK_COLUMNS = SURVEY_CONFIG[SURVEY_NAME]["codebook_columns"]
 # Spatial inputs
 # ----------------------------------------------------------------------------
 TRACT_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_tract.zip"
+TAZ1454_PATH = r"X:/travel-model-one-master/utilities/geographies/bayarea_rtaz1454_rev1_WGS84.shp"
 
 # VTATAZ_PATH = r"M:/Data/Requests/Louisa Leung/Caltrain Survey Data/VTATAZ_CCAG/VTATAZ.shp"
 # BG_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_bg.zip"
@@ -85,15 +100,49 @@ TRACT_PATH = r"M:/Data/Requests/Louisa Leung/tl_2025_06_tract.zip"
 # ----------------------------------------------------------------------------
 OUTPUT_DIR = (
      r"E:/Box/Modeling and Surveys/Share Data/Protected Data/"
-     r"Kimley-Horn/SMCTD_Dumbarton_Busway"
+     r"Valley Link Transit/BART2024data_for_ValleyLink/staging"
  )
 
 
 # ============================================================================
-# FINALCOLUMNS | Optional: Specify final columns to keep in output
+# INPUT_COLUMNS | Optional: Columns to select from the survey before spatial join
 # ============================================================================
-FINAL_COLUMNS = []
-
+# INPUT_COLUMNS = []
+INPUT_COLUMNS = [
+    "UNIQUE_IDENTIFIER",
+    "ID",
+    "combined_OD_weight_NEW",
+    "DATE_COMPLETED",
+    "SURVEY_START_TIME",
+    "ENTRY_STATION_FINAL",
+    "EXIT_STATION_FINAL",
+    "TIME_ON_fnl",
+    "ORIGIN_PLACE_TYPE_FINAL",
+    "ORIGIN_ADDRESS_LAT",
+    "ORIGIN_ADDRESS_LONG",
+    "ORIGIN_TRANSPORT_FINAL",
+    "ACCESS_WALK_TIME",
+    "ACCESS_PARKED",
+    "ORIGIN_TRANSIT_AGENCY_TOBART_fnl",
+    "ORIGIN_TRANSIT_ROUTE_TOBART_fnl",
+    "ORIGIN_TRANSIT_ROUTE_PRIOR_fnl",
+    "ORIGIN_SHUTTLE_FINAL",
+    "DESTIN_PLACE_FINAL",
+    "DESTIN_ADDRESS_LAT",
+    "DESTIN_ADDRESS_LONG",
+    "DESTIN_TRANSPORT_FINAL",
+    "EGRESS_WALK_TIME",
+    "EGRESS_PARKED",
+    "EGRESS_AGENCY_fnl",
+    "EgressRoute_FromBART1_fnl",
+    "EGRESS_TRANSIT_FromBART2_fnl",
+    "EGRESS_TRANSIT_FromBART3_fnl",
+    "EGRESS_SHUTTLE_FINAL",
+    "TYPE_OF_FARE",
+    "COUNT_VH_HH",
+    "PREV_TRANSFERS",
+    "NEXT_TRANSFERS",
+]
 
 # If it doesn't already exist, map the network drive
 if not Path("M:/").exists():
@@ -232,11 +281,15 @@ def parse_latlons_from_columns(
         prefix = lat_col.lower().replace(lat_suffix, "")
         for id_suffix in id_suffixes:
             idx = lat_col.lower().find(lat_suffix)
-            output_col = lat_col[:idx] + id_suffix + lat_col[idx + len(lat_suffix):]
+            output_col = lat_col[:idx] + "_" + id_suffix + lat_col[idx + len(lat_suffix):]
             matching_col = next(
                 (
                     lon for lon in lon_cols
-                    if prefix == lon.lower().replace(lon_suffix, "")
+                    if prefix == (
+                        lon.lower()[: -len(lon_suffix) - 1]
+                        if lon.lower().endswith(lon_suffix + "g")
+                        else lon.lower().replace(lon_suffix, "")
+                    )
                 ),
                 None
             )
@@ -251,28 +304,39 @@ def parse_latlons_from_columns(
 # ============================================================================
 
 def main() -> None:
-    """Main processing function for BART spatial aggregation."""
+    """Main processing function for spatial aggregation."""
     # Read survey data
     print("Reading survey data...")
     survey = pl.read_excel(SURVEY_PATH, sheet_name=SURVEY_SHEET_NAME, infer_schema_length=15000)
     codebook = pl.read_excel(SURVEY_PATH, sheet_name=CODEBOOK_SHEET_NAME, has_header=False)
     
     # Prepare codebook
-    # codebook.columns = ["Variable", "Description", "Value", "Value_Description"]
-    codebook.columns = CODEBOOK_COLUMNS
+    if isinstance(CODEBOOK_COLUMNS, int):
+        codebook = codebook[:, :CODEBOOK_COLUMNS]
+    else:
+        codebook.columns = CODEBOOK_COLUMNS
 
     
     # Filter survey to the required columns
-    if FINAL_COLUMNS:
-        survey = survey.select(FINAL_COLUMNS)
+    if INPUT_COLUMNS:
+        survey = survey.select(INPUT_COLUMNS)
     print(f"Survey data contains {survey.height} records and {survey.width} columns.")
+
+    # Add blank indicators for lat/lon columns
+    blank_indicator_cols = []
+    for col in survey.columns:
+        if "_lat" in col.lower() or "_lon" in col.lower():
+            indicator = f"{col}_BLANK"
+            survey = survey.with_columns(pl.col(col).is_null().alias(indicator))
+            blank_indicator_cols.append(indicator)
     
     # Load shapefiles into GeoDataFrames
     print("Loading shapefiles...")
     geo_cache = {
         # "vtaTAZ": gpd.read_file(vtaTAZ_PATH).rename(columns={"TAZ": "vtaTAZ"}),
         # "BG": gpd.read_file(BG_PATH).rename(columns={"GEOID": "BG"}),
-        "TRACT": gpd.read_file(TRACT_PATH).rename(columns={"GEOID": "TRACT"})
+        "TRACT": gpd.read_file(TRACT_PATH).rename(columns={"GEOID": "TRACT"}),
+        "TAZ1454": gpd.read_file(TAZ1454_PATH),
     }
     zones = list(geo_cache.keys())
 
@@ -295,12 +359,20 @@ def main() -> None:
             shapefile_gdf=geo_cache[shp_id_col],
             shapefile_id_col=shp_id_col,
             output_id_col=output_col,
-            id_col="ID"
+            id_col="UNIQUE_IDENTIFIER"
         )
 
-    # Collect all zone output column names to protect
-    zone_output_cols = {output_col for _, _, output_col, _ in taz_configs}
-    
+    # Collect all zone output column names and blank indicators to protect from PII removal
+    zone_output_cols = {output_col for _, _, output_col, _ in taz_configs} | set(blank_indicator_cols)
+
+    # Write output - Split by Zone aggregation type
+    print("Writing output files...")
+    Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+
+    # Save the full survey with all zone types and LAT/LON retained (before PII removal)
+    full_output_file = Path(OUTPUT_DIR) / f"{OUTPUT_PREFIX}_latlon_and_zones.csv"
+    print(f"Writing full output to {full_output_file}...")
+    _survey.write_csv(full_output_file)
 
     # Remove PII columns
     print("Removing PII columns...")   
@@ -318,18 +390,8 @@ def main() -> None:
             print(f"Dropping PII column: {col}...")
             _survey = _survey.drop(col)
 
-
     # Final survey store    
     survey_final = _survey
-
-    # Write output - Split by Zone aggregation type
-    print("Writing output files...")   
-    Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-    
-    # Save the full survey with all zone types and LAT/LON included
-    full_output_file = Path(OUTPUT_DIR) / f"{OUTPUT_PREFIX}_latlon_and_zones.csv"
-    print(f"Writing full output to {full_output_file}...")
-    survey_final.write_csv(full_output_file)
     
     # Save separate files for each zone type
     for zone_type in zones:
@@ -341,6 +403,24 @@ def main() -> None:
         drop_cols = [col for col in survey_final.columns if any(f"_{oz}" in col for oz in other_zones)]
         _survey_zone = survey_final.drop(drop_cols)
         _survey_zone.write_csv(output_file)
+
+    # Save combined output: TAZ1454 primary, TRACT as fallback where TAZ1454 is null
+    if "TAZ1454" in zones and "TRACT" in zones:
+        print("Writing combined TAZ1454+TRACT fallback output...")
+        survey_combined = survey_final.clone()
+        for col in survey_combined.columns:
+            if col.endswith("_TRACT"):
+                taz_col = col.replace("_TRACT", "_TAZ1454")
+                if taz_col in survey_combined.columns:
+                    survey_combined = survey_combined.with_columns(
+                        pl.when(pl.col(taz_col).is_not_null())
+                        .then(None)
+                        .otherwise(pl.col(col))
+                        .alias(col)
+                    )
+        combined_output_file = Path(OUTPUT_DIR) / f"{OUTPUT_PREFIX}_TAZ1454_TRACTasFallback.csv"
+        print(f"Writing combined output to {combined_output_file}...")
+        survey_combined.write_csv(combined_output_file)
 
     codebook_output_file = Path(OUTPUT_DIR) / f"{OUTPUT_PREFIX}_Codebook.csv"
     print(f"Writing codebook to {codebook_output_file}...")
