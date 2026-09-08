@@ -4,6 +4,7 @@ import polars as pl
 
 from transit_passenger_tools.config import get_config
 from transit_passenger_tools.pipeline.geocoding import (
+    assign_superdistricts_from_tm1_taz,
     assign_zones_and_distances,
     haversine_km,
 )
@@ -137,6 +138,55 @@ class TestCalculateDistances:
             dist_col = distance_config.column
             assert dist_col in result.columns
             assert result[dist_col][0] is not None
+
+
+class TestSuperDistricts:
+    """Test deterministic TM1 TAZ-to-SuperDistrict assignment."""
+
+    def test_assigns_all_available_location_fields(self):  # noqa: D102
+        df = pl.DataFrame(
+            {
+                "response_id": ["a", "b", "c"],
+                "orig_tm1_taz": [100, 200, None],
+                "dest_tm1_taz": [200, 999, 100],
+                "home_tm1_taz": [100, 100, 200],
+            },
+            schema_overrides={"orig_tm1_taz": pl.Int64},
+        )
+        crosswalk = pl.DataFrame(
+            {"TAZ1454": [100, 200], "SUPERD": [1, 2]}
+        )
+
+        result = assign_superdistricts_from_tm1_taz(df, crosswalk)
+
+        assert result["orig_superdistrict"].to_list() == [1, 2, None]
+        assert result["dest_superdistrict"].to_list() == [2, None, 1]
+        assert result["home_superdistrict"].to_list() == [1, 1, 2]
+        assert "workplace_superdistrict" not in result.columns
+
+    def test_replaces_existing_values_idempotently(self):  # noqa: D102
+        df = pl.DataFrame(
+            {"orig_tm1_taz": [100], "orig_superdistrict": [999]}
+        )
+        crosswalk = pl.DataFrame({"TAZ1454": [100], "SUPERD": [1]})
+
+        result = assign_superdistricts_from_tm1_taz(df, crosswalk)
+
+        assert result["orig_superdistrict"].to_list() == [1]
+
+    def test_rejects_conflicting_crosswalk(self):  # noqa: D102
+        df = pl.DataFrame({"orig_tm1_taz": [100]})
+        crosswalk = pl.DataFrame(
+            {"TAZ1454": [100, 100], "SUPERD": [1, 2]}
+        )
+
+        try:
+            assign_superdistricts_from_tm1_taz(df, crosswalk)
+        except ValueError as exc:
+            assert "more than one SuperDistrict" in str(exc)  # noqa: PT017
+        else:
+            msg = "Expected conflicting crosswalk to fail"
+            raise AssertionError(msg)
 
 
 class TestTransform:

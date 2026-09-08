@@ -297,6 +297,17 @@ class DerivedSurveyResponse(CoreSurveyResponse):
     survey_board_tm1_taz: int | None = Field(None, description="Survey boarding location TM1 TAZ")
     survey_alight_tm1_taz: int | None = Field(None, description="Survey alighting location TM1 TAZ")
 
+    # ========== Geographic - TM1 SuperDistricts ==========
+    orig_superdistrict: int | None = Field(None, description="Origin TM1 SuperDistrict")
+    dest_superdistrict: int | None = Field(None, description="Destination TM1 SuperDistrict")
+    home_superdistrict: int | None = Field(None, description="Home TM1 SuperDistrict")
+    workplace_superdistrict: int | None = Field(None, description="Workplace TM1 SuperDistrict")
+    school_superdistrict: int | None = Field(None, description="School TM1 SuperDistrict")
+    first_board_superdistrict: int | None = Field(None, description="First boarding location TM1 SuperDistrict")
+    last_alight_superdistrict: int | None = Field(None, description="Last alighting location TM1 SuperDistrict")
+    survey_board_superdistrict: int | None = Field(None, description="Survey boarding location TM1 SuperDistrict")
+    survey_alight_superdistrict: int | None = Field(None, description="Survey alighting location TM1 SuperDistrict")
+
     # ========== Geographic - Travel Model Zones (TM2 TAZ) ==========
     orig_tm2_taz: int | None = Field(None, description="Origin TM2 TAZ")
     dest_tm2_taz: int | None = Field(None, description="Destination TM2 TAZ")

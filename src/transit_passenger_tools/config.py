@@ -39,6 +39,10 @@ class PipelineConfig(BaseModel):
     geocoding_zones: list[GeocodingZone] = Field(
         description="Zone types to geocode with their shapefile mappings"
     )
+    tm1_superdistrict_field: str = Field(
+        default="SUPERD",
+        description="SuperDistrict field in the TM1 TAZ layer",
+    )
 
     # Geocoding distance pairs
     geocoding_distances: list[GeocodingDistance] = Field(

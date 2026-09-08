@@ -42,6 +42,15 @@ FIELD_DEPENDENCIES = FieldDependencies(
     ],
     outputs=[
         "home_tm1_taz",
+        "home_superdistrict",
+        "workplace_superdistrict",
+        "school_superdistrict",
+        "orig_superdistrict",
+        "dest_superdistrict",
+        "survey_board_superdistrict",
+        "survey_alight_superdistrict",
+        "first_board_superdistrict",
+        "last_alight_superdistrict",
         "workplace_tm1_taz",
         "school_tm1_taz",
         "orig_tm1_taz",
@@ -107,7 +116,7 @@ FIELD_DEPENDENCIES = FieldDependencies(
 # Location types to geocode
 LOCATION_TYPES = [
     "home",
-    "work",
+    "workplace",
     "school",
     "orig",  # trip origin
     "dest",  # trip destination
@@ -198,6 +207,87 @@ def calculate_distances(df: pl.DataFrame) -> pl.DataFrame:
     return result_df
 
 
+SUPERDISTRICT_LOCATIONS = (
+    "orig",
+    "dest",
+    "home",
+    "workplace",
+    "school",
+    "first_board",
+    "last_alight",
+    "survey_board",
+    "survey_alight",
+)
+
+
+def assign_superdistricts_from_tm1_taz(
+    df: pl.DataFrame,
+    crosswalk: pl.DataFrame,
+    *,
+    taz_field: str = "TAZ1454",
+    superdistrict_field: str = "SUPERD",
+) -> pl.DataFrame:
+    """Add SuperDistrict IDs by joining each available TM1 TAZ column.
+
+    The crosswalk must map every TM1 TAZ to at most one SuperDistrict. Missing
+    and unmatched TAZ values remain null.
+    """
+    required = {taz_field, superdistrict_field}
+    missing = required - set(crosswalk.columns)
+    if missing:
+        msg = f"TM1 SuperDistrict crosswalk missing columns: {sorted(missing)}"
+        raise ValueError(msg)
+
+    mapping = (
+        crosswalk.select(
+            pl.col(taz_field).cast(pl.Int64, strict=False),
+            pl.col(superdistrict_field).cast(pl.Int64, strict=False),
+        )
+        .drop_nulls(taz_field)
+        .unique()
+    )
+    conflicts = (
+        mapping.group_by(taz_field)
+        .agg(pl.col(superdistrict_field).n_unique().alias("count"))
+        .filter(pl.col("count") > 1)
+    )
+    if not conflicts.is_empty():
+        msg = "TM1 TAZ maps to more than one SuperDistrict"
+        raise ValueError(msg)
+
+    mapping = mapping.unique(subset=[taz_field], keep="first")
+    result = df
+    for location in SUPERDISTRICT_LOCATIONS:
+        source_col = f"{location}_tm1_taz"
+        output_col = f"{location}_superdistrict"
+        if source_col not in result.columns:
+            continue
+        if output_col in result.columns:
+            result = result.drop(output_col)
+        location_mapping = mapping.rename(
+            {taz_field: source_col, superdistrict_field: output_col}
+        )
+        result = result.join(location_mapping, on=source_col, how="left")
+
+    return result
+
+
+def load_tm1_superdistrict_crosswalk(
+    shapefile_path: str | Path,
+    *,
+    taz_field: str = "TAZ1454",
+    superdistrict_field: str = "SUPERD",
+) -> pl.DataFrame:
+    """Load the TAZ-to-SuperDistrict attributes from the TM1 zone layer."""
+    zones = gpd.read_file(shapefile_path, columns=[taz_field, superdistrict_field])
+    return pl.DataFrame(
+        {
+            taz_field: zones[taz_field].tolist(),
+            superdistrict_field: zones[superdistrict_field].tolist(),
+        }
+    )
+
+
 def assign_zones_and_distances(
     df: pl.DataFrame,
     shapefiles_dir: Path | None = None,
@@ -259,6 +349,19 @@ def assign_zones_and_distances(
                 output_id_col=f"{location}_{zone_config.zone_type}",
                 id_col=id_col,
             )
+
+    tm1_zone = next(
+        (zone for zone in config.geocoding_zones if zone.zone_type == "tm1_taz"),
+        None,
+    )
+    if tm1_zone is not None:
+        tm1_path = config.resolve_shapefile_path(tm1_zone.shapefile_key)
+        crosswalk = load_tm1_superdistrict_crosswalk(
+            tm1_path,
+            taz_field=tm1_zone.field_name,
+            superdistrict_field=config.tm1_superdistrict_field,
+        )
+        result_df = assign_superdistricts_from_tm1_taz(result_df, crosswalk)
 
     return result_df
 

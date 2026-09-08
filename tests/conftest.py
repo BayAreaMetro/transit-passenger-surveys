@@ -54,6 +54,7 @@ def _create_test_shapefiles(fixtures_dir: Path):
         gdf = gpd.GeoDataFrame(
             {
                 "TAZ1454": [100, 200],
+                "SUPERD": [1, 2],
                 "geometry": [
                     box(-122.52, 37.70, -122.38, 37.81),
                     box(-122.30, 37.75, -122.15, 37.85),
