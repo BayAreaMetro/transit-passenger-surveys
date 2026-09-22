@@ -1,0 +1,960 @@
+---
+title: "Transit Passenger Survey Sample Size Requirements for Tour Mode Choice Calibration"
+subtitle: "Purpose × Auto Ownership Segments"
+authors: Flavia Tsang and GPT-5.6 Sol
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    code-tools: true
+    number-sections: true
+    css: report.css
+jupyter: tps-for-tm-qmd
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+<!--
+Render to the shared Box folder:
+quarto render "E:\TPS_for_model_development\transit_passenger_survey_sample_size.qmd" --to html --output-dir "E:\Box\Modeling and Surveys\Surveys\Transit Passenger Surveys\Future of TPS - Spring 2026\TPS_Size_for_TM_Development"
+-->
+
+# Introduction
+
+This analysis develops a sample design for estimating transit submode shares within **Purpose × Auto Ownership segments**. The design balances three considerations: the number of segments receiving a formal precision guarantee, the margin-of-error target for those segments, and the total number of completed surveys required.
+
+Because some Purpose × Auto Ownership segments represent a very small share of transit trips, requiring the same precision for all segments can result in very large sample requirements. The analysis therefore evaluates alternative **incidence thresholds** that determine which segments must meet a ±3 or ±5 percentage-point margin-of-error target. Segments below the selected threshold remain represented in the survey but do not drive the total sample requirement.
+
+The resulting scenarios show the tradeoff between **segment coverage, statistical precision, and total sample size**, providing a basis for selecting an appropriate survey design.
+
+# Analysis structure
+
+The previous tour mode choice calibration considers six trip purposes—Work, University, School, Individual Maintenance, Individual Discretionary, and Individual At-Work—and three auto-ownership categories: Autos = 0, Autos < Workers, and Autos >= Workers. Together, these define **18 Purpose × Auto Ownership segments**.
+
+Within each segment, the survey estimates the distribution across eight calibration transit modes: Local, LRT-Walk, LRT-Drive, Ferry-Walk, Ferry-Drive, Express Bus, Heavy Rail, and Commuter Rail. This produces up to **144 calibration analysis domains** (18 segments × 8 modes).
+
+TODO: Why do only LRT and Ferry distinguish between Walk and Drive access? This was carried forward from the previous model calibration and may be something we want to re-evaluate.
+
+
+# Terminology
+
+A **segment** is a combination of Purpose × Auto Ownership. For example, `Work × Autos = 0` is one segment.
+
+A **domain** is a particular calibration-mode share within a segment. For example,
+
+$$
+P(\text{LRT-Walk}\mid\text{Work},\text{Autos}=0)
+$$
+
+is one detailed analysis domain.
+
+The formal precision requirement is applied at the segment level: qualifying segments must have enough expected completed surveys to support the specified margin-of-error target for calibration-mode shares within that segment.
+
+# Sampling strata versus analysis domains
+
+Purpose, Auto Ownership, and access mode cannot be observed before interviewing a rider; they are learned from the questionnaire. The operational sampling design therefore combines the calibration modes into six sampling-mode strata:
+
+1. Local
+2. LRT
+3. Ferry
+4. Express Bus
+5. Heavy Rail
+6. Commuter Rail
+
+# Role of the historical distribution
+
+The historical weighted trip distribution is used as a planning basis for the expected composition of the survey. Specifically, it provides the expected prevalence of each Purpose × Auto Ownership segment and the expected distribution of completed surveys across the six sampling-mode strata.
+
+The required number of completes within each qualifying segment is based on the conservative assumption of (p=0.50), so the segment-level precision requirement does not depend on historical calibration-mode shares being reproduced in the new survey. The historical distribution is used only for sample planning.
+
+However, since historical segment incidence is used to translate the required number of completes within each qualifying segment into an overall survey sample requirement, the resulting total sample assumes that the new survey will have a segment composition similar to the historical distribution. If a qualifying segment occurs less frequently than expected, the planned total sample may yield fewer than the required segment-level completes, and the target margin of error may not be achieved for that segment.
+
+The travel model represents typical weekday travel, defined as Tuesday through Thursday. Accordingly, the total survey completes identified in this analysis are intended to be collected on those days. The historical distribution used for sample planning has a slightly broader weekday definition, covering Monday through Friday. This difference cannot be reconciled at this time and is therefore treated as a limitation of the sample-planning analysis.
+
+
+# Analysis workflow
+
+The analysis proceeds from statistical precision requirements to an operational sampling plan:
+
+1. **Define analysis domains.** Establish 18 segments × eight calibration transit modes.
+2. **Set the precision standard.** Specify the margin-of-error scenarios and calculate the required completes per qualifying segment.
+3. **Build the historical distribution.** Read the previous model calibration data, then calculate each segment and calibration transit mode's share of total transit ridership.
+4. **Evaluate incidence thresholds.** Determine which segments qualify under each incidence threshold.
+5. **Calculate total survey requirements.** For each threshold and margin-of-error scenario, identify the least prevalent qualifying segment. This binding segment determines the required overall sample:
+  $$
+  N=\left\lceil\frac{\text{required segment completes}}{\text{binding segment incidence}}\right\rceil.
+  $$
+6. **Allocate completes proportionally.** Distribute each scenario's total sample across the 144 segment × calibration-mode cells using the historical distribution.
+7. **Translate to operational sampling strata.** Aggregate the eight calibration transit modes into six sampling-mode strata that can be controlled during data collection.
+8. **Apply sampling-mode minimums.** Raise any sampling-mode stratum below the relevant minimum, increasing the total survey size where necessary.
+9. **Evaluate achieved precision.** Redistribute the adjusted sampling-mode totals to segments and the eight calibration transit modes, then calculate the expected margin of error for every calibration-mode share.
+
+# Implementation and Results
+
+## Define the analysis domains
+The analysis evaluates calibration-mode shares within each Purpose × Auto Ownership segment using the framework defined in Section 2. The precision requirement is applied at the segment level, rather than independently to each calibration-mode domain. The following steps determine which segments receive a formal precision guarantee and the total survey sample needed to achieve it.
+
+## Set the precision standard
+
+For a proportion under simple random sampling, the approximate 95% margin of error is
+
+$$
+MOE=1.96\sqrt{\frac{p(1-p)}{n}}.
+$$
+
+Solving for sample size gives
+
+$$
+n=\frac{1.96^2p(1-p)}{MOE^2}.
+$$
+
+The sample-size calculation for a proportion requires an assumed calibration-mode share, (p). Rather than relying on historical calibration-mode shares, this analysis uses (p=0.50) for all domains. As a result, the sample-size requirement does not depend on the historical calibration-mode shares being correct or remaining stable in the new survey.
+
+Because the variance of a proportion, (p(1-p)), is maximized at (p=0.50), this provides a conservative basis for determining the sample size needed to meet the specified margin-of-error target.
+
+For ±3 percentage points,
+
+$$
+n=\frac{1.96^2(0.50)(0.50)}{0.03^2}=1067.11,
+$$
+
+which is rounded upward to **1,068 completes per qualifying segment**.
+
+For ±5 percentage points,
+
+$$
+n=\frac{1.96^2(0.50)(0.50)}{0.05^2}=384.15,
+$$
+
+which is rounded upward to **385 completes per qualifying segment**.
+
+| Margin of Error | Confidence | Conservative $p$ | Required Segment $n$ |
+|---|---:|---:|---:|
+| ±3 percentage points | 95% | 0.50 | 1,068 |
+| ±5 percentage points | 95% | 0.50 | 385 |
+
+## Build the historical distribution
+### Source data
+
+The analysis begins by reading columns B through F of the `paste_pd_OBS` worksheet in `TM1.5 Mode Choice Targets 2015 PopSim_OBS v2.xlsx`. The row count and trip-weight total are reported from the current workbook.
+
+```{python}
+#| label: read-source-data
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+WORKBOOK = Path(
+  r"E:\Box\Modeling and Surveys\Development\Travel Model 1.5"
+  r"\Calibration\mode choice targets"
+  r"\TM1.5 Mode Choice Targets 2015 PopSim_OBS v2.xlsx"
+)
+SHEET = "paste_pd_OBS"
+SOURCE_COLUMNS = [
+  "technology",
+  "tourPurpose",
+  "accessMode",
+  "autoSuff",
+  "tripWeight_2015",
+]
+
+source_data = pd.read_excel(
+  WORKBOOK,
+  sheet_name=SHEET,
+  usecols="B:F",
+  engine="openpyxl",
+).dropna(how="all")
+
+if source_data.columns.tolist() != SOURCE_COLUMNS:
+  raise ValueError(
+    f"Unexpected source columns: {source_data.columns.tolist()}"
+  )
+if source_data.empty:
+  raise ValueError("The source worksheet contains no data in columns B:F.")
+
+source_data["tripWeight_2015"] = pd.to_numeric(
+  source_data["tripWeight_2015"],
+  errors="coerce",
+)
+if source_data["tripWeight_2015"].isna().any():
+  raise ValueError(
+    "tripWeight_2015 contains missing or nonnumeric values."
+  )
+
+trip_weight_total = source_data["tripWeight_2015"].sum()
+pd.DataFrame({
+  "Check": ["Rows imported", "tripWeight_2015 total"],
+  "Value": [f"{len(source_data):,}", f"{trip_weight_total:,.3f}"],
+})
+```
+
+### Data Preparation
+
+Purpose and auto-ownership codes are relabeled for reporting. Kiss-and-ride (`knr`) and park-and-ride (`pnr`) are combined as Drive access. Access mode is used to split LRT and Ferry into Walk and Drive categories; the other four transit technologies remain single modes.
+
+```{python}
+#| label: recode-source-data
+PURPOSE_MAP = {
+  1: "Work",
+  2: "University",
+  3: "School",
+  4: "Individual Maintenance",
+  5: "Individual Discretionary",
+  6: "Individual At-Work",
+}
+AUTO_OWNERSHIP_MAP = {
+  "auto negotiating": "Autos < Workers",
+  "zero autos": "Autos = 0",
+  "auto sufficient": "Autos >= Workers",
+}
+MODE_MAP = {
+  "LB": "Local",
+  "EB": "Express Bus",
+  "HR": "Heavy Rail",
+  "CR": "Commuter Rail",
+}
+DETAILED_MODES = [
+  "Local",
+  "LRT-Walk",
+  "LRT-Drive",
+  "Ferry-Walk",
+  "Ferry-Drive",
+  "Express Bus",
+  "Heavy Rail",
+  "Commuter Rail",
+]
+AUTO_OWNERSHIP_ORDER = [
+  "Autos = 0",
+  "Autos < Workers",
+  "Autos >= Workers",
+]
+
+analysis_data = source_data.copy()
+analysis_data["Purpose Number"] = analysis_data["tourPurpose"].astype(int)
+analysis_data["Detailed Purpose"] = analysis_data["Purpose Number"].map(
+  PURPOSE_MAP
+)
+analysis_data["Auto Ownership"] = analysis_data["autoSuff"].map(
+  AUTO_OWNERSHIP_MAP
+)
+analysis_data["Access"] = analysis_data["accessMode"].replace({
+  "knr": "Drive",
+  "pnr": "Drive",
+  "walk": "Walk",
+})
+analysis_data["Detailed Mode"] = analysis_data["technology"].map(MODE_MAP)
+analysis_data.loc[
+  analysis_data["technology"].eq("LR"), "Detailed Mode"
+] = "LRT-" + analysis_data["Access"]
+analysis_data.loc[
+  analysis_data["technology"].eq("FR"), "Detailed Mode"
+] = "Ferry-" + analysis_data["Access"]
+
+required_fields = ["Detailed Purpose", "Auto Ownership", "Detailed Mode"]
+if analysis_data[required_fields].isna().any().any():
+  raise ValueError("One or more source categories could not be recoded.")
+```
+
+### Historical distribution by segment and calibration mode
+
+Each cell is its Purpose × Auto Ownership × calibration-mode combination's share of all weighted transit trips. The 144 percentage cells therefore sum to 100% collectively, rather than each row or column summing to 100%. `Row Total (Segment Incidence)` shows each Purpose × Auto Ownership segment's share across all eight calibration transit modes.
+
+```{python}
+#| label: historical-joint-distribution
+#| echo: false
+segment_index = pd.MultiIndex.from_product(
+  [PURPOSE_MAP, AUTO_OWNERSHIP_ORDER],
+  names=["Purpose Number", "Auto Ownership"],
+)
+
+joint_distribution = (
+  analysis_data.pivot_table(
+    index=["Purpose Number", "Auto Ownership"],
+    columns="Detailed Mode",
+    values="tripWeight_2015",
+    aggfunc="sum",
+    fill_value=0,
+  )
+  .reindex(index=segment_index, columns=DETAILED_MODES, fill_value=0)
+  .div(trip_weight_total)
+  .reset_index()
+)
+joint_distribution.columns.name = None
+joint_distribution.insert(
+  1,
+  "Detailed Purpose",
+  joint_distribution["Purpose Number"].map(PURPOSE_MAP),
+)
+
+if joint_distribution.shape != (18, 11):
+  raise RuntimeError(
+    f"Expected an 18 by 8 matrix; found {joint_distribution.shape[0]} "
+    f"rows and {joint_distribution.shape[1] - 3} mode columns."
+  )
+if not np.isclose(
+  joint_distribution[DETAILED_MODES].to_numpy().sum(),
+  1.0,
+):
+  raise RuntimeError("The 144 calibration-mode cells do not sum to 100%.")
+
+joint_distribution["Row Total (Segment Incidence)"] = joint_distribution[
+  DETAILED_MODES
+].sum(axis="columns")
+
+joint_distribution.style.format({
+  mode: "{:.2%}"
+  for mode in [
+    *DETAILED_MODES,
+    "Row Total (Segment Incidence)",
+  ]
+}).set_table_attributes(
+  'class="eight-mode-table"'
+).hide(axis="index").hide(
+  axis="columns",
+  subset=["Purpose Number"],
+)
+```
+
+## Evaluate incidence thresholds
+
+Segment incidence is the segment's share of total historical transit ridership. For each incidence threshold, the binding segment is the qualifying segment with the lowest incidence. The total-complete columns show the overall survey sample needed for that row's segment to yield 1,068 expected completes for a ±3% margin of error or 385 expected completes for a ±5% margin of error.
+
+```{python}
+#| label: segment-incidence-requirements
+#| echo: false
+INCIDENCE_THRESHOLDS = [0.00, 0.01, 0.02, 0.03, 0.05]
+MOE_SCENARIOS = [0.03, 0.05]
+CONFIDENCE_Z = 1.96
+CONSERVATIVE_P = 0.50
+
+def required_completes_for_moe(moe):
+  return int(np.ceil(
+    CONFIDENCE_Z ** 2 * CONSERVATIVE_P * (1 - CONSERVATIVE_P)
+    / moe ** 2
+  ))
+
+REQUIRED_SEGMENT_COMPLETES = {
+  f"Total completes for ±{moe:.0%} MOE": required_completes_for_moe(moe)
+  for moe in MOE_SCENARIOS
+}
+
+segment_requirements = (
+  analysis_data.groupby(["Purpose Number", "Auto Ownership"])[
+    "tripWeight_2015"
+  ]
+  .sum()
+  .reindex(segment_index, fill_value=0)
+  .div(trip_weight_total)
+  .rename("Segment incidence (% of total historical transit ridership)")
+  .reset_index()
+)
+segment_requirements.insert(
+  1,
+  "Purpose",
+  segment_requirements["Purpose Number"].map(PURPOSE_MAP),
+)
+
+binding_thresholds = {}
+incidence_column = (
+  "Segment incidence (% of total historical transit ridership)"
+)
+for threshold in INCIDENCE_THRESHOLDS:
+  qualifying = segment_requirements[
+    segment_requirements[incidence_column] >= threshold
+  ]
+  if qualifying.empty:
+    continue
+  binding_index = qualifying[incidence_column].idxmin()
+  label = "No minimum" if threshold == 0 else f"{threshold:.0%}"
+  binding_thresholds.setdefault(binding_index, []).append(label)
+
+segment_requirements["Binding at incidence threshold"] = [
+  ", ".join(binding_thresholds.get(index, []))
+  for index in segment_requirements.index
+]
+for column, required_completes in REQUIRED_SEGMENT_COMPLETES.items():
+  segment_requirements[column] = np.ceil(
+    required_completes / segment_requirements[incidence_column]
+  ).astype("int64")
+
+segment_requirements = segment_requirements[[
+  "Purpose",
+  "Auto Ownership",
+  incidence_column,
+  *REQUIRED_SEGMENT_COMPLETES,
+  "Binding at incidence threshold",
+]]
+
+if len(segment_requirements) != 18:
+  raise RuntimeError(
+    f"Expected 18 segment rows; found {len(segment_requirements)}."
+  )
+
+segment_requirements.style.format({
+  incidence_column: "{:.2%}",
+  **{
+    column: "{:,.0f}"
+    for column in REQUIRED_SEGMENT_COMPLETES
+  },
+}).hide(axis="index")
+```
+
+## Review total survey requirements
+
+Each scenario combines an incidence threshold with a margin-of-error target to determine the overall survey sample requirement. The incidence threshold determines which Purpose × Auto Ownership segments receive the formal precision guarantee, while the margin-of-error target determines the required completes within each qualifying segment.
+
+The overall sample is governed by the binding segment—the qualifying segment with the lowest historical incidence. The table below summarizes the resulting tradeoff among segment coverage, statistical precision, and total sample size.
+
+```{python}
+#| label: scenario-summary
+#| echo: false
+scenario_rows = []
+for threshold in INCIDENCE_THRESHOLDS:
+  qualifying = segment_requirements[
+    segment_requirements[incidence_column] >= threshold
+  ]
+  if qualifying.empty:
+    continue
+  binding = qualifying.loc[qualifying[incidence_column].idxmin()]
+  threshold_label = (
+    "No minimum" if threshold == 0 else f">= {threshold:.0%}"
+  )
+  binding_segment = (
+    f"{binding['Purpose']} × {binding['Auto Ownership']}"
+  )
+  for moe in MOE_SCENARIOS:
+    required_segment_completes = required_completes_for_moe(moe)
+    scenario_rows.append({
+      "Incidence threshold": threshold_label,
+      "Margin of error": f"±{moe:.0%}",
+      "Qualifying segments": len(qualifying),
+      "Share of transit trips covered": qualifying[
+        incidence_column
+      ].sum(),
+      "Required completes per qualifying segment": (
+        required_segment_completes
+      ),
+      "Binding segment": binding_segment,
+      "Binding segment incidence": binding[incidence_column],
+      "Total completes required": int(np.ceil(
+        required_segment_completes / binding[incidence_column]
+      )),
+    })
+
+scenario_summary = pd.DataFrame(scenario_rows)
+if scenario_summary.empty:
+  raise RuntimeError(
+    "No threshold-by-MOE scenarios could be generated."
+  )
+expected_scenario_count = len(scenario_summary)
+expected_threshold_count = scenario_summary[
+  "Incidence threshold"
+].nunique()
+
+scenario_summary_display = scenario_summary[[
+  "Incidence threshold",
+  "Binding segment",
+  "Binding segment incidence",
+  "Qualifying segments",
+  "Share of transit trips covered",
+  "Margin of error",
+  "Required completes per qualifying segment",
+  "Total completes required",
+]].copy()
+scenario_summary_display.columns = pd.MultiIndex.from_tuples([
+  ("Coverage", "Incidence threshold"),
+  ("Coverage", "Binding segment"),
+  ("Coverage", "Binding segment incidence"),
+  ("Coverage", "Qualifying segments"),
+  ("Coverage", "Share of transit trips covered"),
+  ("Statistical precision", "Margin of error"),
+  (
+    "Statistical precision",
+    "Required completes per qualifying segment",
+  ),
+  ("Sample size", "Total completes required"),
+])
+
+scenario_summary_display.style.format({
+  ("Coverage", "Share of transit trips covered"): "{:.2%}",
+  (
+    "Statistical precision",
+    "Required completes per qualifying segment",
+  ): "{:,.0f}",
+  ("Coverage", "Binding segment incidence"): "{:.2%}",
+  ("Sample size", "Total completes required"): "{:,.0f}",
+}).hide(axis="index")
+```
+
+## Allocate completes proportionally
+
+```{python}
+#| label: worked-example-settings
+# Update these two values to select the worked-example scenario.
+WORKED_EXAMPLE_THRESHOLD = ">= 3%"
+WORKED_EXAMPLE_MOE = "±3%"
+```
+
+The total completes are distributed across the 144 cells using the historical joint distribution in Section 7.3. Counts are rounded to integers using the largest-remainder method, which preserves each scenario's total exactly while remaining as close as possible to proportional allocation.
+
+The following allocation sections present the selected scenario as a worked example. The summary tables retain results for all scenarios.
+
+To select a different worked example, update `WORKED_EXAMPLE_THRESHOLD` and `WORKED_EXAMPLE_MOE` in the `worked-example-settings` code block above.
+
+```{python}
+#| label: scenario-allocation-tables
+#| echo: false
+from IPython.display import Markdown, display
+
+WORKED_EXAMPLE_LABEL = (
+  f"{WORKED_EXAMPLE_THRESHOLD.removeprefix('>= ')} incidence threshold, "
+  f"{WORKED_EXAMPLE_MOE} MOE"
+)
+
+def is_worked_example(threshold_label, moe_label):
+  return (
+    threshold_label == WORKED_EXAMPLE_THRESHOLD
+    and moe_label == WORKED_EXAMPLE_MOE
+  )
+
+def allocate_integer_counts(shares, total):
+  exact = shares.to_numpy(dtype="float64") * total
+  allocated = np.floor(exact).astype("int64")
+  remaining = total - int(allocated.sum())
+  if remaining:
+    fractional_order = np.argsort(
+      (exact - allocated).ravel()
+    )[::-1]
+    allocated.ravel()[fractional_order[:remaining]] += 1
+  return pd.DataFrame(
+    allocated,
+    index=shares.index,
+    columns=shares.columns,
+  )
+
+distribution_shares = joint_distribution.set_index(
+  ["Purpose Number", "Detailed Purpose", "Auto Ownership"]
+)[DETAILED_MODES]
+scenario_allocations = {}
+
+for _, scenario in scenario_summary.iterrows():
+  scenario_total = int(scenario["Total completes required"])
+  allocation = allocate_integer_counts(
+    distribution_shares,
+    scenario_total,
+  )
+  allocation["Row Total"] = allocation.sum(axis="columns")
+  allocation = allocation.reset_index()
+
+  if allocation[DETAILED_MODES].to_numpy().sum() != scenario_total:
+    raise RuntimeError(
+      "Scenario allocation does not equal its required total."
+    )
+
+  column_total = {
+    "Purpose Number": "",
+    "Detailed Purpose": "Column Total",
+    "Auto Ownership": "",
+    **{
+      mode: int(allocation[mode].sum())
+      for mode in DETAILED_MODES
+    },
+    "Row Total": int(allocation["Row Total"].sum()),
+  }
+  allocation_with_totals = pd.concat(
+    [allocation, pd.DataFrame([column_total])],
+    ignore_index=True,
+  )
+
+  if column_total["Row Total"] != scenario_total:
+    raise RuntimeError(
+      "Scenario column totals do not equal the required total."
+    )
+
+  scenario_name = (
+    f"Incidence threshold: {scenario['Incidence threshold']}; "
+    f"MOE: {scenario['Margin of error']}"
+  )
+  scenario_allocations[scenario_name] = allocation_with_totals
+
+  if is_worked_example(
+    scenario["Incidence threshold"], scenario["Margin of error"]
+  ):
+    display(Markdown(
+      f"### Worked example: {WORKED_EXAMPLE_LABEL} — "
+      f"{scenario_total:,} total completes"
+    ))
+    display(allocation_with_totals.style.format({
+      mode: "{:,.0f}"
+      for mode in [*DETAILED_MODES, "Row Total"]
+    }).set_table_attributes(
+      'class="eight-mode-table allocation-table"'
+    ).hide(axis="index").hide(
+      axis="columns",
+      subset=["Purpose Number"],
+    ))
+
+if len(scenario_allocations) != expected_scenario_count:
+  raise RuntimeError(
+    f"Expected {expected_scenario_count} allocation tables; "
+    f"found {len(scenario_allocations)}."
+  )
+```
+
+## Translate to operational sampling strata
+
+For each scenario, the 18 segment rows from the preceding calibration-mode table are retained while the eight calibration transit modes are combined into the six sampling-mode strata. LRT-Walk and LRT-Drive form the LRT total, while Ferry-Walk and Ferry-Drive form the Ferry total.
+
+```{python}
+#| label: sampling-mode-totals
+#| echo: false
+sampling_modes = [
+  "Local",
+  "LRT",
+  "Ferry",
+  "Express Bus",
+  "Heavy Rail",
+  "Commuter Rail",
+]
+sampling_mode_allocations = {}
+
+for _, scenario in scenario_summary.iterrows():
+  scenario_name = (
+    f"Incidence threshold: {scenario['Incidence threshold']}; "
+    f"MOE: {scenario['Margin of error']}"
+  )
+  detailed_allocation = scenario_allocations[scenario_name].iloc[:-1]
+  sampling_allocation = detailed_allocation[[
+    "Purpose Number",
+    "Detailed Purpose",
+    "Auto Ownership",
+  ]].copy()
+  sampling_allocation["Local"] = detailed_allocation["Local"]
+  sampling_allocation["LRT"] = (
+    detailed_allocation["LRT-Walk"]
+    + detailed_allocation["LRT-Drive"]
+  )
+  sampling_allocation["Ferry"] = (
+    detailed_allocation["Ferry-Walk"]
+    + detailed_allocation["Ferry-Drive"]
+  )
+  sampling_allocation["Express Bus"] = (
+    detailed_allocation["Express Bus"]
+  )
+  sampling_allocation["Heavy Rail"] = detailed_allocation["Heavy Rail"]
+  sampling_allocation["Commuter Rail"] = (
+    detailed_allocation["Commuter Rail"]
+  )
+  sampling_allocation["Row Total"] = sampling_allocation[
+    sampling_modes
+  ].sum(axis="columns")
+
+  if len(sampling_allocation) != 18:
+    raise RuntimeError(
+      f"Expected 18 sampling-mode rows; found {len(sampling_allocation)}."
+    )
+
+  column_total = {
+    "Purpose Number": "",
+    "Detailed Purpose": "Column Total",
+    "Auto Ownership": "",
+    **{
+      mode: int(sampling_allocation[mode].sum())
+      for mode in sampling_modes
+    },
+    "Row Total": int(sampling_allocation["Row Total"].sum()),
+  }
+  sampling_with_totals = pd.concat(
+    [sampling_allocation, pd.DataFrame([column_total])],
+    ignore_index=True,
+  )
+  scenario_total = int(scenario["Total completes required"])
+  if column_total["Row Total"] != scenario_total:
+    raise RuntimeError(
+      "Sampling-mode allocation does not equal its scenario total."
+    )
+
+  sampling_mode_allocations[scenario_name] = sampling_with_totals
+  if is_worked_example(
+    scenario["Incidence threshold"], scenario["Margin of error"]
+  ):
+    display(Markdown(
+      f"### Worked example: {WORKED_EXAMPLE_LABEL} — "
+      f"{scenario_total:,} total completes"
+    ))
+    display(sampling_with_totals.style.format({
+      column: "{:,.0f}"
+      for column in [*sampling_modes, "Row Total"]
+    }).hide(axis="index").hide(
+      axis="columns",
+      subset=["Purpose Number"],
+    ))
+
+if len(sampling_mode_allocations) != expected_scenario_count:
+  raise RuntimeError(
+    f"Expected {expected_scenario_count} sampling-mode allocation tables; "
+    f"found {len(sampling_mode_allocations)}."
+  )
+```
+
+## Apply sampling-mode minimums
+
+The Purpose × Auto Ownership requirements determine the total sample size needed to achieve the formal precision targets. Because Purpose and Auto Ownership are not known prior to survey completion, these requirements cannot be directly controlled during data collection. Although not strictly necessary to meet the formal precision targets, the six sampling-mode strata are assigned minimum sample targets as operational safeguards to ensure adequate coverage across the transit system.
+
+For each incidence threshold, the unadjusted sampling-mode totals are compared with totals after applying a minimum to every sampling-mode stratum. The minimum is 1,068 completes for the ±3% MOE scenario and 385 completes for the ±5% MOE scenario. The detailed table presents the 3% incidence threshold with a ±3% margin of error as a worked example; the summary that follows reports adjusted totals for all scenarios.
+
+```{python}
+#| label: sampling-mode-floor-adjustments
+#| echo: false
+MODE_FLOORS = {
+  f"±{moe:.0%}": required_completes_for_moe(moe)
+  for moe in MOE_SCENARIOS
+}
+mode_floor_tables = {}
+adjusted_mode_totals_by_scenario = {}
+
+for threshold_label in scenario_summary["Incidence threshold"].unique():
+  comparison_rows = []
+  for moe_label, floor in MODE_FLOORS.items():
+    scenario_name = (
+      f"Incidence threshold: {threshold_label}; MOE: {moe_label}"
+    )
+    unadjusted = sampling_mode_allocations[scenario_name].iloc[-1]
+    adjusted = {
+      mode: max(int(unadjusted[mode]), floor)
+      for mode in sampling_modes
+    }
+    if any(value < floor for value in adjusted.values()):
+      raise RuntimeError(
+        f"The {moe_label} sampling-mode floor was not applied."
+      )
+    adjusted_mode_totals_by_scenario[
+      (threshold_label, moe_label)
+    ] = pd.Series({
+      **adjusted,
+      "Total Completes": sum(adjusted.values()),
+    })
+
+    comparison_rows.append({
+      "Mode totals": f"Unadjusted ({moe_label} MOE)",
+      **{
+        mode: int(unadjusted[mode])
+        for mode in sampling_modes
+      },
+      "Total Completes": int(unadjusted["Row Total"]),
+    })
+    comparison_rows.append({
+      "Mode totals": (
+        f"Adjusted ({moe_label} MOE; {floor:,} minimum)"
+      ),
+      **adjusted,
+      "Total Completes": sum(adjusted.values()),
+    })
+
+  floor_table = pd.DataFrame(comparison_rows)
+  mode_floor_tables[threshold_label] = floor_table
+  if threshold_label == WORKED_EXAMPLE_THRESHOLD:
+    worked_example_floor_table = floor_table[
+      floor_table["Mode totals"].str.contains(
+        WORKED_EXAMPLE_MOE,
+        regex=False,
+      )
+    ]
+    display(Markdown(
+      f"### Worked example: {WORKED_EXAMPLE_LABEL}"
+    ))
+    display(worked_example_floor_table.style.format({
+      column: "{:,.0f}"
+      for column in [*sampling_modes, "Total Completes"]
+    }).hide(axis="index"))
+
+if len(mode_floor_tables) != expected_threshold_count:
+  raise RuntimeError(
+    f"Expected {expected_threshold_count} mode-floor tables; "
+    f"found {len(mode_floor_tables)}."
+  )
+
+adjusted_completes_summary = scenario_summary.copy().rename(columns={
+  "Total completes required": "Unadjusted total completes",
+})
+adjusted_completes_summary["Adjusted total completes"] = [
+  int(adjusted_mode_totals_by_scenario[
+    (scenario["Incidence threshold"], scenario["Margin of error"])
+  ]["Total Completes"])
+  for _, scenario in adjusted_completes_summary.iterrows()
+]
+
+display(Markdown("### Summary of adjusted total completes"))
+adjusted_completes_display = adjusted_completes_summary[[
+  "Incidence threshold",
+  "Binding segment",
+  "Binding segment incidence",
+  "Qualifying segments",
+  "Share of transit trips covered",
+  "Margin of error",
+  "Required completes per qualifying segment",
+  "Unadjusted total completes",
+  "Adjusted total completes",
+]].copy()
+adjusted_completes_display.columns = pd.MultiIndex.from_tuples([
+  ("Coverage", "Incidence threshold"),
+  ("Coverage", "Binding segment"),
+  ("Coverage", "Binding segment incidence"),
+  ("Coverage", "Qualifying segments"),
+  ("Coverage", "Share of transit trips covered"),
+  ("Statistical precision", "Margin of error"),
+  (
+    "Statistical precision",
+    "Required completes per qualifying segment",
+  ),
+  ("Sample size", "Unadjusted total completes"),
+  ("Sample size", "Adjusted total completes"),
+])
+
+display(adjusted_completes_display.style.format({
+  ("Coverage", "Share of transit trips covered"): "{:.2%}",
+  (
+    "Statistical precision",
+    "Required completes per qualifying segment",
+  ): "{:,.0f}",
+  ("Coverage", "Binding segment incidence"): "{:.2%}",
+  ("Sample size", "Unadjusted total completes"): "{:,.0f}",
+  ("Sample size", "Adjusted total completes"): "{:,.0f}",
+}).hide(axis="index"))
+```
+
+## Evaluate achieved precision
+
+After applying the sampling-mode minimums, expected precision is evaluated for all 144 domains, including segments below the incidence threshold that are not subject to the formal precision requirement. This evaluation shows the precision those segments are nevertheless expected to achieve under the resulting survey design.
+
+The adjusted sampling-mode total is distributed across its associated segment × calibration-mode cells in proportion to the historical distribution within that sampling-mode stratum. The resulting expected completes are summed within each segment. For calibration transit mode $d$ in segment $j$, the approximate 95% margin of error is
+
+$$
+MOE_{jd}=1.96\sqrt{\frac{p_{jd}(1-p_{jd})}{n_j}},
+$$
+
+where $n_j$ is the segment's expected adjusted completes and $p_{jd}$ is the calibration transit mode's expected share within that segment.
+
+Each cell reports `share (±MOE)`, where the value in parentheses is the margin of error. The share is the mode's expected percentage within that segment after applying the sampling-mode adjustments.
+
+These margin-of-error calculations assume simple random sampling. In practice, the survey will be collected across specific routes, stops, and time periods and may also use survey weights. These features can reduce the effective statistical precision of the sample. Therefore, the calculated sample sizes should be interpreted as planning targets rather than guarantees of the final margin of error.
+
+```{python}
+#| label: adjusted-detailed-mode-moe
+#| echo: false
+CALIBRATION_TO_SAMPLING = {
+  "Local": "Local",
+  "LRT-Walk": "LRT",
+  "LRT-Drive": "LRT",
+  "Ferry-Walk": "Ferry",
+  "Ferry-Drive": "Ferry",
+  "Express Bus": "Express Bus",
+  "Heavy Rail": "Heavy Rail",
+  "Commuter Rail": "Commuter Rail",
+}
+adjusted_expected_allocations = {}
+adjusted_moe_tables = {}
+
+for threshold_label, floor_table in mode_floor_tables.items():
+  for moe_label in MODE_FLOORS:
+    adjusted_mode_totals = adjusted_mode_totals_by_scenario[
+      (threshold_label, moe_label)
+    ]
+    expected_allocation = pd.DataFrame(
+      0.0,
+      index=distribution_shares.index,
+      columns=DETAILED_MODES,
+    )
+
+    for sampling_mode in sampling_modes:
+      detailed_columns = [
+        mode
+        for mode, parent_mode in CALIBRATION_TO_SAMPLING.items()
+        if parent_mode == sampling_mode
+      ]
+      historical_cells = distribution_shares[detailed_columns]
+      conditional_distribution = (
+        historical_cells / historical_cells.to_numpy().sum()
+      )
+      expected_allocation[detailed_columns] = (
+        conditional_distribution
+        * float(adjusted_mode_totals[sampling_mode])
+      )
+
+      if not np.isclose(
+        expected_allocation[detailed_columns].to_numpy().sum(),
+        adjusted_mode_totals[sampling_mode],
+      ):
+        raise RuntimeError(
+          f"Expected allocations do not reproduce the {sampling_mode} total."
+        )
+
+    segment_completes = expected_allocation.sum(axis="columns")
+    within_segment_shares = expected_allocation.div(
+      segment_completes,
+      axis="index",
+    )
+    detailed_moe = 1.96 * np.sqrt(
+      within_segment_shares
+      * (1 - within_segment_shares)
+      / segment_completes.to_numpy()[:, None]
+    )
+
+    share_moe_table = pd.DataFrame(index=within_segment_shares.index)
+    for mode in DETAILED_MODES:
+      share_moe_table[mode] = [
+        f"{share:.2%} (±{moe:.2%})"
+        for share, moe in zip(
+          within_segment_shares[mode],
+          detailed_moe[mode],
+        )
+      ]
+    share_moe_table = share_moe_table.reset_index()
+    share_moe_table.insert(
+      3,
+      "Expected Segment Completes",
+      segment_completes.to_numpy(),
+    )
+
+    scenario_name = (
+      f"Incidence threshold: {threshold_label}; MOE target: {moe_label}"
+    )
+    adjusted_expected_allocations[scenario_name] = expected_allocation
+    adjusted_moe_tables[scenario_name] = share_moe_table
+
+    if is_worked_example(threshold_label, moe_label):
+      display(Markdown(
+        f"### Worked example: {WORKED_EXAMPLE_LABEL} — "
+        f"{int(adjusted_mode_totals['Total Completes']):,} "
+        "adjusted completes"
+      ))
+      display(share_moe_table.style.format({
+        "Expected Segment Completes": "{:,.1f}",
+      }).set_table_attributes(
+        'class="eight-mode-moe-table"'
+      ).hide(axis="index").hide(
+        axis="columns",
+        subset=["Purpose Number"],
+      ))
+
+if len(adjusted_moe_tables) != expected_scenario_count:
+  raise RuntimeError(
+    f"Expected {expected_scenario_count} adjusted MOE tables; "
+    f"found {len(adjusted_moe_tables)}."
+  )
+```
+
+# Conclusion
+
+The analysis illustrates the tradeoff between **segment coverage, statistical precision, and total sample size**. Extending a common precision standard to lower-incidence segments can substantially increase the required overall sample.
+
+The scenarios presented here provide a range of possible survey designs. The table in Section 7.8.2 summarizes the coverage–precision–sample-size tradeoff across the alternative scenarios. For example, a 3% incidence threshold with a ±3 percentage-point target provides the specified precision for 9 qualifying segments, which together represent close to 90% of historical weighted transit trips. This scenario requires 33,074 completes under the proportional design, increasing to 34,166 completes after applying the operational sampling-mode minimums. The use of an incidence threshold helps avoid the substantially larger sample sizes required to extend that standard to lower-incidence segments. Other scenarios may be appropriate depending on survey budget and other priorities.
+
+The final design should therefore be selected based on the desired level of segment coverage and precision, together with the total sample size that is feasible to collect. 
+
+Whichever design is selected, the resulting sample target is intended to be achieved through Tuesday-through-Thursday data collection, consistent with the travel model’s representation of typical weekday travel.
+
