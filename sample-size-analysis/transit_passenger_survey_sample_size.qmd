@@ -143,10 +143,33 @@ The analysis begins by reading columns B through F of the `paste_pd_OBS` workshe
 
 ```{python}
 #| label: read-source-data
+import os
 from pathlib import Path
 
+# avoids an MKL threading-layer crash during matplotlib's affine-transform matrix multiplication in this environment
+os.environ.setdefault("MKL_THREADING_LAYER", "SEQUENTIAL")
+
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
+from IPython.display import Markdown, display
+
+# sequential numbering for table/figure captions throughout the document
+_table_count = 0
+_figure_count = 0
+
+def table_caption(text):
+  global _table_count
+  _table_count += 1
+  display(Markdown(f"**Table {_table_count}.** {text}"))
+  return _table_count
+
+def figure_caption(text):
+  global _figure_count
+  _figure_count += 1
+  display(Markdown(f"**Figure {_figure_count}.** {text}"))
+  return _figure_count
 
 WORKBOOK = Path(
   r"E:\Box\Modeling and Surveys\Development\Travel Model 1.5"
@@ -305,6 +328,7 @@ joint_distribution["Row Total (Segment Incidence)"] = joint_distribution[
   DETAILED_MODES
 ].sum(axis="columns")
 
+table_caption("Historical distribution by segment and calibration mode.")
 joint_distribution.style.format({
   mode: "{:.2%}"
   for mode in [
@@ -394,6 +418,7 @@ if len(segment_requirements) != 18:
     f"Expected 18 segment rows; found {len(segment_requirements)}."
   )
 
+table_caption("Segment incidence and required completes by incidence threshold.")
 segment_requirements.style.format({
   incidence_column: "{:.2%}",
   **{
@@ -479,6 +504,7 @@ scenario_summary_display.columns = pd.MultiIndex.from_tuples([
   ("Sample size", "Total completes required"),
 ])
 
+table_caption("Coverage, precision, and sample-size tradeoff by scenario.")
 scenario_summary_display.style.format({
   ("Coverage", "Share of transit trips covered"): "{:.2%}",
   (
@@ -588,6 +614,9 @@ for _, scenario in scenario_summary.iterrows():
       f"### Worked example: {WORKED_EXAMPLE_LABEL} — "
       f"{scenario_total:,} total completes"
     ))
+    table_caption(
+      "Worked example — proportional allocation across calibration transit modes."
+    )
     display(allocation_with_totals.style.format({
       mode: "{:,.0f}"
       for mode in [*DETAILED_MODES, "Row Total"]
@@ -686,6 +715,7 @@ for _, scenario in scenario_summary.iterrows():
       f"### Worked example: {WORKED_EXAMPLE_LABEL} — "
       f"{scenario_total:,} total completes"
     ))
+    table_caption("Worked example — sampling-mode totals.")
     display(sampling_with_totals.style.format({
       column: "{:,.0f}"
       for column in [*sampling_modes, "Row Total"]
@@ -767,6 +797,7 @@ for threshold_label in scenario_summary["Incidence threshold"].unique():
     display(Markdown(
       f"### Worked example: {WORKED_EXAMPLE_LABEL}"
     ))
+    table_caption("Worked example — sampling-mode floor adjustment.")
     display(worked_example_floor_table.style.format({
       column: "{:,.0f}"
       for column in [*sampling_modes, "Total Completes"]
@@ -789,6 +820,7 @@ adjusted_completes_summary["Adjusted total completes"] = [
 ]
 
 display(Markdown("### Summary of adjusted total completes"))
+ADJUSTED_COMPLETES_TABLE_NUMBER = table_caption("Summary of adjusted total completes by scenario.")
 adjusted_completes_display = adjusted_completes_summary[[
   "Incidence threshold",
   "Binding segment",
@@ -825,6 +857,106 @@ display(adjusted_completes_display.style.format({
   ("Sample size", "Unadjusted total completes"): "{:,.0f}",
   ("Sample size", "Adjusted total completes"): "{:,.0f}",
 }).hide(axis="index"))
+```
+
+### Sample size versus incidence threshold
+
+The chart below plots the adjusted total sample size against the incidence threshold, with the two margin-of-error targets shown as separate series. Dot size reflects the number of qualifying segments at that incidence threshold, from the summary table in Table `{python} ADJUSTED_COMPLETES_TABLE_NUMBER`. This illustrates how raising the incidence threshold (dropping lower-incidence segments from the formal precision guarantee) reduces the required sample, and how that tradeoff differs by precision level.
+
+```{python}
+#| label: sample-size-vs-qualifying-segments-plot
+#| echo: false
+# recover the numeric threshold behind each "No minimum" / ">= x%" label
+threshold_numeric_map = {
+  ("No minimum" if threshold == 0 else f">= {threshold:.0%}"): threshold
+  for threshold in INCIDENCE_THRESHOLDS
+}
+
+def plot_sample_size_vs_threshold(data, title):
+  fig, ax = plt.subplots(figsize=(6, 4))
+  # scale marker area so the number of qualifying segments is visually comparable
+  min_segments = data["Qualifying segments"].min()
+  max_segments = data["Qualifying segments"].max()
+  def marker_size(qualifying_segments):
+    if max_segments == min_segments:
+      return 200.0
+    return 60.0 + 340.0 * (
+      (qualifying_segments - min_segments) / (max_segments - min_segments)
+    )
+
+  for moe_label, group in data.groupby("Margin of error", sort=False):
+    group = group.assign(
+      _threshold_value=group["Incidence threshold"].map(threshold_numeric_map)
+    ).sort_values("_threshold_value")
+    line, = ax.plot(
+      group["_threshold_value"],
+      group["Adjusted total completes"],
+      marker="None",
+      label=f"{moe_label} MOE",
+      zorder=2,
+    )
+    ax.scatter(
+      group["_threshold_value"],
+      group["Adjusted total completes"],
+      s=group["Qualifying segments"].map(marker_size),
+      color=line.get_color(),
+      zorder=3,
+    )
+
+  ax.set_xlabel("Incidence threshold")
+  ax.set_ylabel("Adjusted total completes (sample size)")
+  ax.set_title(title)
+  # only tick the actual threshold values, not interpolated ones
+  ax.set_xticks(sorted(
+    data["Incidence threshold"].map(threshold_numeric_map).unique()
+  ))
+  ax.xaxis.set_major_formatter(lambda value, _: f"{value:.0%}")
+  ax.yaxis.set_major_formatter(lambda value, _: f"{value:,.0f}")
+
+  # combine the precision-target and dot-size legends into a single legend so
+  # matplotlib's automatic bounding-box calculation reserves space for both
+  precision_handles, precision_labels = ax.get_legend_handles_labels()
+  size_handles = [
+    plt.scatter([], [], s=marker_size(count), color="grey", alpha=0.6)
+    for count in sorted({min_segments, max_segments})
+  ]
+  size_labels = [
+    f"{count} segments" for count in sorted({min_segments, max_segments})
+  ]
+  blank_handle = Line2D([], [], linestyle="none")
+  ax.legend(
+    [*precision_handles, blank_handle, blank_handle, *size_handles],
+    [
+      *precision_labels,
+      "",
+      "Qualifying segments (dot size):",
+      *size_labels,
+    ],
+    loc="center left",
+    bbox_to_anchor=(1.02, 0.5),
+    fontsize=8,
+  )
+  ax.grid(True, alpha=0.3)
+  plt.show()
+  figure_caption(title)
+
+plot_sample_size_vs_threshold(
+  adjusted_completes_summary,
+  "Sample size versus incidence threshold",
+)
+```
+
+The chart below excludes the "no minimum" (0%) threshold, which requires a much larger sample and stretches the y-axis, so the tradeoff among the remaining thresholds is easier to read.
+
+```{python}
+#| label: sample-size-vs-qualifying-segments-plot-excl-zero
+#| echo: false
+plot_sample_size_vs_threshold(
+  adjusted_completes_summary[
+    adjusted_completes_summary["Incidence threshold"] != "No minimum"
+  ],
+  "Sample size versus incidence threshold (excluding no minimum)",
+)
 ```
 
 ## Evaluate achieved precision
@@ -932,6 +1064,7 @@ for threshold_label, floor_table in mode_floor_tables.items():
         f"{int(adjusted_mode_totals['Total Completes']):,} "
         "adjusted completes"
       ))
+      table_caption("Worked example — expected precision by calibration transit mode.")
       display(share_moe_table.style.format({
         "Expected Segment Completes": "{:,.1f}",
       }).set_table_attributes(
