@@ -1,0 +1,709 @@
+---
+title: "Transit Passenger Survey Sample Size Requirements for Tour Mode Choice Calibration"
+subtitle: "Purpose × Auto Ownership Segments"
+authors: Flavia Tsang and Claude Sonnet 5
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    code-tools: true
+    number-sections: true
+    css: report.css
+jupyter: tps-for-tm-qmd
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+<!--
+Render to the shared Box folder:
+quarto render "E:\TPS_for_model_development\transit_passenger_survey_sample_size.qmd" --to html --output-dir "E:\Box\Modeling and Surveys\Surveys\Transit Passenger Surveys\Future of TPS - Spring 2026\TPS_Size_for_TM_Development"
+-->
+
+# Introduction
+
+
+# Implementation and Results
+
+
+## Data Preparation 
+
+The analysis begins by reading columns B through F of the `paste_pd_OBS` worksheet in `TM1.5 Mode Choice Targets 2015 PopSim_OBS v2.xlsx`. The row count and trip-weight total are reported from the current workbook.
+
+```{python}
+#| label: tbl-source-data-check
+#| tbl-cap: "Source Data Import Checks"
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+def allocate_integer_counts(shares, total):
+  exact = shares.to_numpy(dtype="float64") * total
+  allocated = np.floor(exact).astype("int64")
+  remaining = total - int(allocated.sum())
+  if remaining:
+    fractional_order = np.argsort(
+      (exact - allocated).ravel()
+    )[::-1]
+    allocated.ravel()[fractional_order[:remaining]] += 1
+  return pd.DataFrame(
+    allocated,
+    index=shares.index,
+    columns=shares.columns,
+  )
+
+WORKBOOK = Path(
+  r"E:\Box\Modeling and Surveys\Development\Travel Model 1.5"
+  r"\Calibration\mode choice targets"
+  r"\TM1.5 Mode Choice Targets 2015 PopSim_OBS v2.xlsx"
+)
+SHEET = "paste_pd_OBS"
+SOURCE_COLUMNS = [
+  "technology",
+  "tourPurpose",
+  "accessMode",
+  "autoSuff",
+  "tripWeight_2015",
+]
+
+source_data = pd.read_excel(
+  WORKBOOK,
+  sheet_name=SHEET,
+  usecols="B:F",
+  engine="openpyxl",
+).dropna(how="all")
+
+if source_data.columns.tolist() != SOURCE_COLUMNS:
+  raise ValueError(
+    f"Unexpected source columns: {source_data.columns.tolist()}"
+  )
+if source_data.empty:
+  raise ValueError("The source worksheet contains no data in columns B:F.")
+
+source_data["tripWeight_2015"] = pd.to_numeric(
+  source_data["tripWeight_2015"],
+  errors="coerce",
+)
+if source_data["tripWeight_2015"].isna().any():
+  raise ValueError(
+    "tripWeight_2015 contains missing or nonnumeric values."
+  )
+
+trip_weight_total = source_data["tripWeight_2015"].sum()
+pd.DataFrame({
+  "Check": ["Rows imported", "tripWeight_2015 total"],
+  "Value": [f"{len(source_data):,}", f"{trip_weight_total:,.3f}"],
+})
+```
+
+Purpose and auto-ownership codes are relabeled for reporting. Kiss-and-ride (`knr`) and park-and-ride (`pnr`) are combined as Drive access. Access mode is used to split LRT and Ferry into Walk and Drive categories; the other four transit technologies remain single modes.
+
+```{python}
+#| label: recode-source-data
+PURPOSE_MAP = {
+  1: "Work",
+  2: "University",
+  3: "School",
+  4: "Individual Maintenance",
+  5: "Individual Discretionary",
+  6: "Individual At-Work",
+}
+AUTO_OWNERSHIP_MAP = {
+  "auto negotiating": "Autos < Workers",
+  "zero autos": "Autos = 0",
+  "auto sufficient": "Autos >= Workers",
+}
+MODE_MAP = {
+  "LB": "Local",
+  "EB": "Express Bus",
+  "HR": "Heavy Rail",
+  "CR": "Commuter Rail",
+}
+DETAILED_MODES = [
+  "Local",
+  "LRT-Walk",
+  "LRT-Drive",
+  "Ferry-Walk",
+  "Ferry-Drive",
+  "Express Bus",
+  "Heavy Rail",
+  "Commuter Rail",
+]
+AUTO_OWNERSHIP_ORDER = [
+  "Autos = 0",
+  "Autos < Workers",
+  "Autos >= Workers",
+]
+SAMPLING_MODES = [
+  "Local",
+  "LRT",
+  "Ferry",
+  "Express Bus",
+  "Heavy Rail",
+  "Commuter Rail",
+]
+SAMPLING_MODE_MAP = {
+  "Local": "Local",
+  "LRT-Walk": "LRT",
+  "LRT-Drive": "LRT",
+  "Ferry-Walk": "Ferry",
+  "Ferry-Drive": "Ferry",
+  "Express Bus": "Express Bus",
+  "Heavy Rail": "Heavy Rail",
+  "Commuter Rail": "Commuter Rail",
+}
+
+analysis_data = source_data.copy()
+analysis_data["Purpose Number"] = analysis_data["tourPurpose"].astype(int)
+analysis_data["Detailed Purpose"] = analysis_data["Purpose Number"].map(
+  PURPOSE_MAP
+)
+analysis_data["Auto Ownership"] = analysis_data["autoSuff"].map(
+  AUTO_OWNERSHIP_MAP
+)
+analysis_data["Access"] = analysis_data["accessMode"].replace({
+  "knr": "Drive",
+  "pnr": "Drive",
+  "walk": "Walk",
+})
+analysis_data["Detailed Mode"] = analysis_data["technology"].map(MODE_MAP)
+analysis_data.loc[
+  analysis_data["technology"].eq("LR"), "Detailed Mode"
+] = "LRT-" + analysis_data["Access"]
+analysis_data.loc[
+  analysis_data["technology"].eq("FR"), "Detailed Mode"
+] = "Ferry-" + analysis_data["Access"]
+analysis_data["Sampling Mode"] = analysis_data["Detailed Mode"].map(
+  SAMPLING_MODE_MAP
+)
+
+required_fields = ["Detailed Purpose", "Auto Ownership", "Detailed Mode"]
+if analysis_data[required_fields].isna().any().any():
+  raise ValueError("One or more source categories could not be recoded.")
+```
+
+## Historical share of the six sampling modes
+
+Each of the six sampling-mode strata's share of total historical weighted transit trips. LRT-Walk and LRT-Drive are combined into LRT, and Ferry-Walk and Ferry-Drive are combined into Ferry. The six shares sum to 100%.
+
+```{python}
+#| label: tbl-sampling-mode-share
+#| tbl-cap: "Historical Share of the Six Sampling Modes"
+#| echo: false
+sampling_mode_share = (
+  analysis_data.groupby("Sampling Mode")["tripWeight_2015"]
+  .sum()
+  .reindex(SAMPLING_MODES)
+  .div(trip_weight_total)
+  .rename("Share of Total Transit Trips")
+  .reset_index()
+)
+
+if len(sampling_mode_share) != 6:
+  raise RuntimeError(
+    f"Expected 6 sampling modes; found {len(sampling_mode_share)}."
+  )
+if not np.isclose(
+  sampling_mode_share["Share of Total Transit Trips"].sum(),
+  1.0,
+):
+  raise RuntimeError("The six sampling-mode shares do not sum to 100%.")
+
+sampling_mode_share.style.format({
+  "Share of Total Transit Trips": "{:.2%}",
+}).hide(axis="index")
+```
+
+## Historical distribution by segment and calibration mode
+
+Each cell is its Purpose × Auto Ownership × calibration-mode combination's share of all weighted transit trips. The 144 percentage cells therefore sum to 100% collectively, rather than each row or column summing to 100%. `Row Total (Segment Incidence)` shows each Purpose × Auto Ownership segment's share across all eight calibration transit modes.
+
+```{python}
+#| label: tbl-historical-joint-distribution
+#| tbl-cap: "Historical Distribution by Segment and Calibration Mode"
+#| echo: false
+segment_index = pd.MultiIndex.from_product(
+  [PURPOSE_MAP, AUTO_OWNERSHIP_ORDER],
+  names=["Purpose Number", "Auto Ownership"],
+)
+
+joint_distribution = (
+  analysis_data.pivot_table(
+    index=["Purpose Number", "Auto Ownership"],
+    columns="Detailed Mode",
+    values="tripWeight_2015",
+    aggfunc="sum",
+    fill_value=0,
+  )
+  .reindex(index=segment_index, columns=DETAILED_MODES, fill_value=0)
+  .div(trip_weight_total)
+  .reset_index()
+)
+joint_distribution.columns.name = None
+joint_distribution.insert(
+  1,
+  "Detailed Purpose",
+  joint_distribution["Purpose Number"].map(PURPOSE_MAP),
+)
+
+if joint_distribution.shape != (18, 11):
+  raise RuntimeError(
+    f"Expected an 18 by 8 matrix; found {joint_distribution.shape[0]} "
+    f"rows and {joint_distribution.shape[1] - 3} mode columns."
+  )
+if not np.isclose(
+  joint_distribution[DETAILED_MODES].to_numpy().sum(),
+  1.0,
+):
+  raise RuntimeError("The 144 calibration-mode cells do not sum to 100%.")
+
+joint_distribution["Row Total (Segment Incidence)"] = joint_distribution[
+  DETAILED_MODES
+].sum(axis="columns")
+
+joint_distribution.style.format({
+  mode: "{:.2%}"
+  for mode in [
+    *DETAILED_MODES,
+    "Row Total (Segment Incidence)",
+  ]
+}).set_table_attributes(
+  'class="eight-mode-table"'
+).hide(axis="index").hide(
+  axis="columns",
+  subset=["Purpose Number"],
+)
+```
+
+## Historical distribution by segment within each sampling mode
+
+The eight calibration transit modes are combined into the six sampling-mode strata (LRT-Walk and LRT-Drive form LRT; Ferry-Walk and Ferry-Drive form Ferry). Each sampling mode's column is normalized separately, so the 18 segment shares within a given mode sum to 100%, rather than the full matrix summing to 100%.
+
+```{python}
+#| label: tbl-historical-distribution-sampling-mode
+#| tbl-cap: "Historical Distribution by Segment within Each Sampling Mode"
+#| echo: false
+sampling_mode_totals = analysis_data.groupby("Sampling Mode")[
+  "tripWeight_2015"
+].sum()
+
+sampling_distribution = (
+  analysis_data.pivot_table(
+    index=["Purpose Number", "Auto Ownership"],
+    columns="Sampling Mode",
+    values="tripWeight_2015",
+    aggfunc="sum",
+    fill_value=0,
+  )
+  .reindex(index=segment_index, columns=SAMPLING_MODES, fill_value=0)
+  .div(sampling_mode_totals)
+  .reset_index()
+)
+sampling_distribution.columns.name = None
+sampling_distribution.insert(
+  1,
+  "Detailed Purpose",
+  sampling_distribution["Purpose Number"].map(PURPOSE_MAP),
+)
+
+if sampling_distribution.shape != (18, 9):
+  raise RuntimeError(
+    f"Expected an 18 by 6 matrix; found {sampling_distribution.shape[0]} "
+    f"rows and {sampling_distribution.shape[1] - 3} mode columns."
+  )
+if not np.allclose(
+  sampling_distribution[SAMPLING_MODES].to_numpy().sum(axis=0),
+  1.0,
+):
+  raise RuntimeError("Each sampling-mode column must sum to 100%.")
+
+sampling_distribution.style.format({
+  mode: "{:.2%}" for mode in SAMPLING_MODES
+}).set_table_attributes(
+  'class="six-mode-table"'
+).hide(axis="index").hide(
+  axis="columns",
+  subset=["Purpose Number"],
+)
+```
+
+## Apply the historical distribution to a fixed starting total
+
+```{python}
+#| label: starting-mode-totals-setting
+#| echo: false
+# Update these values to try a different starting allocation per mode.
+ROW_MINIMUM = 1068
+STARTING_MODE_TOTALS = pd.Series({
+  "Local": 15670,
+  "LRT": 4637,
+  "Ferry": 1068,
+  "Express Bus": 1068,
+  "Heavy Rail": 10317,
+  "Commuter Rail": 1406,
+})[SAMPLING_MODES]
+```
+
+Each of the six sampling modes starts from a specified target total completes (Local: 15,670; LRT: 4,637; Ferry: 254; Express Bus: 790; Heavy Rail: 10,317; Commuter Rail: 1,406). That total is distributed across the 18 Purpose × Auto Ownership segments using each mode's own historical distribution from @tbl-historical-distribution-sampling-mode, so every mode's column sums to its starting total. Counts are rounded to integers using the largest-remainder method to preserve each mode's total exactly. `Row Total` sums the six modes for each of the 18 segments.
+
+```{python}
+#| label: tbl-new-approach-mode-allocation
+#| tbl-cap: "Segment Allocation from Custom Per-Mode Starting Totals"
+#| echo: false
+mode_shares = sampling_distribution.set_index(
+  ["Purpose Number", "Detailed Purpose", "Auto Ownership"]
+)[SAMPLING_MODES]
+
+new_approach_allocation = pd.concat(
+  {
+    mode: allocate_integer_counts(
+      mode_shares[[mode]], int(STARTING_MODE_TOTALS[mode])
+    )[mode]
+    for mode in SAMPLING_MODES
+  },
+  axis="columns",
+).reset_index()
+
+if new_approach_allocation.shape != (18, 9):
+  raise RuntimeError(
+    f"Expected an 18 by 6 matrix; found "
+    f"{new_approach_allocation.shape[0]} rows and "
+    f"{new_approach_allocation.shape[1] - 3} mode columns."
+  )
+for mode in SAMPLING_MODES:
+  mode_total = int(new_approach_allocation[mode].sum())
+  if mode_total != int(STARTING_MODE_TOTALS[mode]):
+    raise RuntimeError(
+      f"{mode} allocation totals {mode_total:,}, "
+      f"not {int(STARTING_MODE_TOTALS[mode]):,}."
+    )
+
+new_approach_allocation["Row Total"] = new_approach_allocation[
+  SAMPLING_MODES
+].sum(axis="columns")
+
+if len(new_approach_allocation) != 18:
+  raise RuntimeError(
+    f"Expected 18 segment rows; found {len(new_approach_allocation)}."
+  )
+
+new_approach_allocation.style.format({
+  column: "{:,.0f}"
+  for column in [*SAMPLING_MODES, "Row Total"]
+}).hide(axis="index").hide(
+  axis="columns",
+  subset=["Purpose Number"],
+)
+```
+
+## Set up an optimization
+
+```{python}
+#| label: rate-ratio-setting
+#| echo: false
+# Update this value to sensitivity-test how tightly the six mode
+# sampling rates must track each other.
+RATE_RATIO_LIMIT = 10.0
+```
+
+The preceding section held every sampling mode's total at a custom per-mode starting value, but that starting allocation does not guarantee 1,068 expected completes for every Purpose × Auto Ownership segment: a segment with a small share of every mode still ends up with a small row total. 
+
+This section instead treats the six sampling-mode totals as decision variables, starting from their Table 4 per-mode totals, and solves a linear program that adjusts them to minimize the total excess samples across all 18 segments, subject to every "qualified" segment's row total being at least 1,068 and each sampling mode's own total being at least 1,068. A segment qualifies when its Row Total (Segment Incidence) in @tbl-historical-joint-distribution is at least 3%; unqualified segments are not held to the 1,068 row-total minimum. 
+
+Each mode's total is also capped so its sampling rate (total completes ÷ the mode's total historical ridership) cannot exceed 100%, and the highest mode sampling rate cannot exceed `{python} f"{RATE_RATIO_LIMIT:g}"`× the lowest mode sampling rate, so the six rates stay more or less even.
+
+```{python}
+#| label: excess-samples-before
+#| echo: false
+from IPython.display import Markdown, display
+
+starting_total_excess_samples = (
+  (new_approach_allocation["Row Total"] - ROW_MINIMUM)
+  .clip(lower=0)
+  .sum()
+)
+display(Markdown(
+  f"**Starting total excess samples (custom per-mode starting totals, "
+  f"from Table 4):** {starting_total_excess_samples:,.1f}"
+))
+```
+
+Let $x_m$ be the total completes assigned to sampling mode $m$ (for $m = 1, \dots, 6$), and let $s_{i,m}$ be segment $i$'s historical share of mode $m$'s total (each mode's column of shares sums to 1 across the 18 Purpose × Auto Ownership segments $i = 1, \dots, 18$). Segment $i$'s row total is $\sum_{m} s_{i,m}\, x_m$, and its excess samples are that row total minus 1,068. Let $Q = \{\, i : \text{incidence}_i \ge 3\% \,\}$ be the set of qualified segments, where $\text{incidence}_i$ is segment $i$'s Row Total (Segment Incidence) from @tbl-historical-joint-distribution. Let $R_m$ be mode $m$'s total historical ridership (from @tbl-sampling-mode-share), so mode $m$'s sampling rate is $x_m / R_m$. The optimization problem is:
+
+$$
+\begin{aligned}
+\min_{x_1,\dots,x_6} \quad & \sum_{i=1}^{18} \left( \sum_{m=1}^{6} s_{i,m}\, x_m - 1{,}068 \right) \\
+\text{subject to} \quad & \sum_{m=1}^{6} s_{i,m}\, x_m \ge 1{,}068, && i \in Q \\
+& 1{,}068 \le x_m \le R_m, && m = 1, \dots, 6 \\
+& \frac{x_m}{R_m} \le k \times \frac{x_{m'}}{R_{m'}}, && m, m' = 1, \dots, 6,\ m \ne m'
+\end{aligned}
+$$
+
+The last constraint bounds every pair of modes' sampling rates, so in particular the highest sampling rate cannot exceed $k$ times the lowest, where $k =$ `{python} f"{RATE_RATIO_LIMIT:g}"` (`RATE_RATIO_LIMIT`). Because it involves a ratio of decision variables, it is linearized as $R_{m'}\, x_m - k\, R_m\, x_{m'} \le 0$ before being passed to the linear program.
+
+Because each mode's column of shares sums to 1, $\sum_{i} s_{i,m} = 1$ for every mode $m$, so the objective reduces to $\sum_{m} x_m - 18 \times 1{,}068$: a constant offset of the combined mode total. The linear program below builds its objective coefficients directly from $\sum_{i} s_{i,m}$ so it literally minimizes the total excess samples.
+
+```{python}
+#| label: tbl-mode-total-optimization
+#| tbl-cap: "Sampling-Mode Totals: Starting vs. Optimized"
+#| echo: false
+from scipy.optimize import linprog
+
+QUALIFYING_INCIDENCE_THRESHOLD = 0.03
+
+qualified_mask = (
+  joint_distribution["Row Total (Segment Incidence)"]
+  >= QUALIFYING_INCIDENCE_THRESHOLD
+).to_numpy()
+
+mode_shares_matrix = mode_shares.to_numpy()
+qualified_shares_matrix = mode_shares_matrix[qualified_mask]
+mode_ridership = sampling_mode_totals.reindex(SAMPLING_MODES).to_numpy()
+
+if (mode_ridership < ROW_MINIMUM).any():
+  raise RuntimeError(
+    "A mode's total ridership is below the 1,068 row minimum, "
+    "making the sampling-rate cap infeasible."
+  )
+
+# Objective coefficients are each mode's total share across all 18 segments
+# (sum_i s_i,m), so the objective is literally the total excess samples.
+excess_objective_coefficients = mode_shares_matrix.sum(axis=0)
+
+# Linearized x_m/R_m <= RATE_RATIO_LIMIT * x_m'/R_m' for every ordered pair,
+# which bounds the highest sampling rate to RATE_RATIO_LIMIT x the lowest.
+n_modes = len(SAMPLING_MODES)
+rate_ratio_rows = []
+for m in range(n_modes):
+  for m_prime in range(n_modes):
+    if m == m_prime:
+      continue
+    row = np.zeros(n_modes)
+    row[m] = mode_ridership[m_prime]
+    row[m_prime] = -RATE_RATIO_LIMIT * mode_ridership[m]
+    rate_ratio_rows.append(row)
+rate_ratio_matrix = np.array(rate_ratio_rows)
+
+A_ub = np.vstack([-qualified_shares_matrix, rate_ratio_matrix])
+b_ub = np.concatenate([
+  -np.full(qualified_shares_matrix.shape[0], ROW_MINIMUM),
+  np.zeros(len(rate_ratio_rows)),
+])
+
+optimization_result = linprog(
+  c=excess_objective_coefficients,
+  A_ub=A_ub,
+  b_ub=b_ub,
+  bounds=list(zip([ROW_MINIMUM] * len(SAMPLING_MODES), mode_ridership)),
+  method="highs",
+)
+if not optimization_result.success:
+  raise RuntimeError(f"Optimization failed: {optimization_result.message}")
+
+optimized_mode_totals = pd.Series(
+  optimization_result.x,
+  index=SAMPLING_MODES,
+  name="Optimized total",
+)
+if (optimized_mode_totals < ROW_MINIMUM - 1e-6).any():
+  raise RuntimeError("Sampling-mode minimum constraint was violated.")
+if (optimized_mode_totals > mode_ridership + 1e-6).any():
+  raise RuntimeError("Sampling-mode 100% sampling-rate cap was violated.")
+
+optimized_sampling_rates = optimized_mode_totals.to_numpy() / mode_ridership
+if optimized_sampling_rates.max() > (
+  RATE_RATIO_LIMIT * optimized_sampling_rates.min() + 1e-6
+):
+  raise RuntimeError("Sampling-rate spread constraint was violated.")
+
+mode_total_summary = pd.DataFrame({
+  "Sampling mode": SAMPLING_MODES,
+  "Starting total": STARTING_MODE_TOTALS.values,
+  "Starting sampling rate": STARTING_MODE_TOTALS.values / mode_ridership,
+  "Optimized total": optimized_mode_totals.values,
+  "Optimized sampling rate": optimized_mode_totals.values / mode_ridership,
+})
+mode_total_summary = pd.concat(
+  [
+    mode_total_summary,
+    pd.DataFrame([{
+      "Sampling mode": "Grand Total",
+      "Starting total": mode_total_summary["Starting total"].sum(),
+      "Starting sampling rate": (
+        mode_total_summary["Starting total"].sum() / mode_ridership.sum()
+      ),
+      "Optimized total": mode_total_summary["Optimized total"].sum(),
+      "Optimized sampling rate": (
+        mode_total_summary["Optimized total"].sum() / mode_ridership.sum()
+      ),
+    }]),
+  ],
+  ignore_index=True,
+)
+mode_total_summary.style.format({
+  "Starting total": "{:,.0f}",
+  "Optimized total": "{:,.1f}",
+  "Starting sampling rate": "{:.4%}",
+  "Optimized sampling rate": "{:.4%}",
+}).hide(axis="index")
+```
+
+```{python}
+#| label: tbl-qualified-segment-summary
+#| tbl-cap: "Qualified Segment Summary"
+#| echo: false
+segment_row_totals_starting = mode_shares.dot(STARTING_MODE_TOTALS).to_numpy()
+segment_row_totals_optimized = mode_shares.dot(optimized_mode_totals).to_numpy()
+
+qualified_segment_count = int(qualified_mask.sum())
+qualified_unmet_starting = int((
+  qualified_mask & (segment_row_totals_starting < ROW_MINIMUM - 1e-6)
+).sum())
+qualified_unmet_optimized = int((
+  qualified_mask & (segment_row_totals_optimized < ROW_MINIMUM - 1e-6)
+).sum())
+
+qualified_segment_summary = pd.DataFrame({
+  "Metric": [
+    f"Segments qualified under the "
+    f"{QUALIFYING_INCIDENCE_THRESHOLD:.0%} incidence threshold",
+    f"Qualified segments below the {ROW_MINIMUM:,} row-total minimum",
+  ],
+  "Starting": [qualified_segment_count, qualified_unmet_starting],
+  "Optimized": [qualified_segment_count, qualified_unmet_optimized],
+})
+qualified_segment_summary.style.format({
+  "Starting": "{:,.0f}",
+  "Optimized": "{:,.0f}",
+}).hide(axis="index")
+```
+
+```{python}
+#| label: tbl-mode-total-optimization-rows
+#| tbl-cap: "Optimized Segment Allocation and Excess Samples"
+#| echo: false
+QUALIFIED_COLUMN = (
+  f"Qualified under {QUALIFYING_INCIDENCE_THRESHOLD:.0%} "
+  "incidence threshold"
+)
+INCIDENCE_COLUMN = "Segment Incidence"
+SEGMENT_INDEX_COLUMNS = ["Purpose Number", "Detailed Purpose", "Auto Ownership"]
+
+starting_component = new_approach_allocation.set_index(
+  SEGMENT_INDEX_COLUMNS
+)[[*SAMPLING_MODES, "Row Total"]].copy()
+starting_component["Excess samples"] = (
+  starting_component["Row Total"] - ROW_MINIMUM
+).clip(lower=0)
+starting_component = starting_component.add_prefix("Starting ")
+
+optimized_component = mode_shares.mul(optimized_mode_totals, axis="columns")
+optimized_component["Row Total"] = optimized_component.sum(axis="columns")
+optimized_component["Excess samples"] = (
+  optimized_component["Row Total"] - ROW_MINIMUM
+).clip(lower=0)
+optimized_component = optimized_component.add_prefix("Optimized ")
+
+optimized_allocation = pd.concat(
+  [starting_component, optimized_component], axis="columns"
+)
+optimized_allocation[INCIDENCE_COLUMN] = joint_distribution.set_index(
+  SEGMENT_INDEX_COLUMNS
+)["Row Total (Segment Incidence)"]
+optimized_allocation[QUALIFIED_COLUMN] = qualified_mask
+optimized_allocation = optimized_allocation.reset_index()
+optimized_allocation.insert(
+  3,
+  INCIDENCE_COLUMN,
+  optimized_allocation.pop(INCIDENCE_COLUMN),
+)
+optimized_allocation.insert(
+  4,
+  QUALIFIED_COLUMN,
+  optimized_allocation.pop(QUALIFIED_COLUMN),
+)
+
+if len(optimized_allocation) != 18:
+  raise RuntimeError(
+    f"Expected 18 segment rows; found {len(optimized_allocation)}."
+  )
+
+if (
+  optimized_allocation.loc[
+    optimized_allocation[QUALIFIED_COLUMN], "Optimized Row Total"
+  ]
+  < ROW_MINIMUM - 1e-6
+).any():
+  raise RuntimeError(
+    "Row total constraint was violated for a qualified segment."
+  )
+
+total_excess_sample = optimized_allocation["Optimized Excess samples"].sum()
+value_columns = [
+  *(f"Starting {mode}" for mode in SAMPLING_MODES),
+  "Starting Row Total",
+  "Starting Excess samples",
+  *(f"Optimized {mode}" for mode in SAMPLING_MODES),
+  "Optimized Row Total",
+  "Optimized Excess samples",
+]
+column_total = {
+  "Purpose Number": "",
+  "Detailed Purpose": "Column Total",
+  "Auto Ownership": "",
+  INCIDENCE_COLUMN: optimized_allocation[INCIDENCE_COLUMN].sum(),
+  QUALIFIED_COLUMN: "",
+  **{
+    column: optimized_allocation[column].sum()
+    for column in value_columns
+  },
+}
+optimized_allocation_with_total = pd.concat(
+  [optimized_allocation, pd.DataFrame([column_total])],
+  ignore_index=True,
+)
+
+def highlight_qualified_rows(row):
+  is_qualified = bool(row[QUALIFIED_COLUMN]) if isinstance(
+    row[QUALIFIED_COLUMN], (bool, np.bool_)
+  ) else False
+  style = "background-color: #eaf5ea" if is_qualified else ""
+  return [style] * len(row)
+
+optimized_allocation_with_total.style.apply(
+  highlight_qualified_rows, axis="columns"
+).format({
+  INCIDENCE_COLUMN: "{:.2%}",
+  **{column: "{:,.1f}" for column in value_columns},
+}).set_table_attributes(
+  'class="qualified-highlight-table"'
+).hide(axis="index").hide(
+  axis="columns",
+  subset=["Purpose Number"],
+)
+```
+
+
+```{python}
+#| label: tbl-excess-samples-summary
+#| tbl-cap: "Total Excess Samples: Starting vs. Optimized"
+#| echo: false
+excess_samples_summary = pd.DataFrame({
+  "Allocation": [
+    "Starting (custom per-mode totals)",
+    "Optimized",
+  ],
+  "Total excess samples": [
+    starting_total_excess_samples,
+    total_excess_sample,
+  ],
+})
+excess_samples_summary.style.format({
+  "Total excess samples": "{:,.1f}",
+}).hide(axis="index")
+```
+
+
