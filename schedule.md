@@ -21,6 +21,7 @@ title: Schedule
   <tr>
     <td rowspan="1" style="text-align:center; vertical-align:middle;">2026</td>
     <td>Marin Transit</td>
+    <td><a href="https://mtcdrive.box.com/v/MarinTransit2026Onboard">Marin Transit</a></td>
     <td></td>
   </tr>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
@@ -40,7 +41,6 @@ title: Schedule
   </tr>
   <tr>
     <td></td>
-    <td>WestCAT</td>
     <td><a href="https://mtcdrive.box.com/v/WestCAT2025Onboard">WestCAT</a></td>
   </tr>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
