@@ -20,7 +20,6 @@ title: Schedule
  <tbody>
   <tr>
     <td rowspan="1" style="text-align:center; vertical-align:middle;">2026</td>
-    <td>Marin Transit</td>
     <td><a href="https://mtcdrive.box.com/v/MarinTransit2026Onboard">Marin Transit</a></td>
     <td></td>
   </tr>
@@ -59,7 +58,7 @@ title: Schedule
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
     <td style="text-align:center; vertical-align:middle;">2023</td>
-    <td colspan="2"><strong>2023-2024 Regional Transit Passenger Snapshot Survey</strong></td>
+    <td colspan="2"><a href="https://public.tableau.com/app/profile/bayareametro/viz/Snapshot_Survey_Dashboard/Intro">2023-2024 Regional Transit Passenger Snapshot Survey</a></td>
   </tr>
   <tr><td colspan="3" style="height=0px; background-color:lightblue; padding:1px"></td></tr>
   <tr>
