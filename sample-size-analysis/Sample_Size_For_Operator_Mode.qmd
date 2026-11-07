@@ -1,0 +1,1476 @@
+---
+title: "Operator and Mode Sample Size Requirement"
+format:
+  html:
+    toc: true
+    code-fold: true
+jupyter: python3
+execute:
+  echo: true
+  warning: false
+---
+
+This document has five steps. Step 1 prepares the operator and mode ridership data. Step 2 calculates the sample size requirement for the standard 3% and 5% margins of error from the Step 1 main output. Step 3 calculates it for margins of error specified by the user for the 4-year and 2-year options. Step 4 solves for the margins of error that keep the totals within the sample size limits for each option. Step 5 puts the Step 4 results in one draft table of weekday and weekend sample sizes for the 4-year and 2-year options.
+
+# Approach
+
+The draft sample size targets are calculated under these constraints (the starting values; Step 5 shows the values used in each run):
+
+- **4-year option:** the number of weekday samples must not exceed 42,000, and the number of weekday + weekend samples must not exceed 48,000.
+- **2-year option:** the number of weekday samples must not exceed 16,000, and the number of weekday + weekend samples must not exceed 19,000.
+
+Based on these constraints, the sample size calculation solves for the margin of error (MOE) that meets them, for weekday and weekend. It also keeps the sampling rate (sample size divided by ridership) for every operator and mode at or below 20%; a sample size that would be over that is capped. Steps 1 to 4 prepare the data, calculate sample sizes for set margins of error, and solve for the margins of error; Step 5 is the draft table.
+
+# User settings
+
+The values below are the ones a user is expected to change. Each is a number in a code cell that is shown unfolded in the rendered document. To change one, edit it in the .qmd file, save, and render again with the Render button in VS Code or `quarto render Sample_Size_For_Operator_Mode.qmd` from the project folder. Close any output CSV that is open in Excel before rendering, because Excel locks the file and the render fails. To also make the PDF of the final table, render `Step5_Draft_Table_PDF.qmd` after this document, or run `quarto render` from the project folder to render both in order.
+
+| Setting | Step | Where it is set | Starting value | What it does |
+| --- | --- | --- | --- | --- |
+| Input files | 1 | `INPUT_DIR` in the Step 1 "Setup" code cell (folded): the Box folder `Operator_Engagement\input_SampleSizeCalcs` | `NTD_UPT_latest.csv`, `Snapshot_2023_by_operator_and_mode.csv`, `Ridership_of_operators_not_in_NTD.csv`, `Snapshot_2023_proposed_targets.csv` | The ridership data, and the proposed targets from the 2023 Snapshot Survey sampling plan. Replace the files in that folder, keeping the same column names, or change `INPUT_DIR` to use another folder. |
+| `OPERATOR_ALIASES`, `SNAPSHOT_OPERATORS_IN_NTD_TOTAL`, `OPERATOR_DISPLAY_NAMES` | 1 | Step 1, "Setup" code cell (folded) | Four NTD name aliases, Dumbarton counted inside AC Transit, and a clean display name for each operator | Match operator names between the files, and set the clean operator names shown in tables and the PDF. Add an entry when a new operator name does not match; the render stops with a message if an operator has no display name. |
+| `CONFIDENCE_LEVEL` | 2, 3, 4 | "Settings for Steps 2 to 4" | 0.95 | Confidence level, as a number between 0 and 1. |
+| `PROPORTION` | 2, 3, 4 | "Settings for Steps 2 to 4" | 0.5 | Expected proportion. 0.5 is the most conservative and gives the largest sample. |
+| `MAX_SAMPLING_RATE` | 2, 3, 4 | "Settings for Steps 2 to 4" | 0.20 | Cap on sample size as a share of ridership. A sample size over the cap is reduced to the cap, rounded down. |
+| `USER_MARGINS_OF_ERROR` | 3 | "Margins of error for the 4-year and 2-year options" | 4-year: 0.02 weekday, 0.06 weekend. 2-year: 0.04 weekday, 0.08 weekend | The margin of error for each option and day type. |
+| Sample size limits (four numbers) | 4 | "Sample size limits" | 4-year: 42,000 weekday, 48,000 weekday + weekend. 2-year: 16,000 weekday, 19,000 weekday + weekend | The most samples allowed in total. Step 4 solves for the margins of error that fit. |
+| `MOE_STEP`, `MAX_MOE` | 4 | Step 4, setup code cell (folded) | 0.0001, 0.5 | Advanced. The precision (0.01 percentage point) and upper bound of the margin of error search. |
+
+The standard margins of error for Step 2 (3% and 5%) are fixed and are not meant to be changed, because their labels appear in the column names and checks.
+
+# Step 1: Data Prep
+
+## Purpose
+
+This analysis allocates each operator's NTD weekday and weekend unlinked passenger trips (UPT) across the modes reported in the 2023 snapshot. The snapshot values are used as allocation weights; the NTD values remain the source totals. The weighted columns of the snapshot file (`WEEKDAY weighted`, `WEEKEND weighted`) set the mode splits. The sample columns (`WEEKDAY samples`, `WEEKEND samples`) are the surveys completed in the snapshot; they are carried through as reference points for the PDF table and do not affect the allocation.
+
+```{python}
+#| label: setup
+from pathlib import Path
+import csv
+import math
+import re
+
+from IPython.display import Markdown, display
+
+BASE_DIR = Path.cwd()
+OUTPUT_DIR = BASE_DIR / "processed_data"
+OUTPUT_DIR.mkdir(exist_ok=True)
+
+INPUT_DIR = Path(
+    r"E:\Box\Modeling and Surveys\Surveys\Transit Passenger Surveys\Future of TPS - Spring 2026"
+    r"\Operator_Engagement\input_SampleSizeCalcs"
+)
+assert INPUT_DIR.is_dir(), f"Input folder not found: {INPUT_DIR}"
+
+NTD_PATH = INPUT_DIR / "NTD_UPT_latest.csv"
+SNAPSHOT_PATH = INPUT_DIR / "Snapshot_2023_by_operator_and_mode.csv"
+NON_NTD_PATH = INPUT_DIR / "Ridership_of_operators_not_in_NTD.csv"
+PLAN_TARGETS_PATH = INPUT_DIR / "Snapshot_2023_proposed_targets.csv"
+
+WEEKDAY_NTD = "Avg. Est Weekday UPT by Operator/Year/Month"
+WEEKEND_NTD = "Avg. Est Weekend UPT by Operator/Year/Month"
+SNAPSHOT_COMBINED = "Survey Tech & Canonical Operator (Combined)"
+
+OPERATOR_ALIASES = {
+    "GGBHTD": "GOLDEN GATE TRANSIT",
+    "SFMTA": "MUNI",
+    "TRI DELTA TRANSIT": "TRI DELTA",
+    "WETA": "SF BAY FERRY",
+}
+
+# Snapshot operators whose trips are already counted inside another operator's NTD total.
+SNAPSHOT_OPERATORS_IN_NTD_TOTAL = {"DUMBARTON": "AC TRANSIT"}
+
+# Clean operator names for tables and the PDF, keyed by the normalized operator name in the input files.
+OPERATOR_DISPLAY_NAMES = {
+    "AC TRANSIT": "AC Transit",
+    "ACE": "ACE",
+    "BART": "BART",
+    "CALTRAIN": "Caltrain",
+    "COUNTY CONNECTION": "County Connection",
+    "DUMBARTON": "Dumbarton Express",
+    "FAST": "FAST",
+    "GOLDEN GATE TRANSIT": "Golden Gate Transit",
+    "LAVTA": "LAVTA",
+    "MARIN TRANSIT": "Marin Transit",
+    "MUNI": "Muni",
+    "NAPA VINE": "Napa Vine",
+    "PETALUMA TRANSIT": "Petaluma Transit",
+    "RIO VISTA DELTA BREEZE": "Rio Vista Delta Breeze",
+    "SAMTRANS": "SamTrans",
+    "SANTA ROSA CITYBUS": "Santa Rosa CityBus",
+    "SF BAY FERRY": "SF Bay Ferry",
+    "SMART": "SMART",
+    "SOLTRANS": "SolTrans",
+    "SONOMA COUNTY TRANSIT": "Sonoma County Transit",
+    "TRI DELTA": "Tri Delta Transit",
+    "UNION CITY": "Union City Transit",
+    "VACAVILLE CITY COACH": "Vacaville City Coach",
+    "VTA": "VTA",
+    "WESTCAT": "WestCAT",
+}
+
+
+def show_table(rows: list[dict], columns: list[str]) -> None:
+    """Display a small list of dictionaries as a Markdown table."""
+    header = "| " + " | ".join(columns) + " |"
+    separator = "| " + " | ".join(["---"] * len(columns)) + " |"
+    body = []
+    for row in rows:
+        values = [str(row.get(column, "") if row.get(column, "") is not None else "") for column in columns]
+        body.append("| " + " | ".join(value.replace("|", "\\|") for value in values) + " |")
+    display(Markdown("\n".join([header, separator, *body])))
+
+
+def write_rows(path: Path, rows: list[dict], columns: list[str]) -> None:
+    with path.open("w", encoding="utf-8", newline="") as output_file:
+        writer = csv.DictWriter(output_file, fieldnames=columns, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+```
+
+## Read and standardize the inputs
+
+The original CSV files are not modified. Enriched copies with matching fields and alternative names are written to `processed_data`.
+
+```{python}
+#| label: standardize-inputs
+def normalize_name(value: object) -> str:
+    """Normalize an operator name for matching without changing display text."""
+    if value is None:
+        return ""
+    return re.sub(r"[^A-Z0-9]+", " ", str(value).upper()).strip()
+
+
+def parse_count(value: str) -> int | None:
+    """Convert a comma-formatted count to an integer, preserving blanks as None."""
+    cleaned = (value or "").replace(",", "").strip()
+    return int(cleaned) if cleaned else None
+
+
+with NTD_PATH.open(encoding="utf-8-sig", newline="") as input_file:
+    ntd_raw = [{key.strip(): value for key, value in row.items()} for row in csv.DictReader(input_file)]
+with SNAPSHOT_PATH.open(encoding="utf-8-sig", newline="") as input_file:
+    snapshot_raw = list(csv.DictReader(input_file))
+with NON_NTD_PATH.open(encoding="utf-8-sig", newline="") as input_file:
+    non_ntd_raw = [row for row in csv.DictReader(input_file) if row["Operator"].strip()]
+with PLAN_TARGETS_PATH.open(encoding="utf-8-sig", newline="") as input_file:
+    proposed_target_by_display_name = {
+        row["Operator Display Name"]: parse_count(row["Proposed Target"]) for row in csv.DictReader(input_file)
+    }
+
+ntd = []
+for raw_row in ntd_raw:
+    row = raw_row.copy()
+    original_key = normalize_name(row["Common.Agency.Name"])
+    row["Operator Match Key"] = OPERATOR_ALIASES.get(original_key, original_key)
+    row["Alternative Name"] = row["Operator Match Key"] if original_key != row["Operator Match Key"] else ""
+    row["NTD Weekday UPT"] = parse_count(row[WEEKDAY_NTD])
+    row["NTD Weekend UPT"] = parse_count(row[WEEKEND_NTD])
+    ntd.append(row)
+
+ntd_name_by_key = {row["Operator Match Key"]: row["Common.Agency.Name"] for row in ntd}
+
+non_ntd = []
+for raw_row in non_ntd_raw:
+    operator_name = raw_row["Operator"].rstrip("*").strip()
+    month = raw_row["Month"].strip()
+    non_ntd.append(
+        {
+            "Operator": operator_name,
+            "Operator Display Name": OPERATOR_DISPLAY_NAMES.get(normalize_name(operator_name), ""),
+            "Operator Match Key": normalize_name(operator_name),
+            "Mode": raw_row["Mode"].strip(),
+            "Non-NTD Weekday UPT": parse_count(raw_row["WEEKDAY"]),
+            "Non-NTD Weekend UPT": parse_count(raw_row["WEEKEND"]),
+            "Year": raw_row["Year"].strip(),
+            "Month": "" if month.upper() == "NA" else month,
+            "Source Note": raw_row["source"].strip(),
+        }
+    )
+snapshot = []
+canonical_operator = ""
+for raw_row in snapshot_raw:
+    row = raw_row.copy()
+    canonical_operator = row["Canonical Operator"] or canonical_operator
+    row["Canonical Operator Filled"] = canonical_operator
+    snapshot_key = normalize_name(canonical_operator)
+    row["Operator Display Name"] = OPERATOR_DISPLAY_NAMES.get(snapshot_key, "")
+    row["Operator Match Key"] = SNAPSHOT_OPERATORS_IN_NTD_TOTAL.get(snapshot_key, snapshot_key)
+    row["Mode"] = row[SNAPSHOT_COMBINED].rsplit(",", maxsplit=1)[0].strip()
+    row["Snapshot Weekday UPT"] = parse_count(row["WEEKDAY weighted"])
+    row["Snapshot Weekend UPT"] = parse_count(row["WEEKEND weighted"])
+    row["Snapshot Weekday Samples"] = parse_count(row["WEEKDAY samples"])
+    row["Snapshot Weekend Samples"] = parse_count(row["WEEKEND samples"])
+    alternative_name = ntd_name_by_key.get(row["Operator Match Key"], "")
+    row["Alternative Name"] = (
+        alternative_name if normalize_name(alternative_name) != snapshot_key else ""
+    )
+    snapshot.append(row)
+
+ntd_columns = [*ntd_raw[0].keys(), "Alternative Name", "Operator Match Key", "NTD Weekday UPT", "NTD Weekend UPT"]
+snapshot_columns = [
+    *snapshot_raw[0].keys(),
+    "Canonical Operator Filled",
+    "Operator Display Name",
+    "Alternative Name",
+    "Operator Match Key",
+    "Mode",
+    "Snapshot Weekday UPT",
+    "Snapshot Weekend UPT",
+    "Snapshot Weekday Samples",
+    "Snapshot Weekend Samples",
+]
+write_rows(OUTPUT_DIR / "NTD_UPT_latest_enriched.csv", ntd, ntd_columns)
+write_rows(OUTPUT_DIR / "Snapshot_2023_by_operator_and_mode_enriched.csv", snapshot, snapshot_columns)
+write_rows(
+    OUTPUT_DIR / "Ridership_of_operators_not_in_NTD_enriched.csv",
+    non_ntd,
+    list(non_ntd[0].keys()),
+)
+
+show_table(ntd, ["Common.Agency.Name", "Alternative Name", "Operator Match Key"])
+```
+
+## Match coverage
+
+Snapshot-only operators are retained in the enriched snapshot output but cannot receive an NTD allocation. Every NTD operator must have at least one matching snapshot row.
+
+```{python}
+#| label: match-coverage
+ntd_keys = {row["Operator Match Key"] for row in ntd}
+snapshot_keys = {row["Operator Match Key"] for row in snapshot}
+
+unmatched_ntd = sorted(ntd_keys - snapshot_keys)
+non_ntd_keys = {row["Operator Match Key"] for row in non_ntd}
+snapshot_only = sorted(snapshot_keys - ntd_keys - non_ntd_keys)
+
+coverage = [
+    {"Check": "NTD operators", "Count": len(ntd_keys)},
+    {"Check": "Matched NTD operators", "Count": len(ntd_keys & snapshot_keys)},
+    {"Check": "Unmatched NTD operators", "Count": len(unmatched_ntd)},
+    {"Check": "Non-NTD operators", "Count": len(non_ntd_keys)},
+    {"Check": "Non-NTD operators with snapshot modes", "Count": len(non_ntd_keys & snapshot_keys)},
+    {"Check": "Snapshot-only operators", "Count": len(snapshot_only)},
+]
+show_table(coverage, ["Check", "Count"])
+show_table([{"Snapshot-only Operator": operator} for operator in snapshot_only], ["Snapshot-only Operator"])
+
+assert not unmatched_ntd, f"NTD operators without snapshot matches: {unmatched_ntd}"
+
+missing_display_names = sorted(
+    {row["Canonical Operator Filled"] for row in snapshot if not row["Operator Display Name"]}
+    | {row["Operator"] for row in non_ntd if not row["Operator Display Name"]}
+)
+assert not missing_display_names, f"Add these operators to OPERATOR_DISPLAY_NAMES: {missing_display_names}"
+
+unknown_plan_operators = sorted(set(proposed_target_by_display_name) - set(OPERATOR_DISPLAY_NAMES.values()))
+assert not unknown_plan_operators, f"Sampling plan operators without a display name match: {unknown_plan_operators}"
+```
+
+## Allocate NTD totals by mode
+
+AC Transit's NTD total includes Dumbarton, so it is split into three groups: Dumbarton express bus, AC Transit express bus, and AC Transit local bus. Blank snapshot values (Dumbarton weekend) count as zero.
+
+For a multi-mode operator, weekday and weekend shares are calculated independently from the corresponding snapshot values. For a single-mode operator, the full total is assigned to that mode. Largest-remainder rounding keeps allocated counts as integers while preserving every operator total exactly.
+
+Operators in `Ridership_of_operators_not_in_NTD.csv` are allocated the same way and flagged with `Data Source = Not in NTD`. Their mode comes from the snapshot when the operator appears there; otherwise it comes from the `Mode` column of `Ridership_of_operators_not_in_NTD.csv`.
+
+```{python}
+#| label: allocate-by-mode
+def allocation_shares(reference_values: list[int | None]) -> tuple[list[float], str]:
+    """Return mode shares and a short description of the allocation method."""
+    count = len(reference_values)
+    if count == 1:
+        return [1.0], "single mode"
+
+    values = [value or 0 for value in reference_values]
+    total = sum(values)
+    if total > 0:
+        return [value / total for value in values], "snapshot share"
+    return [1 / count] * count, "equal share (snapshot values missing)"
+
+
+def allocate_integer_total(total: int, shares: list[float]) -> list[int]:
+    """Allocate an integer total by largest remainder so components sum exactly."""
+    unrounded = [total * share for share in shares]
+    allocated = [math.floor(value) for value in unrounded]
+    remainder = total - sum(allocated)
+    if remainder:
+        order = sorted(range(len(shares)), key=lambda index: (-(unrounded[index] - allocated[index]), index))
+        for index in order[:remainder]:
+            allocated[index] += 1
+    return allocated
+
+
+allocation = []
+
+
+def allocate_operator(operator_modes: list[dict], weekday_total: int, weekend_total: int, identity: dict) -> None:
+    """Append one allocation row per mode, carrying the identity fields first."""
+    weekday_shares, weekday_method = allocation_shares(
+        [row["Snapshot Weekday UPT"] for row in operator_modes]
+    )
+    weekend_shares, weekend_method = allocation_shares(
+        [row["Snapshot Weekend UPT"] for row in operator_modes]
+    )
+    weekday_allocations = allocate_integer_total(weekday_total, weekday_shares)
+    weekend_allocations = allocate_integer_total(weekend_total, weekend_shares)
+
+    for index, mode_row in enumerate(operator_modes):
+        allocation.append(
+            {
+                **identity,
+                "Operator Display Name": mode_row["Operator Display Name"],
+                "Snapshot Canonical Operator": mode_row["Canonical Operator Filled"],
+                "Alternative Name": mode_row["Alternative Name"],
+                "Mode": mode_row["Mode"],
+                "Snapshot Weekday UPT": mode_row["Snapshot Weekday UPT"],
+                "Snapshot Weekend UPT": mode_row["Snapshot Weekend UPT"],
+                "Snapshot Weekday Samples": mode_row["Snapshot Weekday Samples"],
+                "Snapshot Weekend Samples": mode_row["Snapshot Weekend Samples"],
+                "Snapshot Proposed Target": proposed_target_by_display_name.get(mode_row["Operator Display Name"]),
+                "Weekday Allocation Share": weekday_shares[index],
+                "Weekend Allocation Share": weekend_shares[index],
+                "Estimated Weekday UPT": weekday_allocations[index],
+                "Estimated Weekend UPT": weekend_allocations[index],
+                "Weekday Allocation Method": weekday_method,
+                "Weekend Allocation Method": weekend_method,
+            }
+        )
+
+
+for ntd_row in ntd:
+    operator_modes = [
+        row for row in snapshot if row["Operator Match Key"] == ntd_row["Operator Match Key"]
+    ]
+    identity = {
+        "Operator": ntd_row["Common.Agency.Name"],
+        "Data Source": ntd_row["Source"].strip(),
+        "Year": ntd_row["Year"].strip(),
+        "Month": ntd_row["Month"].strip(),
+        "Source Note": "",
+    }
+    allocate_operator(operator_modes, ntd_row["NTD Weekday UPT"], ntd_row["NTD Weekend UPT"], identity)
+
+unknown_mode_row = {
+    "Canonical Operator Filled": "",
+    "Alternative Name": "",
+    "Mode": "",
+    "Snapshot Weekday UPT": None,
+    "Snapshot Weekend UPT": None,
+    "Snapshot Weekday Samples": None,
+    "Snapshot Weekend Samples": None,
+}
+for non_ntd_row in non_ntd:
+    operator_modes = [
+        row for row in snapshot if row["Operator Match Key"] == non_ntd_row["Operator Match Key"]
+    ] or [
+        {
+            **unknown_mode_row,
+            "Operator Display Name": non_ntd_row["Operator Display Name"],
+            "Mode": non_ntd_row["Mode"],
+        }
+    ]
+    identity = {
+        "Operator": non_ntd_row["Operator"],
+        "Data Source": "Not in NTD",
+        "Year": non_ntd_row["Year"],
+        "Month": non_ntd_row["Month"],
+        "Source Note": non_ntd_row["Source Note"],
+    }
+    allocate_operator(
+        operator_modes, non_ntd_row["Non-NTD Weekday UPT"], non_ntd_row["Non-NTD Weekend UPT"], identity
+    )
+
+allocation_columns = list(allocation[0].keys())
+write_rows(OUTPUT_DIR / "NTD_UPT_by_operator_and_mode.csv", allocation, allocation_columns)
+
+main_columns = [
+    "Operator",
+    "Operator Display Name",
+    "Data Source",
+    "Snapshot Canonical Operator",
+    "Alternative Name",
+    "Mode",
+    "Snapshot Weekday UPT",
+    "Snapshot Weekend UPT",
+    "Snapshot Weekday Samples",
+    "Snapshot Weekend Samples",
+    "Snapshot Proposed Target",
+    "Estimated Weekday UPT",
+    "Estimated Weekend UPT",
+    "Year",
+    "Month",
+    "Source Note",
+]
+write_rows(OUTPUT_DIR / "NTD_UPT_latest_by_operator_and_mode.csv", allocation, main_columns)
+```
+
+## Main output of data prep: NTD UPT by operator and mode
+
+Contents of `NTD_UPT_latest_by_operator_and_mode.csv`, read back from the file.
+
+```{python}
+#| label: main-output
+with (OUTPUT_DIR / "NTD_UPT_latest_by_operator_and_mode.csv").open(encoding="utf-8", newline="") as main_file:
+    main_rows = list(csv.DictReader(main_file))
+
+total_row = {
+    "Operator": "TOTAL (all operators)",
+    "Estimated Weekday UPT": sum(int(row["Estimated Weekday UPT"]) for row in main_rows),
+    "Estimated Weekend UPT": sum(int(row["Estimated Weekend UPT"]) for row in main_rows),
+}
+show_table([*main_rows, total_row], main_columns)
+
+# Dumbarton is its own operator even though its trips sit inside AC Transit's NTD total.
+operator_count = len({(row["Operator"], row["Snapshot Canonical Operator"]) for row in main_rows})
+reporting_entity_count = len({row["Operator"] for row in main_rows})
+rows_missing_weekday = [row["Operator"] for row in main_rows if not row["Estimated Weekday UPT"].strip()]
+operators_without_weekday = sorted(
+    {
+        row["Operator"]
+        for row in main_rows
+        if sum(int(r["Estimated Weekday UPT"]) for r in main_rows if r["Operator"] == row["Operator"]) <= 0
+    }
+)
+
+show_table(
+    [
+        {"Check": "Operators (Dumbarton counted separately)", "Result": operator_count},
+        {"Check": "Reporting entities (Dumbarton inside AC Transit)", "Result": reporting_entity_count},
+        {"Check": "Rows with a blank weekday value", "Result": len(rows_missing_weekday)},
+        {"Check": "Operators with zero total weekday ridership", "Result": len(operators_without_weekday)},
+    ],
+    ["Check", "Result"],
+)
+
+assert operator_count == 25, f"Expected 25 operators, found {operator_count}"
+assert not rows_missing_weekday and not operators_without_weekday
+```
+
+## Allocation detail
+
+Snapshot shares and allocation methods behind the main output.
+
+```{python}
+#| label: allocation-detail
+show_table(allocation, allocation_columns)
+```
+
+## Validation
+
+```{python}
+#| label: validate-allocation
+validation = []
+expected_totals = [
+    (row["Common.Agency.Name"], row["Source"].strip(), row["NTD Weekday UPT"], row["NTD Weekend UPT"])
+    for row in ntd
+] + [
+    (row["Operator"], "Not in NTD", row["Non-NTD Weekday UPT"], row["Non-NTD Weekend UPT"])
+    for row in non_ntd
+]
+for operator, data_source, expected_weekday, expected_weekend in expected_totals:
+    operator_rows = [
+        row for row in allocation if row["Operator"] == operator and row["Data Source"] == data_source
+    ]
+    allocated_weekday = sum(row["Estimated Weekday UPT"] for row in operator_rows)
+    allocated_weekend = sum(row["Estimated Weekend UPT"] for row in operator_rows)
+    validation.append(
+        {
+            "Operator": operator,
+            "Data Source": data_source,
+            "Source Weekday UPT": expected_weekday,
+            "Estimated Weekday UPT": allocated_weekday,
+            "Weekday Difference": allocated_weekday - expected_weekday,
+            "Source Weekend UPT": expected_weekend,
+            "Estimated Weekend UPT": allocated_weekend,
+            "Weekend Difference": allocated_weekend - expected_weekend,
+        }
+    )
+
+assert all(row["Weekday Difference"] == 0 and row["Weekend Difference"] == 0 for row in validation)
+show_table(validation, list(validation[0].keys()))
+```
+
+The main output is `processed_data/NTD_UPT_latest_by_operator_and_mode.csv`, which is the input to Step 2. The detailed version with snapshot shares and methods is `processed_data/NTD_UPT_by_operator_and_mode.csv`.
+
+# Step 2: Sample Size Calculation for the Standard 3% and 5% Margins of Error
+
+## Purpose
+
+This step reads the Step 1 main output, `processed_data/NTD_UPT_latest_by_operator_and_mode.csv`, and calculates the sample size needed for each operator and mode at a margin of error of plus or minus 3% and plus or minus 5%. Weekday and weekend are calculated separately.
+
+## Method
+
+For a proportion with margin of error $e$, the sample size for an infinite population is
+
+$$n_0 = \frac{z^2 \, p(1-p)}{e^2}$$
+
+and the finite population correction for a population of $N$ unlinked passenger trips is
+
+$$n = \frac{n_0}{1 + \frac{n_0 - 1}{N}}$$
+
+rounded up to a whole number and capped at $N$. Assumptions, with the starting values set in the "Settings for Steps 2 to 4" section below:
+
+- 95% confidence level ($z$ = 1.96).
+- $p$ = 0.5, the most conservative proportion.
+- The population $N$ is the estimated average weekday (or weekend) UPT for the operator and mode from Step 1.
+- An operator and mode with no ridership for a day type needs no sample (0).
+- The sampling rate (sample size divided by ridership $N$) is capped at `MAX_SAMPLING_RATE`, set to 20% to start. Where the sample size after the finite population adjustment is over the cap, the final sample size is $\lfloor \text{cap} \times N \rfloor$, rounded down so the rate never exceeds the cap.
+
+## Settings for Steps 2 to 4
+
+These three settings apply to Steps 2, 3, and 4. Edit the numbers in the next cell and render again.
+
+- `CONFIDENCE_LEVEL`: a number between 0 and 1, such as 0.90 or 0.95. A higher level needs a larger sample.
+- `PROPORTION`: the expected proportion, between 0 and 1. Keep 0.5 unless you have a reason to expect otherwise, because 0.5 gives the largest sample.
+- `MAX_SAMPLING_RATE`: the most that may be sampled, as a share of ridership, such as 0.20 for 20%. Where the sample size is over the cap, the final sample size is the cap times ridership, rounded down.
+
+```{python}
+#| label: step2-settings
+#| code-fold: false
+# Edit these three settings; they apply to Steps 2, 3, and 4.
+CONFIDENCE_LEVEL = 0.95
+PROPORTION = 0.5
+MAX_SAMPLING_RATE = 0.20
+
+assert 0 < CONFIDENCE_LEVEL < 1, "CONFIDENCE_LEVEL must be between 0 and 1"
+assert 0 < PROPORTION < 1, "PROPORTION must be between 0 and 1"
+assert 0 < MAX_SAMPLING_RATE <= 1, "MAX_SAMPLING_RATE must be above 0 and at most 1"
+```
+
+```{python}
+#| label: sample-size-setup
+from statistics import NormalDist
+
+RESULTS_DIR = BASE_DIR / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
+
+MARGINS_OF_ERROR = {"3%": 0.03, "5%": 0.05}
+Z_SCORE = NormalDist().inv_cdf(1 - (1 - CONFIDENCE_LEVEL) / 2)
+
+
+def infinite_population_sample_size(margin_of_error: float) -> float:
+    """n0: the unrounded sample size before the finite population correction."""
+    return Z_SCORE**2 * PROPORTION * (1 - PROPORTION) / margin_of_error**2
+
+
+def required_sample_size(population: int, margin_of_error: float) -> int:
+    """Sample size n with finite population correction, rounded up and capped at the population."""
+    if population <= 0:
+        return 0
+    n0 = infinite_population_sample_size(margin_of_error)
+    return min(math.ceil(n0 / (1 + (n0 - 1) / population)), population)
+
+
+show_table(
+    [
+        {"Parameter": "Confidence level", "Value": f"{CONFIDENCE_LEVEL:.0%}"},
+        {"Parameter": "z score", "Value": f"{Z_SCORE:.4f}"},
+        {"Parameter": "Proportion (p)", "Value": PROPORTION},
+        {"Parameter": "Maximum sampling rate (X)", "Value": f"{MAX_SAMPLING_RATE:.0%}"},
+    ],
+    ["Parameter", "Value"],
+)
+```
+
+## n0 (infinite population sample size)
+
+$n_0$ depends only on the margin of error, so it is the same for every operator and mode. It is the starting point that the finite population correction reduces for each row below.
+
+$$n_0 = \frac{z^2 \, p(1-p)}{e^2}$$
+
+With $z$ = 1.959964 (shown as 1.96) and $p$ = 0.5:
+
+- Margin of error $e$ = 0.03: $n_0 = \dfrac{1.959964^2 \times 0.25}{0.03^2} \approx 1067.07$, rounded up to 1,068.
+- Margin of error $e$ = 0.05: $n_0 = \dfrac{1.959964^2 \times 0.25}{0.05^2} \approx 384.15$, rounded up to 385.
+
+The cell below computes the same values with `infinite_population_sample_size()`. For each operator and mode, the sample size $n$ then applies the finite population correction to $n_0$, using that row's population $N$, so operators and modes with a small $N$ need far fewer than $n_0$.
+
+```{python}
+#| label: n0
+n0_rows = [
+    {
+        "Margin of error": f"+/-{label}",
+        "n0 (unrounded)": f"{infinite_population_sample_size(margin):.2f}",
+        "n0 (rounded up)": math.ceil(infinite_population_sample_size(margin)),
+    }
+    for label, margin in MARGINS_OF_ERROR.items()
+]
+show_table(n0_rows, ["Margin of error", "n0 (unrounded)", "n0 (rounded up)"])
+```
+
+## Input from Step 1
+
+```{python}
+#| label: read-step1
+STEP1_OUTPUT = OUTPUT_DIR / "NTD_UPT_latest_by_operator_and_mode.csv"
+with STEP1_OUTPUT.open(encoding="utf-8", newline="") as input_file:
+    step1_rows = list(csv.DictReader(input_file))
+
+print(f"{len(step1_rows)} operator and mode rows read from the Step 1 main output")
+```
+
+## Sample size requirement by operator and mode
+
+Sample sizes are for the latest year's data as carried in Step 1. This section calculates $n_0$ and the sample size $n$ after the finite population adjustment, before any sampling rate cap. $n_0$ is stored to two decimals; $n$ is calculated from the unrounded $n_0$.
+
+```{python}
+#| label: sample-size
+results = []
+for row in step1_rows:
+    result = {
+        "Operator": row["Operator"],
+        "Data Source": row["Data Source"],
+        "Snapshot Canonical Operator": row["Snapshot Canonical Operator"],
+        "Mode": row["Mode"],
+        "Year": row["Year"],
+        "Month": row["Month"],
+    }
+    for day in ("Weekday", "Weekend"):
+        population = int(row[f"Estimated {day} UPT"])
+        result[f"{day} UPT"] = population
+        for label, margin in MARGINS_OF_ERROR.items():
+            result[f"{day} n0 +/-{label}"] = round(infinite_population_sample_size(margin), 2)
+            result[f"{day} n after adjustment +/-{label}"] = required_sample_size(population, margin)
+    results.append(result)
+```
+
+## Sampling rate check
+
+The sampling rate is the sample size divided by ridership ($N$). Each sample size after the finite population adjustment is checked against `MAX_SAMPLING_RATE`; change it in the Step 2 setup cell to try a different cap.
+
+- **Check:** the sampling rate is $n / N$, using the sample size $n$ after the finite population adjustment. A row is flagged as over the cap when that rate is greater than `MAX_SAMPLING_RATE`.
+- **Cap rule:** a flagged row's final sample size is $\lfloor \text{cap} \times N \rfloor$. It is rounded down on purpose, because rounding up could push the rate above the cap. Rows at or under the cap keep their sample size.
+- **Outputs:** the first table below summarizes how many rows are over the cap; the tables after it list every operator and mode from the Step 1 main output, with an over-cap flag. The final tables in the next section mark capped sizes with "(capped)".
+- **Saved CSV:** `results/sample_size_by_operator_and_mode.csv` has the sampling rate, over-cap flag, and final sample size for each margin of error, next to `n after adjustment`.
+- **Validation:** the validation section at the end checks that no final sampling rate exceeds the cap.
+
+```{python}
+#| label: sampling-rate-check
+def capped_sample_size(population: int) -> int:
+    """Largest sample size whose sampling rate does not exceed the cap; the epsilon absorbs float error."""
+    return math.floor(MAX_SAMPLING_RATE * population + 1e-9)
+
+
+for result in results:
+    for day in ("Weekday", "Weekend"):
+        population = result[f"{day} UPT"]
+        for label in MARGINS_OF_ERROR:
+            adjusted = result[f"{day} n after adjustment +/-{label}"]
+            result[f"{day} Sampling Rate +/-{label}"] = round(adjusted / population, 4) if population else 0.0
+            result[f"{day} Over Cap +/-{label}"] = "Yes" if adjusted > capped_sample_size(population) else "No"
+            result[f"{day} Final Sample Size +/-{label}"] = min(adjusted, capped_sample_size(population))
+
+result_columns = list(results[0].keys())
+write_rows(RESULTS_DIR / "sample_size_by_operator_and_mode.csv", results, result_columns)
+
+rate_check = []
+for day in ("Weekday", "Weekend"):
+    for label in MARGINS_OF_ERROR:
+        rate_check.append(
+            {
+                "Day type": day,
+                "Margin of error": f"+/-{label}",
+                "Rows": len(results),
+                f"Rows over {MAX_SAMPLING_RATE:.0%} cap": sum(
+                    1 for result in results if result[f"{day} Over Cap +/-{label}"] == "Yes"
+                ),
+                "Total n after adjustment": sum(
+                    result[f"{day} n after adjustment +/-{label}"] for result in results
+                ),
+                "Total final sample size": sum(
+                    result[f"{day} Final Sample Size +/-{label}"] for result in results
+                ),
+            }
+        )
+show_table(rate_check, list(rate_check[0].keys()))
+```
+
+### Sampling rate check by operator and mode
+
+One table for each day type and margin of error. Each table has the same rows, in the same order, as the Step 1 main output: operator, snapshot canonical operator, and mode, so Dumbarton (inside AC Transit's NTD total) is a separate row from AC Transit's own express bus. Rows over the cap are flagged "Yes". The cap on ridership (`MAX_SAMPLING_RATE` times ridership, to one decimal) is shown next to the sample size after adjustment; the final sample size is that cap rounded down for flagged rows, and the adjusted sample size otherwise.
+
+```{python}
+#| label: sampling-rate-tables
+for day in ("Weekday", "Weekend"):
+    for label in MARGINS_OF_ERROR:
+        check_rows = [
+            {
+                "Operator": result["Operator"],
+                "Snapshot Canonical Operator": result["Snapshot Canonical Operator"],
+                "Mode": result["Mode"],
+                "Ridership (N)": result[f"{day} UPT"],
+                f"{MAX_SAMPLING_RATE:.0%} of ridership": f"{MAX_SAMPLING_RATE * result[f'{day} UPT']:.1f}",
+                "n after adjustment": result[f"{day} n after adjustment +/-{label}"],
+                "Sampling rate": f"{result[f'{day} Sampling Rate +/-{label}']:.1%}",
+                f"Over {MAX_SAMPLING_RATE:.0%} cap?": result[f"{day} Over Cap +/-{label}"],
+                "Final sample size": result[f"{day} Final Sample Size +/-{label}"],
+            }
+            for result in results
+        ]
+        over_cap_count = sum(1 for result in results if result[f"{day} Over Cap +/-{label}"] == "Yes")
+        total_row = {
+            "Operator": "TOTAL (all operators and modes)",
+            "Ridership (N)": sum(result[f"{day} UPT"] for result in results),
+            f"{MAX_SAMPLING_RATE:.0%} of ridership": f"{MAX_SAMPLING_RATE * sum(result[f'{day} UPT'] for result in results):.1f}",
+            "n after adjustment": sum(result[f"{day} n after adjustment +/-{label}"] for result in results),
+            f"Over {MAX_SAMPLING_RATE:.0%} cap?": f"{over_cap_count} of {len(results)}",
+            "Final sample size": sum(result[f"{day} Final Sample Size +/-{label}"] for result in results),
+        }
+        display(
+            Markdown(f"**{day}, margin of error +/-{label}: {over_cap_count} of {len(results)} rows over the cap**")
+        )
+        show_table([*check_rows, total_row], list(check_rows[0].keys()))
+```
+
+## Final sample size requirement by operator and mode
+
+Each table shows the population $N$, $n_0$, the sample size $n$ after the finite population adjustment, its sampling rate, and the final sample size after the cap. There is one table for each day type and margin of error. A final sample size marked "capped" was reduced to the maximum sampling rate. The total row adds up $N$ and the sample sizes, which is the total needed if every operator and mode is sampled separately.
+
+```{python}
+#| label: sample-size-tables
+def show_sample_size_table(day: str, label: str) -> None:
+    """Display one day type and margin of error: population, n0, adjusted sample size, rate, final size."""
+    rows = []
+    for result in results:
+        capped = result[f"{day} Over Cap +/-{label}"] == "Yes"
+        final = result[f"{day} Final Sample Size +/-{label}"]
+        rows.append(
+            {
+                "Operator": result["Operator"],
+                "Snapshot Canonical Operator": result["Snapshot Canonical Operator"],
+                "Mode": result["Mode"],
+                "Population (N)": result[f"{day} UPT"],
+                "n0": f"{result[f'{day} n0 +/-{label}']:.2f}",
+                "n after adjustment": result[f"{day} n after adjustment +/-{label}"],
+                "Sampling rate": f"{result[f'{day} Sampling Rate +/-{label}']:.1%}",
+                "Final sample size": f"{final} (capped)" if capped else final,
+            }
+        )
+
+    total_row = {
+        "Operator": "TOTAL (all operators)",
+        "Population (N)": sum(result[f"{day} UPT"] for result in results),
+        "n after adjustment": sum(result[f"{day} n after adjustment +/-{label}"] for result in results),
+        "Final sample size": sum(result[f"{day} Final Sample Size +/-{label}"] for result in results),
+    }
+    show_table([*rows, total_row], list(rows[0].keys()))
+```
+
+### Weekday, margin of error +/-3%
+
+```{python}
+#| label: sample-size-weekday-3
+show_sample_size_table("Weekday", "3%")
+```
+
+### Weekday, margin of error +/-5%
+
+```{python}
+#| label: sample-size-weekday-5
+show_sample_size_table("Weekday", "5%")
+```
+
+### Weekend, margin of error +/-3%
+
+Operators and modes with no weekend ridership need no sample.
+
+```{python}
+#| label: sample-size-weekend-3
+show_sample_size_table("Weekend", "3%")
+```
+
+### Weekend, margin of error +/-5%
+
+```{python}
+#| label: sample-size-weekend-5
+show_sample_size_table("Weekend", "5%")
+```
+
+Both tables are saved together, with data source, year, month, sampling rate, and cap flag columns, as `results/sample_size_by_operator_and_mode.csv`.
+
+## Sample size validation
+
+```{python}
+#| label: validate-sample-size
+for row in results:
+    for day in ("Weekday", "Weekend"):
+        population = row[f"{day} UPT"]
+        adjusted_3 = row[f"{day} n after adjustment +/-3%"]
+        n_3 = row[f"{day} Final Sample Size +/-3%"]
+        n_5 = row[f"{day} Final Sample Size +/-5%"]
+        assert 0 <= n_5 <= n_3 <= adjusted_3 <= population, (row["Operator"], row["Mode"], day, population, n_3, n_5)
+        assert population > 0 or n_5 == 0, (row["Operator"], row["Mode"], day)
+        for label in MARGINS_OF_ERROR:
+            assert row[f"{day} Final Sample Size +/-{label}"] <= MAX_SAMPLING_RATE * population + 1e-9, (
+                row["Operator"], row["Mode"], day, label
+            )
+
+show_table(
+    [
+        {"Check": "Operator and mode rows", "Result": len(results)},
+        {"Check": "Sample size never exceeds the population", "Result": "passed"},
+        {"Check": f"Final sampling rate never exceeds {MAX_SAMPLING_RATE:.0%}", "Result": "passed"},
+        {"Check": "+/-3% sample size is at least the +/-5% sample size", "Result": "passed"},
+        {
+            "Check": "Rows with zero weekend population (no sample needed)",
+            "Result": sum(1 for row in results if row["Weekend UPT"] == 0),
+        },
+    ],
+    ["Check", "Result"],
+)
+```
+
+# Step 3: Sample Size Calculation for User-Specified Margins of Error
+
+## Purpose
+
+This step calculates sample sizes for margins of error chosen by the user, for each contract option and day type. The lower margin of error goes with the 4-year option and the higher one with the 2-year option. The starting values are:
+
+| Option | Weekday margin of error | Weekend margin of error |
+| --- | --- | --- |
+| 4-year option (lower margin of error) | 2% | 6% |
+| 2-year option (higher margin of error) | 4% | 8% |
+
+Step 3 uses the same method as Step 2: the same Step 1 main output, confidence level, proportion, finite population adjustment, and `MAX_SAMPLING_RATE` cap.
+
+## Margins of error for the 4-year and 2-year options
+
+To change the margins of error, edit the four numbers in `USER_MARGINS_OF_ERROR` in the next cell and render again.
+
+- Enter each as a decimal: 0.02 means 2%.
+- Keep the option names (`"4-year option"`, `"2-year option"`) and the day types (`"Weekday"`, `"Weekend"`) exactly as they are.
+- The 4-year option must have the lower margin of error for each day type. If it does not, the render stops with a message.
+- A lower margin of error needs a larger sample. If the totals are too large, raise the margin of error, or use Step 4 to solve for margins of error from sample size limits.
+
+```{python}
+#| label: step3-settings
+#| code-fold: false
+# Edit these four numbers: margin of error as a decimal (0.02 = 2%).
+USER_MARGINS_OF_ERROR = {
+    "4-year option": {"Weekday": 0.02, "Weekend": 0.06},
+    "2-year option": {"Weekday": 0.04, "Weekend": 0.08},
+}
+```
+
+```{python}
+#| label: step3-setup
+OPTIONS = list(USER_MARGINS_OF_ERROR)
+DAY_TYPES = ("Weekday", "Weekend")
+
+for day in DAY_TYPES:
+    assert USER_MARGINS_OF_ERROR[OPTIONS[0]][day] < USER_MARGINS_OF_ERROR[OPTIONS[1]][day], (
+        f"{OPTIONS[0]} must have the lower {day} margin of error"
+    )
+
+show_table(
+    [
+        {
+            "Option": option,
+            "Day type": day,
+            "Margin of error": f"+/-{USER_MARGINS_OF_ERROR[option][day]:.1%}",
+            "n0 (unrounded)": f"{infinite_population_sample_size(USER_MARGINS_OF_ERROR[option][day]):.2f}",
+            "n0 (rounded up)": math.ceil(infinite_population_sample_size(USER_MARGINS_OF_ERROR[option][day])),
+        }
+        for option in OPTIONS
+        for day in DAY_TYPES
+    ],
+    ["Option", "Day type", "Margin of error", "n0 (unrounded)", "n0 (rounded up)"],
+)
+```
+
+## Sample size calculation
+
+For each operator and mode, the cell below calculates $n_0$, the sample size $n$ after the finite population adjustment, its sampling rate, and the final sample size after the sampling rate cap, for each option and day type. The results are saved to `results/sample_size_user_specified_moe.csv`. The summary shows totals across all operators and modes.
+
+```{python}
+#| label: step3-sample-size
+user_results = []
+for row in step1_rows:
+    result = {
+        "Operator": row["Operator"],
+        "Data Source": row["Data Source"],
+        "Snapshot Canonical Operator": row["Snapshot Canonical Operator"],
+        "Mode": row["Mode"],
+        "Year": row["Year"],
+        "Month": row["Month"],
+    }
+    for day in DAY_TYPES:
+        population = int(row[f"Estimated {day} UPT"])
+        result[f"{day} UPT"] = population
+        for option in OPTIONS:
+            margin = USER_MARGINS_OF_ERROR[option][day]
+            adjusted = required_sample_size(population, margin)
+            result[f"{day} {option} Margin of Error"] = margin
+            result[f"{day} {option} n0"] = round(infinite_population_sample_size(margin), 2)
+            result[f"{day} {option} n after adjustment"] = adjusted
+            result[f"{day} {option} Sampling Rate"] = round(adjusted / population, 4) if population else 0.0
+            result[f"{day} {option} Over Cap"] = "Yes" if adjusted > capped_sample_size(population) else "No"
+            result[f"{day} {option} Final Sample Size"] = min(adjusted, capped_sample_size(population))
+    user_results.append(result)
+
+write_rows(RESULTS_DIR / "sample_size_user_specified_moe.csv", user_results, list(user_results[0].keys()))
+
+show_table(
+    [
+        {
+            "Option": option,
+            "Day type": day,
+            "Margin of error": f"+/-{USER_MARGINS_OF_ERROR[option][day]:.1%}",
+            f"Rows over {MAX_SAMPLING_RATE:.0%} cap": sum(
+                1 for result in user_results if result[f"{day} {option} Over Cap"] == "Yes"
+            ),
+            "Total n after adjustment": sum(result[f"{day} {option} n after adjustment"] for result in user_results),
+            "Total final sample size": sum(result[f"{day} {option} Final Sample Size"] for result in user_results),
+        }
+        for option in OPTIONS
+        for day in DAY_TYPES
+    ],
+    [
+        "Option",
+        "Day type",
+        "Margin of error",
+        f"Rows over {MAX_SAMPLING_RATE:.0%} cap",
+        "Total n after adjustment",
+        "Total final sample size",
+    ],
+)
+```
+
+## Sample size by operator and mode
+
+One table for each option and day type. Each table has the same rows, in the same order, as the Step 1 main output. It shows ridership (N), the cap on ridership, $n_0$, the sample size after the finite population adjustment, its sampling rate, whether it is over the cap, and the final sample size, with a total row.
+
+```{python}
+#| label: step3-tables
+def show_user_moe_tables(option: str) -> None:
+    """Display the weekday and weekend tables for one option."""
+    for day in DAY_TYPES:
+        margin = USER_MARGINS_OF_ERROR[option][day]
+        rows = [
+            {
+                "Operator": result["Operator"],
+                "Snapshot Canonical Operator": result["Snapshot Canonical Operator"],
+                "Mode": result["Mode"],
+                "Ridership (N)": result[f"{day} UPT"],
+                f"{MAX_SAMPLING_RATE:.0%} of ridership": f"{MAX_SAMPLING_RATE * result[f'{day} UPT']:.1f}",
+                "n0": f"{result[f'{day} {option} n0']:.2f}",
+                "n after adjustment": result[f"{day} {option} n after adjustment"],
+                "Sampling rate": f"{result[f'{day} {option} Sampling Rate']:.1%}",
+                f"Over {MAX_SAMPLING_RATE:.0%} cap?": result[f"{day} {option} Over Cap"],
+                "Final sample size": result[f"{day} {option} Final Sample Size"],
+            }
+            for result in user_results
+        ]
+        over_cap_count = sum(1 for result in user_results if result[f"{day} {option} Over Cap"] == "Yes")
+        total_row = {
+            "Operator": "TOTAL (all operators and modes)",
+            "Ridership (N)": sum(result[f"{day} UPT"] for result in user_results),
+            f"{MAX_SAMPLING_RATE:.0%} of ridership": f"{MAX_SAMPLING_RATE * sum(result[f'{day} UPT'] for result in user_results):.1f}",
+            "n after adjustment": sum(result[f"{day} {option} n after adjustment"] for result in user_results),
+            f"Over {MAX_SAMPLING_RATE:.0%} cap?": f"{over_cap_count} of {len(user_results)}",
+            "Final sample size": sum(result[f"{day} {option} Final Sample Size"] for result in user_results),
+        }
+        display(
+            Markdown(
+                f"**{option}, {day}, margin of error +/-{margin:.1%}: "
+                f"{over_cap_count} of {len(user_results)} rows over the cap**"
+            )
+        )
+        show_table([*rows, total_row], list(rows[0].keys()))
+```
+
+### 4-year option (lower margin of error)
+
+```{python}
+#| label: step3-4-year
+show_user_moe_tables("4-year option")
+```
+
+### 2-year option (higher margin of error)
+
+```{python}
+#| label: step3-2-year
+show_user_moe_tables("2-year option")
+```
+
+## Step 3 validation
+
+```{python}
+#| label: step3-validate
+for result in user_results:
+    for day in DAY_TYPES:
+        population = result[f"{day} UPT"]
+        for option in OPTIONS:
+            final = result[f"{day} {option} Final Sample Size"]
+            assert 0 <= final <= result[f"{day} {option} n after adjustment"] <= population, (
+                result["Operator"], result["Mode"], day, option
+            )
+            assert final <= MAX_SAMPLING_RATE * population + 1e-9, (result["Operator"], result["Mode"], day, option)
+        assert (
+            result[f"{day} {OPTIONS[0]} Final Sample Size"] >= result[f"{day} {OPTIONS[1]} Final Sample Size"]
+        ), (result["Operator"], result["Mode"], day)
+
+show_table(
+    [
+        {"Check": "Operator and mode rows", "Result": len(user_results)},
+        {"Check": "Sample size never exceeds the population", "Result": "passed"},
+        {"Check": f"Final sampling rate never exceeds {MAX_SAMPLING_RATE:.0%}", "Result": "passed"},
+        {"Check": "4-year option sample size is at least the 2-year option sample size", "Result": "passed"},
+    ],
+    ["Check", "Result"],
+)
+```
+
+# Step 4: Margins of Error Solved from Sample Size Limits
+
+## Purpose
+
+This step solves for the margins of error that keep the total sample within the limits for each option. The limits are set in the "Sample size limits" section below.
+
+"Samples" are the final sample sizes, after the finite population adjustment and the `MAX_SAMPLING_RATE` cap, added up across all operators and modes.
+
+Two limits do not give a single answer for two margins of error, so this step makes these assumptions:
+
+1. **Weekday:** the weekday margin of error is the smallest one whose total weekday samples are within the weekday limit.
+2. **Weekend:** the weekend budget is the weekday + weekend limit minus the weekday samples from step 1. The weekend margin of error is the smallest one whose total weekend samples are within that budget.
+3. **Grid:** margins of error are solved on a 0.01 percentage point grid (`MOE_STEP`). Total samples never increase as the margin of error increases, so the smallest margin of error that fits is found by binary search.
+
+This gives weekday precision priority over weekend precision. A different split between weekday and weekend would give different margins of error.
+
+## Sample size limits
+
+To change the limits, edit the four numbers in the next cell and render again. The table below the cell shows the limits in use.
+
+- Enter whole numbers of samples, such as 42000.
+- Each limit is a total across all operators and modes.
+- For each option, the weekday limit must be below the weekday + weekend limit. If it is not, the render stops with a message.
+- The weekday + weekend limit leaves the weekend budget: it is that limit minus the weekday samples. If the limits are too small for any margin of error up to `MAX_MOE`, the render stops with a message.
+- The solved margins of error are in the "Solved margins of error" table, next to the Step 3 margins of error for comparison.
+
+```{python}
+#| label: step4-limits
+#| code-fold: false
+# Edit these four numbers: the maximum total samples across all operators and modes.
+FOUR_YEAR_MAX_WEEKDAY_SAMPLES = 42000
+FOUR_YEAR_MAX_WEEKDAY_PLUS_WEEKEND_SAMPLES = 48000
+TWO_YEAR_MAX_WEEKDAY_SAMPLES = 16000
+TWO_YEAR_MAX_WEEKDAY_PLUS_WEEKEND_SAMPLES = 19000
+
+CONSTRAINTS = {
+    "4-year option": {
+        "Weekday": FOUR_YEAR_MAX_WEEKDAY_SAMPLES,
+        "Weekday + Weekend": FOUR_YEAR_MAX_WEEKDAY_PLUS_WEEKEND_SAMPLES,
+    },
+    "2-year option": {
+        "Weekday": TWO_YEAR_MAX_WEEKDAY_SAMPLES,
+        "Weekday + Weekend": TWO_YEAR_MAX_WEEKDAY_PLUS_WEEKEND_SAMPLES,
+    },
+}
+for option, limits in CONSTRAINTS.items():
+    assert 0 < limits["Weekday"] < limits["Weekday + Weekend"], (
+        f"{option}: the weekday limit must be positive and below the weekday + weekend limit"
+    )
+
+show_table(
+    [
+        {
+            "Option": option,
+            "Maximum weekday samples": f"{limits['Weekday']:,}",
+            "Maximum weekday + weekend samples": f"{limits['Weekday + Weekend']:,}",
+        }
+        for option, limits in CONSTRAINTS.items()
+    ],
+    ["Option", "Maximum weekday samples", "Maximum weekday + weekend samples"],
+)
+```
+
+```{python}
+#| label: step4-setup
+MOE_STEP = 0.0001
+MAX_MOE = 0.5
+
+
+def sample_size_detail(population: int, margin: float) -> dict:
+    """n0, adjusted sample size, sampling rate, cap flag, and final sample size for one population and margin."""
+    adjusted = required_sample_size(population, margin)
+    cap = capped_sample_size(population)
+    return {
+        "n0": round(infinite_population_sample_size(margin), 2),
+        "n after adjustment": adjusted,
+        "Sampling Rate": round(adjusted / population, 4) if population else 0.0,
+        "Over Cap": "Yes" if adjusted > cap else "No",
+        "Final Sample Size": min(adjusted, cap),
+    }
+
+
+def total_final_sample(day: str, margin: float) -> int:
+    """Total final sample size across all operators and modes for one day type and margin of error."""
+    return sum(sample_size_detail(int(row[f"Estimated {day} UPT"]), margin)["Final Sample Size"] for row in step1_rows)
+
+
+def smallest_margin_within_budget(day: str, budget: int) -> float:
+    """Smallest margin of error on the grid whose total final sample size is within the budget."""
+    low, high = 1, round(MAX_MOE / MOE_STEP)
+    assert total_final_sample(day, round(high * MOE_STEP, 4)) <= budget, (
+        f"No {day} margin of error up to {MAX_MOE:.0%} fits a budget of {budget}"
+    )
+    while low < high:
+        middle = (low + high) // 2
+        if total_final_sample(day, round(middle * MOE_STEP, 4)) <= budget:
+            high = middle
+        else:
+            low = middle + 1
+    return round(low * MOE_STEP, 4)
+```
+
+## Solved margins of error
+
+```{python}
+#| label: step4-solve
+solved = {}
+for option, limits in CONSTRAINTS.items():
+    weekday_margin = smallest_margin_within_budget("Weekday", limits["Weekday"])
+    weekend_budget = limits["Weekday + Weekend"] - total_final_sample("Weekday", weekday_margin)
+    solved[option] = {
+        "Weekday": weekday_margin,
+        "Weekend": smallest_margin_within_budget("Weekend", weekend_budget),
+        "Weekend budget": weekend_budget,
+    }
+
+summary_rows = []
+for option, limits in CONSTRAINTS.items():
+    weekday_total = total_final_sample("Weekday", solved[option]["Weekday"])
+    weekend_total = total_final_sample("Weekend", solved[option]["Weekend"])
+    for day_label, limit, total, margin, step3_margin in (
+        ("Weekday", limits["Weekday"], weekday_total, solved[option]["Weekday"], USER_MARGINS_OF_ERROR[option]["Weekday"]),
+        ("Weekend (remaining budget)", solved[option]["Weekend budget"], weekend_total, solved[option]["Weekend"], USER_MARGINS_OF_ERROR[option]["Weekend"]),
+        ("Weekday + Weekend", limits["Weekday + Weekend"], weekday_total + weekend_total, None, None),
+    ):
+        summary_rows.append(
+            {
+                "Option": option,
+                "Day type": day_label,
+                "Sample limit": limit,
+                "Solved margin of error": f"+/-{margin:.2%}" if margin is not None else "",
+                "Step 3 margin of error": f"+/-{step3_margin:.2%}" if step3_margin is not None else "",
+                "Total final sample size": total,
+                "Headroom": limit - total,
+            }
+        )
+show_table(summary_rows, list(summary_rows[0].keys()))
+```
+
+## Sample size by operator and mode
+
+One table for each option and day type, using the solved margins of error. Each table has the same rows, in the same order, as the Step 1 main output, with a total row. The results are saved to `results/sample_size_constrained_moe.csv`.
+
+```{python}
+#| label: step4-results
+constrained_results = []
+for row in step1_rows:
+    result = {
+        "Operator": row["Operator"],
+        "Data Source": row["Data Source"],
+        "Snapshot Canonical Operator": row["Snapshot Canonical Operator"],
+        "Mode": row["Mode"],
+        "Year": row["Year"],
+        "Month": row["Month"],
+    }
+    for day in DAY_TYPES:
+        population = int(row[f"Estimated {day} UPT"])
+        result[f"{day} UPT"] = population
+        for option in CONSTRAINTS:
+            margin = solved[option][day]
+            result[f"{day} {option} Margin of Error"] = margin
+            for name, value in sample_size_detail(population, margin).items():
+                result[f"{day} {option} {name}"] = value
+    constrained_results.append(result)
+
+write_rows(RESULTS_DIR / "sample_size_constrained_moe.csv", constrained_results, list(constrained_results[0].keys()))
+
+
+def show_constrained_tables(option: str) -> None:
+    """Display the weekday and weekend tables for one option at its solved margins of error."""
+    for day in DAY_TYPES:
+        rows = [
+            {
+                "Operator": result["Operator"],
+                "Snapshot Canonical Operator": result["Snapshot Canonical Operator"],
+                "Mode": result["Mode"],
+                "Ridership (N)": result[f"{day} UPT"],
+                f"{MAX_SAMPLING_RATE:.0%} of ridership": f"{MAX_SAMPLING_RATE * result[f'{day} UPT']:.1f}",
+                "n0": f"{result[f'{day} {option} n0']:.2f}",
+                "n after adjustment": result[f"{day} {option} n after adjustment"],
+                "Sampling rate": f"{result[f'{day} {option} Sampling Rate']:.1%}",
+                f"Over {MAX_SAMPLING_RATE:.0%} cap?": result[f"{day} {option} Over Cap"],
+                "Final sample size": result[f"{day} {option} Final Sample Size"],
+            }
+            for result in constrained_results
+        ]
+        over_cap_count = sum(1 for result in constrained_results if result[f"{day} {option} Over Cap"] == "Yes")
+        total_row = {
+            "Operator": "TOTAL (all operators and modes)",
+            "Ridership (N)": sum(result[f"{day} UPT"] for result in constrained_results),
+            f"{MAX_SAMPLING_RATE:.0%} of ridership": f"{MAX_SAMPLING_RATE * sum(result[f'{day} UPT'] for result in constrained_results):.1f}",
+            "n after adjustment": sum(result[f"{day} {option} n after adjustment"] for result in constrained_results),
+            f"Over {MAX_SAMPLING_RATE:.0%} cap?": f"{over_cap_count} of {len(constrained_results)}",
+            "Final sample size": sum(result[f"{day} {option} Final Sample Size"] for result in constrained_results),
+        }
+        display(
+            Markdown(
+                f"**{option}, {day}, solved margin of error +/-{solved[option][day]:.2%}: "
+                f"{over_cap_count} of {len(constrained_results)} rows over the cap**"
+            )
+        )
+        show_table([*rows, total_row], list(rows[0].keys()))
+```
+
+### 4-year option
+
+```{python}
+#| label: step4-4-year
+show_constrained_tables("4-year option")
+```
+
+### 2-year option
+
+```{python}
+#| label: step4-2-year
+show_constrained_tables("2-year option")
+```
+
+## Step 4 validation
+
+```{python}
+#| label: step4-validate
+for option, limits in CONSTRAINTS.items():
+    weekday_total = sum(result[f"Weekday {option} Final Sample Size"] for result in constrained_results)
+    weekend_total = sum(result[f"Weekend {option} Final Sample Size"] for result in constrained_results)
+    assert weekday_total <= limits["Weekday"], (option, weekday_total)
+    assert weekday_total + weekend_total <= limits["Weekday + Weekend"], (option, weekday_total + weekend_total)
+    # One grid step smaller must break its limit, otherwise a smaller margin of error would also fit.
+    for day, budget in (("Weekday", limits["Weekday"]), ("Weekend", solved[option]["Weekend budget"])):
+        smaller = round(solved[option][day] - MOE_STEP, 4)
+        assert smaller < MOE_STEP / 2 or total_final_sample(day, smaller) > budget, (option, day)
+    for result in constrained_results:
+        for day in DAY_TYPES:
+            assert result[f"{day} {option} Final Sample Size"] <= MAX_SAMPLING_RATE * result[f"{day} UPT"] + 1e-9
+
+show_table(
+    [
+        {"Check": "Weekday total is within the weekday limit", "Result": "passed"},
+        {"Check": "Weekday + weekend total is within its limit", "Result": "passed"},
+        {"Check": "A margin of error one grid step smaller would break its limit", "Result": "passed"},
+        {"Check": f"Final sampling rate never exceeds {MAX_SAMPLING_RATE:.0%}", "Result": "passed"},
+    ],
+    ["Check", "Result"],
+)
+```
+
+# Step 5: Draft Sample Sizes by Operator and Mode
+
+## Approach
+
+This text uses the settings in effect for this run. A plainer-language version of it is saved to `results/draft_sample_size_approach.txt` and used as the introduction of the PDF.
+
+```{python}
+#| label: step5-approach
+#| echo: false
+approach_lines = [
+    "The draft targets are calculated under the following constraints:",
+    "",
+    f"- **4-year option:** the number of weekday samples must not exceed {CONSTRAINTS['4-year option']['Weekday']:,}, "
+    f"and the number of weekday + weekend samples must not exceed {CONSTRAINTS['4-year option']['Weekday + Weekend']:,}.",
+    f"- **2-year option:** the number of weekday samples must not exceed {CONSTRAINTS['2-year option']['Weekday']:,}, "
+    f"and the number of weekday + weekend samples must not exceed {CONSTRAINTS['2-year option']['Weekday + Weekend']:,}.",
+    "",
+    "Based on these constraints, the sample size calculation solves for the margin of error (MOE) that meets them: "
+    f"for the 4-year option, ±{solved['4-year option']['Weekday']:.2%} for weekday and ±{solved['4-year option']['Weekend']:.2%} for weekend; "
+    f"for the 2-year option, ±{solved['2-year option']['Weekday']:.2%} for weekday and ±{solved['2-year option']['Weekend']:.2%} for weekend. "
+    f"It also keeps the sampling rate (sample size divided by ridership) for every operator and mode at or below {MAX_SAMPLING_RATE:.0%}; "
+    "a sample size that would exceed that rate is capped at it. For a capped operator and mode, the margin of error achieved is higher than the one indicated, "
+    "and the sample size is marked \u2020 in the table.",
+    "",
+    f"Sample sizes use the standard formula for a proportion with a finite population correction, at {CONFIDENCE_LEVEL:.0%} confidence and a proportion of {PROPORTION}.",
+]
+approach_text = "\n".join(approach_lines)
+pdf_intro_lines = [
+    "## How we determine the draft sample targets",
+    "",
+    "We started with a constraint on how many survey responses we can collect given the budget available, "
+    "then worked out how precise the results can be within that constraint.",
+    "",
+    "### The constraints we planned around",
+    "",
+    f"- **4-year option:** up to {CONSTRAINTS['4-year option']['Weekday']:,} weekday surveys, "
+    f"and up to {CONSTRAINTS['4-year option']['Weekday + Weekend']:,} weekday and weekend surveys combined.",
+    f"- **2-year option:** up to {CONSTRAINTS['2-year option']['Weekday']:,} weekday surveys, "
+    f"and up to {CONSTRAINTS['2-year option']['Weekday + Weekend']:,} weekday and weekend surveys combined.",
+    "",
+    "### How precise the results will be",
+    "",
+    "Every survey result comes with a margin of error: a range that shows how far the true figure might be "
+    "from what we measured. A smaller margin means more precise results. "
+    "Within the constraints above, the margins of error are:",
+    "",
+    f"- **4-year option:** \u00b1{solved['4-year option']['Weekday']:.2%} for weekdays "
+    f"and \u00b1{solved['4-year option']['Weekend']:.2%} for weekends.",
+    f"- **2-year option:** \u00b1{solved['2-year option']['Weekday']:.2%} for weekdays "
+    f"and \u00b1{solved['2-year option']['Weekend']:.2%} for weekends.",
+    "",
+    f"### A {MAX_SAMPLING_RATE:.0%} ridership cap",
+    "",
+    f"For practical reasons, we plan to survey no more than {MAX_SAMPLING_RATE:.0%} of the riders of any operator and mode of travel. "
+    "Where this cap applies, the table marks the sample size with a \u2020. "
+    "For those rows, the margin of error is larger than the one shown above.",
+]
+(RESULTS_DIR / "draft_sample_size_approach.txt").write_text("\n".join(pdf_intro_lines), encoding="utf-8")
+display(Markdown(approach_text))
+```
+
+## Draft table
+
+The draft sample size for each operator and mode, from the Step 4 results: weekday and weekend for the 4-year option, and weekday and weekend for the 2-year option. The column headings show the margin of error solved in Step 4 for each option and day type. A sample size marked † was capped at the maximum sampling rate, so the margin of error achieved for that operator and mode is higher than the one in the column heading; these cases are listed with their achieved margin of error below the table. Rows are the same, in the same order, as the Step 1 main output, and the total row adds up all operators and modes. The table is saved to `results/draft_sample_size_by_operator_and_mode.csv`. A PDF with only this table and the approach above is made by rendering `Step5_Draft_Table_PDF.qmd` after this document; it is saved as `_output/Draft_Sample_Sizes_by_Operator_and_Mode.pdf`. The PDF marks capped sample sizes with † but does not include the table of achieved margins of error that follows the draft table here.
+
+```{python}
+#| label: step5-draft-table
+draft_columns = {
+    (option, day): f"{option.split(' ')[0]} {day.lower()} (+/-{solved[option][day]:.2%})"
+    for option in CONSTRAINTS
+    for day in DAY_TYPES
+}
+draft_rows = [
+    {
+        "Operator": result["Operator"],
+        "Snapshot Canonical Operator": result["Snapshot Canonical Operator"],
+        "Mode": result["Mode"],
+        "Data Source": result["Data Source"],
+        **{
+            draft_columns[(option, day)]: result[f"{day} {option} Final Sample Size"]
+            for option in CONSTRAINTS
+            for day in DAY_TYPES
+        },
+    }
+    for result in constrained_results
+]
+draft_total_row = {
+    "Operator": "TOTAL (all operators and modes)",
+    **{column: sum(row[column] for row in draft_rows) for column in draft_columns.values()},
+}
+
+def achieved_margin_of_error(sample_size: int, population: int) -> float | None:
+    """Margin of error actually achieved by a sample, with the finite population correction."""
+    if sample_size <= 0 or population <= 0:
+        return None
+    if sample_size >= population:
+        return 0.0
+    variance = PROPORTION * (1 - PROPORTION) / sample_size * (population - sample_size) / (population - 1)
+    return Z_SCORE * math.sqrt(variance)
+
+
+draft_detail_rows = []
+for result, source_row in zip(constrained_results, step1_rows):
+    detail = {
+        "Operator": result["Operator"],
+        "Operator Display Name": source_row["Operator Display Name"],
+        "Snapshot Weekday UPT": source_row["Snapshot Weekday UPT"],
+        "Snapshot Weekend UPT": source_row["Snapshot Weekend UPT"],
+        "Snapshot Weekday Samples": source_row["Snapshot Weekday Samples"],
+        "Snapshot Weekend Samples": source_row["Snapshot Weekend Samples"],
+        "Snapshot Proposed Target": source_row["Snapshot Proposed Target"],
+        "Snapshot Canonical Operator": result["Snapshot Canonical Operator"],
+        "Mode": result["Mode"],
+        "Data Source": result["Data Source"],
+        "Year": result["Year"],
+        "Month": result["Month"],
+        "Weekday Ridership": result["Weekday UPT"],
+        "Weekend Ridership": result["Weekend UPT"],
+        "Maximum Sampling Rate": MAX_SAMPLING_RATE,
+    }
+    for option in CONSTRAINTS:
+        for day in DAY_TYPES:
+            sample_size = result[f"{day} {option} Final Sample Size"]
+            achieved = achieved_margin_of_error(sample_size, result[f"{day} UPT"])
+            detail[f"{option} {day} Margin of Error"] = solved[option][day]
+            detail[f"{option} {day} Sample Size"] = sample_size
+            detail[f"{option} {day} Capped"] = result[f"{day} {option} Over Cap"]
+            detail[f"{option} {day} Achieved Margin of Error"] = "" if achieved is None else round(achieved, 4)
+    draft_detail_rows.append(detail)
+
+write_rows(
+    RESULTS_DIR / "draft_sample_size_by_operator_and_mode.csv", draft_detail_rows, list(draft_detail_rows[0].keys())
+)
+
+draft_display_rows = []
+for row, result in zip(draft_rows, constrained_results):
+    display_row = dict(row)
+    for (option, day), column in draft_columns.items():
+        if result[f"{day} {option} Over Cap"] == "Yes":
+            display_row[column] = f"{row[column]} \u2020"
+    draft_display_rows.append(display_row)
+
+show_table([*draft_display_rows, draft_total_row], list(draft_rows[0].keys()))
+```
+
+### Operators and modes capped at the maximum sampling rate
+
+For each operator and mode marked † above, the sample size is limited by `MAX_SAMPLING_RATE` rather than by the margin of error solved in Step 4. The table shows the margin of error indicated in the column heading and the higher margin of error that the capped sample size achieves.
+
+```{python}
+#| label: step5-capped
+capped_entries = []
+for detail in draft_detail_rows:
+    for option in CONSTRAINTS:
+        for day in DAY_TYPES:
+            if detail[f"{option} {day} Capped"] == "Yes":
+                capped_entries.append(
+                    {
+                        "Operator": detail["Operator"],
+                        "Snapshot Canonical Operator": detail["Snapshot Canonical Operator"],
+                        "Mode": detail["Mode"],
+                        "Option": option,
+                        "Day type": day,
+                        "Ridership (N)": f"{detail[f'{day} Ridership']:,}",
+                        "Capped sample size": f"{detail[f'{option} {day} Sample Size']:,}",
+                        "Indicated margin of error": f"+/-{detail[f'{option} {day} Margin of Error']:.2%}",
+                        "Achieved margin of error": f"+/-{detail[f'{option} {day} Achieved Margin of Error']:.2%}",
+                    }
+                )
+
+display(Markdown(f"**{len(capped_entries)} operator, mode, option, and day type combinations are capped.**"))
+if capped_entries:
+    show_table(capped_entries, list(capped_entries[0].keys()))
+```
+
+## Step 5 validation
+
+```{python}
+#| label: step5-validate
+assert [(row["Operator"], row["Snapshot Canonical Operator"], row["Mode"]) for row in draft_rows] == [
+    (row["Operator"], row["Snapshot Canonical Operator"], row["Mode"]) for row in step1_rows
+], "Draft table rows differ from the Step 1 main output"
+for option, limits in CONSTRAINTS.items():
+    weekday_total = draft_total_row[draft_columns[(option, "Weekday")]]
+    weekend_total = draft_total_row[draft_columns[(option, "Weekend")]]
+    assert weekday_total <= limits["Weekday"], (option, weekday_total)
+    assert weekday_total + weekend_total <= limits["Weekday + Weekend"], (option, weekday_total + weekend_total)
+
+for entry in capped_entries:
+    indicated = float(entry["Indicated margin of error"].lstrip("+/-").rstrip("%"))
+    achieved = float(entry["Achieved margin of error"].lstrip("+/-").rstrip("%"))
+    assert achieved > indicated, entry
+
+show_table(
+    [
+        {"Check": "Rows match the Step 1 main output, in the same order", "Result": f"passed ({len(draft_rows)} rows)"},
+        {"Check": "Weekday totals are within the weekday limits", "Result": "passed"},
+        {"Check": "Weekday + weekend totals are within their limits", "Result": "passed"},
+        {"Check": "Capped sample sizes achieve a higher margin of error than indicated", "Result": f"passed ({len(capped_entries)} capped)"},
+    ],
+    ["Check", "Result"],
+)
+```
